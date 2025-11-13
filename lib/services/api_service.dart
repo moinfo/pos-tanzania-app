@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/api_response.dart';
 import '../models/user.dart';
 import '../models/zreport.dart';
@@ -19,25 +20,59 @@ import '../models/supplier.dart';
 import '../models/receiving.dart';
 import '../models/sale.dart'; // Use SaleItem from sale.dart
 import '../models/stock_location.dart';
+import '../models/client_config.dart';
+import '../config/clients_config.dart';
 
 class ApiService {
-  // Automatic API URL switching based on build mode
-  // Debug mode: Local API (http://172.16.245.29:8888/...)
-  // Release mode: Production API (https://moinfotech.co.tz/api)
-  static String get baseUrl {
+  final _storage = const FlutterSecureStorage();
+  String? _token;
+  static ClientConfig? _currentClient;
+
+  // Get current client configuration
+  static Future<ClientConfig> getCurrentClient() async {
+    if (_currentClient != null) {
+      return _currentClient!;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final clientId = prefs.getString('selected_client_id');
+
+    if (clientId != null) {
+      _currentClient = ClientsConfig.getClientById(clientId);
+    }
+
+    _currentClient ??= ClientsConfig.getDefaultClient();
+    return _currentClient!;
+  }
+
+  // Set current client
+  static Future<void> setCurrentClient(String clientId) async {
+    _currentClient = ClientsConfig.getClientById(clientId);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_client_id', clientId);
+  }
+
+  // Get base URL based on current client and build mode
+  static Future<String> get baseUrl async {
+    final client = await getCurrentClient();
     if (kReleaseMode) {
-      // Production API - used when building APK/release
-      return 'https://moinfotech.co.tz/api';
+      return client.prodApiUrl;
     } else {
-      // Local API - used during development/debug
-      // Current wireless IP: 172.16.245.29
-      return 'http://172.16.245.29:8888/PointOfSalesTanzania/public/api';
-//       return 'http://192.168.0.101:8888/PointOfSalesTanzania/public/api';
+      return client.devApiUrl;
     }
   }
 
-  final _storage = const FlutterSecureStorage();
-  String? _token;
+  // Synchronous version for backwards compatibility (uses cached client)
+  static String get baseUrlSync {
+    if (_currentClient == null) {
+      return ClientsConfig.getDefaultClient().devApiUrl;
+    }
+    if (kReleaseMode) {
+      return _currentClient!.prodApiUrl;
+    } else {
+      return _currentClient!.devApiUrl;
+    }
+  }
 
   // Get stored token
   Future<String?> getToken() async {
@@ -142,7 +177,7 @@ class ApiService {
   Future<ApiResponse<User>> login(String username, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
+        Uri.parse('$baseUrlSync/auth/login'),
         headers: await _getHeaders(includeAuth: false),
         body: json.encode({
           'username': username,
@@ -187,7 +222,7 @@ class ApiService {
   Future<Map<String, dynamic>> getUserPermissions() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/auth/permissions'),
+        Uri.parse('$baseUrlSync/auth/permissions'),
         headers: await _getHeaders(),
       ).timeout(
         const Duration(seconds: 30),
@@ -207,7 +242,7 @@ class ApiService {
   Future<ApiResponse<User>> verifyToken() async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/verify'),
+        Uri.parse('$baseUrlSync/auth/verify'),
         headers: await _getHeaders(),
       );
 
@@ -224,7 +259,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> refreshToken() async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/refresh'),
+        Uri.parse('$baseUrlSync/auth/refresh'),
         headers: await _getHeaders(),
       );
 
@@ -250,7 +285,7 @@ class ApiService {
   Future<ApiResponse<void>> logout() async {
     try {
       await http.post(
-        Uri.parse('$baseUrl/auth/logout'),
+        Uri.parse('$baseUrlSync/auth/logout'),
         headers: await _getHeaders(),
       );
 
@@ -287,7 +322,7 @@ class ApiService {
         if (locationId != null) 'location_id': locationId.toString(),
       };
 
-      final uri = Uri.parse('$baseUrl/zreports').replace(
+      final uri = Uri.parse('$baseUrlSync/zreports').replace(
         queryParameters: queryParams,
       );
 
@@ -320,7 +355,7 @@ class ApiService {
   Future<ApiResponse<ZReportDetails>> getZReport(int id) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/zreports/$id'),
+        Uri.parse('$baseUrlSync/zreports/$id'),
         headers: await _getHeaders(),
       );
 
@@ -354,7 +389,7 @@ class ApiService {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/zreports/create'),
+        Uri.parse('$baseUrlSync/zreports/create'),
         headers: await _getHeaders(),
         body: jsonEncode(body),
       );
@@ -393,7 +428,7 @@ class ApiService {
       }
 
       final response = await http.put(
-        Uri.parse('$baseUrl/zreports/update/$id'),
+        Uri.parse('$baseUrlSync/zreports/update/$id'),
         headers: await _getHeaders(),
         body: jsonEncode(body),
       );
@@ -411,7 +446,7 @@ class ApiService {
   Future<ApiResponse<void>> deleteZReport(int id) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/zreports/delete/$id'),
+        Uri.parse('$baseUrlSync/zreports/delete/$id'),
         headers: await _getHeaders(),
       );
 
@@ -442,7 +477,7 @@ class ApiService {
         if (locationId != null) 'location_id': locationId.toString(),
       };
 
-      final uri = Uri.parse('$baseUrl/cashsubmit').replace(
+      final uri = Uri.parse('$baseUrlSync/cashsubmit').replace(
         queryParameters: queryParams,
       );
 
@@ -480,7 +515,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/cashsubmit/create'),
+        Uri.parse('$baseUrlSync/cashsubmit/create'),
         headers: await _getHeaders(),
         body: json.encode({
           'amount': amount,
@@ -508,7 +543,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/cashsubmit/$id'),
+        Uri.parse('$baseUrlSync/cashsubmit/$id'),
         headers: await _getHeaders(),
         body: json.encode({
           'amount': amount,
@@ -530,7 +565,7 @@ class ApiService {
   Future<ApiResponse<void>> deleteCashSubmission(int id) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/cashsubmit/$id'),
+        Uri.parse('$baseUrlSync/cashsubmit/$id'),
         headers: await _getHeaders(),
       );
 
@@ -552,7 +587,7 @@ class ApiService {
   Future<ApiResponse<List<Supervisor>>> getSupervisors() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/cashsubmit/supervisors'),
+        Uri.parse('$baseUrlSync/cashsubmit/supervisors'),
         headers: await _getHeaders(),
       );
 
@@ -585,7 +620,7 @@ class ApiService {
       final queryParams = date != null ? '?date=$date' : '';
 
       final response = await http.get(
-        Uri.parse('$baseUrl/cashsubmit/today_summary$queryParams'),
+        Uri.parse('$baseUrlSync/cashsubmit/today_summary$queryParams'),
         headers: await _getHeaders(),
       );
 
@@ -613,7 +648,7 @@ class ApiService {
   Future<ApiResponse<List<Contract>>> getContracts() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/contracts'),
+        Uri.parse('$baseUrlSync/contracts'),
         headers: await _getHeaders(),
       );
 
@@ -644,7 +679,7 @@ class ApiService {
   Future<ApiResponse<Contract>> getContract(int id) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/contracts/$id'),
+        Uri.parse('$baseUrlSync/contracts/$id'),
         headers: await _getHeaders(),
       );
 
@@ -669,7 +704,7 @@ class ApiService {
         if (endDate != null) 'end_date': endDate,
       };
 
-      final uri = Uri.parse('$baseUrl/contracts/$contractId/statement').replace(
+      final uri = Uri.parse('$baseUrlSync/contracts/$contractId/statement').replace(
         queryParameters: queryParams,
       );
 
@@ -718,7 +753,7 @@ class ApiService {
         if (locationId != null) 'location_id': locationId.toString(),
       };
 
-      final uri = Uri.parse('$baseUrl/expenses').replace(
+      final uri = Uri.parse('$baseUrlSync/expenses').replace(
         queryParameters: queryParams,
       );
 
@@ -751,7 +786,7 @@ class ApiService {
   Future<ApiResponse<Expense>> getExpense(int id) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/expenses/$id'),
+        Uri.parse('$baseUrlSync/expenses/$id'),
         headers: await _getHeaders(),
       );
 
@@ -768,7 +803,7 @@ class ApiService {
   Future<ApiResponse<Expense>> createExpense(ExpenseFormData formData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/expenses/create'),
+        Uri.parse('$baseUrlSync/expenses/create'),
         headers: await _getHeaders(),
         body: json.encode(formData.toJson()),
       );
@@ -786,7 +821,7 @@ class ApiService {
   Future<ApiResponse<Expense>> updateExpense(int id, ExpenseFormData formData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/expenses/update/$id'),
+        Uri.parse('$baseUrlSync/expenses/update/$id'),
         headers: await _getHeaders(),
         body: json.encode(formData.toJson()),
       );
@@ -804,7 +839,7 @@ class ApiService {
   Future<ApiResponse<void>> deleteExpense(int id) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/expenses/delete/$id'),
+        Uri.parse('$baseUrlSync/expenses/delete/$id'),
         headers: await _getHeaders(),
       );
 
@@ -818,7 +853,7 @@ class ApiService {
   Future<ApiResponse<List<ExpenseCategory>>> getExpenseCategories() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/expenses/categories'),
+        Uri.parse('$baseUrlSync/expenses/categories'),
         headers: await _getHeaders(),
       );
 
@@ -862,7 +897,7 @@ class ApiService {
         if (supervisorId != null) 'supervisor_id': supervisorId,
       };
 
-      final uri = Uri.parse('$baseUrl/customers').replace(
+      final uri = Uri.parse('$baseUrlSync/customers').replace(
         queryParameters: queryParams,
       );
 
@@ -895,7 +930,7 @@ class ApiService {
   Future<ApiResponse<Customer>> getCustomer(int id) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/customers/$id'),
+        Uri.parse('$baseUrlSync/customers/$id'),
         headers: await _getHeaders(),
       );
 
@@ -912,7 +947,7 @@ class ApiService {
   Future<ApiResponse<Customer>> createCustomer(CustomerFormData formData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/customers/create'),
+        Uri.parse('$baseUrlSync/customers/create'),
         headers: await _getHeaders(),
         body: json.encode(formData.toJson()),
       );
@@ -930,7 +965,7 @@ class ApiService {
   Future<ApiResponse<Customer>> updateCustomer(int id, CustomerFormData formData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/customers/update/$id'),
+        Uri.parse('$baseUrlSync/customers/update/$id'),
         headers: await _getHeaders(),
         body: json.encode(formData.toJson()),
       );
@@ -948,7 +983,7 @@ class ApiService {
   Future<ApiResponse<void>> deleteCustomer(int id) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/customers/delete/$id'),
+        Uri.parse('$baseUrlSync/customers/delete/$id'),
         headers: await _getHeaders(),
       );
 
@@ -977,7 +1012,7 @@ class ApiService {
         if (locationId != null) 'location_id': locationId.toString(),
       };
 
-      final uri = Uri.parse('$baseUrl/items').replace(
+      final uri = Uri.parse('$baseUrlSync/items').replace(
         queryParameters: queryParams,
       );
 
@@ -1010,7 +1045,7 @@ class ApiService {
   Future<ApiResponse<Item>> getItem(int id) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/items/$id'),
+        Uri.parse('$baseUrlSync/items/$id'),
         headers: await _getHeaders(),
       );
 
@@ -1027,7 +1062,7 @@ class ApiService {
   Future<ApiResponse<Item>> createItem(ItemFormData formData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/items/create'),
+        Uri.parse('$baseUrlSync/items/create'),
         headers: await _getHeaders(),
         body: json.encode(formData.toJson()),
       );
@@ -1045,7 +1080,7 @@ class ApiService {
   Future<ApiResponse<Item>> updateItem(int id, ItemFormData formData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/items/update/$id'),
+        Uri.parse('$baseUrlSync/items/update/$id'),
         headers: await _getHeaders(),
         body: json.encode(formData.toJson()),
       );
@@ -1063,7 +1098,7 @@ class ApiService {
   Future<ApiResponse<void>> deleteItem(int id) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/items/delete/$id'),
+        Uri.parse('$baseUrlSync/items/delete/$id'),
         headers: await _getHeaders(),
       );
 
@@ -1088,7 +1123,7 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrl/credits/statement/$customerId')
+      final uri = Uri.parse('$baseUrlSync/credits/statement/$customerId')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
@@ -1109,7 +1144,7 @@ class ApiService {
   Future<ApiResponse<CreditBalance>> getCreditBalance(int customerId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/credits/balance/$customerId'),
+        Uri.parse('$baseUrlSync/credits/balance/$customerId'),
         headers: await _getHeaders(),
       );
 
@@ -1127,7 +1162,7 @@ class ApiService {
       PaymentFormData formData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/credits/add_payment'),
+        Uri.parse('$baseUrlSync/credits/add_payment'),
         headers: await _getHeaders(),
         body: json.encode(formData.toJson()),
       );
@@ -1146,7 +1181,7 @@ class ApiService {
       int paymentId, Map<String, dynamic> updateData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/credits/update_payment/$paymentId'),
+        Uri.parse('$baseUrlSync/credits/update_payment/$paymentId'),
         headers: await _getHeaders(),
         body: json.encode(updateData),
       );
@@ -1165,7 +1200,7 @@ class ApiService {
       int paymentId) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/credits/delete_payment/$paymentId'),
+        Uri.parse('$baseUrlSync/credits/delete_payment/$paymentId'),
         headers: await _getHeaders(),
       );
 
@@ -1182,7 +1217,7 @@ class ApiService {
   Future<ApiResponse<SaleDetails>> getCreditSaleDetails(int saleId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/credits/sale/$saleId'),
+        Uri.parse('$baseUrlSync/credits/sale/$saleId'),
         headers: await _getHeaders(),
       );
 
@@ -1201,7 +1236,7 @@ class ApiService {
   Future<ApiResponse<List<Supplier>>> getSuppliers() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/supplier_credits/suppliers'),
+        Uri.parse('$baseUrlSync/supplier_credits/suppliers'),
         headers: await _getHeaders(),
       );
 
@@ -1240,7 +1275,7 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrl/supplier_credits/statement/$supplierId')
+      final uri = Uri.parse('$baseUrlSync/supplier_credits/statement/$supplierId')
           .replace(queryParameters: queryParams);
 
       final response = await http.get(
@@ -1267,7 +1302,7 @@ class ApiService {
     try {
       final token = await getToken();
       final response = await http.post(
-        Uri.parse('$baseUrl/supplier_credits/add_payment'),
+        Uri.parse('$baseUrlSync/supplier_credits/add_payment'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -1291,7 +1326,7 @@ class ApiService {
     try {
       final token = await getToken();
       final response = await http.get(
-        Uri.parse('$baseUrl/supplier_credits/balance/$supplierId'),
+        Uri.parse('$baseUrlSync/supplier_credits/balance/$supplierId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -1315,7 +1350,7 @@ class ApiService {
     try {
       final token = await getToken();
       final response = await http.post(
-        Uri.parse('$baseUrl/supplier_credits/update_payment/$paymentId'),
+        Uri.parse('$baseUrlSync/supplier_credits/update_payment/$paymentId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -1337,7 +1372,7 @@ class ApiService {
     try {
       final token = await getToken();
       final response = await http.post(
-        Uri.parse('$baseUrl/supplier_credits/delete_payment/$paymentId'),
+        Uri.parse('$baseUrlSync/supplier_credits/delete_payment/$paymentId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -1357,7 +1392,7 @@ class ApiService {
   Future<ApiResponse<Supplier>> getSupplier(int supplierId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/suppliers/show/$supplierId'),
+        Uri.parse('$baseUrlSync/suppliers/show/$supplierId'),
         headers: await _getHeaders(),
       );
 
@@ -1374,7 +1409,7 @@ class ApiService {
   Future<ApiResponse<Supplier>> createSupplier(Map<String, dynamic> supplierData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/suppliers/create'),
+        Uri.parse('$baseUrlSync/suppliers/create'),
         headers: await _getHeaders(),
         body: json.encode(supplierData),
       );
@@ -1392,7 +1427,7 @@ class ApiService {
   Future<ApiResponse<Supplier>> updateSupplier(int supplierId, Map<String, dynamic> supplierData) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/suppliers/update/$supplierId'),
+        Uri.parse('$baseUrlSync/suppliers/update/$supplierId'),
         headers: await _getHeaders(),
         body: json.encode(supplierData),
       );
@@ -1410,7 +1445,7 @@ class ApiService {
   Future<ApiResponse<void>> deleteSupplier(int supplierId) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/suppliers/delete/$supplierId'),
+        Uri.parse('$baseUrlSync/suppliers/delete/$supplierId'),
         headers: await _getHeaders(),
       );
 
@@ -1424,7 +1459,7 @@ class ApiService {
   Future<ApiResponse<List<Map<String, dynamic>>>> getSupplierSupervisors() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/suppliers/supervisors'),
+        Uri.parse('$baseUrlSync/suppliers/supervisors'),
         headers: await _getHeaders(),
       );
 
@@ -1473,7 +1508,7 @@ class ApiService {
         queryParams['location_id'] = locationId.toString();
       }
 
-      final uri = Uri.parse('$baseUrl/receivings').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/receivings').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(
@@ -1489,7 +1524,7 @@ class ApiService {
   Future<ApiResponse<ReceivingDetails>> getReceivingDetails(int receivingId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/receivings/$receivingId'),
+        Uri.parse('$baseUrlSync/receivings/$receivingId'),
         headers: await _getHeaders(),
       );
 
@@ -1506,7 +1541,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> createReceiving(Receiving receiving) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/receivings/create'),
+        Uri.parse('$baseUrlSync/receivings/create'),
         headers: await _getHeaders(),
         body: json.encode(receiving.toJson()),
       );
@@ -1524,7 +1559,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> deleteReceiving(int receivingId) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/receivings/$receivingId'),
+        Uri.parse('$baseUrlSync/receivings/$receivingId'),
         headers: await _getHeaders(),
       );
 
@@ -1561,7 +1596,7 @@ class ApiService {
       if (saleType != null) queryParams['sale_type'] = saleType.toString();
       if (locationId != null) queryParams['location_id'] = locationId.toString();
 
-      final uri = Uri.parse('$baseUrl/sales').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/sales').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(
@@ -1577,7 +1612,7 @@ class ApiService {
   Future<ApiResponse<Sale>> getSaleDetails(int saleId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/sales/$saleId'),
+        Uri.parse('$baseUrlSync/sales/$saleId'),
         headers: await _getHeaders(),
       );
 
@@ -1594,7 +1629,7 @@ class ApiService {
   Future<ApiResponse<List<SaleItem>>> getSaleItems(int saleId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/sales/$saleId/items'),
+        Uri.parse('$baseUrlSync/sales/$saleId/items'),
         headers: await _getHeaders(),
       );
 
@@ -1611,7 +1646,7 @@ class ApiService {
   Future<ApiResponse<Sale>> createSale(Sale sale) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/sales/create'),
+        Uri.parse('$baseUrlSync/sales/create'),
         headers: await _getHeaders(),
         body: jsonEncode(sale.toCreateJson()),
       );
@@ -1641,7 +1676,7 @@ class ApiService {
       };
 
       final response = await http.post(
-        Uri.parse('$baseUrl/sales/suspend'),
+        Uri.parse('$baseUrlSync/sales/suspend'),
         headers: await _getHeaders(),
         body: jsonEncode(requestBody),
       );
@@ -1673,7 +1708,7 @@ class ApiService {
         queryParams['end_date'] = endDate;
       }
 
-      final uri = Uri.parse('$baseUrl/sales/suspended').replace(
+      final uri = Uri.parse('$baseUrlSync/sales/suspended').replace(
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
@@ -1719,7 +1754,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> deleteSuspendedSale(int saleId) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/sales/delete/$saleId'),
+        Uri.parse('$baseUrlSync/sales/delete/$saleId'),
         headers: await _getHeaders(),
       );
 
@@ -1736,7 +1771,7 @@ class ApiService {
   Future<ApiResponse<SaleSummary>> getTodaySummary({String? date}) async {
     try {
       final queryParams = date != null ? {'date': date} : <String, String>{};
-      final uri = Uri.parse('$baseUrl/sales/today_summary').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/sales/today_summary').replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -1775,7 +1810,7 @@ class ApiService {
         queryParams['location_id'] = locationId.toString();
       }
 
-      final uri = Uri.parse('$baseUrl/banking').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/banking').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<List<BankingListItem>>(
@@ -1795,7 +1830,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> createBanking(BankingCreate banking) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/banking/create'),
+        Uri.parse('$baseUrlSync/banking/create'),
         headers: await _getHeaders(),
         body: json.encode(banking.toJson()),
       );
@@ -1813,7 +1848,7 @@ class ApiService {
   Future<ApiResponse<BankingListItem>> updateBanking(int id, BankingCreate banking) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/banking/update/$id'),
+        Uri.parse('$baseUrlSync/banking/update/$id'),
         headers: await _getHeaders(),
         body: json.encode(banking.toJson()),
       );
@@ -1831,7 +1866,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> deleteBanking(int id) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/banking/delete/$id'),
+        Uri.parse('$baseUrlSync/banking/delete/$id'),
         headers: await _getHeaders(),
       );
 
@@ -1864,7 +1899,7 @@ class ApiService {
       if (endDate != null) queryParams['end_date'] = endDate;
       if (stockLocation != null) queryParams['stock_location'] = stockLocation;
 
-      final uri = Uri.parse('$baseUrl/profitsubmit').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/profitsubmit').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(
@@ -1880,7 +1915,7 @@ class ApiService {
   Future<ApiResponse<ProfitSubmitDetails>> getProfitSubmissionDetails(int id) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/profitsubmit/$id'),
+        Uri.parse('$baseUrlSync/profitsubmit/$id'),
         headers: await _getHeaders(),
       );
 
@@ -1897,7 +1932,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> createProfitSubmission(ProfitSubmitCreate profitSubmit) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/profitsubmit/create'),
+        Uri.parse('$baseUrlSync/profitsubmit/create'),
         headers: await _getHeaders(),
         body: json.encode(profitSubmit.toJson()),
       );
@@ -1915,7 +1950,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> updateProfitSubmission(int id, ProfitSubmitCreate profitSubmit) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/profitsubmit/update/$id'),
+        Uri.parse('$baseUrlSync/profitsubmit/update/$id'),
         headers: await _getHeaders(),
         body: json.encode(profitSubmit.toJson()),
       );
@@ -1933,7 +1968,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> deleteProfitSubmission(int id) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/profitsubmit/delete/$id'),
+        Uri.parse('$baseUrlSync/profitsubmit/delete/$id'),
         headers: await _getHeaders(),
       );
 
@@ -1953,7 +1988,7 @@ class ApiService {
     String moduleId = 'items',
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/stock_locations/allowed')
+      final uri = Uri.parse('$baseUrlSync/stock_locations/allowed')
           .replace(queryParameters: {'module_id': moduleId});
 
       final response = await http.get(
@@ -1977,7 +2012,7 @@ class ApiService {
   Future<ApiResponse<List<StockLocation>>> getAllStockLocations() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/stock_locations'),
+        Uri.parse('$baseUrlSync/stock_locations'),
         headers: await _getHeaders(),
       );
 
@@ -1999,7 +2034,7 @@ class ApiService {
     String moduleId = 'items',
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/stock_locations/check/$locationId')
+      final uri = Uri.parse('$baseUrlSync/stock_locations/check/$locationId')
           .replace(queryParameters: {'module_id': moduleId});
 
       final response = await http.get(

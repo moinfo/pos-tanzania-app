@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/biometric_service.dart';
+import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
+import 'client_selector_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -20,11 +23,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isBiometricAvailable = false;
   bool _isBiometricEnabled = false;
   String _biometricType = 'Biometric';
+  String _currentClientName = '';
 
   @override
   void initState() {
     super.initState();
     _initializeBiometric();
+    _loadCurrentClient();
+  }
+
+  Future<void> _loadCurrentClient() async {
+    final client = await ApiService.getCurrentClient();
+    setState(() {
+      _currentClientName = client.displayName;
+    });
   }
 
   Future<void> _initializeBiometric() async {
@@ -225,6 +237,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: (_) => themeProvider.toggleTheme(),
                     activeColor: AppColors.success,
                   ),
+                ),
+              ],
+            ),
+          ),
+
+          // Client Configuration Section
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'CLIENT CONFIGURATION',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          GlassmorphicCard(
+            isDark: isDark,
+            child: Column(
+              children: [
+                // Change Client Button
+                ListTile(
+                  leading: Icon(
+                    Icons.store,
+                    color: isDark ? AppColors.primary : AppColors.primary,
+                    size: 28,
+                  ),
+                  title: Text(
+                    'Switch Client',
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkText : AppColors.text,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Current: $_currentClientName',
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      fontSize: 13,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.arrow_forward_ios,
+                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    size: 16,
+                  ),
+                  onTap: () async {
+                    // Logout and go to client selector
+                    await authProvider.logout();
+                    if (mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const ClientSelectorScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    }
+                  },
                 ),
               ],
             ),

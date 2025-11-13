@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
 import 'providers/sale_provider.dart';
 import 'providers/receiving_provider.dart';
@@ -8,6 +9,8 @@ import 'providers/permission_provider.dart';
 import 'providers/location_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
+import 'screens/client_selector_screen.dart';
+import 'services/api_service.dart';
 import 'utils/constants.dart';
 
 void main() {
@@ -181,10 +184,27 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    // Wait for auth provider to initialize
+    // Wait for initialization
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
+      // Check if client is selected
+      final prefs = await SharedPreferences.getInstance();
+      final selectedClientId = prefs.getString('selected_client_id');
+
+      // If no client selected, show client selector
+      if (selectedClientId == null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const ClientSelectorScreen(),
+          ),
+        );
+        return;
+      }
+
+      // Initialize API service with selected client
+      await ApiService.getCurrentClient();
+
       final authProvider = context.read<AuthProvider>();
       final isAuthenticated = authProvider.isAuthenticated;
 
