@@ -1,14 +1,24 @@
 # POS Tanzania Mobile App
 
-Flutter mobile application for Point of Sales Tanzania system with Z Reports and Cash Submission features.
+Flutter mobile application for Point of Sales Tanzania system with multi-client support, Z Reports, Cash Submission, and comprehensive business management features.
 
-## Features
+## 🌟 Key Features
 
-- **Authentication**: JWT-based login with secure token storage
-- **Z Reports**: View, create, and submit Z Reports with file attachments
+- **Multi-Client Support**: Single app supports 21+ different clients with dynamic API switching
+- **Client Selector**: Easy-to-use interface to switch between clients
+- **Authentication**: JWT-based login with secure token storage and biometric support
+- **Z Reports**: View, create, and submit Z Reports with file attachments and stock location support
 - **Cash Submissions**: Submit cash with supervisor approval workflow
+- **Banking**: Track and manage banking transactions
+- **Expenses**: Record and categorize business expenses
+- **Sales Management**: Create, view, and manage sales with multiple payment types
+- **Inventory**: Manage items, stock locations, and receivings
+- **Customer/Supplier Credits**: Track credit accounts and payments
+- **Contracts**: View and manage customer contracts
 - **Offline Support**: Secure storage for authentication tokens
 - **Tanzania-Specific**: TRA compliance features (Z Reports, EFD)
+- **Glassmorphic UI**: Modern, beautiful user interface with dark mode support
+- **Permission-Based Access**: Role-based access control for different features
 
 ## Prerequisites
 
@@ -30,28 +40,19 @@ cd pos_tanzania_mobile
 flutter pub get
 ```
 
-### 3. Configure API Base URL
+### 3. Configure API Base URL (Optional)
 
-Edit `lib/services/api_service.dart` and update the base URL:
+**Note:** The app now uses a multi-client configuration system. You can select different clients from the app without changing code.
+
+To update the development API URL for all clients, edit `lib/config/clients_config.dart`:
 
 ```dart
-static const String baseUrl = 'http://YOUR_SERVER_IP:8888/PointOfSalesTanzania/public/api';
+static const String localBaseUrl = 'http://172.16.245.29:8888/PointOfSalesTanzania/public/api';
 ```
 
-**For Android Emulator:**
-```dart
-static const String baseUrl = 'http://10.0.2.2:8888/PointOfSalesTanzania/public/api';
-```
-
-**For iOS Simulator:**
-```dart
-static const String baseUrl = 'http://localhost:8888/PointOfSalesTanzania/public/api';
-```
-
-**For Physical Device:**
-```dart
-static const String baseUrl = 'http://YOUR_LOCAL_IP:8888/PointOfSalesTanzania/public/api';
-```
+**For Android Emulator:** Use `http://10.0.2.2:8888/`
+**For iOS Simulator:** Use `http://localhost:8888/`
+**For Physical Device:** Use your computer's local IP (e.g., `http://192.168.1.100:8888/`)
 
 ## Running the App
 
@@ -73,30 +74,70 @@ flutter run
 flutter run -d chrome
 ```
 
+## 🏢 Multi-Client Configuration
+
+This app supports multiple clients (21+ clients) with a single APK. Each client can have different backend servers.
+
+### How to Use
+
+1. **First Launch**: Select your client from the list
+2. **Login**: Enter your credentials
+3. **Switch Client**: Go to Settings → Switch Client
+
+### Available Clients
+
+SADA, Come & Save, Bonge, Iddy, Kassim, Leruma, Mazao, Meriwa, Pingo, PLM Store, POSTZ, Qatar, Ruge, Sanira, SGS, Shorasho, Shukuma, TrishBake, White Star, Zai, Zai Food
+
+### Configuration
+
+Client configurations are stored in `lib/config/clients_config.dart`. Each client has:
+- **Development URL**: Used when running `flutter run`
+- **Production URL**: Used when building release APK
+
+**For detailed information**, see [CLIENT_CONFIGURATION.md](CLIENT_CONFIGURATION.md)
+
 ## Project Structure
 
 ```
 lib/
-├── main.dart                   # App entry point
-├── models/                     # Data models
+├── main.dart                      # App entry point
+├── config/                        # Configuration
+│   └── clients_config.dart       # Multi-client configuration
+├── models/                        # Data models
 │   ├── api_response.dart
+│   ├── client_config.dart        # Client model
 │   ├── user.dart
 │   ├── z_report.dart
 │   ├── cash_submission.dart
-│   └── supervisor.dart
-├── providers/                  # State management
-│   └── auth_provider.dart
-├── screens/                    # UI screens
+│   ├── banking.dart
+│   ├── expense.dart
+│   ├── sale.dart
+│   └── ... (more models)
+├── providers/                     # State management
+│   ├── auth_provider.dart
+│   ├── permission_provider.dart
+│   ├── location_provider.dart
+│   └── theme_provider.dart
+├── screens/                       # UI screens
+│   ├── client_selector_screen.dart
 │   ├── login_screen.dart
 │   ├── home_screen.dart
-│   ├── z_reports_screen.dart
-│   └── cash_submit_screen.dart
-├── services/                   # API services
-│   └── api_service.dart
-├── utils/                      # Utilities
+│   ├── main_navigation.dart
+│   ├── z_report/
+│   ├── banking/
+│   ├── expenses_screen.dart
+│   ├── sales_screen.dart
+│   └── ... (more screens)
+├── services/                      # API services
+│   ├── api_service.dart          # Main API service
+│   └── biometric_service.dart
+├── utils/                         # Utilities
 │   ├── constants.dart
 │   └── formatters.dart
-└── widgets/                    # Reusable widgets
+└── widgets/                       # Reusable widgets
+    ├── glassmorphic_card.dart
+    ├── permission_wrapper.dart
+    └── app_bottom_navigation.dart
 ```
 
 ## Default Login Credentials
