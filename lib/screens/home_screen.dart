@@ -330,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: (isDark ? AppColors.darkSurface : Colors.white).withOpacity(0.3),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: (isDark ? AppColors.darkBorder : AppColors.lightBorder).withOpacity(0.3),
+                        color: (isDark ? AppColors.darkDivider : AppColors.lightDivider).withOpacity(0.3),
                       ),
                     ),
                     child: Row(
