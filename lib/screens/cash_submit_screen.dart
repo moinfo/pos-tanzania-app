@@ -45,10 +45,16 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
     final currentClient = ApiService.currentClient;
     final clientId = currentClient?.id ?? 'sada';
 
+    print('💼 Cash Submit Init - Client ID: $clientId');
+
     // Initialize location provider only for Come & Save
     if (clientId == 'come_and_save') {
+      print('📍 Initializing location provider for Come & Save');
       final locationProvider = context.read<LocationProvider>();
       await locationProvider.initialize(moduleId: 'sales'); // Use sales permissions
+      print('📍 Location provider initialized. Locations: ${locationProvider.allowedLocations.length}');
+    } else {
+      print('📍 Skipping location initialization for SADA');
     }
 
     _loadSubmissions();
@@ -370,6 +376,11 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
     final locationProvider = context.watch<LocationProvider>();
     final selectedLocation = locationProvider.selectedLocation;
     final locations = locationProvider.allowedLocations;
+
+    // Debug: Check client and locations
+    final currentClient = ApiService.currentClient;
+    final clientId = currentClient?.id ?? 'unknown';
+    print('💼 Cash Submit - Client: $clientId, Locations: ${locations.length}, Selected: ${selectedLocation?.locationName}');
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
