@@ -645,26 +645,46 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> getCashSubmitTodaySummary({String? date}) async {
     try {
       final queryParams = date != null ? '?date=$date' : '';
+      final url = '$baseUrlSync/cashsubmit/today_summary$queryParams';
+
+      print('🌐 Calling: $url');
 
       final response = await http.get(
-        Uri.parse('$baseUrlSync/cashsubmit/today_summary$queryParams'),
+        Uri.parse(url),
         headers: await _getHeaders(),
       );
 
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body (first 200 chars): ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.success(
-          data: jsonResponse['data'],
-          message: jsonResponse['message'],
-        );
+        try {
+          final jsonResponse = json.decode(response.body);
+          return ApiResponse.success(
+            data: jsonResponse['data'],
+            message: jsonResponse['message'],
+          );
+        } catch (e) {
+          print('❌ JSON decode error: $e');
+          print('❌ Response body: ${response.body}');
+          return ApiResponse.error(message: 'Invalid JSON response: $e');
+        }
       } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch today summary',
-          statusCode: response.statusCode,
-        );
+        try {
+          final jsonResponse = json.decode(response.body);
+          return ApiResponse.error(
+            message: jsonResponse['message'] ?? 'Failed to fetch today summary',
+            statusCode: response.statusCode,
+          );
+        } catch (e) {
+          return ApiResponse.error(
+            message: 'Server error (${response.statusCode}): ${response.body.substring(0, 100)}',
+            statusCode: response.statusCode,
+          );
+        }
       }
     } catch (e) {
+      print('❌ Connection error: $e');
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
