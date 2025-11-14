@@ -669,15 +669,22 @@ class ApiService {
   }
 
   /// Get today's cash submission summary
-  Future<ApiResponse<Map<String, dynamic>>> getCashSubmitTodaySummary({String? date}) async {
+  Future<ApiResponse<Map<String, dynamic>>> getCashSubmitTodaySummary({
+    String? date,
+    int? locationId,
+  }) async {
     try {
-      final queryParams = date != null ? '?date=$date' : '';
-      final url = '$baseUrlSync/cashsubmit/today_summary$queryParams';
+      final queryParams = <String, String>{};
+      if (date != null) queryParams['date'] = date;
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
 
-      print('🌐 Calling: $url');
+      final uri = Uri.parse('$baseUrlSync/cashsubmit/today_summary')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      print('🌐 Calling: $uri');
 
       final response = await http.get(
-        Uri.parse(url),
+        uri,
         headers: await _getHeaders(),
       );
 

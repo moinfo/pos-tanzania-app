@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/location_provider.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
@@ -30,7 +31,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDashboardData();
+    _initializeDashboard();
+  }
+
+  Future<void> _initializeDashboard() async {
+    final currentClient = ApiService.currentClient;
+    final clientId = currentClient?.id ?? 'sada';
+
+    // Initialize location provider for Come & Save
+    if (clientId == 'come_and_save' && mounted) {
+      final locationProvider = context.read<LocationProvider>();
+      await locationProvider.initialize(moduleId: 'items');
+    }
+
+    await _loadDashboardData();
   }
 
   Future<void> _loadDashboardData() async {
@@ -103,22 +117,49 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Load dashboard for Come & Save (simplified - no contracts, no banking details)
+  /// Load dashboard for Come & Save (filtered by selected location)
   Future<void> _loadComeAndSaveDashboard() async {
-    // For Come & Save, use simplified data or different endpoints
-    // For now, show basic metrics with placeholder values
-    setState(() {
-      _totalSales = 0;
-      _expenses = 0;
-      _gainLoss = 0;
-      _profit = 0;
-      _bankDifference = 0;
-      _totalUnpaid = 0;
-      _isLoading = false;
-    });
+    // Get selected location from provider
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
-    // TODO: Implement Come & Save specific API calls when backend is ready
-    print('⚠️ Come & Save dashboard using placeholder data - backend API needs fixes');
+    if (selectedLocationId == null) {
+      setState(() {
+        _error = 'Please select a stock location';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    print('📍 Loading Come & Save dashboard for location: $selectedLocationId');
+
+    // Get today's summary filtered by location
+    final summaryResponse = await _apiService.getCashSubmitTodaySummary(
+      locationId: selectedLocationId,
+    );
+
+    if (summaryResponse.isSuccess) {
+      final summaryData = summaryResponse.data;
+
+      setState(() {
+        _totalSales = (summaryData?['all_sales'] ?? 0).toDouble();
+        _expenses = (summaryData?['expenses'] ?? 0).toDouble();
+        _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
+        _profit = (summaryData?['profit'] ?? 0).toDouble();
+
+        final bankingAmount = (summaryData?['banking_amount'] ?? 0).toDouble();
+        final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
+        _bankDifference = bankingAmount - supplierBank;
+
+        _totalUnpaid = 0; // Come & Save doesn't have contracts
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _error = summaryResponse.message;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -241,6 +282,75 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 16),
+
+            // Location Selector (Come & Save only)
+            if (ApiService.currentClient?.id == 'come_and_save')
+              Consumer<LocationProvider>(
+                builder: (context, locationProvider, child) {
+                  if (locationProvider.allowedLocations.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Column(
+                    children: [
+                      GlassmorphicCard(
+                        isDark: isDark,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.store,
+                              color: isDark ? AppColors.primary : AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: locationProvider.selectedLocation?.locationId,
+                                  isExpanded: true,
+                                  hint: Text(
+                                    'Select Location',
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.darkText : AppColors.text,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
+                                  icon: Icon(
+                                    Icons.arrow_drop_down,
+                                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                  ),
+                                  items: locationProvider.allowedLocations.map((location) {
+                                    return DropdownMenuItem<int>(
+                                      value: location.locationId,
+                                      child: Text(location.locationName),
+                                    );
+                                  }).toList(),
+                                  onChanged: (newLocationId) async {
+                                    if (newLocationId != null) {
+                                      final newLocation = locationProvider.allowedLocations
+                                          .firstWhere((loc) => loc.locationId == newLocationId);
+                                      await locationProvider.selectLocation(newLocation);
+                                      // Reload dashboard with new location
+                                      await _loadDashboardData();
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                },
+              ),
 
             // Dashboard Content
             if (_isLoading)
