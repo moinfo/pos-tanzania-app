@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _apiService = ApiService();
   bool _isLoading = true;
   String? _error;
+  DateTime _selectedDate = DateTime.now();
 
   // Dashboard data
   double _totalSales = 0;
@@ -32,6 +34,45 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initializeDashboard();
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        final themeProvider = context.read<ThemeProvider>();
+        final isDark = themeProvider.isDarkMode;
+
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                    surface: AppColors.darkSurface,
+                    onSurface: AppColors.darkText,
+                  )
+                : ColorScheme.light(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: AppColors.text,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+      await _loadDashboardData();
+    }
   }
 
   Future<void> _initializeDashboard() async {
@@ -76,8 +117,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Load dashboard for SADA (with contracts and full features)
   Future<void> _loadSadaDashboard() async {
-    // Get today's summary
-    final summaryResponse = await _apiService.getCashSubmitTodaySummary();
+    // Format selected date for API
+    final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+    // Get summary for selected date
+    final summaryResponse = await _apiService.getCashSubmitTodaySummary(
+      date: dateString,
+    );
 
     // Get contracts for unpaid calculation
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
@@ -131,10 +177,14 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    print('📍 Loading Come & Save dashboard for location: $selectedLocationId');
+    // Format selected date for API
+    final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-    // Get today's summary filtered by location
+    print('📍 Loading Come & Save dashboard for location: $selectedLocationId on $dateString');
+
+    // Get summary for selected date and location
     final summaryResponse = await _apiService.getCashSubmitTodaySummary(
+      date: dateString,
       locationId: selectedLocationId,
     );
 
@@ -260,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Dashboard Title
+            // Dashboard Title and Date Selector
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -272,11 +322,35 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: isDark ? AppColors.darkText : AppColors.text,
                   ),
                 ),
-                Text(
-                  Formatters.getTodayFormatted(),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                GestureDetector(
+                  onTap: () => _selectDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: (isDark ? AppColors.darkSurface : Colors.white).withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: (isDark ? AppColors.darkBorder : AppColors.lightBorder).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: isDark ? AppColors.primary : AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          DateFormat('dd MMM yyyy').format(_selectedDate),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.darkText : AppColors.text,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
