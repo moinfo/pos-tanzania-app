@@ -1,3 +1,36 @@
+/// Feature flags for each client
+class ClientFeatures {
+  final bool hasContracts;
+  final bool hasZReports;
+  final bool hasCashSubmit;
+  final bool hasBanking;
+  final bool hasProfitSubmit;
+  final bool hasExpenses;
+  final bool hasCustomers;
+  final bool hasSuppliers;
+  final bool hasItems;
+  final bool hasCredits;
+  final bool hasSupplierCredits;
+  final bool hasReceivings;
+  final bool hasSales;
+
+  const ClientFeatures({
+    this.hasContracts = true,
+    this.hasZReports = true,
+    this.hasCashSubmit = true,
+    this.hasBanking = true,
+    this.hasProfitSubmit = true,
+    this.hasExpenses = true,
+    this.hasCustomers = true,
+    this.hasSuppliers = true,
+    this.hasItems = true,
+    this.hasCredits = true,
+    this.hasSupplierCredits = true,
+    this.hasReceivings = true,
+    this.hasSales = true,
+  });
+}
+
 class ClientConfig {
   final String id;
   final String name;
@@ -6,6 +39,7 @@ class ClientConfig {
   final String prodApiUrl;
   final String? logoUrl;
   final bool isActive;
+  final ClientFeatures features;
 
   ClientConfig({
     required this.id,
@@ -15,6 +49,7 @@ class ClientConfig {
     required this.prodApiUrl,
     this.logoUrl,
     this.isActive = true,
+    this.features = const ClientFeatures(), // Default: all features enabled
   });
 
   Map<String, dynamic> toJson() {

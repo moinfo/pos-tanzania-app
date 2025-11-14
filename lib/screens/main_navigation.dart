@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
 import '../models/permission_model.dart';
+import '../services/api_service.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
 import 'home_screen.dart';
@@ -122,16 +123,67 @@ class _MainNavigationState extends State<MainNavigation> {
     final user = authProvider.user;
     final isDark = themeProvider.isDarkMode;
 
-    // Filter screens based on permissions
+    // Filter screens based on permissions AND client features
     final availableScreens = <Map<String, dynamic>>[];
     final Map<int, int> indexMapping = {}; // Maps bottom nav index to screen config index
+
+    // Get current client's features
+    final currentClient = ApiService._currentClient;
+    final features = currentClient?.features;
 
     for (int i = 0; i < _screenConfigs.length; i++) {
       final config = _screenConfigs[i];
       final permission = config['permission'] as String?;
+      final label = config['label'] as String;
 
       // Skip if no permission specified (shouldn't happen but prevents crash)
       if (permission == null) continue;
+
+      // Check if feature is enabled for this client
+      bool featureEnabled = true;
+      if (features != null) {
+        switch (permission) {
+          case PermissionIds.contracts:
+            featureEnabled = features.hasContracts;
+            break;
+          case PermissionIds.zreports:
+            featureEnabled = features.hasZReports;
+            break;
+          case PermissionIds.cashSubmit:
+            featureEnabled = features.hasCashSubmit;
+            break;
+          case PermissionIds.banking:
+            featureEnabled = features.hasBanking;
+            break;
+          case PermissionIds.profitSubmit:
+            featureEnabled = features.hasProfitSubmit;
+            break;
+          case PermissionIds.expenses:
+            featureEnabled = features.hasExpenses;
+            break;
+          case PermissionIds.customers:
+            featureEnabled = features.hasCustomers;
+            break;
+          case PermissionIds.suppliers:
+            featureEnabled = features.hasSuppliers;
+            break;
+          case PermissionIds.items:
+            featureEnabled = features.hasItems;
+            break;
+          case PermissionIds.receivings:
+            featureEnabled = features.hasReceivings;
+            break;
+          case PermissionIds.sales:
+            featureEnabled = features.hasSales;
+            break;
+        }
+      }
+
+      // Skip if feature is not enabled for this client
+      if (!featureEnabled) {
+        print('🚫 $label feature is disabled for client ${currentClient?.displayName}');
+        continue;
+      }
 
       // Check if user has the required permission
       // For module permissions, also check if user has any sub-permission

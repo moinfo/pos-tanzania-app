@@ -13,6 +13,10 @@ class ClientsConfig {
       displayName: 'SADA',
       devApiUrl: '$localBaseUrl',
       prodApiUrl: 'https://moinfotech.co.tz/api',
+      features: const ClientFeatures(
+        // SADA has all features enabled (default)
+        hasContracts: true,
+      ),
     ),
     ClientConfig(
       id: 'bonge',
@@ -20,6 +24,9 @@ class ClientsConfig {
       displayName: 'Bonge',
       devApiUrl: '$localBaseUrl',
       prodApiUrl: 'https://bonge.moinfotech.co.tz/api',
+      features: const ClientFeatures(
+        // Bonge has all features enabled (default)
+      ),
     ),
     ClientConfig(
       id: 'come_and_save',
@@ -27,6 +34,10 @@ class ClientsConfig {
       displayName: 'Come & Save',
       devApiUrl: 'http://192.168.0.100:8888/PointOfSalesTanzania-come_and_save/public/api',
       prodApiUrl: 'https://comeandsave.moinfotech.co.tz/api',
+      features: const ClientFeatures(
+        // Come & Save does NOT have contracts feature
+        hasContracts: false,
+      ),
     ),
     ClientConfig(
       id: 'iddy',
