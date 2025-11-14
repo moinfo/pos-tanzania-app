@@ -310,6 +310,10 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     final permissionProvider = Provider.of<PermissionProvider>(context);
     final rows = <Widget>[];
 
+    // Check if current client is Come & Save
+    final currentClient = ApiService.currentClient;
+    final isComeAndSave = currentClient?.id == 'come_and_save';
+
     // Helper to add row with permission check
     void addRowIfPermitted(String permission, Widget row) {
       if (permissionProvider.hasPermission(permission)) {
@@ -317,12 +321,14 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
       }
     }
 
-    // Opening - requires cash_submit_opening
-    addRowIfPermitted(
-      PermissionIds.cashSubmitOpening,
-      _buildSummaryRow('Opening', _summaryData!['opening'], isDark: isDark),
-    );
-    rows.add(const Divider(height: 1));
+    // Opening - requires cash_submit_opening (SADA only - Come & Save doesn't use opening)
+    if (!isComeAndSave) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitOpening,
+        _buildSummaryRow('Opening', _summaryData!['opening'], isDark: isDark),
+      );
+      rows.add(const Divider(height: 1));
+    }
 
     // Turnover - requires cash_submit_turnover
     addRowIfPermitted(
