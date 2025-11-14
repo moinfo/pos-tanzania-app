@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
+import '../providers/location_provider.dart';
 import '../services/api_service.dart';
 import '../models/permission_model.dart';
 import '../utils/constants.dart';
@@ -25,6 +26,23 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeLocation();
+    });
+  }
+
+  Future<void> _initializeLocation() async {
+    if (!mounted) return;
+
+    final currentClient = ApiService.currentClient;
+    final clientId = currentClient?.id ?? 'sada';
+
+    // Initialize location provider only for Come & Save
+    if (clientId == 'come_and_save') {
+      final locationProvider = context.read<LocationProvider>();
+      await locationProvider.initialize(moduleId: 'sales');
+    }
+
     _loadSummary();
   }
 
@@ -35,7 +53,21 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     });
 
     final dateStr = Formatters.formatDateForApi(_selectedDate);
-    final result = await _apiService.getCashSubmitTodaySummary(date: dateStr);
+
+    // Get location only for Come & Save client
+    final currentClient = ApiService.currentClient;
+    final clientId = currentClient?.id ?? 'sada';
+
+    int? selectedLocationId;
+    if (clientId == 'come_and_save' && mounted) {
+      final locationProvider = context.read<LocationProvider>();
+      selectedLocationId = locationProvider.selectedLocation?.locationId;
+    }
+
+    final result = await _apiService.getCashSubmitTodaySummary(
+      date: dateStr,
+      locationId: selectedLocationId, // null for SADA, specific location for Come & Save
+    );
 
     setState(() {
       if (result.isSuccess && result.data != null) {
@@ -66,6 +98,9 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode;
+    final locationProvider = context.watch<LocationProvider>();
+    final selectedLocation = locationProvider.selectedLocation;
+    final locations = locationProvider.allowedLocations;
 
     return Scaffold(
       appBar: AppBar(
@@ -73,6 +108,59 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
+          // Location selector (Come & Save only)
+          if (ApiService.currentClient?.id == 'come_and_save' && locations.isNotEmpty)
+            PopupMenuButton<int>(
+              icon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on, color: Colors.white, size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    selectedLocation?.locationName ?? 'Location',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  const Icon(Icons.arrow_drop_down, color: Colors.white),
+                ],
+              ),
+              color: isDark ? AppColors.darkCard : Colors.white,
+              offset: const Offset(0, 50),
+              onSelected: (locationId) {
+                final location = locations.firstWhere((loc) => loc.locationId == locationId);
+                locationProvider.selectLocation(location);
+                _loadSummary();
+              },
+              itemBuilder: (context) {
+                return locations.map((location) {
+                  return PopupMenuItem<int>(
+                    value: location.locationId,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 18,
+                          color: selectedLocation?.locationId == location.locationId
+                              ? AppColors.primary
+                              : (isDark ? Colors.white70 : AppColors.textLight),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          location.locationName,
+                          style: TextStyle(
+                            color: selectedLocation?.locationId == location.locationId
+                                ? AppColors.primary
+                                : (isDark ? Colors.white : AppColors.text),
+                            fontWeight: selectedLocation?.locationId == location.locationId
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList();
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.calendar_today),
             onPressed: _selectDate,
