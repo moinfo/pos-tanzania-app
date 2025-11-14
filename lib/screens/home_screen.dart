@@ -335,30 +335,41 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Row 3: Bank Difference & Total Unpaid
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDashboardCard(
-                          title: 'Bank Difference',
-                          amount: _bankDifference,
-                          icon: Icons.account_balance,
-                          color: AppColors.info,
-                          isDark: isDark,
+                  // Row 3: Bank Difference & Contract Unpaid (contracts only for SADA)
+                  if (ApiService.currentClient?.features.hasContracts ?? false)
+                    // SADA: Show both Bank Difference and Contract Unpaid
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDashboardCard(
+                            title: 'Bank Difference',
+                            amount: _bankDifference,
+                            icon: Icons.account_balance,
+                            color: AppColors.info,
+                            isDark: isDark,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDashboardCard(
-                          title: 'Contract Unpaid',
-                          amount: _totalUnpaid,
-                          icon: Icons.assignment_late,
-                          color: AppColors.warning,
-                          isDark: isDark,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildDashboardCard(
+                            title: 'Contract Unpaid',
+                            amount: _totalUnpaid,
+                            icon: Icons.assignment_late,
+                            color: AppColors.warning,
+                            isDark: isDark,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    )
+                  else
+                    // Come & Save: Show only Bank Difference (no contracts)
+                    _buildDashboardCard(
+                      title: 'Bank Difference',
+                      amount: _bankDifference,
+                      icon: Icons.account_balance,
+                      color: AppColors.info,
+                      isDark: isDark,
+                    ),
                 ],
               ),
           ],
