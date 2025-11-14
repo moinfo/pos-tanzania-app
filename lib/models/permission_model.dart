@@ -100,6 +100,11 @@ class PermissionIds {
   static const String clients = 'clients';
   static const String credits = 'credits';
 
+  // Module aliases for features
+  static const String zreports = cashSubmitZReport;
+  static const String banking = cashSubmitBanking;
+  static const String profitSubmit = office;
+
   // Items sub-permissions
   static const String itemsAdd = 'items_add';
   static const String itemsEdit = 'items_edit';

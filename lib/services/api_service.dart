@@ -26,7 +26,9 @@ import '../config/clients_config.dart';
 class ApiService {
   final _storage = const FlutterSecureStorage();
   String? _token;
-  static ClientConfig? _currentClient;
+
+  // Make currentClient public so it can be accessed from main_navigation
+  static ClientConfig? currentClient;
 
   // Get current client configuration
   static Future<ClientConfig> getCurrentClient() async {
@@ -36,21 +38,21 @@ class ApiService {
     print('🔄 Loading client from preferences: $clientId');
 
     if (clientId != null) {
-      _currentClient = ClientsConfig.getClientById(clientId);
-      print('✅ Loaded client: ${_currentClient?.displayName} (${_currentClient?.id})');
+      currentClient = ClientsConfig.getClientById(clientId);
+      print('✅ Loaded client: ${currentClient?.displayName} (${currentClient?.id})');
     } else {
-      _currentClient = ClientsConfig.getDefaultClient();
-      print('⚠️ No saved client, using default: ${_currentClient?.displayName}');
+      currentClient = ClientsConfig.getDefaultClient();
+      print('⚠️ No saved client, using default: ${currentClient?.displayName}');
     }
 
-    return _currentClient!;
+    return currentClient!;
   }
 
   // Set current client
   static Future<void> setCurrentClient(String clientId) async {
     print('💾 Setting client to: $clientId');
-    _currentClient = ClientsConfig.getClientById(clientId);
-    print('💾 Client object: ${_currentClient?.displayName}');
+    currentClient = ClientsConfig.getClientById(clientId);
+    print('💾 Client object: ${currentClient?.displayName}');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('selected_client_id', clientId);
     print('💾 Saved to SharedPreferences: $clientId');
@@ -63,7 +65,7 @@ class ApiService {
   // Clear current client (for switching clients)
   static Future<void> clearCurrentClient() async {
     print('🗑️ Clearing current client');
-    _currentClient = null;
+    currentClient = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('selected_client_id');
     print('🗑️ Client cleared from cache and preferences');
@@ -82,18 +84,18 @@ class ApiService {
   // Synchronous version for backwards compatibility (uses cached client)
   static String get baseUrlSync {
     // If no client is cached, load it synchronously
-    if (_currentClient == null) {
+    if (currentClient == null) {
       // Try to load from SharedPreferences synchronously
       // This is a fallback - getCurrentClient should be called during app init
       return ClientsConfig.getDefaultClient().devApiUrl;
     }
 
-    print('📍 Current Client: ${_currentClient!.displayName} (${_currentClient!.id})');
+    print('📍 Current Client: ${currentClient!.displayName} (${currentClient!.id})');
 
     if (kReleaseMode) {
-      return _currentClient!.prodApiUrl;
+      return currentClient!.prodApiUrl;
     } else {
-      return _currentClient!.devApiUrl;
+      return currentClient!.devApiUrl;
     }
   }
 

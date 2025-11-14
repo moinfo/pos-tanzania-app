@@ -128,7 +128,7 @@ class _MainNavigationState extends State<MainNavigation> {
     final Map<int, int> indexMapping = {}; // Maps bottom nav index to screen config index
 
     // Get current client's features
-    final currentClient = ApiService._currentClient;
+    final currentClient = ApiService.currentClient;
     final features = currentClient?.features;
 
     for (int i = 0; i < _screenConfigs.length; i++) {
