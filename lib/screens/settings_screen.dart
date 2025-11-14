@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/biometric_service.dart';
 import '../services/api_service.dart';
+import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
 import 'client_selector_screen.dart';
@@ -256,59 +257,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          GlassmorphicCard(
-            isDark: isDark,
-            child: Column(
-              children: [
-                // Change Client Button
-                ListTile(
-                  leading: Icon(
-                    Icons.store,
-                    color: isDark ? AppColors.primary : AppColors.primary,
-                    size: 28,
-                  ),
-                  title: Text(
-                    'Switch Client',
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkText : AppColors.text,
-                      fontWeight: FontWeight.w600,
+          // Only show client switcher in DEBUG mode
+          if (ClientsConfig.isClientSwitchingEnabled)
+            GlassmorphicCard(
+              isDark: isDark,
+              child: Column(
+                children: [
+                  // Change Client Button
+                  ListTile(
+                    leading: Icon(
+                      Icons.store,
+                      color: isDark ? AppColors.primary : AppColors.primary,
+                      size: 28,
                     ),
-                  ),
-                  subtitle: Text(
-                    'Current: $_currentClientName',
-                    style: TextStyle(
+                    title: Text(
+                      'Switch Client',
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkText : AppColors.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Current: $_currentClientName',
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                        fontSize: 13,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios,
                       color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                      fontSize: 13,
+                      size: 16,
                     ),
+                    onTap: () async {
+                      print('🔄 Switch Client button pressed');
+
+                      // Clear the current client completely
+                      await ApiService.clearCurrentClient();
+
+                      // Logout
+                      await authProvider.logout();
+
+                      if (mounted) {
+                        // Navigate to client selector and remove all previous routes
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const ClientSelectorScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    },
                   ),
-                  trailing: Icon(
-                    Icons.arrow_forward_ios,
-                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                    size: 16,
-                  ),
-                  onTap: () async {
-                    print('🔄 Switch Client button pressed');
-
-                    // Clear the current client completely
-                    await ApiService.clearCurrentClient();
-
-                    // Logout
-                    await authProvider.logout();
-
-                    if (mounted) {
-                      // Navigate to client selector and remove all previous routes
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => const ClientSelectorScreen(),
-                        ),
-                        (route) => false,
-                      );
-                    }
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
           // Account Section
           const SizedBox(height: 24),

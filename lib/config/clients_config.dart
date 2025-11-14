@@ -1,6 +1,14 @@
 import '../models/client_config.dart';
 
 class ClientsConfig {
+  // ============================================
+  // BUILD CONFIGURATION
+  // ============================================
+  // Set this to the client ID you want to build for in PRODUCTION
+  // Examples: 'sada', 'come_and_save', 'bonge', etc.
+  // In DEBUG mode, this is ignored and user can select any client
+  static const String PRODUCTION_CLIENT_ID = 'sada'; // Change this before building APK
+
   // Base URLs
   static const String localBaseUrl = 'http://192.168.0.100:8888/PointOfSalesTanzania/public/api';
   static const String prodBaseUrl = 'https://moinfotech.co.tz/api';
@@ -185,8 +193,15 @@ class ClientsConfig {
     }
   }
 
-  // Get default client (SADA)
+  // Get default client
+  // In RELEASE mode: Returns the client specified in PRODUCTION_CLIENT_ID
+  // In DEBUG mode: Returns first client (but user can switch)
   static ClientConfig getDefaultClient() {
-    return availableClients.first;
+    return getClientById(PRODUCTION_CLIENT_ID) ?? availableClients.first;
+  }
+
+  // Check if client switching is allowed (only in debug mode)
+  static bool get isClientSwitchingEnabled {
+    return const bool.fromEnvironment('dart.vm.product') == false;
   }
 }

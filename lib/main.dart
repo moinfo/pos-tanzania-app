@@ -11,6 +11,7 @@ import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/client_selector_screen.dart';
 import 'services/api_service.dart';
+import 'config/clients_config.dart';
 import 'utils/constants.dart';
 
 void main() {
@@ -192,8 +193,8 @@ class _SplashScreenState extends State<SplashScreen> {
       final prefs = await SharedPreferences.getInstance();
       final selectedClientId = prefs.getString('selected_client_id');
 
-      // If no client selected, show client selector
-      if (selectedClientId == null) {
+      // If no client selected and client switching is enabled (DEBUG mode), show client selector
+      if (selectedClientId == null && ClientsConfig.isClientSwitchingEnabled) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => const ClientSelectorScreen(),
@@ -202,7 +203,7 @@ class _SplashScreenState extends State<SplashScreen> {
         return;
       }
 
-      // Initialize API service with selected client
+      // In RELEASE mode or if client is already selected, initialize API service with client
       await ApiService.getCurrentClient();
 
       final authProvider = context.read<AuthProvider>();
