@@ -43,18 +43,25 @@ class _HomeScreenState extends State<HomeScreen> {
       // Get today's summary
       final summaryResponse = await _apiService.getCashSubmitTodaySummary();
 
-      // Get contracts for unpaid calculation
-      final contractsResponse = await _apiService.getContracts();
+      // Get contracts for unpaid calculation (only if feature is enabled)
+      final currentClient = ApiService.currentClient;
+      final hasContracts = currentClient?.features.hasContracts ?? false;
 
-      if (summaryResponse.isSuccess && contractsResponse.isSuccess) {
-        final summaryData = summaryResponse.data;
-        final contracts = contractsResponse.data ?? [];
+      double totalUnpaid = 0;
 
-        // Calculate total unpaid from all contracts
-        double totalUnpaid = 0;
-        for (var contract in contracts) {
-          totalUnpaid += (contract.daysUnpaid * 10000);
+      if (hasContracts) {
+        final contractsResponse = await _apiService.getContracts();
+        if (contractsResponse.isSuccess) {
+          final contracts = contractsResponse.data ?? [];
+          // Calculate total unpaid from all contracts
+          for (var contract in contracts) {
+            totalUnpaid += (contract.daysUnpaid * 10000);
+          }
         }
+      }
+
+      if (summaryResponse.isSuccess) {
+        final summaryData = summaryResponse.data;
 
         setState(() {
           _totalSales = (summaryData?['all_sales'] ?? 0).toDouble();
@@ -77,8 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (e) {
+      print('❌ Dashboard error: $e');
       setState(() {
-        _error = 'Failed to load dashboard data';
+        _error = 'Failed to load dashboard data: ${e.toString()}';
         _isLoading = false;
       });
     }
