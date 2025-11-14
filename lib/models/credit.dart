@@ -6,6 +6,7 @@ class CreditTransaction {
   final int? saleId;
   final String? description;
   final double balance;
+  final int? stockLocationId;
 
   CreditTransaction({
     this.id,
@@ -15,6 +16,7 @@ class CreditTransaction {
     this.saleId,
     this.description,
     required this.balance,
+    this.stockLocationId,
   });
 
   factory CreditTransaction.fromJson(Map<String, dynamic> json) {
@@ -36,6 +38,7 @@ class CreditTransaction {
       saleId: parsedSaleId,
       description: json['description'],
       balance: (json['balance'] ?? 0).toDouble(),
+      stockLocationId: json['stock_location_id'],
     );
   }
 
@@ -48,6 +51,7 @@ class CreditTransaction {
       'sale_id': saleId,
       'description': description,
       'balance': balance,
+      'stock_location_id': stockLocationId,
     };
   }
 }
@@ -167,18 +171,22 @@ class PaymentFormData {
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'customer_id': customerId,
       'amount': amount,
-      'sale_id': saleId,
-      'payment_id': paymentId,
-      'stock_location_id': stockLocationId,
-      'payment_mode': paymentMode,
-      'paid_payment_type': paidPaymentType,
-      'balance': balance,
-      'description': description,
-      'date': date,
     };
+
+    // Only include optional fields if they have values
+    if (saleId != null) map['sale_id'] = saleId;
+    if (paymentId != null) map['payment_id'] = paymentId;
+    if (stockLocationId != null) map['stock_location_id'] = stockLocationId;
+    if (paymentMode != null) map['payment_mode'] = paymentMode;
+    if (paidPaymentType != null) map['paid_payment_type'] = paidPaymentType;
+    if (balance != null) map['balance'] = balance;
+    if (description != null && description!.isNotEmpty) map['description'] = description;
+    if (date != null) map['date'] = date;
+
+    return map;
   }
 }
 

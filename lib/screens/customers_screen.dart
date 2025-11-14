@@ -359,44 +359,51 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       ),
                     ],
                   ),
-                  // Add Payment button
-                  PermissionWrapper(
-                    permissionId: PermissionIds.customersAddPayment,
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.payment, size: 16),
-                      label: const Text('Add Payment'),
-                      onPressed: () {
-                        // TODO: Navigate to Add Payment screen
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Add Payment feature coming soon'),
+                  // Add Payment button - only show if customer has balance > 0
+                  if (customer.balance > 0)
+                    Flexible(
+                      child: PermissionWrapper(
+                        permissionId: PermissionIds.customersAddPayment,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.payment, size: 16),
+                          label: const Text('Add Payment', overflow: TextOverflow.ellipsis),
+                          onPressed: () {
+                            // TODO: Navigate to Add Payment screen
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Add Payment feature coming soon'),
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.success,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
                           ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.success,
+                        ),
                       ),
                     ),
-                  ),
                   // View Credit Account button
-                  PermissionWrapper(
-                    permissionId: PermissionIds.customersViewCredit,
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.account_balance, size: 16),
-                      label: const Text('View Credit'),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CustomerCreditScreen(
-                              customerId: customer.personId,
-                              customerName: customer.displayName,
+                  Flexible(
+                    child: PermissionWrapper(
+                      permissionId: PermissionIds.customersViewCredit,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.account_balance, size: 16),
+                        label: const Text('View Credit', overflow: TextOverflow.ellipsis),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CustomerCreditScreen(
+                                customerId: customer.personId,
+                                customerName: customer.displayName,
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
                       ),
                     ),
                   ),

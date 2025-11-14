@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/credit.dart';
 import '../models/permission_model.dart';
+import '../models/stock_location.dart';
 import '../providers/permission_provider.dart';
+import '../providers/location_provider.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/permission_wrapper.dart';
@@ -29,6 +31,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   CreditStatement? _statement;
   bool _isLoading = false;
   String? _errorMessage;
+  int? _selectedLocationId;
 
   String _startDate = DateFormat('yyyy-MM-dd').format(
     DateTime(DateTime.now().year, DateTime.now().month, 1),
@@ -38,6 +41,19 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize location provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locationProvider = context.read<LocationProvider>();
+      locationProvider.initialize(moduleId: 'sales').then((_) {
+        if (mounted && locationProvider.selectedLocation != null) {
+          setState(() {
+            _selectedLocationId = locationProvider.selectedLocation!.locationId;
+          });
+        }
+      });
+    });
+
     _loadStatement();
   }
 
@@ -47,11 +63,22 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
       _errorMessage = null;
     });
 
+    print('🔴 DEBUG: Loading statement for customer ${widget.customerId}');
+    print('🔴 DEBUG: Date range: $_startDate to $_endDate');
+
     final response = await _apiService.getCreditStatement(
       widget.customerId,
       startDate: _startDate,
       endDate: _endDate,
     );
+
+    print('🔴 DEBUG: Statement response success: ${response.isSuccess}');
+    if (response.isSuccess && response.data != null) {
+      print('🔴 DEBUG: Statement has ${response.data!.transactions.length} transactions');
+      for (var t in response.data!.transactions) {
+        print('🔴 DEBUG: Transaction from API - Date: ${t.date}, Credit: ${t.credit}, Debit: ${t.debit}, StockLocationId: ${t.stockLocationId}');
+      }
+    }
 
     setState(() {
       _isLoading = false;
@@ -123,6 +150,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
         currentAmount: transaction.debit,
         currentDescription: transaction.description ?? '',
         currentDate: transaction.date,
+        currentLocationId: transaction.stockLocationId,
         onPaymentUpdated: () {
           Navigator.pop(context);
           _loadStatement();
@@ -196,6 +224,52 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
+          // Location selector
+          Consumer<LocationProvider>(
+            builder: (context, locationProvider, child) {
+              if (locationProvider.allowedLocations.length > 1) {
+                final selectedLocation = locationProvider.allowedLocations.firstWhere(
+                  (loc) => loc.locationId == _selectedLocationId,
+                  orElse: () => locationProvider.allowedLocations.first,
+                );
+                return PopupMenuButton<int>(
+                  icon: Row(
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.white, size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        selectedLocation.locationName,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  onSelected: (locationId) {
+                    setState(() {
+                      _selectedLocationId = locationId;
+                      // List will be filtered automatically when rebuilt
+                    });
+                  },
+                  itemBuilder: (context) {
+                    return locationProvider.allowedLocations.map((location) {
+                      return PopupMenuItem<int>(
+                        value: location.locationId,
+                        child: Row(
+                          children: [
+                            if (_selectedLocationId == location.locationId)
+                              const Icon(Icons.check, size: 20),
+                            if (_selectedLocationId == location.locationId)
+                              const SizedBox(width: 8),
+                            Text(location.locationName),
+                          ],
+                        ),
+                      );
+                    }).toList();
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
@@ -257,14 +331,8 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
         permissionId: PermissionIds.customersAddPayment,
         onPressed: _showPaymentDialog,
         backgroundColor: AppColors.success,
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.payment, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Add Payment', style: TextStyle(color: Colors.white)),
-          ],
-        ),
+        tooltip: 'Add Payment',
+        child: const Icon(Icons.payment, color: Colors.white),
       ),
     );
   }
@@ -313,10 +381,35 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   }
 
   Widget _buildTransactionsList() {
+    print('🟢 DEBUG: Building transactions list');
+    print('🟢 DEBUG: Total transactions: ${_statement!.transactions.length}');
+    print('🟢 DEBUG: Selected location ID for filtering: $_selectedLocationId');
+
     // Filter out transactions where both credit and debit are 0
-    final validTransactions = _statement!.transactions
+    var validTransactions = _statement!.transactions
         .where((t) => t.credit > 0 || t.debit > 0)
         .toList();
+
+    print('🟢 DEBUG: Valid transactions (credit > 0 or debit > 0): ${validTransactions.length}');
+
+    // Debug: Show all transaction stock_location_ids
+    for (var t in validTransactions) {
+      print('🟢 DEBUG: Transaction - Credit: ${t.credit}, Debit: ${t.debit}, StockLocationId: ${t.stockLocationId}');
+    }
+
+    // Filter by selected allowed location
+    // Show transactions that match the selected location OR have no location assigned (null)
+    if (_selectedLocationId != null) {
+      validTransactions = validTransactions
+          .where((t) => t.stockLocationId == _selectedLocationId || t.stockLocationId == null)
+          .toList();
+      print('🟢 DEBUG: After location filtering (including null): ${validTransactions.length} transactions');
+    }
+
+    // Sort by date (descending) - recent dates first
+    validTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+    print('🟢 DEBUG: Final transaction count to display: ${validTransactions.length}');
 
     return ListView.builder(
       itemCount: validTransactions.length,
@@ -367,6 +460,22 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
             Text('Date: ${DateFormat('MMM d, y').format(DateTime.parse(transaction.date))}'),
             if (transaction.saleId != null)
               Text('Sale ID: #${transaction.saleId}'),
+            if (transaction.stockLocationId != null)
+              Consumer<LocationProvider>(
+                builder: (context, locationProvider, child) {
+                  final location = locationProvider.allowedLocations.firstWhere(
+                    (loc) => loc.locationId == transaction.stockLocationId,
+                    orElse: () => StockLocation(
+                      locationId: transaction.stockLocationId!,
+                      locationName: 'Location ${transaction.stockLocationId}',
+                    ),
+                  );
+                  return Text(
+                    'Location: ${location.locationName}',
+                    style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                  );
+                },
+              ),
             Text(
               'Balance: ${NumberFormat('#,###').format(transaction.balance)} TSh',
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -463,7 +572,18 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
   bool _isSubmitting = false;
   int? _selectedSaleId;
+  int? _selectedLocationId;
   DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize location provider for all clients
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locationProvider = context.read<LocationProvider>();
+      locationProvider.initialize(moduleId: 'sales');
+    });
+  }
 
   @override
   void dispose() {
@@ -489,6 +609,9 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
     setState(() => _isSubmitting = true);
 
+    // Get location provider to access selected location
+    final locationProvider = context.read<LocationProvider>();
+
     // Build description including selected sale if any
     String description = _descriptionController.text.trim();
     if (_selectedSaleId != null) {
@@ -498,15 +621,28 @@ class _PaymentDialogState extends State<PaymentDialog> {
           : '$description - $saleNote';
     }
 
+    // Ensure stock_location_id is always set (either from _selectedLocationId or default)
+    final stockLocationId = _selectedLocationId ?? locationProvider.selectedLocation?.locationId;
+
+    print('🔵 DEBUG: Submitting payment with stock_location_id: $stockLocationId');
+    print('🔵 DEBUG: _selectedLocationId = $_selectedLocationId');
+    print('🔵 DEBUG: locationProvider.selectedLocation?.locationId = ${locationProvider.selectedLocation?.locationId}');
+
     final formData = PaymentFormData(
       customerId: widget.customerId,
       amount: double.parse(_amountController.text),
       saleId: _selectedSaleId,
+      stockLocationId: stockLocationId,
       description: description.isEmpty ? null : description,
       date: DateFormat('yyyy-MM-dd').format(_selectedDate),
     );
 
+    print('🔵 DEBUG: PaymentFormData JSON: ${formData.toJson()}');
+
     final response = await _apiService.addCreditPayment(formData);
+
+    print('🔵 DEBUG: Response success: ${response.isSuccess}');
+    print('🔵 DEBUG: Response data: ${response.data}');
 
     setState(() => _isSubmitting = false);
 
@@ -568,11 +704,66 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   onChanged: (value) {
                     setState(() {
                       _selectedSaleId = value;
+                      // Auto-populate location from the selected sale
+                      if (value != null) {
+                        final selectedSale = widget.creditSales.firstWhere(
+                          (sale) => sale.saleId == value,
+                        );
+                        _selectedLocationId = selectedSale.stockLocationId;
+                      }
                     });
                   },
                 ),
                 const SizedBox(height: 16),
               ],
+              // Stock Location selector - for all clients
+              Consumer<LocationProvider>(
+                builder: (context, locationProvider, child) {
+                  return Column(
+                    children: [
+                      DropdownButtonFormField<int>(
+                        value: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: 'Stock Location *',
+                          border: const OutlineInputBorder(),
+                          helperText: _selectedSaleId != null ? 'Location taken from selected sale' : null,
+                        ),
+                        items: locationProvider.allowedLocations.isEmpty
+                            ? [
+                                const DropdownMenuItem<int>(
+                                  value: null,
+                                  child: Text('Loading locations...'),
+                                )
+                              ]
+                            : locationProvider.allowedLocations.map((location) {
+                                return DropdownMenuItem<int>(
+                                  value: location.locationId,
+                                  child: Text(
+                                    location.locationName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                        onChanged: _selectedSaleId != null || locationProvider.allowedLocations.isEmpty
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedLocationId = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select a stock location';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                },
+              ),
               TextFormField(
                 controller: _amountController,
                 decoration: const InputDecoration(
@@ -666,6 +857,7 @@ class EditPaymentDialog extends StatefulWidget {
   final double currentAmount;
   final String currentDescription;
   final String currentDate;
+  final int? currentLocationId;
   final VoidCallback onPaymentUpdated;
 
   const EditPaymentDialog({
@@ -675,6 +867,7 @@ class EditPaymentDialog extends StatefulWidget {
     required this.currentAmount,
     required this.currentDescription,
     required this.currentDate,
+    this.currentLocationId,
     required this.onPaymentUpdated,
   });
 
@@ -690,6 +883,7 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
 
   bool _isSubmitting = false;
   late DateTime _selectedDate;
+  int? _selectedLocationId;
 
   @override
   void initState() {
@@ -697,6 +891,13 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
     _amountController = TextEditingController(text: widget.currentAmount.toString());
     _descriptionController = TextEditingController(text: widget.currentDescription);
     _selectedDate = DateTime.parse(widget.currentDate);
+    _selectedLocationId = widget.currentLocationId;
+
+    // Initialize location provider for all clients
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locationProvider = context.read<LocationProvider>();
+      locationProvider.initialize(moduleId: 'sales');
+    });
   }
 
   @override
@@ -723,6 +924,9 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
 
     setState(() => _isSubmitting = true);
 
+    // Get location provider to access selected location
+    final locationProvider = context.read<LocationProvider>();
+
     // Build update data with only changed fields
     final updateData = <String, dynamic>{};
 
@@ -739,6 +943,12 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
     final newDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
     if (newDate != widget.currentDate) {
       updateData['date'] = newDate;
+    }
+
+    // Ensure we use either _selectedLocationId or fallback to provider's selected location
+    final stockLocationId = _selectedLocationId ?? locationProvider.selectedLocation?.locationId;
+    if (stockLocationId != widget.currentLocationId) {
+      updateData['stock_location_id'] = stockLocationId;
     }
 
     if (updateData.isEmpty) {
@@ -785,6 +995,53 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
             children: [
               Text('Customer: ${widget.customerName}'),
               const SizedBox(height: 16),
+              // Stock Location selector - for all clients
+              Consumer<LocationProvider>(
+                builder: (context, locationProvider, child) {
+                  return Column(
+                    children: [
+                      DropdownButtonFormField<int>(
+                        value: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Stock Location *',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: locationProvider.allowedLocations.isEmpty
+                            ? [
+                                const DropdownMenuItem<int>(
+                                  value: null,
+                                  child: Text('Loading locations...'),
+                                )
+                              ]
+                            : locationProvider.allowedLocations.map((location) {
+                                return DropdownMenuItem<int>(
+                                  value: location.locationId,
+                                  child: Text(
+                                    location.locationName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                        onChanged: locationProvider.allowedLocations.isEmpty
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedLocationId = value;
+                                });
+                              },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select a stock location';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                },
+              ),
               TextFormField(
                 controller: _amountController,
                 decoration: const InputDecoration(
