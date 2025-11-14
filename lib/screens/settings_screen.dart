@@ -287,9 +287,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     size: 16,
                   ),
                   onTap: () async {
-                    // Logout and go to client selector
+                    print('🔄 Switch Client button pressed');
+
+                    // Clear the current client completely
+                    await ApiService.clearCurrentClient();
+
+                    // Logout
                     await authProvider.logout();
+
                     if (mounted) {
+                      // Navigate to client selector and remove all previous routes
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(
                           builder: (context) => const ClientSelectorScreen(),

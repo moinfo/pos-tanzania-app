@@ -2,7 +2,7 @@ import '../models/client_config.dart';
 
 class ClientsConfig {
   // Base URLs
-  static const String localBaseUrl = 'http://172.16.245.29:8888/PointOfSalesTanzania/public/api';
+  static const String localBaseUrl = 'http://192.168.0.100:8888/PointOfSalesTanzania/public/api';
   static const String prodBaseUrl = 'https://moinfotech.co.tz/api';
 
   // List of all available clients
@@ -12,7 +12,7 @@ class ClientsConfig {
       name: 'dev-sada',
       displayName: 'SADA',
       devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://sada.moinfotech.co.tz/api',
+      prodApiUrl: 'https://moinfotech.co.tz/api',
     ),
     ClientConfig(
       id: 'bonge',
@@ -25,7 +25,7 @@ class ClientsConfig {
       id: 'come_and_save',
       name: 'dev-come_and_save',
       displayName: 'Come & Save',
-      devApiUrl: '$localBaseUrl',
+      devApiUrl: 'http://192.168.0.100:8888/PointOfSalesTanzania-come_and_save/public/api',
       prodApiUrl: 'https://comeandsave.moinfotech.co.tz/api',
     ),
     ClientConfig(

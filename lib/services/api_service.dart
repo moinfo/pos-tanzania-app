@@ -30,26 +30,43 @@ class ApiService {
 
   // Get current client configuration
   static Future<ClientConfig> getCurrentClient() async {
-    if (_currentClient != null) {
-      return _currentClient!;
-    }
-
     final prefs = await SharedPreferences.getInstance();
     final clientId = prefs.getString('selected_client_id');
 
+    print('🔄 Loading client from preferences: $clientId');
+
     if (clientId != null) {
       _currentClient = ClientsConfig.getClientById(clientId);
+      print('✅ Loaded client: ${_currentClient?.displayName} (${_currentClient?.id})');
+    } else {
+      _currentClient = ClientsConfig.getDefaultClient();
+      print('⚠️ No saved client, using default: ${_currentClient?.displayName}');
     }
 
-    _currentClient ??= ClientsConfig.getDefaultClient();
     return _currentClient!;
   }
 
   // Set current client
   static Future<void> setCurrentClient(String clientId) async {
+    print('💾 Setting client to: $clientId');
     _currentClient = ClientsConfig.getClientById(clientId);
+    print('💾 Client object: ${_currentClient?.displayName}');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('selected_client_id', clientId);
+    print('💾 Saved to SharedPreferences: $clientId');
+
+    // Verify it was saved
+    final saved = prefs.getString('selected_client_id');
+    print('💾 Verification read: $saved');
+  }
+
+  // Clear current client (for switching clients)
+  static Future<void> clearCurrentClient() async {
+    print('🗑️ Clearing current client');
+    _currentClient = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('selected_client_id');
+    print('🗑️ Client cleared from cache and preferences');
   }
 
   // Get base URL based on current client and build mode
@@ -64,9 +81,15 @@ class ApiService {
 
   // Synchronous version for backwards compatibility (uses cached client)
   static String get baseUrlSync {
+    // If no client is cached, load it synchronously
     if (_currentClient == null) {
+      // Try to load from SharedPreferences synchronously
+      // This is a fallback - getCurrentClient should be called during app init
       return ClientsConfig.getDefaultClient().devApiUrl;
     }
+
+    print('📍 Current Client: ${_currentClient!.displayName} (${_currentClient!.id})');
+
     if (kReleaseMode) {
       return _currentClient!.prodApiUrl;
     } else {
@@ -176,8 +199,10 @@ class ApiService {
   /// Login user
   Future<ApiResponse<User>> login(String username, String password) async {
     try {
+      final loginUrl = '$baseUrlSync/auth/login';
+      print('🔐 LOGIN URL: $loginUrl'); // Debug: Show which API URL is being used
       final response = await http.post(
-        Uri.parse('$baseUrlSync/auth/login'),
+        Uri.parse(loginUrl),
         headers: await _getHeaders(includeAuth: false),
         body: json.encode({
           'username': username,

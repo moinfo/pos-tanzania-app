@@ -31,7 +31,19 @@ class _ClientSelectorScreenState extends State<ClientSelectorScreen> {
   }
 
   Future<void> _selectClient(ClientConfig client) async {
+    print('🏢 CLIENT SELECTED: ${client.displayName} (${client.id})');
+    print('🌐 DEV API URL: ${client.devApiUrl}');
+
+    // Save to preferences first
     await ApiService.setCurrentClient(client.id);
+
+    // Verify it was saved
+    final prefs = await SharedPreferences.getInstance();
+    final savedId = prefs.getString('selected_client_id');
+    print('✅ SAVED CLIENT ID: $savedId');
+
+    // Force reload the client in ApiService
+    await ApiService.getCurrentClient();
 
     setState(() {
       _selectedClientId = client.id;

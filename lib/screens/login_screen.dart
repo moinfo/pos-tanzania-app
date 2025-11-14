@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/biometric_service.dart';
+import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
 import 'main_navigation.dart';
@@ -43,6 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// Initialize screen - check biometric availability and status
   Future<void> _initializeScreen() async {
+    // Load current client to ensure API calls use correct URL
+    await ApiService.getCurrentClient();
     await _checkBiometricAvailability();
     await _checkIfBiometricEnabled();
   }
