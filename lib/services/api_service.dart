@@ -101,20 +101,47 @@ class ApiService {
 
   // Get stored token
   Future<String?> getToken() async {
-    _token ??= await _storage.read(key: 'auth_token');
+    if (_token != null) {
+      return _token;
+    }
+
+    // Read token and client ID from storage
+    final storedToken = await _storage.read(key: 'auth_token');
+    final storedClientId = await _storage.read(key: 'auth_token_client_id');
+
+    // Validate token belongs to current client
+    if (storedToken != null && storedClientId != null) {
+      final currentClientId = currentClient?.id ?? 'sada';
+
+      if (storedClientId != currentClientId) {
+        print('⚠️ Token client mismatch: stored=$storedClientId, current=$currentClientId');
+        print('🗑️ Clearing mismatched token');
+        await clearToken();
+        return null;
+      }
+
+      _token = storedToken;
+    }
+
     return _token;
   }
 
-  // Save token
+  // Save token with client ID
   Future<void> saveToken(String token) async {
+    final clientId = currentClient?.id ?? 'sada';
+
     _token = token;
     await _storage.write(key: 'auth_token', value: token);
+    await _storage.write(key: 'auth_token_client_id', value: clientId);
+
+    print('💾 Saved token for client: $clientId');
   }
 
-  // Clear token
+  // Clear token and client ID
   Future<void> clearToken() async {
     _token = null;
     await _storage.delete(key: 'auth_token');
+    await _storage.delete(key: 'auth_token_client_id');
   }
 
   // Get headers with authentication
