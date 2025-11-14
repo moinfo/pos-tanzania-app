@@ -21,7 +21,11 @@ class ClientsConfig {
   static const String prodBaseUrl = 'https://moinfotech.co.tz/api';
 
   // List of all available clients
+  // NOTE: Only SADA and Come & Save are enabled. To add more clients, uncomment them below.
   static final List<ClientConfig> availableClients = [
+    // ============================================
+    // ACTIVE CLIENTS
+    // ============================================
     ClientConfig(
       id: 'sada',
       name: 'dev-sada',
@@ -31,16 +35,6 @@ class ClientsConfig {
       features: const ClientFeatures(
         // SADA has all features enabled (default)
         hasContracts: true,
-      ),
-    ),
-    ClientConfig(
-      id: 'bonge',
-      name: 'dev-bonge',
-      displayName: 'Bonge',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://bonge.moinfotech.co.tz/api',
-      features: const ClientFeatures(
-        // Bonge has all features enabled (default)
       ),
     ),
     ClientConfig(
@@ -54,132 +48,146 @@ class ClientsConfig {
         hasContracts: false,
       ),
     ),
-    ClientConfig(
-      id: 'iddy',
-      name: 'dev-iddy',
-      displayName: 'Iddy',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://iddy.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'kassim',
-      name: 'dev-kassim',
-      displayName: 'Kassim',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://kassim.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'leruma',
-      name: 'dev-leruma',
-      displayName: 'Leruma',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://leruma.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'mazao',
-      name: 'dev-mazao',
-      displayName: 'Mazao',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://mazao.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'meriwa',
-      name: 'dev-meriwa',
-      displayName: 'Meriwa',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://meriwa.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'pingo',
-      name: 'dev-pingo',
-      displayName: 'Pingo',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://pingo.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'plmstore',
-      name: 'dev-plmstore',
-      displayName: 'PLM Store',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://plmstore.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'postz',
-      name: 'dev-postz',
-      displayName: 'POSTZ',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://postz.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'qatar',
-      name: 'dev-qatar',
-      displayName: 'Qatar',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://qatar.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'ruge',
-      name: 'dev-ruge',
-      displayName: 'Ruge',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://ruge.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'sanira',
-      name: 'dev-sanira',
-      displayName: 'Sanira',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://sanira.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'sgs',
-      name: 'dev-sgs',
-      displayName: 'SGS',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://sgs.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'shorasho',
-      name: 'dev-shorasho',
-      displayName: 'Shorasho',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://shorasho.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'shukuma',
-      name: 'dev-shukuma',
-      displayName: 'Shukuma',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://shukuma.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'trishbake',
-      name: 'dev-trishbake',
-      displayName: 'TrishBake',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://trishbake.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'whitestar',
-      name: 'dev-whitestar',
-      displayName: 'White Star',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://whitestar.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'zai',
-      name: 'dev-zai',
-      displayName: 'Zai',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://zai.moinfotech.co.tz/api',
-    ),
-    ClientConfig(
-      id: 'zaifood',
-      name: 'dev-zaifood',
-      displayName: 'Zai Food',
-      devApiUrl: '$localBaseUrl',
-      prodApiUrl: 'https://zaifood.moinfotech.co.tz/api',
-    ),
+
+    // ============================================
+    // INACTIVE CLIENTS (Uncomment to enable)
+    // ============================================
+    // ClientConfig(
+    //   id: 'bonge',
+    //   name: 'dev-bonge',
+    //   displayName: 'Bonge',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://bonge.moinfotech.co.tz/api',
+    //   features: const ClientFeatures(
+    //     // Bonge has all features enabled (default)
+    //   ),
+    // ),
+    // ClientConfig(
+    //   id: 'iddy',
+    //   name: 'dev-iddy',
+    //   displayName: 'Iddy',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://iddy.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'kassim',
+    //   name: 'dev-kassim',
+    //   displayName: 'Kassim',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://kassim.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'leruma',
+    //   name: 'dev-leruma',
+    //   displayName: 'Leruma',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://leruma.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'mazao',
+    //   name: 'dev-mazao',
+    //   displayName: 'Mazao',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://mazao.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'meriwa',
+    //   name: 'dev-meriwa',
+    //   displayName: 'Meriwa',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://meriwa.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'pingo',
+    //   name: 'dev-pingo',
+    //   displayName: 'Pingo',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://pingo.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'plmstore',
+    //   name: 'dev-plmstore',
+    //   displayName: 'PLM Store',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://plmstore.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'postz',
+    //   name: 'dev-postz',
+    //   displayName: 'POSTZ',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://postz.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'qatar',
+    //   name: 'dev-qatar',
+    //   displayName: 'Qatar',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://qatar.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'ruge',
+    //   name: 'dev-ruge',
+    //   displayName: 'Ruge',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://ruge.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'sanira',
+    //   name: 'dev-sanira',
+    //   displayName: 'Sanira',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://sanira.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'sgs',
+    //   name: 'dev-sgs',
+    //   displayName: 'SGS',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://sgs.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'shorasho',
+    //   name: 'dev-shorasho',
+    //   displayName: 'Shorasho',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://shorasho.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'shukuma',
+    //   name: 'dev-shukuma',
+    //   displayName: 'Shukuma',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://shukuma.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'trishbake',
+    //   name: 'dev-trishbake',
+    //   displayName: 'TrishBake',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://trishbake.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'whitestar',
+    //   name: 'dev-whitestar',
+    //   displayName: 'White Star',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://whitestar.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'zai',
+    //   name: 'dev-zai',
+    //   displayName: 'Zai',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://zai.moinfotech.co.tz/api',
+    // ),
+    // ClientConfig(
+    //   id: 'zaifood',
+    //   name: 'dev-zaifood',
+    //   displayName: 'Zai Food',
+    //   devApiUrl: '$localBaseUrl',
+    //   prodApiUrl: 'https://zaifood.moinfotech.co.tz/api',
+    // ),
   ];
 
   // Get client by ID
