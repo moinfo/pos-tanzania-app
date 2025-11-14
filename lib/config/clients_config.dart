@@ -9,8 +9,15 @@ class ClientsConfig {
   // In DEBUG mode, this is ignored and user can select any client
   static const String PRODUCTION_CLIENT_ID = 'sada'; // Change this before building APK
 
-  // Base URLs
-  static const String localBaseUrl = 'http://192.168.0.100:8888/PointOfSalesTanzania/public/api';
+  // ============================================
+  // NETWORK CONFIGURATION
+  // ============================================
+  // ⚠️ CHANGE THIS IP ADDRESS when your network changes
+  static const String LOCAL_IP_ADDRESS = '192.168.0.100'; // Your computer's local IP
+  static const String MAMP_PORT = '8888';
+
+  // Base URLs (automatically constructed from IP address)
+  static const String localBaseUrl = 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania/public/api';
   static const String prodBaseUrl = 'https://moinfotech.co.tz/api';
 
   // List of all available clients
@@ -40,7 +47,7 @@ class ClientsConfig {
       id: 'come_and_save',
       name: 'dev-come_and_save',
       displayName: 'Come & Save',
-      devApiUrl: 'http://192.168.0.100:8888/PointOfSalesTanzania-come_and_save/public/api',
+      devApiUrl: 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania-come_and_save/public/api',
       prodApiUrl: 'https://comeandsave.moinfotech.co.tz/api',
       features: const ClientFeatures(
         // Come & Save does NOT have contracts feature

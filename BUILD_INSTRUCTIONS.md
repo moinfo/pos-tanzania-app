@@ -2,6 +2,22 @@
 
 This document explains how to build APK files for specific clients.
 
+## Important: Network Configuration
+
+### Changing IP Address for Development
+
+When your network changes, you only need to update ONE place:
+
+**File:** `lib/config/clients_config.dart`
+
+```dart
+// ⚠️ CHANGE THIS IP ADDRESS when your network changes
+static const String LOCAL_IP_ADDRESS = '192.168.0.100'; // Your computer's local IP
+static const String MAMP_PORT = '8888';
+```
+
+This will automatically update the API URLs for all clients in debug mode.
+
 ## Quick Start
 
 ### Building for a Specific Client
