@@ -26,7 +26,7 @@ class SaleProvider with ChangeNotifier {
   int get itemCount => _cartItems.length;
 
   double get subtotal {
-    return _cartItems.fold(0.0, (sum, item) => sum + item.calculateTotal());
+    return _cartItems.fold(0.0, (sum, item) => sum + (item.quantity * item.unitPrice));
   }
 
   double get totalDiscount {
