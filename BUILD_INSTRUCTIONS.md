@@ -161,6 +161,146 @@ flutter install
 4. **Features** can be different per client (e.g., Contracts only in SADA)
 5. **Remember to test** the APK on a device before distributing
 
+## Security: Client-Specific Token Validation
+
+### Overview
+
+The mobile app implements **client-specific token validation** to prevent authentication tokens from being used across different clients. This is important because:
+
+1. Each client (SADA, Come & Save, etc.) has its own separate backend and database
+2. The backends share the same JWT encryption key
+3. Without validation, a token from one client could theoretically work on another client's API
+
+### How It Works
+
+#### Token Storage
+When a user logs in, the app stores:
+- **`auth_token`**: The JWT token from the backend
+- **`auth_token_client_id`**: The client ID (e.g., 'sada', 'come_and_save')
+
+```dart
+// Example: User logs into SADA
+await saveToken(token);
+// Stores:
+// - auth_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+// - auth_token_client_id: "sada"
+```
+
+#### Token Validation
+When the app loads a token from storage, it automatically validates:
+
+1. **Does a stored token exist?**
+2. **Does the stored client_id match the current client?**
+3. **If mismatch detected** → Clear token and force re-login
+
+```dart
+// Example: Token validation on app start
+getToken() async {
+  final storedToken = await _storage.read(key: 'auth_token');
+  final storedClientId = await _storage.read(key: 'auth_token_client_id');
+  final currentClientId = currentClient?.id ?? 'sada';
+
+  if (storedClientId != currentClientId) {
+    print('⚠️ Token client mismatch: stored=$storedClientId, current=$currentClientId');
+    await clearToken(); // Clear invalid token
+    return null;        // User sent to login
+  }
+
+  return storedToken;
+}
+```
+
+#### Client Switching Flow
+
+When a user switches clients:
+
+1. **Clear client cache**: `ApiService.clearCurrentClient()`
+2. **Logout**: `authProvider.logout()`
+   - Clears `auth_token`
+   - Clears `auth_token_client_id`
+   - Clears permissions
+3. **Navigate to client selector**
+4. **User selects new client** (e.g., Come & Save)
+5. **User logs in again** with new client credentials
+6. **New token stored** with new client_id
+
+```dart
+// User switches from SADA to Come & Save
+await ApiService.clearCurrentClient();  // Clear cached client
+await authProvider.logout();            // Clear token + client_id
+// Navigate to client selector...
+// User logs into Come & Save...
+// New token stored with client_id: "come_and_save"
+```
+
+### Security Benefits
+
+1. **Prevents Cross-Client Token Usage**: A SADA token cannot be used on Come & Save API
+2. **Automatic Token Cleanup**: Invalid tokens are automatically cleared
+3. **Client Isolation**: Each client has its own authentication session
+4. **User Safety**: Users must explicitly log in to each client
+
+### Backend JWT Configuration
+
+Both SADA and Come & Save backends use:
+
+**JWT Library**: `application/libraries/JWT_Lib.php`
+- Algorithm: HS256 (HMAC-SHA256)
+- Encryption Key: From `config['encryption_key']` + `'_jwt_secret'`
+- Token Expiry: 24 hours (86400 seconds)
+
+**Token Structure**:
+```json
+{
+  "iss": "http://192.168.0.100:8888/PointOfSalesTanzania/public",
+  "iat": 1673024400,
+  "exp": 1673110800,
+  "sub": "1",
+  "username": "admin",
+  "data": {
+    "username": "admin",
+    "first_name": "Admin",
+    "last_name": "User",
+    "email": "admin@example.com"
+  }
+}
+```
+
+**Note**: While both backends use the same encryption key, the mobile app enforces client-specific validation at the application layer.
+
+### Implementation Details
+
+**File**: `lib/services/api_service.dart:102-145`
+
+Key methods:
+- `getToken()`: Retrieves and validates token against current client
+- `saveToken(token)`: Stores token with current client ID
+- `clearToken()`: Removes both token and client ID from storage
+
+### Testing Client-Specific Authentication
+
+1. **Test token isolation**:
+   ```bash
+   # 1. Login to SADA in debug mode
+   # 2. Switch to Come & Save
+   # 3. Verify you're sent to login screen (token cleared)
+   ```
+
+2. **Test token persistence**:
+   ```bash
+   # 1. Login to Come & Save
+   # 2. Close app
+   # 3. Reopen app
+   # 4. Verify you're still logged into Come & Save (not SADA)
+   ```
+
+3. **Test production build**:
+   ```bash
+   # 1. Build APK for SADA
+   # 2. Login to SADA
+   # 3. Verify no client switching available (security)
+   ```
+
 ## Troubleshooting
 
 ### Issue: APK connects to wrong backend
