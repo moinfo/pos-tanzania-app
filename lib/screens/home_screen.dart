@@ -40,48 +40,16 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // Get today's summary
-      final summaryResponse = await _apiService.getCashSubmitTodaySummary();
-
-      // Get contracts for unpaid calculation (only if feature is enabled)
       final currentClient = ApiService.currentClient;
-      final hasContracts = currentClient?.features.hasContracts ?? false;
+      final clientId = currentClient?.id ?? 'sada';
 
-      double totalUnpaid = 0;
+      print('📊 Loading dashboard for client: $clientId');
 
-      if (hasContracts) {
-        final contractsResponse = await _apiService.getContracts();
-        if (contractsResponse.isSuccess) {
-          final contracts = contractsResponse.data ?? [];
-          // Calculate total unpaid from all contracts
-          for (var contract in contracts) {
-            totalUnpaid += (contract.daysUnpaid * 10000);
-          }
-        }
-      }
-
-      if (summaryResponse.isSuccess) {
-        final summaryData = summaryResponse.data;
-
-        setState(() {
-          _totalSales = (summaryData?['all_sales'] ?? 0).toDouble();
-          _expenses = (summaryData?['expenses'] ?? 0).toDouble();
-          _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
-          _profit = (summaryData?['profit'] ?? 0).toDouble();
-
-          // Bank difference = banking_amount - supplier_debit_bank
-          final bankingAmount = (summaryData?['banking_amount'] ?? 0).toDouble();
-          final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
-          _bankDifference = bankingAmount - supplierBank;
-
-          _totalUnpaid = totalUnpaid;
-          _isLoading = false;
-        });
+      // Load dashboard based on client type
+      if (clientId == 'come_and_save') {
+        await _loadComeAndSaveDashboard();
       } else {
-        setState(() {
-          _error = summaryResponse.message;
-          _isLoading = false;
-        });
+        await _loadSadaDashboard();
       }
     } catch (e) {
       print('❌ Dashboard error: $e');
@@ -90,6 +58,67 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Load dashboard for SADA (with contracts and full features)
+  Future<void> _loadSadaDashboard() async {
+    // Get today's summary
+    final summaryResponse = await _apiService.getCashSubmitTodaySummary();
+
+    // Get contracts for unpaid calculation
+    final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
+    double totalUnpaid = 0;
+
+    if (hasContracts) {
+      final contractsResponse = await _apiService.getContracts();
+      if (contractsResponse.isSuccess) {
+        final contracts = contractsResponse.data ?? [];
+        for (var contract in contracts) {
+          totalUnpaid += (contract.daysUnpaid * 10000);
+        }
+      }
+    }
+
+    if (summaryResponse.isSuccess) {
+      final summaryData = summaryResponse.data;
+
+      setState(() {
+        _totalSales = (summaryData?['all_sales'] ?? 0).toDouble();
+        _expenses = (summaryData?['expenses'] ?? 0).toDouble();
+        _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
+        _profit = (summaryData?['profit'] ?? 0).toDouble();
+
+        final bankingAmount = (summaryData?['banking_amount'] ?? 0).toDouble();
+        final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
+        _bankDifference = bankingAmount - supplierBank;
+
+        _totalUnpaid = totalUnpaid;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _error = summaryResponse.message;
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Load dashboard for Come & Save (simplified - no contracts, no banking details)
+  Future<void> _loadComeAndSaveDashboard() async {
+    // For Come & Save, use simplified data or different endpoints
+    // For now, show basic metrics with placeholder values
+    setState(() {
+      _totalSales = 0;
+      _expenses = 0;
+      _gainLoss = 0;
+      _profit = 0;
+      _bankDifference = 0;
+      _totalUnpaid = 0;
+      _isLoading = false;
+    });
+
+    // TODO: Implement Come & Save specific API calls when backend is ready
+    print('⚠️ Come & Save dashboard using placeholder data - backend API needs fixes');
   }
 
   @override
