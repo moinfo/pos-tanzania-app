@@ -41,8 +41,16 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
 
   Future<void> _initializeLocation() async {
     if (!mounted) return;
-    final locationProvider = context.read<LocationProvider>();
-    await locationProvider.initialize(moduleId: 'sales'); // Use sales permissions
+
+    final currentClient = ApiService.currentClient;
+    final clientId = currentClient?.id ?? 'sada';
+
+    // Initialize location provider only for Come & Save
+    if (clientId == 'come_and_save') {
+      final locationProvider = context.read<LocationProvider>();
+      await locationProvider.initialize(moduleId: 'sales'); // Use sales permissions
+    }
+
     _loadSubmissions();
   }
 
@@ -52,13 +60,20 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
     final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
     final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
 
-    final locationProvider = context.read<LocationProvider>();
-    final selectedLocationId = locationProvider.selectedLocation?.locationId;
+    // Get location only for Come & Save client
+    final currentClient = ApiService.currentClient;
+    final clientId = currentClient?.id ?? 'sada';
+
+    int? selectedLocationId;
+    if (clientId == 'come_and_save') {
+      final locationProvider = context.read<LocationProvider>();
+      selectedLocationId = locationProvider.selectedLocation?.locationId;
+    }
 
     final result = await _apiService.getCashSubmissions(
       startDate: startDateStr,
       endDate: endDateStr,
-      locationId: selectedLocationId,
+      locationId: selectedLocationId, // null for SADA, specific location for Come & Save
       limit: 100,
     );
 
@@ -363,8 +378,8 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.success,
         foregroundColor: Colors.white,
         actions: [
-          // Location selector
-          if (locations.isNotEmpty)
+          // Location selector (Come & Save only)
+          if (ApiService.currentClient?.id == 'come_and_save' && locations.isNotEmpty)
             PopupMenuButton<int>(
               icon: Row(
                 mainAxisSize: MainAxisSize.min,
