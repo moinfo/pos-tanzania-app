@@ -660,8 +660,8 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           child: GlassmorphicCard(
             child: ListTile(
               leading: const CircleAvatar(
-                backgroundColor: AppColors.secondary,
-                child: Icon(Icons.account_balance, color: Colors.white),
+                backgroundColor: AppColors.primary,
+                child: Icon(Icons.category, color: Colors.white),
               ),
               title: Text(category.name, style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(category.description),
@@ -787,8 +787,8 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                       child: GlassmorphicCard(
                         child: ListTile(
                           leading: const CircleAvatar(
-                            backgroundColor: AppColors.secondary,
-                            child: Icon(Icons.account_balance, color: Colors.white),
+                            backgroundColor: Colors.green,
+                            child: Icon(Icons.money, color: Colors.white),
                           ),
                           title: Text(
                             transaction.bankBasisName,
