@@ -21,6 +21,7 @@ import '../models/receiving.dart';
 import '../models/sale.dart'; // Use SaleItem from sale.dart
 import '../models/stock_location.dart';
 import '../models/client_config.dart';
+import '../models/transaction.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -2126,6 +2127,886 @@ class ApiService {
       return _handleResponse<bool>(
         response,
         (data) => data['is_allowed'] as bool,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ==================== TRANSACTIONS API ====================
+
+  // ---------- CUSTOMER DEPOSITS & WITHDRAWALS ----------
+
+  /// Get customer transaction balance
+  Future<ApiResponse<CustomerTransactionBalance>> getCustomerBalance(
+    int customerId, {
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/customer_balance/$customerId')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<CustomerTransactionBalance>(
+        response,
+        (data) => CustomerTransactionBalance.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get customer statement
+  Future<ApiResponse<TransactionStatement>> getCustomerStatement(
+    int customerId, {
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/statement/$customerId')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<TransactionStatement>(
+        response,
+        (data) => TransactionStatement.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get customer deposits
+  Future<ApiResponse<List<Deposit>>> getDeposits({
+    int? customerId,
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final endpoint = customerId != null
+          ? 'transactions/deposits/$customerId'
+          : 'transactions/deposits';
+
+      final uri = Uri.parse('$baseUrlSync/$endpoint')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final deposits = (data['deposits'] as List)
+            .map((item) => Deposit.fromJson(item))
+            .toList();
+
+        return ApiResponse.success(
+          data: deposits,
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch deposits',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get customer withdrawals
+  Future<ApiResponse<List<Withdrawal>>> getWithdrawals({
+    int? customerId,
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final endpoint = customerId != null
+          ? 'transactions/withdrawals/$customerId'
+          : 'transactions/withdrawals';
+
+      final uri = Uri.parse('$baseUrlSync/$endpoint')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final withdrawals = (data['withdrawals'] as List)
+            .map((item) => Withdrawal.fromJson(item))
+            .toList();
+
+        return ApiResponse.success(
+          data: withdrawals,
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch withdrawals',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add deposit
+  Future<ApiResponse<Map<String, dynamic>>> addDeposit(TransactionFormData formData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_deposit'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update deposit
+  Future<ApiResponse<Map<String, dynamic>>> updateDeposit(int id, TransactionFormData formData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_deposit/$id'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete deposit
+  Future<ApiResponse<Map<String, dynamic>>> deleteDeposit(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_deposit/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add withdrawal
+  Future<ApiResponse<Map<String, dynamic>>> addWithdrawal(TransactionFormData formData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_withdrawal'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update withdrawal
+  Future<ApiResponse<Map<String, dynamic>>> updateWithdrawal(int id, TransactionFormData formData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_withdrawal/$id'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete withdrawal
+  Future<ApiResponse<Map<String, dynamic>>> deleteWithdrawal(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_withdrawal/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get all customers with balances
+  Future<ApiResponse<List<CustomerTransactionBalance>>> getAllCustomersBalance() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transactions/all_customers_balance'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final customers = (data['customers'] as List)
+            .map((item) => CustomerTransactionBalance.fromJson(item))
+            .toList();
+
+        return ApiResponse.success(
+          data: customers,
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch customer balances',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---------- CASH BASIS ----------
+
+  /// Get cash basis categories
+  Future<ApiResponse<List<CashBasisCategory>>> getCashBasisCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transactions/cash_basis_list'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final categories = (data['cash_basis'] as List)
+            .map((item) => CashBasisCategory.fromJson(item))
+            .toList();
+
+        return ApiResponse.success(
+          data: categories,
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch cash basis categories',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add cash basis category
+  Future<ApiResponse<Map<String, dynamic>>> addCashBasisCategory({
+    required String name,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_cash_basis_category'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'name': name,
+          if (description != null) 'description': description,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update cash basis category
+  Future<ApiResponse<Map<String, dynamic>>> updateCashBasisCategory(
+    int id, {
+    String? name,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_cash_basis_category/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (name != null) 'name': name,
+          if (description != null) 'description': description,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete cash basis category
+  Future<ApiResponse<Map<String, dynamic>>> deleteCashBasisCategory(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_cash_basis_category/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get cash basis transactions
+  Future<ApiResponse<CashBasisResponse>> getCashBasisTransactions({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/cash_basis')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<CashBasisResponse>(
+        response,
+        (data) => CashBasisResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add cash basis transaction
+  Future<ApiResponse<Map<String, dynamic>>> addCashBasisTransaction({
+    required int cashBasisId,
+    required double amount,
+    required String date,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_cash_basis'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'cash_basis_id': cashBasisId,
+          'amount': amount,
+          'date': date,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update cash basis transaction
+  Future<ApiResponse<Map<String, dynamic>>> updateCashBasisTransaction(
+    int id, {
+    int? cashBasisId,
+    double? amount,
+    String? date,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_cash_basis/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (cashBasisId != null) 'cash_basis_id': cashBasisId,
+          if (amount != null) 'amount': amount,
+          if (date != null) 'date': date,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete cash basis transaction
+  Future<ApiResponse<Map<String, dynamic>>> deleteCashBasisTransaction(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_cash_basis/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---------- BANK BASIS ----------
+
+  /// Get bank basis categories
+  Future<ApiResponse<List<BankBasisCategory>>> getBankBasisCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transactions/bank_basis_list'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final categories = (data['bank_basis'] as List)
+            .map((item) => BankBasisCategory.fromJson(item))
+            .toList();
+
+        return ApiResponse.success(
+          data: categories,
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch bank basis categories',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add bank basis category
+  Future<ApiResponse<Map<String, dynamic>>> addBankBasisCategory({
+    required String name,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_bank_basis_category'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'name': name,
+          if (description != null) 'description': description,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update bank basis category
+  Future<ApiResponse<Map<String, dynamic>>> updateBankBasisCategory(
+    int id, {
+    String? name,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_bank_basis_category/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (name != null) 'name': name,
+          if (description != null) 'description': description,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete bank basis category
+  Future<ApiResponse<Map<String, dynamic>>> deleteBankBasisCategory(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_bank_basis_category/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get bank basis transactions
+  Future<ApiResponse<BankBasisResponse>> getBankBasisTransactions({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/bank_basis')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<BankBasisResponse>(
+        response,
+        (data) => BankBasisResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add bank basis transaction
+  Future<ApiResponse<Map<String, dynamic>>> addBankBasisTransaction({
+    required int bankBasisId,
+    required double amount,
+    required String date,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_bank_basis'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'bank_basis_id': bankBasisId,
+          'amount': amount,
+          'date': date,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update bank basis transaction
+  Future<ApiResponse<Map<String, dynamic>>> updateBankBasisTransaction(
+    int id, {
+    int? bankBasisId,
+    double? amount,
+    String? date,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_bank_basis/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (bankBasisId != null) 'bank_basis_id': bankBasisId,
+          if (amount != null) 'amount': amount,
+          if (date != null) 'date': date,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete bank basis transaction
+  Future<ApiResponse<Map<String, dynamic>>> deleteBankBasisTransaction(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_bank_basis/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---------- WAKALA / SIMs ----------
+
+  /// Get SIM cards
+  Future<ApiResponse<List<Sim>>> getSims() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transactions/sims'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final sims = (data['sims'] as List)
+            .map((item) => Sim.fromJson(item))
+            .toList();
+
+        return ApiResponse.success(
+          data: sims,
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch SIMs',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add SIM card
+  Future<ApiResponse<Map<String, dynamic>>> addSim({
+    required String name,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_sim'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'name': name,
+          if (description != null) 'description': description,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update SIM card
+  Future<ApiResponse<Map<String, dynamic>>> updateSim(
+    int id, {
+    String? name,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_sim/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (name != null) 'name': name,
+          if (description != null) 'description': description,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete SIM card
+  Future<ApiResponse<Map<String, dynamic>>> deleteSim(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_sim/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get wakala transactions
+  Future<ApiResponse<WakalaResponse>> getWakalaTransactions({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/wakala')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<WakalaResponse>(
+        response,
+        (data) => WakalaResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add wakala transaction
+  Future<ApiResponse<Map<String, dynamic>>> addWakalaTransaction({
+    required int simId,
+    required double amount,
+    required String date,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_wakala'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'sim_id': simId,
+          'amount': amount,
+          'date': date,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update wakala transaction
+  Future<ApiResponse<Map<String, dynamic>>> updateWakalaTransaction(
+    int id, {
+    int? simId,
+    double? amount,
+    String? date,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_wakala/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (simId != null) 'sim_id': simId,
+          if (amount != null) 'amount': amount,
+          if (date != null) 'date': date,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete wakala transaction
+  Future<ApiResponse<Map<String, dynamic>>> deleteWakalaTransaction(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_wakala/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get wakala report
+  Future<ApiResponse<WakalaReport>> getWakalaReport({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/wakala_report')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<WakalaReport>(
+        response,
+        (data) => WakalaReport.fromJson(data),
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');

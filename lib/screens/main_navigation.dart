@@ -22,6 +22,7 @@ import 'suspended_sales_screen.dart';
 import 'receivings/receivings_list_screen.dart';
 import 'banking/banking_list_screen.dart';
 import 'profit_submit/profit_submit_list_screen.dart';
+import 'transactions/transactions_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 
@@ -416,6 +417,21 @@ class _MainNavigationState extends State<MainNavigation> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ReceivingsListScreen()),
+                  );
+                },
+              ),
+            ),
+            // Transactions - requires customers permission (transactions are customer-related)
+            PermissionWrapper(
+              permissionId: PermissionIds.customers,
+              child: ListTile(
+                leading: const Icon(Icons.swap_horiz, color: AppColors.primary),
+                title: const Text('Transactions'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TransactionsScreen()),
                   );
                 },
               ),

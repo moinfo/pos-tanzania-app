@@ -237,6 +237,47 @@ class PermissionIds {
   static const String cashSubmitDifferenceMrBs = 'cash_submit_difference_mr_bs';
   static const String cashSubmitMainStoreReceiving = 'cash_submit_main_store_receiving';
 
+  // Transactions module sub-permissions
+  // Main menu permissions
+  static const String transactionsDepositsAndWithdraws = 'transactions_deposits_and_withdraws';
+  static const String transactionsWakalaReport = 'transactions_wakala_report';
+
+  // Cash Basis
+  static const String transactionsCashBasis = 'transactions_cash_basis';
+  static const String transactionsCashBasisAdd = 'transactions_cash_basis_add';
+  static const String transactionsCashBasisEdit = 'transactions_cash_basis_edit';
+  static const String transactionsCashBasisDelete = 'transactions_cash_basis_delete';
+  static const String transactionsCashBasisSettingAdd = 'transactions_cash_basis_setting_add';
+  static const String transactionsCashBasisSettingEdit = 'transactions_cash_basis_setting_edit';
+  static const String transactionsCashBasisSettingDelete = 'transactions_cash_basis_setting_delete';
+
+  // Bank Basis
+  static const String transactionsBankBasis = 'transactions_bank_basis';
+  static const String transactionsBankBasisAdd = 'transactions_bank_basis_add';
+  static const String transactionsBankBasisEdit = 'transactions_bank_basis_edit';
+  static const String transactionsBankBasisDelete = 'transactions_bank_basis_delete';
+  static const String transactionsBankBasisSettingAdd = 'transactions_bank_basis_setting_add';
+  static const String transactionsBankBasisSettingEdit = 'transactions_bank_basis_setting_edit';
+  static const String transactionsBankBasisSettingDelete = 'transactions_bank_basis_setting_delete';
+
+  // Customer Transactions (Deposits & Withdrawals)
+  static const String transactionsCustomer = 'transactions_customer';
+  static const String transactionsDepositsAdd = 'transactions_deposits_add';
+  static const String transactionsDepositsEdit = 'transactions_deposits_edit';
+  static const String transactionsDepositsDelete = 'transactions_deposits_delete';
+  static const String transactionsWithdrawalsAdd = 'transactions_withdrawals_add';
+  static const String transactionsWithdrawalsEdit = 'transactions_withdrawals_edit';
+  static const String transactionsWithdrawalsDelete = 'transactions_withdrawals_delete';
+
+  // Wakala
+  static const String transactionsWakala = 'transactions_wakala';
+  static const String transactionsWakalaAdd = 'transactions_wakala_add';
+  static const String transactionsWakalaEdit = 'transactions_wakala_edit';
+  static const String transactionsWakalaDelete = 'transactions_wakala_delete';
+  static const String transactionsWakalaSettingAdd = 'transactions_wakala_setting_add';
+  static const String transactionsWakalaSettingEdit = 'transactions_wakala_setting_edit';
+  static const String transactionsWakalaSettingDelete = 'transactions_wakala_setting_delete';
+
   // Reports sub-permissions
   static const String reportsCustomers = 'reports_customers';
   static const String reportsReceivings = 'reports_receivings';
