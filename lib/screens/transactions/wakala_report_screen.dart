@@ -161,19 +161,19 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
           // SIMs Section
           _buildSectionHeader('SIM Cards Float'),
           const SizedBox(height: 8),
-          _buildReportSection(report.sims, Colors.orange),
+          _buildReportSection(report.sims, Colors.white),
           const SizedBox(height: 24),
 
           // Bank Basis Section
           _buildSectionHeader('Bank / Mobile Money'),
           const SizedBox(height: 8),
-          _buildReportSection(report.bankBasis, Colors.purple),
+          _buildReportSection(report.bankBasis, Colors.white),
           const SizedBox(height: 24),
 
           // Cash Basis Section
           _buildSectionHeader('Cash Transactions'),
           const SizedBox(height: 8),
-          _buildReportSection(report.cashBasis, Colors.green),
+          _buildReportSection(report.cashBasis, Colors.white),
           const SizedBox(height: 24),
 
           // Summary Section
@@ -195,7 +195,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
       style: const TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Colors.grey,
+        color: AppColors.secondary,
       ),
     );
   }
@@ -259,17 +259,17 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            _buildSummaryRow('Float (SIMs + Bank)', report.float, Colors.blue),
+            _buildSummaryRow('Float (SIMs + Bank)', report.float, Colors.white),
             const SizedBox(height: 12),
-            _buildSummaryRow('Total Deposited', report.totalDeposited, Colors.green),
+            _buildSummaryRow('Total Deposited', report.totalDeposited, Colors.white),
             const SizedBox(height: 12),
-            _buildSummaryRow('Total Withdrawn', report.totalWithdrawn, Colors.red),
+            _buildSummaryRow('Total Withdrawn', report.totalWithdrawn, AppColors.primary),
             const SizedBox(height: 12),
-            _buildSummaryRow('Opening Balance', report.openingBalance, Colors.grey),
+            _buildSummaryRow('Opening Balance', report.openingBalance, Colors.white),
             const Divider(height: 24),
-            _buildSummaryRow('Net Total', report.netTotal, Colors.teal, isLarge: true),
+            _buildSummaryRow('Net Total', report.netTotal, Colors.white, isLarge: true),
             const SizedBox(height: 12),
-            _buildSummaryRow('Capital', report.capital, Colors.indigo),
+            _buildSummaryRow('Capital', report.capital, Colors.white),
           ],
         ),
       ),
@@ -309,8 +309,8 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isGain
-                ? [Colors.green.withOpacity(0.3), Colors.green.withOpacity(0.1)]
-                : [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
+                ? [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)]
+                : [AppColors.primary.withOpacity(0.3), AppColors.primary.withOpacity(0.1)],
           ),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -325,15 +325,15 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isGain ? Colors.green : Colors.red,
+                    color: isGain ? Colors.white : AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Period Result',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: AppColors.secondary,
                   ),
                 ),
               ],
@@ -342,7 +342,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
               children: [
                 Icon(
                   isGain ? Icons.trending_up : Icons.trending_down,
-                  color: isGain ? Colors.green : Colors.red,
+                  color: isGain ? Colors.white : AppColors.primary,
                   size: 32,
                 ),
                 const SizedBox(width: 8),
@@ -351,7 +351,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: isGain ? Colors.green : Colors.red,
+                    color: isGain ? Colors.white : AppColors.primary,
                   ),
                 ),
               ],
