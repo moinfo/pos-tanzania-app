@@ -628,8 +628,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     final isOnDepositsTab = _tabController.index == 0;
 
     if (isOnDepositsTab) {
-      // Deposits tab - check deposits_add permission
-      if (!permissionProvider.hasPermission(PermissionIds.transactionsDepositsAdd)) {
+      // Deposits tab - check deposit_add permission
+      if (!permissionProvider.hasPermission(PermissionIds.transactionsDepositAdd)) {
         return null;
       }
       return FloatingActionButton.extended(
@@ -638,8 +638,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         label: const Text('Add Deposit'),
       );
     } else {
-      // Withdrawals tab - check withdrawals_add permission
-      if (!permissionProvider.hasPermission(PermissionIds.transactionsWithdrawalsAdd)) {
+      // Withdrawals tab - check withdraw_add permission
+      if (!permissionProvider.hasPermission(PermissionIds.transactionsWithdrawAdd)) {
         return null;
       }
       return FloatingActionButton.extended(
@@ -655,8 +655,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
       return const Center(child: Text('No deposits found'));
     }
 
-    final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsDepositsEdit);
-    final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsDepositsDelete);
+    final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsDepositEdit);
+    final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsDepositDelete);
     final hasAnyAction = canEdit || canDelete;
 
     return ListView.builder(
@@ -731,8 +731,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
       return const Center(child: Text('No withdrawals found'));
     }
 
-    final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsWithdrawalsEdit);
-    final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsWithdrawalsDelete);
+    final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsWithdrawEdit);
+    final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsWithdrawDelete);
     final hasAnyAction = canEdit || canDelete;
 
     return ListView.builder(

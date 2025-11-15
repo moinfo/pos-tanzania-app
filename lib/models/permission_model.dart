@@ -262,12 +262,12 @@ class PermissionIds {
 
   // Customer Transactions (Deposits & Withdrawals)
   static const String transactionsCustomer = 'transactions_customer';
-  static const String transactionsDepositsAdd = 'transactions_deposits_add';
-  static const String transactionsDepositsEdit = 'transactions_deposits_edit';
-  static const String transactionsDepositsDelete = 'transactions_deposits_delete';
-  static const String transactionsWithdrawalsAdd = 'transactions_withdrawals_add';
-  static const String transactionsWithdrawalsEdit = 'transactions_withdrawals_edit';
-  static const String transactionsWithdrawalsDelete = 'transactions_withdrawals_delete';
+  static const String transactionsDepositAdd = 'transactions_deposit_add';
+  static const String transactionsDepositEdit = 'transactions_deposit_edit';
+  static const String transactionsDepositDelete = 'transactions_deposit_delete';
+  static const String transactionsWithdrawAdd = 'transactions_withdraw_add';
+  static const String transactionsWithdrawEdit = 'transactions_withdraw_edit';
+  static const String transactionsWithdrawDelete = 'transactions_withdraw_delete';
 
   // Wakala
   static const String transactionsWakala = 'transactions_wakala';
