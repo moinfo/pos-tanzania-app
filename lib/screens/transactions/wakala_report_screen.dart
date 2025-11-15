@@ -161,29 +161,29 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
           // SIMs Section
           _buildSectionHeader('SIM Cards Float'),
           const SizedBox(height: 8),
-          _buildReportSection(report.sims, Colors.white),
+          _buildReportSection(report.sims, context),
           const SizedBox(height: 24),
 
           // Bank Basis Section
           _buildSectionHeader('Bank / Mobile Money'),
           const SizedBox(height: 8),
-          _buildReportSection(report.bankBasis, Colors.white),
+          _buildReportSection(report.bankBasis, context),
           const SizedBox(height: 24),
 
           // Cash Basis Section
           _buildSectionHeader('Cash Transactions'),
           const SizedBox(height: 8),
-          _buildReportSection(report.cashBasis, Colors.white),
+          _buildReportSection(report.cashBasis, context),
           const SizedBox(height: 24),
 
           // Summary Section
           _buildSectionHeader('Financial Summary'),
           const SizedBox(height: 8),
-          _buildSummaryCard(report),
+          _buildSummaryCard(report, context),
           const SizedBox(height: 24),
 
           // Gain/Loss Card
-          _buildGainLossCard(report),
+          _buildGainLossCard(report, context),
         ],
       ),
     );
@@ -200,7 +200,10 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     );
   }
 
-  Widget _buildReportSection(WakalaReportSection section, Color color) {
+  Widget _buildReportSection(WakalaReportSection section, BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final amountColor = themeProvider.isDarkMode ? Colors.white : AppColors.secondary;
+
     return GlassmorphicCard(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -217,7 +220,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                         Formatters.formatCurrency(item.amount),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: color,
+                          color: amountColor,
                         ),
                       ),
                     ],
@@ -242,7 +245,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: color,
+                    color: amountColor,
                   ),
                 ),
               ],
@@ -253,23 +256,26 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     );
   }
 
-  Widget _buildSummaryCard(WakalaReport report) {
+  Widget _buildSummaryCard(WakalaReport report, BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final amountColor = themeProvider.isDarkMode ? Colors.white : AppColors.secondary;
+
     return GlassmorphicCard(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            _buildSummaryRow('Float (SIMs + Bank)', report.float, Colors.white),
+            _buildSummaryRow('Float (SIMs + Bank)', report.float, amountColor),
             const SizedBox(height: 12),
-            _buildSummaryRow('Total Deposited', report.totalDeposited, Colors.white),
+            _buildSummaryRow('Total Deposited', report.totalDeposited, amountColor),
             const SizedBox(height: 12),
             _buildSummaryRow('Total Withdrawn', report.totalWithdrawn, AppColors.primary),
             const SizedBox(height: 12),
-            _buildSummaryRow('Opening Balance', report.openingBalance, Colors.white),
+            _buildSummaryRow('Opening Balance', report.openingBalance, amountColor),
             const Divider(height: 24),
-            _buildSummaryRow('Net Total', report.netTotal, Colors.white, isLarge: true),
+            _buildSummaryRow('Net Total', report.netTotal, amountColor, isLarge: true),
             const SizedBox(height: 12),
-            _buildSummaryRow('Capital', report.capital, Colors.white),
+            _buildSummaryRow('Capital', report.capital, amountColor),
           ],
         ),
       ),
@@ -300,8 +306,10 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     );
   }
 
-  Widget _buildGainLossCard(WakalaReport report) {
+  Widget _buildGainLossCard(WakalaReport report, BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final isGain = report.gainLoss >= 0;
+    final gainColor = themeProvider.isDarkMode ? Colors.white : AppColors.secondary;
 
     return GlassmorphicCard(
       child: Container(
@@ -309,7 +317,9 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isGain
-                ? [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)]
+                ? themeProvider.isDarkMode
+                    ? [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)]
+                    : [AppColors.secondary.withOpacity(0.1), AppColors.secondary.withOpacity(0.05)]
                 : [AppColors.primary.withOpacity(0.3), AppColors.primary.withOpacity(0.1)],
           ),
           borderRadius: BorderRadius.circular(16),
@@ -325,7 +335,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isGain ? Colors.white : AppColors.primary,
+                    color: isGain ? gainColor : AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -342,7 +352,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
               children: [
                 Icon(
                   isGain ? Icons.trending_up : Icons.trending_down,
-                  color: isGain ? Colors.white : AppColors.primary,
+                  color: isGain ? gainColor : AppColors.primary,
                   size: 32,
                 ),
                 const SizedBox(width: 8),
@@ -351,7 +361,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: isGain ? Colors.white : AppColors.primary,
+                    color: isGain ? gainColor : AppColors.primary,
                   ),
                 ),
               ],
