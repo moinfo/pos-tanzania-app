@@ -5,7 +5,7 @@ class ClientsConfig {
   // BUILD CONFIGURATION
   // ============================================
   // Set this to the client ID you want to build for in PRODUCTION
-  // Examples: 'sada', 'come_and_save', 'bonge', etc.
+  // Examples: 'sada', 'come_and_save', 'come_and_save', etc.
   // In DEBUG mode, this is ignored and user can select any client
   static const String PRODUCTION_CLIENT_ID = 'sada'; // Change this before building APK
 
@@ -43,7 +43,7 @@ class ClientsConfig {
       name: 'dev-come_and_save',
       displayName: 'Come & Save',
       devApiUrl: 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania-come_and_save/public/api',
-      prodApiUrl: 'https://comeandsave.moinfotech.co.tz/api',
+      prodApiUrl: 'https://come_and_save.co.tz/api',
       features: const ClientFeatures(
         // Come & Save does NOT have contracts feature
         hasContracts: false,
