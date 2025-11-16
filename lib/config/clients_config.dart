@@ -7,7 +7,7 @@ class ClientsConfig {
   // Set this to the client ID you want to build for in PRODUCTION
   // Examples: 'sada', 'come_and_save', 'come_and_save', etc.
   // In DEBUG mode, this is ignored and user can select any client
-  static const String PRODUCTION_CLIENT_ID = 'sada'; // Change this before building APK
+  static const String PRODUCTION_CLIENT_ID = 'come_and_save'; // Change this before building APK
 
   // ============================================
   // NETWORK CONFIGURATION
