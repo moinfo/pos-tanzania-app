@@ -15,4 +15,13 @@
             <certificates src="user" />
         </trust-anchors>
     </domain-config>
+
+    <!-- Allow all connections to come_and_save.co.tz -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">come_and_save.co.tz</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
 </network-security-config>
