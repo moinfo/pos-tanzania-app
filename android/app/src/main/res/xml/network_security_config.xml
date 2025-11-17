@@ -16,9 +16,9 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- Allow all connections to come_and_save.co.tz -->
+    <!-- Allow all connections to comeandsave.co.tz -->
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">come_and_save.co.tz</domain>
+        <domain includeSubdomains="true">comeandsave.co.tz</domain>
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />

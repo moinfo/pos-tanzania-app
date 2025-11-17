@@ -13,8 +13,8 @@ class ClientsConfig {
   // NETWORK CONFIGURATION
   // ============================================
   // ⚠️ CHANGE THIS IP ADDRESS when your network changes
-//   static const String LOCAL_IP_ADDRESS = '192.168.0.100'; // Your computer's local IP
-  static const String LOCAL_IP_ADDRESS = '172.16.245.29'; // Your computer's local IP
+  static const String LOCAL_IP_ADDRESS = '192.168.0.100'; // Your computer's local IP
+//   static const String LOCAL_IP_ADDRESS = '172.16.245.29'; // Your computer's local IP
   static const String MAMP_PORT = '8888';
 
   // Base URLs (automatically constructed from IP address)
@@ -43,7 +43,7 @@ class ClientsConfig {
       name: 'dev-come_and_save',
       displayName: 'Come & Save',
       devApiUrl: 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania-come_and_save/public/api',
-      prodApiUrl: 'https://come_and_save.co.tz/public/api',
+      prodApiUrl: 'https://comeandsave.co.tz/api',
       features: const ClientFeatures(
         // Come & Save does NOT have contracts feature
         hasContracts: false,
