@@ -43,7 +43,7 @@ class ClientsConfig {
       name: 'dev-come_and_save',
       displayName: 'Come & Save',
       devApiUrl: 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania-come_and_save/public/api',
-      prodApiUrl: 'https://come_and_save.co.tz/api',
+      prodApiUrl: 'https://come_and_save.co.tz/public/api',
       features: const ClientFeatures(
         // Come & Save does NOT have contracts feature
         hasContracts: false,
