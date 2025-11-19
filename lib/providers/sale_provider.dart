@@ -94,7 +94,7 @@ class SaleProvider with ChangeNotifier {
         costPrice: item.costPrice,
         unitPrice: item.unitPrice,
         discount: 0,
-        discountType: 0, // Percentage
+        discountType: 1, // Fixed (changed from 0=Percentage to 1=Fixed)
         discountLimit: item.discountLimit,
         stockLocationId: itemLocationId, // Use selected location
         availableStock: item.quantity, // Store available stock for display
@@ -133,7 +133,7 @@ class SaleProvider with ChangeNotifier {
   }
 
   // Update item discount
-  void updateDiscount(int index, double discount, {int discountType = 0}) {
+  void updateDiscount(int index, double discount, {int discountType = 1}) {
     if (index >= 0 && index < _cartItems.length) {
       _cartItems[index] = _cartItems[index].copyWith(
         discount: discount,
