@@ -177,6 +177,7 @@ class SaleItem {
       'cost_price': costPrice,
       'unit_price': unitPrice,
       if (discount > 0) 'discount': discount,
+      if (discount > 0) 'discount_type': discountType, // 0=percent, 1=fixed
       if (description != null) 'description': description,
       if (serialNumber != null) 'serial_number': serialNumber,
       if (stockLocationId != null) 'item_location': stockLocationId, // Include stock location
