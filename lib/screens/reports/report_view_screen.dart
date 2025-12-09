@@ -39,14 +39,17 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocation();
     });
-    _loadReport();
   }
 
   Future<void> _initializeLocation() async {
     if (!mounted) return;
     final locationProvider = context.read<LocationProvider>();
-    // Initialize for reports module
-    await locationProvider.initialize(moduleId: 'reports');
+    print('📍 [Reports] Before initialize - locations: ${locationProvider.allowedLocations.length}, selected: ${locationProvider.selectedLocation?.locationName}');
+    // Initialize with sales permissions (reports don't have their own location permission)
+    await locationProvider.initialize(moduleId: 'sales');
+    print('📍 [Reports] After initialize - locations: ${locationProvider.allowedLocations.length}, selected: ${locationProvider.selectedLocation?.locationName}');
+    // Load report after location is initialized
+    _loadReport();
   }
 
   Future<void> _loadReport() async {
@@ -196,69 +199,6 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
-          // Location selector
-          if (locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: PopupMenuButton<StockLocation>(
-                  offset: const Offset(0, 40),
-                  color: isDark ? AppColors.darkCard : Colors.white,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.location_on, size: 18, color: Colors.white),
-                      const SizedBox(width: 6),
-                      Text(
-                        locationProvider.selectedLocation!.locationName,
-                        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
-                    ],
-                  ),
-                  onSelected: (location) async {
-                    await locationProvider.selectLocation(location);
-                    _loadReport(); // Reload report for new location
-                  },
-                  itemBuilder: (context) => locationProvider.allowedLocations
-                      .map((location) => PopupMenuItem<StockLocation>(
-                            value: location,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? Icons.check_circle
-                                      : Icons.radio_button_unchecked,
-                                  size: 20,
-                                  color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
-                                      : Colors.grey,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  location.locationName,
-                                  style: TextStyle(
-                                    color: location.locationId == locationProvider.selectedLocation?.locationId
-                                        ? (isDark ? AppColors.darkText : AppColors.primary)
-                                        : (isDark ? AppColors.darkText : Colors.black87),
-                                    fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ))
-                      .toList(),
-                ),
-              ),
-            ),
           // Date range selector
           IconButton(
             icon: const Icon(Icons.date_range),
@@ -334,26 +274,66 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             ),
           ),
           if (locationProvider.selectedLocation != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.location_on, size: 14, color: AppColors.primary),
-                  const SizedBox(width: 4),
-                  Text(
-                    locationProvider.selectedLocation!.locationName,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
+            PopupMenuButton<StockLocation>(
+              offset: const Offset(0, 30),
+              color: isDark ? AppColors.darkCard : Colors.white,
+              onSelected: (location) async {
+                await locationProvider.selectLocation(location);
+                _loadReport();
+              },
+              itemBuilder: (context) => locationProvider.allowedLocations
+                  .map((location) => PopupMenuItem<StockLocation>(
+                        value: location,
+                        child: Row(
+                          children: [
+                            Icon(
+                              location.locationId == locationProvider.selectedLocation?.locationId
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              size: 18,
+                              color: location.locationId == locationProvider.selectedLocation?.locationId
+                                  ? AppColors.primary
+                                  : Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              location.locationName,
+                              style: TextStyle(
+                                color: location.locationId == locationProvider.selectedLocation?.locationId
+                                    ? AppColors.primary
+                                    : (isDark ? AppColors.darkText : Colors.black87),
+                                fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      locationProvider.selectedLocation!.locationName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 2),
+                    Icon(Icons.arrow_drop_down, size: 16, color: AppColors.primary),
+                  ],
+                ),
               ),
             ),
         ],

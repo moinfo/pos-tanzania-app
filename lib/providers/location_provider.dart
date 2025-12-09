@@ -22,8 +22,14 @@ class LocationProvider with ChangeNotifier {
   Future<void> initialize({String? moduleId}) async {
     final requestedModule = moduleId ?? 'items';
 
+    print('📍 [LocationProvider] initialize called for module: $requestedModule');
+    print('📍 [LocationProvider] Current state - locations: ${_allowedLocations.length}, currentModule: $_currentModuleId, selected: ${_selectedLocation?.locationName}');
+
     // If already loaded for same module, skip
-    if (_allowedLocations.isNotEmpty && _currentModuleId == requestedModule) return;
+    if (_allowedLocations.isNotEmpty && _currentModuleId == requestedModule) {
+      print('📍 [LocationProvider] Already initialized for $requestedModule, skipping');
+      return;
+    }
 
     _isLoading = true;
     notifyListeners();
@@ -50,11 +56,14 @@ class LocationProvider with ChangeNotifier {
           _selectedLocation = _allowedLocations.first;
           await _saveSelectedLocation();
         }
+        print('📍 [LocationProvider] Loaded ${_allowedLocations.length} locations, selected: ${_selectedLocation?.locationName}');
       } else {
         _errorMessage = response.message;
+        print('📍 [LocationProvider] API Error: ${response.message}');
       }
     } catch (e) {
       _errorMessage = 'Error loading locations: $e';
+      print('📍 [LocationProvider] Exception: $e');
     }
 
     _isLoading = false;
