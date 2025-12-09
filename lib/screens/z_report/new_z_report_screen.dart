@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
@@ -25,9 +26,13 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
 
-  // Form controllers
-  final TextEditingController _aController = TextEditingController();
-  final TextEditingController _cController = TextEditingController();
+  // Form controllers for new fields
+  final TextEditingController _turnoverController = TextEditingController();
+  final TextEditingController _netController = TextEditingController();
+  final TextEditingController _taxController = TextEditingController();
+  final TextEditingController _turnoverExSrController = TextEditingController();
+  final TextEditingController _totalController = TextEditingController();
+  final TextEditingController _totalChargesController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
 
   // File attachment state
@@ -52,15 +57,23 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
 
   void _loadZReportData() {
     final zReport = widget.zReport!;
-    _aController.text = zReport.a;
-    _cController.text = zReport.c;
+    _turnoverController.text = zReport.turnover.toStringAsFixed(2);
+    _netController.text = zReport.net.toStringAsFixed(2);
+    _taxController.text = zReport.tax.toStringAsFixed(2);
+    _turnoverExSrController.text = zReport.turnoverExSr.toStringAsFixed(2);
+    _totalController.text = zReport.total.toStringAsFixed(2);
+    _totalChargesController.text = zReport.totalCharges.toStringAsFixed(2);
     _dateController.text = zReport.date;
   }
 
   @override
   void dispose() {
-    _aController.dispose();
-    _cController.dispose();
+    _turnoverController.dispose();
+    _netController.dispose();
+    _taxController.dispose();
+    _turnoverExSrController.dispose();
+    _totalController.dispose();
+    _totalChargesController.dispose();
     _dateController.dispose();
     super.dispose();
   }
@@ -279,18 +292,34 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
       final locationProvider = context.read<LocationProvider>();
       final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
+      // Parse values
+      final turnover = double.tryParse(_turnoverController.text) ?? 0;
+      final net = double.tryParse(_netController.text) ?? 0;
+      final tax = double.tryParse(_taxController.text) ?? 0;
+      final turnoverExSr = double.tryParse(_turnoverExSrController.text) ?? 0;
+      final total = double.tryParse(_totalController.text) ?? 0;
+      final totalCharges = double.tryParse(_totalChargesController.text) ?? 0;
+
       final response = _isEditMode
           ? await _apiService.updateZReport(
               id: widget.zReport!.id,
-              a: _aController.text,
-              c: _cController.text,
+              turnover: turnover,
+              net: net,
+              tax: tax,
+              turnoverExSr: turnoverExSr,
+              total: total,
+              totalCharges: totalCharges,
               date: _dateController.text,
               stockLocationId: selectedLocationId,
               picFile: encodedFile,
             )
           : await _apiService.createZReport(
-              a: _aController.text,
-              c: _cController.text,
+              turnover: turnover,
+              net: net,
+              tax: tax,
+              turnoverExSr: turnoverExSr,
+              total: total,
+              totalCharges: totalCharges,
               date: _dateController.text,
               stockLocationId: selectedLocationId,
               picFile: encodedFile!,
@@ -334,6 +363,76 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
     }
   }
 
+  Widget _buildNumberField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required bool isDark,
+    String? hint,
+    bool isRequired = true,
+  }) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon,
+                    color: isDark ? Colors.white70 : AppColors.textLight,
+                    size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white70 : AppColors.textLight,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+              ],
+              style: TextStyle(
+                color: isDark ? AppColors.darkText : AppColors.text,
+              ),
+              decoration: InputDecoration(
+                hintText: hint ?? 'Enter $label',
+                hintStyle: TextStyle(
+                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                ),
+                filled: true,
+                fillColor: isDark
+                    ? AppColors.darkBackground.withOpacity(0.5)
+                    : Colors.grey.shade50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              validator: isRequired
+                  ? (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter $label';
+                      }
+                      return null;
+                    }
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
@@ -362,129 +461,61 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Value A Field
-                GlassmorphicCard(
+                // Turnover Field
+                _buildNumberField(
+                  label: 'Turnover',
+                  controller: _turnoverController,
+                  icon: Icons.trending_up,
                   isDark: isDark,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.label,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppColors.textLight,
-                                size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Value A',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppColors.textLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _aController,
-                          style: TextStyle(
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Enter value A',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? AppColors.darkTextLight
-                                  : AppColors.textLight,
-                            ),
-                            filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkBackground.withOpacity(0.5)
-                                : Colors.grey.shade50,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter value A';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 16),
 
-                // Value C Field
-                GlassmorphicCard(
+                // Net (A+B+C) Field
+                _buildNumberField(
+                  label: 'Net (A+B+C)',
+                  controller: _netController,
+                  icon: Icons.calculate,
                   isDark: isDark,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.label_outline,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppColors.textLight,
-                                size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Value C',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppColors.textLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _cController,
-                          style: TextStyle(
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Enter value C',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? AppColors.darkTextLight
-                                  : AppColors.textLight,
-                            ),
-                            filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkBackground.withOpacity(0.5)
-                                : Colors.grey.shade50,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter value C';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Tax Field
+                _buildNumberField(
+                  label: 'Tax',
+                  controller: _taxController,
+                  icon: Icons.receipt_long,
+                  isDark: isDark,
+                  isRequired: false,
+                ),
+                const SizedBox(height: 16),
+
+                // Turnover (Ex+SR) Field
+                _buildNumberField(
+                  label: 'Turnover (Ex+SR)',
+                  controller: _turnoverExSrController,
+                  icon: Icons.trending_flat,
+                  isDark: isDark,
+                  isRequired: false,
+                ),
+                const SizedBox(height: 16),
+
+                // Total Field
+                _buildNumberField(
+                  label: 'Total',
+                  controller: _totalController,
+                  icon: Icons.summarize,
+                  isDark: isDark,
+                  isRequired: false,
+                ),
+                const SizedBox(height: 16),
+
+                // Total Charges Field
+                _buildNumberField(
+                  label: 'Total Charges',
+                  controller: _totalChargesController,
+                  icon: Icons.money_off,
+                  isDark: isDark,
+                  isRequired: false,
                 ),
                 const SizedBox(height: 16),
 

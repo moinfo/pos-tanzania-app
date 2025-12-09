@@ -161,8 +161,8 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
           content: Text(
             'Are you sure you want to delete this Z Report?\n\n'
             'Date: ${_formatDate(zReport.date)}\n'
-            'A: ${zReport.a}\n'
-            'C: ${zReport.c}',
+            'Turnover: ${NumberFormat('#,##0.00').format(zReport.turnover)}\n'
+            'Net: ${NumberFormat('#,##0.00').format(zReport.net)}',
             style:
                 TextStyle(color: isDark ? AppColors.darkText : AppColors.text),
           ),
@@ -227,6 +227,58 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
     } catch (e) {
       return dateString;
     }
+  }
+
+  Widget _buildDetailCell({
+    required bool isDark,
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.darkBackground.withOpacity(0.5)
+            : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkText : AppColors.text,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // File handling methods
@@ -951,128 +1003,70 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                               ),
                                               const SizedBox(height: 12),
                                             ],
-                                            // Details section
+                                            // Details section - Row 1: Turnover and Net
                                             Row(
                                               children: [
                                                 Expanded(
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(10),
-                                                    decoration: BoxDecoration(
-                                                      color: isDark
-                                                          ? AppColors.darkBackground
-                                                              .withOpacity(0.5)
-                                                          : Colors.grey.shade50,
-                                                      borderRadius:
-                                                          BorderRadius.circular(8),
-                                                    ),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
-                                                      children: [
-                                                        Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons.label,
-                                                              size: 14,
-                                                              color: isDark
-                                                                  ? AppColors
-                                                                      .darkTextLight
-                                                                  : AppColors
-                                                                      .textLight,
-                                                            ),
-                                                            const SizedBox(
-                                                                width: 4),
-                                                            Text(
-                                                              'Value A',
-                                                              style: TextStyle(
-                                                                fontSize: 11,
-                                                                color: isDark
-                                                                    ? AppColors
-                                                                        .darkTextLight
-                                                                    : AppColors
-                                                                        .textLight,
-                                                                fontWeight:
-                                                                    FontWeight.w500,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        const SizedBox(height: 4),
-                                                        Text(
-                                                          zReport.a,
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: isDark
-                                                                ? AppColors.darkText
-                                                                : AppColors.text,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
+                                                  child: _buildDetailCell(
+                                                    isDark: isDark,
+                                                    icon: Icons.trending_up,
+                                                    label: 'Turnover',
+                                                    value: NumberFormat('#,##0.00').format(zReport.turnover),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
                                                 Expanded(
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(10),
-                                                    decoration: BoxDecoration(
-                                                      color: isDark
-                                                          ? AppColors.darkBackground
-                                                              .withOpacity(0.5)
-                                                          : Colors.grey.shade50,
-                                                      borderRadius:
-                                                          BorderRadius.circular(8),
-                                                    ),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
-                                                      children: [
-                                                        Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons.label_outline,
-                                                              size: 14,
-                                                              color: isDark
-                                                                  ? AppColors
-                                                                      .darkTextLight
-                                                                  : AppColors
-                                                                      .textLight,
-                                                            ),
-                                                            const SizedBox(
-                                                                width: 4),
-                                                            Text(
-                                                              'Value C',
-                                                              style: TextStyle(
-                                                                fontSize: 11,
-                                                                color: isDark
-                                                                    ? AppColors
-                                                                        .darkTextLight
-                                                                    : AppColors
-                                                                        .textLight,
-                                                                fontWeight:
-                                                                    FontWeight.w500,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        const SizedBox(height: 4),
-                                                        Text(
-                                                          zReport.c,
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: isDark
-                                                                ? AppColors.darkText
-                                                                : AppColors.text,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
+                                                  child: _buildDetailCell(
+                                                    isDark: isDark,
+                                                    icon: Icons.calculate,
+                                                    label: 'Net (A+B+C)',
+                                                    value: NumberFormat('#,##0.00').format(zReport.net),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            // Row 2: Tax and Turnover (Ex+SR)
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildDetailCell(
+                                                    isDark: isDark,
+                                                    icon: Icons.receipt_long,
+                                                    label: 'Tax',
+                                                    value: NumberFormat('#,##0.00').format(zReport.tax),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: _buildDetailCell(
+                                                    isDark: isDark,
+                                                    icon: Icons.trending_flat,
+                                                    label: 'Turnover (Ex+SR)',
+                                                    value: NumberFormat('#,##0.00').format(zReport.turnoverExSr),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            // Row 3: Total and Total Charges
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildDetailCell(
+                                                    isDark: isDark,
+                                                    icon: Icons.summarize,
+                                                    label: 'Total',
+                                                    value: NumberFormat('#,##0.00').format(zReport.total),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: _buildDetailCell(
+                                                    isDark: isDark,
+                                                    icon: Icons.money_off,
+                                                    label: 'Total Charges',
+                                                    value: NumberFormat('#,##0.00').format(zReport.totalCharges),
                                                   ),
                                                 ),
                                               ],

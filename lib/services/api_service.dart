@@ -426,16 +426,24 @@ class ApiService {
 
   /// Create Z report with file
   Future<ApiResponse<ZReportDetails>> createZReport({
-    required String a,
-    required String c,
+    required double turnover,
+    required double net,
+    required double tax,
+    required double turnoverExSr,
+    required double total,
+    required double totalCharges,
     required String date,
     int? stockLocationId,
     required String picFile, // Base64 encoded file
   }) async {
     try {
       final body = <String, dynamic>{
-        'a': a,
-        'c': c,
+        'turnover': turnover,
+        'net': net,
+        'tax': tax,
+        'turnover_ex_sr': turnoverExSr,
+        'total': total,
+        'total_charges': totalCharges,
         'date': date,
         'pic_file': picFile,
       };
@@ -462,16 +470,24 @@ class ApiService {
   /// Update Z report
   Future<ApiResponse<ZReportDetails>> updateZReport({
     required int id,
-    required String a,
-    required String c,
+    required double turnover,
+    required double net,
+    required double tax,
+    required double turnoverExSr,
+    required double total,
+    required double totalCharges,
     required String date,
     int? stockLocationId,
     String? picFile, // Optional base64 encoded file
   }) async {
     try {
       final body = <String, dynamic>{
-        'a': a,
-        'c': c,
+        'turnover': turnover,
+        'net': net,
+        'tax': tax,
+        'turnover_ex_sr': turnoverExSr,
+        'total': total,
+        'total_charges': totalCharges,
         'date': date,
       };
 
