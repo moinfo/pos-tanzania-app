@@ -9,7 +9,9 @@ import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../config/clients_config.dart';
 import 'main_navigation.dart';
+import 'client_selector_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -519,7 +521,36 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
+
+                // Change Client Button (only in debug mode)
+                if (ClientsConfig.isClientSwitchingEnabled)
+                  TextButton.icon(
+                    onPressed: () async {
+                      await ApiService.clearCurrentClient();
+                      if (mounted) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) => const ClientSelectorScreen(),
+                          ),
+                        );
+                      }
+                    },
+                    icon: Icon(
+                      Icons.swap_horiz,
+                      color: isDark ? AppColors.darkTextLight : Colors.white70,
+                      size: 18,
+                    ),
+                    label: Text(
+                      'Change Client (${ApiService.currentClient?.displayName ?? "Not Set"})',
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextLight : Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 16),
 
                 // Powered By Footer
                 Column(

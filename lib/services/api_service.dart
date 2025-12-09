@@ -22,6 +22,7 @@ import '../models/sale.dart'; // Use SaleItem from sale.dart
 import '../models/stock_location.dart';
 import '../models/client_config.dart';
 import '../models/transaction.dart';
+import '../models/report.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -3008,6 +3009,473 @@ class ApiService {
         response,
         (data) => WakalaReport.fromJson(data),
       );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ==================== REPORTS API ====================
+
+  /// Get report data (generic method for all report types)
+  Future<ApiResponse<ReportData>> getReport(
+    ReportType reportType, {
+    String? startDate,
+    String? endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (saleType != null) queryParams['sale_type'] = saleType;
+
+      final uri = Uri.parse('$baseUrlSync/${reportType.apiPath}')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<ReportData>(
+        response,
+        (data) => ReportData.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get summary sales report
+  Future<ApiResponse<ReportData>> getSummarySalesReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summarySales,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary items report
+  Future<ApiResponse<ReportData>> getSummaryItemsReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summaryItems,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary categories report
+  Future<ApiResponse<ReportData>> getSummaryCategoriesReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summaryCategories,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary customers report
+  Future<ApiResponse<ReportData>> getSummaryCustomersReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summaryCustomers,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary employees report
+  Future<ApiResponse<ReportData>> getSummaryEmployeesReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summaryEmployees,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary payments report
+  Future<ApiResponse<ReportData>> getSummaryPaymentsReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summaryPayments,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary expenses report
+  Future<ApiResponse<ReportData>> getSummaryExpensesReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+  }) async {
+    return getReport(
+      ReportType.summaryExpenses,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+    );
+  }
+
+  /// Get summary discounts report
+  Future<ApiResponse<ReportData>> getSummaryDiscountsReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summaryDiscounts,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary taxes report
+  Future<ApiResponse<ReportData>> getSummaryTaxesReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summaryTaxes,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary sales taxes report
+  Future<ApiResponse<ReportData>> getSummarySalesTaxesReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.summarySalesTaxes,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get summary suppliers report
+  Future<ApiResponse<ReportData>> getSummarySuppliersReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+  }) async {
+    return getReport(
+      ReportType.summarySuppliers,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+    );
+  }
+
+  /// Get detailed sales report
+  Future<ApiResponse<ReportData>> getDetailedSalesReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.detailedSales,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get detailed receivings report
+  Future<ApiResponse<ReportData>> getDetailedReceivingsReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+  }) async {
+    return getReport(
+      ReportType.detailedReceivings,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+    );
+  }
+
+  /// Get detailed customers report
+  Future<ApiResponse<ReportData>> getDetailedCustomersReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.detailedCustomers,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get detailed employees report
+  Future<ApiResponse<ReportData>> getDetailedEmployeesReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.detailedEmployees,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get detailed discounts report
+  Future<ApiResponse<ReportData>> getDetailedDiscountsReport({
+    required String startDate,
+    required String endDate,
+    int? locationId,
+    String? saleType,
+  }) async {
+    return getReport(
+      ReportType.detailedDiscounts,
+      startDate: startDate,
+      endDate: endDate,
+      locationId: locationId,
+      saleType: saleType,
+    );
+  }
+
+  /// Get inventory summary report
+  Future<ApiResponse<ReportData>> getInventorySummaryReport({
+    int? locationId,
+    String? search,
+    String? itemCount,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (search != null) queryParams['search'] = search;
+      if (itemCount != null) queryParams['item_count'] = itemCount;
+
+      final uri = Uri.parse('$baseUrlSync/reports/inventory/summary')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<ReportData>(
+        response,
+        (data) => ReportData.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get low stock report
+  Future<ApiResponse<ReportData>> getLowStockReport({
+    int? locationId,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+
+      final uri = Uri.parse('$baseUrlSync/reports/inventory/low')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<ReportData>(
+        response,
+        (data) => ReportData.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get specific customer report
+  Future<ApiResponse<SpecificReportData>> getSpecificCustomerReport(
+    int customerId, {
+    required String startDate,
+    required String endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'start_date': startDate,
+        'end_date': endDate,
+      };
+
+      final uri = Uri.parse('$baseUrlSync/reports/specific/customer/$customerId')
+          .replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<SpecificReportData>(
+        response,
+        (data) => SpecificReportData.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get specific employee report
+  Future<ApiResponse<SpecificReportData>> getSpecificEmployeeReport(
+    int employeeId, {
+    required String startDate,
+    required String endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'start_date': startDate,
+        'end_date': endDate,
+      };
+
+      final uri = Uri.parse('$baseUrlSync/reports/specific/employee/$employeeId')
+          .replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<SpecificReportData>(
+        response,
+        (data) => SpecificReportData.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get graphical report data
+  Future<ApiResponse<GraphicalReportData>> getGraphicalReport(
+    String reportType, {
+    required String startDate,
+    required String endDate,
+    int? locationId,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'start_date': startDate,
+        'end_date': endDate,
+      };
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+
+      final uri = Uri.parse('$baseUrlSync/reports/graphical/$reportType')
+          .replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<GraphicalReportData>(
+        response,
+        (data) => GraphicalReportData.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get report locations (for dropdown)
+  Future<ApiResponse<List<StockLocation>>> getReportLocations() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/reports/locations'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] as List;
+        final locations = data.map((loc) => StockLocation.fromJson(loc)).toList();
+
+        return ApiResponse.success(
+          data: locations,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch locations',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get receiving items for a specific receiving
+  Future<ApiResponse<List<Map<String, dynamic>>>> getReceivingItems(int receivingId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/reports/receiving_items/$receivingId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final items = (data['items'] as List).cast<Map<String, dynamic>>();
+
+        return ApiResponse.success(
+          data: items,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch receiving items',
+          statusCode: response.statusCode,
+        );
+      }
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }

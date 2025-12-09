@@ -7,7 +7,7 @@ class ClientsConfig {
   // Set this to the client ID you want to build for in PRODUCTION
   // Examples: 'sada', 'come_and_save', 'come_and_save', etc.
   // In DEBUG mode, this is ignored and user can select any client
-  static const String PRODUCTION_CLIENT_ID = 'come_and_save'; // Change this before building APK
+  static const String PRODUCTION_CLIENT_ID = 'sada'; // Change this before building APK
 
   // ============================================
   // NETWORK CONFIGURATION
@@ -18,7 +18,7 @@ class ClientsConfig {
   static const String MAMP_PORT = '8888';
 
   // Base URLs (automatically constructed from IP address)
-  static const String localBaseUrl = 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania/public/api';
+  static const String localBaseUrl = 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania2/public/api';
   static const String prodBaseUrl = 'https://moinfotech.co.tz/api';
 
   // List of all available clients

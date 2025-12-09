@@ -23,6 +23,7 @@ import 'receivings/receivings_list_screen.dart';
 import 'banking/banking_list_screen.dart';
 import 'profit_submit/profit_submit_list_screen.dart';
 import 'transactions/transactions_screen.dart';
+import 'reports/reports_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 
@@ -103,10 +104,10 @@ class _MainNavigationState extends State<MainNavigation> {
       'permission': PermissionIds.cashSubmit, // module: cash_submit
     },
     {
-      'screen': const ContractsScreen(),
-      'icon': Icons.assignment,
-      'label': 'Contracts',
-      'permission': PermissionIds.contracts, // module: contracts
+      'screen': const ReportsScreen(),
+      'icon': Icons.assessment,
+      'label': 'Reports',
+      'permission': PermissionIds.reports, // module: reports
     },
   ];
 
@@ -432,6 +433,21 @@ class _MainNavigationState extends State<MainNavigation> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const TransactionsScreen()),
+                  );
+                },
+              ),
+            ),
+            // Contracts - requires contracts permission
+            PermissionWrapper(
+              permissionId: PermissionIds.contracts,
+              child: ListTile(
+                leading: const Icon(Icons.assignment, color: AppColors.primary),
+                title: const Text('Contracts'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ContractsScreen()),
                   );
                 },
               ),
