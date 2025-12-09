@@ -5,6 +5,7 @@ import '../../models/report.dart';
 import '../../models/stock_location.dart';
 import '../../services/api_service.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/location_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
@@ -31,33 +32,21 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   // Filter state - default from first day of current month to today
   DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _endDate = DateTime.now();
-  List<StockLocation> _locations = [];
-  int? _selectedLocationId;
 
   @override
   void initState() {
     super.initState();
-    _initializeFilters();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeLocation();
+    });
+    _loadReport();
   }
 
-  Future<void> _initializeFilters() async {
-    // Load locations for filter
-    await _loadLocations();
-    // Load report data
-    await _loadReport();
-  }
-
-  Future<void> _loadLocations() async {
-    try {
-      final response = await _apiService.getReportLocations();
-      if (response.isSuccess && mounted) {
-        setState(() {
-          _locations = response.data ?? [];
-        });
-      }
-    } catch (e) {
-      // Silently fail - locations are optional
-    }
+  Future<void> _initializeLocation() async {
+    if (!mounted) return;
+    final locationProvider = context.read<LocationProvider>();
+    // Initialize for reports module
+    await locationProvider.initialize(moduleId: 'reports');
   }
 
   Future<void> _loadReport() async {
@@ -91,11 +80,14 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   }
 
   Future<void> _loadTableReport(String startDate, String endDate) async {
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
+
     final response = await _apiService.getReport(
       widget.reportType,
       startDate: startDate,
       endDate: endDate,
-      locationId: _selectedLocationId,
+      locationId: selectedLocationId,
     );
 
     if (mounted) {
@@ -114,6 +106,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   }
 
   Future<void> _loadGraphicalReport(String startDate, String endDate) async {
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
+
     String graphType;
     switch (widget.reportType) {
       case ReportType.graphicalSales:
@@ -133,7 +128,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       graphType,
       startDate: startDate,
       endDate: endDate,
-      locationId: _selectedLocationId,
+      locationId: selectedLocationId,
     );
 
     if (mounted) {
@@ -193,6 +188,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final locationProvider = context.watch<LocationProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -201,51 +197,67 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         foregroundColor: Colors.white,
         actions: [
           // Location selector
-          if (_locations.isNotEmpty)
-            PopupMenuButton<int?>(
-              icon: const Icon(Icons.location_on, color: Colors.white),
-              tooltip: 'Select Location',
-              color: isDark ? AppColors.darkCard : Colors.white,
-              onSelected: (locationId) {
-                setState(() {
-                  _selectedLocationId = locationId;
-                });
-                _loadReport();
-              },
-              itemBuilder: (context) {
-                return [
-                  PopupMenuItem<int?>(
-                    value: null,
-                    child: Text(
-                      'All Locations',
-                      style: TextStyle(
-                        color: _selectedLocationId == null
-                            ? AppColors.primary
-                            : (isDark ? Colors.white : AppColors.text),
-                        fontWeight: _selectedLocationId == null
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+          if (locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: PopupMenuButton<StockLocation>(
+                  offset: const Offset(0, 40),
+                  color: isDark ? AppColors.darkCard : Colors.white,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_on, size: 18, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Text(
+                        locationProvider.selectedLocation!.locationName,
+                        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
+                    ],
                   ),
-                  ..._locations.map((location) {
-                    return PopupMenuItem<int>(
-                      value: location.locationId,
-                      child: Text(
-                        location.locationName,
-                        style: TextStyle(
-                          color: _selectedLocationId == location.locationId
-                              ? AppColors.primary
-                              : (isDark ? Colors.white : AppColors.text),
-                          fontWeight: _selectedLocationId == location.locationId
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    );
-                  }),
-                ];
-              },
+                  onSelected: (location) async {
+                    await locationProvider.selectLocation(location);
+                    _loadReport(); // Reload report for new location
+                  },
+                  itemBuilder: (context) => locationProvider.allowedLocations
+                      .map((location) => PopupMenuItem<StockLocation>(
+                            value: location,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  location.locationId == locationProvider.selectedLocation?.locationId
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  size: 20,
+                                  color: location.locationId == locationProvider.selectedLocation?.locationId
+                                      ? AppColors.primary
+                                      : Colors.grey,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  location.locationName,
+                                  style: TextStyle(
+                                    color: location.locationId == locationProvider.selectedLocation?.locationId
+                                        ? (isDark ? AppColors.darkText : AppColors.primary)
+                                        : (isDark ? AppColors.darkText : Colors.black87),
+                                    fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
             ),
           // Date range selector
           IconButton(
@@ -293,6 +305,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   }
 
   Widget _buildDateRangeHeader(bool isDark) {
+    final locationProvider = context.watch<LocationProvider>();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -319,7 +333,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               ),
             ),
           ),
-          if (_selectedLocationId != null)
+          if (locationProvider.selectedLocation != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -332,15 +346,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                   Icon(Icons.location_on, size: 14, color: AppColors.primary),
                   const SizedBox(width: 4),
                   Text(
-                    _locations
-                            .firstWhere(
-                              (l) => l.locationId == _selectedLocationId,
-                              orElse: () => StockLocation(
-                                locationId: 0,
-                                locationName: 'Unknown',
-                              ),
-                            )
-                            .locationName,
+                    locationProvider.selectedLocation!.locationName,
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.primary,
