@@ -24,6 +24,7 @@ import 'banking/banking_list_screen.dart';
 import 'profit_submit/profit_submit_list_screen.dart';
 import 'transactions/transactions_screen.dart';
 import 'reports/reports_screen.dart';
+import 'stock_tracking/stock_tracking_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 
@@ -418,6 +419,21 @@ class _MainNavigationState extends State<MainNavigation> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ReceivingsListScreen()),
+                  );
+                },
+              ),
+            ),
+            // Stock Tracking - requires items_stock permission
+            PermissionWrapper(
+              permissionId: PermissionIds.stockTracking,
+              child: ListTile(
+                leading: const Icon(Icons.track_changes, color: AppColors.primary),
+                title: const Text('Stock Tracking'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const StockTrackingScreen()),
                   );
                 },
               ),

@@ -23,6 +23,7 @@ import '../models/stock_location.dart';
 import '../models/client_config.dart';
 import '../models/transaction.dart';
 import '../models/report.dart';
+import '../models/stock_tracking.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -3489,6 +3490,143 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
           message: jsonResponse['message'] ?? 'Failed to fetch receiving items',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ========================================
+  // Stock Tracking APIs
+  // ========================================
+
+  /// Get stock tracking report for a specific date and location
+  Future<ApiResponse<StockTrackingReport>> getStockTracking({
+    required String date,
+    required int stockLocationId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/stock/tracking?date=$date&stock_location_id=$stockLocationId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final report = StockTrackingReport.fromJson(data);
+
+        return ApiResponse.success(
+          data: report,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch stock tracking',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get item tracking report for a specific item
+  Future<ApiResponse<ItemTrackingReport>> getItemTracking({
+    required String startDate,
+    required String endDate,
+    required int itemId,
+    required int stockLocationId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/stock/item_tracking?start_date=$startDate&end_date=$endDate&item_id=$itemId&stock_location_id=$stockLocationId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final report = ItemTrackingReport.fromJson(data);
+
+        return ApiResponse.success(
+          data: report,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch item tracking',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get items list for dropdown selection in stock tracking
+  Future<ApiResponse<List<SimpleItem>>> getStockItems({
+    String? search,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    try {
+      var url = '$baseUrlSync/stock/items?limit=$limit&offset=$offset';
+      if (search != null && search.isNotEmpty) {
+        url += '&search=${Uri.encodeComponent(search)}';
+      }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] as List;
+        final items = data.map((item) => SimpleItem.fromJson(item)).toList();
+
+        return ApiResponse.success(
+          data: items,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch items',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get stock locations for stock tracking
+  Future<ApiResponse<List<StockLocation>>> getStockTrackingLocations() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/stock/locations'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] as List;
+        final locations = data.map((loc) => StockLocation.fromJson(loc)).toList();
+
+        return ApiResponse.success(
+          data: locations,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch locations',
           statusCode: response.statusCode,
         );
       }

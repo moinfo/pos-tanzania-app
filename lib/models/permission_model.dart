@@ -291,6 +291,9 @@ class PermissionIds {
   static const String reportsCategories = 'reports_categories';
   static const String reportsPayments = 'reports_payments';
 
+  // Stock Tracking sub-permissions (uses items_stock permission)
+  static const String stockTracking = 'items_stock';
+
   // Giftcards sub-permissions
   static const String giftcardsAdd = 'giftcards_add';
   static const String giftcardsDelete = 'giftcards_delete';
