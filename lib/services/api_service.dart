@@ -24,6 +24,7 @@ import '../models/client_config.dart';
 import '../models/transaction.dart';
 import '../models/report.dart';
 import '../models/stock_tracking.dart';
+import '../models/position.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -3627,6 +3628,79 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
           message: jsonResponse['message'] ?? 'Failed to fetch locations',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ========================================
+  // Positions APIs
+  // ========================================
+
+  /// Get daily financial positions report
+  Future<ApiResponse<PositionsReport>> getPositions({
+    required String startDate,
+    required String endDate,
+    int? stockLocationId,
+  }) async {
+    try {
+      var url = '$baseUrlSync/positions?start_date=$startDate&end_date=$endDate';
+      if (stockLocationId != null) {
+        url += '&stock_location_id=$stockLocationId';
+      }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final report = PositionsReport.fromJson(data);
+
+        return ApiResponse.success(
+          data: report,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch positions',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get position summary for a specific date
+  Future<ApiResponse<DailyPosition>> getPositionSummary({
+    required String date,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/positions/summary?date=$date'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final position = DailyPosition.fromJson(data);
+
+        return ApiResponse.success(
+          data: position,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch position summary',
           statusCode: response.statusCode,
         );
       }

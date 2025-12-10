@@ -25,6 +25,7 @@ import 'profit_submit/profit_submit_list_screen.dart';
 import 'transactions/transactions_screen.dart';
 import 'reports/reports_screen.dart';
 import 'stock_tracking/stock_tracking_screen.dart';
+import 'positions/positions_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 
@@ -464,6 +465,21 @@ class _MainNavigationState extends State<MainNavigation> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ContractsScreen()),
+                  );
+                },
+              ),
+            ),
+            // Financial Position - requires office permission
+            PermissionWrapper(
+              permissionId: PermissionIds.office,
+              child: ListTile(
+                leading: const Icon(Icons.analytics, color: AppColors.primary),
+                title: const Text('Financial Position'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PositionsScreen()),
                   );
                 },
               ),
