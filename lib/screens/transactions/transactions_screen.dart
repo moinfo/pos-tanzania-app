@@ -11,6 +11,7 @@ import 'cash_basis_screen.dart';
 import 'bank_basis_screen.dart';
 import 'wakala_screen.dart';
 import 'wakala_report_screen.dart';
+import 'wakala_expenses_screen.dart';
 
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
@@ -132,7 +133,8 @@ class TransactionsScreen extends StatelessWidget {
 
                 // Wakala Section
                 if (permissionProvider.hasPermission(PermissionIds.transactionsWakala) ||
-                    permissionProvider.hasPermission(PermissionIds.transactionsWakalaReport)) ...[
+                    permissionProvider.hasPermission(PermissionIds.transactionsWakalaReport) ||
+                    permissionProvider.hasPermission(PermissionIds.transactionsWakalaExpenses)) ...[
                   _buildSectionHeader(context, 'Wakala Management', isDark),
                   const SizedBox(height: 12),
 
@@ -149,6 +151,26 @@ class TransactionsScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => const WakalaScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Wakala Expenses Card
+                  if (permissionProvider.hasPermission(PermissionIds.transactionsWakalaExpenses)) ...[
+                    _buildTransactionCard(
+                      context,
+                      icon: Icons.money_off,
+                      title: 'Wakala Expenses',
+                      subtitle: 'Track wakala-related expenses',
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const WakalaExpensesScreen(),
                           ),
                         );
                       },

@@ -3032,6 +3032,112 @@ class ApiService {
     }
   }
 
+  /// Get wakala expenses
+  Future<ApiResponse<WakalaExpenseResponse>> getWakalaExpenses({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/wakala_expenses')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<WakalaExpenseResponse>(
+        response,
+        (data) => WakalaExpenseResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add wakala expense
+  Future<ApiResponse<Map<String, dynamic>>> addWakalaExpense(
+    WakalaExpenseFormData formData,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_wakala_expense'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update wakala expense
+  Future<ApiResponse<Map<String, dynamic>>> updateWakalaExpense(
+    int id,
+    WakalaExpenseFormData formData,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_wakala_expense/$id'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete wakala expense
+  Future<ApiResponse<Map<String, dynamic>>> deleteWakalaExpense(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_wakala_expense/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get total wakala expenses
+  Future<ApiResponse<Map<String, dynamic>>> getWakalaExpensesTotal({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/wakala_expenses_total')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ==================== REPORTS API ====================
 
   /// Get report data (generic method for all report types)

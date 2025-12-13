@@ -278,6 +278,12 @@ class PermissionIds {
   static const String transactionsWakalaSettingEdit = 'transactions_wakala_setting_edit';
   static const String transactionsWakalaSettingDelete = 'transactions_wakala_setting_delete';
 
+  // Wakala Expenses
+  static const String transactionsWakalaExpenses = 'transactions_wakala_expenses';
+  static const String transactionsWakalaExpensesAdd = 'transactions_wakala_expenses_add';
+  static const String transactionsWakalaExpensesEdit = 'transactions_wakala_expenses_edit';
+  static const String transactionsWakalaExpensesDelete = 'transactions_wakala_expenses_delete';
+
   // Reports sub-permissions
   static const String reportsCustomers = 'reports_customers';
   static const String reportsReceivings = 'reports_receivings';

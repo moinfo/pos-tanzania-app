@@ -508,3 +508,86 @@ class WakalaReport {
     );
   }
 }
+
+// ============================================
+// WAKALA EXPENSE MODELS
+// ============================================
+
+class WakalaExpense {
+  final int id;
+  final double amount;
+  final String description;
+  final String date;
+
+  WakalaExpense({
+    required this.id,
+    required this.amount,
+    required this.description,
+    required this.date,
+  });
+
+  factory WakalaExpense.fromJson(Map<String, dynamic> json) {
+    return WakalaExpense(
+      id: json['id'] ?? 0,
+      amount: (json['amount'] ?? 0).toDouble(),
+      description: json['description'] ?? '',
+      date: json['date'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'amount': amount,
+      'description': description,
+      'date': date,
+    };
+  }
+}
+
+class WakalaExpenseResponse {
+  final String startDate;
+  final String endDate;
+  final List<WakalaExpense> expenses;
+  final double total;
+
+  WakalaExpenseResponse({
+    required this.startDate,
+    required this.endDate,
+    required this.expenses,
+    required this.total,
+  });
+
+  factory WakalaExpenseResponse.fromJson(Map<String, dynamic> json) {
+    var expensesList = (json['expenses'] as List? ?? [])
+        .map((e) => WakalaExpense.fromJson(e))
+        .toList();
+
+    return WakalaExpenseResponse(
+      startDate: json['start_date'] ?? '',
+      endDate: json['end_date'] ?? '',
+      expenses: expensesList,
+      total: (json['total'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class WakalaExpenseFormData {
+  final double amount;
+  final String description;
+  final String date;
+
+  WakalaExpenseFormData({
+    required this.amount,
+    this.description = '',
+    required this.date,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'amount': amount,
+      'description': description,
+      'date': date,
+    };
+  }
+}
