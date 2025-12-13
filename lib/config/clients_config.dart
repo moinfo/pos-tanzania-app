@@ -18,7 +18,7 @@ class ClientsConfig {
   static const String MAMP_PORT = '8888';
 
   // Base URLs (automatically constructed from IP address)
-  static const String localBaseUrl = 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania2/public/api';
+  static const String localBaseUrl = 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania/public/api';
   static const String prodBaseUrl = 'https://moinfotech.co.tz/api';
 
   // List of all available clients

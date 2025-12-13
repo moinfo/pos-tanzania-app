@@ -462,19 +462,115 @@ class WakalaReportSection {
   }
 }
 
+class WakalaExpenseReportItem {
+  final int id;
+  final String description;
+  final double amount;
+  final String date;
+
+  WakalaExpenseReportItem({
+    required this.id,
+    required this.description,
+    required this.amount,
+    required this.date,
+  });
+
+  factory WakalaExpenseReportItem.fromJson(Map<String, dynamic> json) {
+    return WakalaExpenseReportItem(
+      id: json['id'] ?? 0,
+      description: json['description'] ?? '',
+      amount: (json['amount'] ?? 0).toDouble(),
+      date: json['date'] ?? '',
+    );
+  }
+}
+
+class WakalaExpensesSection {
+  final List<WakalaExpenseReportItem> list;
+  final double total;
+
+  WakalaExpensesSection({
+    required this.list,
+    required this.total,
+  });
+
+  factory WakalaExpensesSection.fromJson(Map<String, dynamic> json) {
+    var itemsList = (json['list'] as List? ?? [])
+        .map((item) => WakalaExpenseReportItem.fromJson(item))
+        .toList();
+
+    return WakalaExpensesSection(
+      list: itemsList,
+      total: (json['total'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class CreditorDebtorItem {
+  final int id;
+  final String customerName;
+  final String description;
+  final double amount;
+  final String date;
+
+  CreditorDebtorItem({
+    required this.id,
+    required this.customerName,
+    required this.description,
+    required this.amount,
+    required this.date,
+  });
+
+  factory CreditorDebtorItem.fromJson(Map<String, dynamic> json) {
+    return CreditorDebtorItem(
+      id: json['id'] ?? 0,
+      customerName: json['customer_name'] ?? '',
+      description: json['description'] ?? '',
+      amount: (json['amount'] ?? 0).toDouble(),
+      date: json['date'] ?? '',
+    );
+  }
+}
+
+class CreditorDebtorSection {
+  final List<CreditorDebtorItem> list;
+  final double total;
+
+  CreditorDebtorSection({
+    required this.list,
+    required this.total,
+  });
+
+  factory CreditorDebtorSection.fromJson(Map<String, dynamic> json) {
+    var itemsList = (json['list'] as List? ?? [])
+        .map((item) => CreditorDebtorItem.fromJson(item))
+        .toList();
+
+    return CreditorDebtorSection(
+      list: itemsList,
+      total: (json['total'] ?? 0).toDouble(),
+    );
+  }
+}
+
 class WakalaReport {
   final String startDate;
   final String endDate;
   final WakalaReportSection sims;
   final WakalaReportSection bankBasis;
   final WakalaReportSection cashBasis;
+  final WakalaExpensesSection wakalaExpenses;
   final double float;
   final double totalDeposited;
   final double totalWithdrawn;
   final double openingBalance;
+  final double closingBalance;
   final double netTotal;
-  final double capital;
+  final double actualCapital;
+  final double calculatedCapital;
   final double gainLoss;
+  final CreditorDebtorSection creditors;
+  final CreditorDebtorSection debtors;
 
   WakalaReport({
     required this.startDate,
@@ -482,13 +578,18 @@ class WakalaReport {
     required this.sims,
     required this.bankBasis,
     required this.cashBasis,
+    required this.wakalaExpenses,
     required this.float,
     required this.totalDeposited,
     required this.totalWithdrawn,
     required this.openingBalance,
+    required this.closingBalance,
     required this.netTotal,
-    required this.capital,
+    required this.actualCapital,
+    required this.calculatedCapital,
     required this.gainLoss,
+    required this.creditors,
+    required this.debtors,
   });
 
   factory WakalaReport.fromJson(Map<String, dynamic> json) {
@@ -498,14 +599,27 @@ class WakalaReport {
       sims: WakalaReportSection.fromJson(json['sims'] ?? {}),
       bankBasis: WakalaReportSection.fromJson(json['bank_basis'] ?? {}),
       cashBasis: WakalaReportSection.fromJson(json['cash_basis'] ?? {}),
-      float: (json['float'] ?? 0).toDouble(),
-      totalDeposited: (json['total_deposited'] ?? 0).toDouble(),
-      totalWithdrawn: (json['total_withdrawn'] ?? 0).toDouble(),
-      openingBalance: (json['opening_balance'] ?? 0).toDouble(),
-      netTotal: (json['net_total'] ?? 0).toDouble(),
-      capital: (json['capital'] ?? 0).toDouble(),
-      gainLoss: (json['gain_loss'] ?? 0).toDouble(),
+      wakalaExpenses: WakalaExpensesSection.fromJson(json['wakala_expenses'] ?? {}),
+      float: _toDouble(json['float']),
+      totalDeposited: _toDouble(json['total_deposited']),
+      totalWithdrawn: _toDouble(json['total_withdrawn']),
+      openingBalance: _toDouble(json['opening_balance']),
+      closingBalance: _toDouble(json['closing_balance']),
+      netTotal: _toDouble(json['net_total']),
+      actualCapital: _toDouble(json['actual_capital'] ?? json['capital']),
+      calculatedCapital: _toDouble(json['calculated_capital']),
+      gainLoss: _toDouble(json['gain_loss']),
+      creditors: CreditorDebtorSection.fromJson(json['creditors'] ?? {}),
+      debtors: CreditorDebtorSection.fromJson(json['debtors'] ?? {}),
     );
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 }
 

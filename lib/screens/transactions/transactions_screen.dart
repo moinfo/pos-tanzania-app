@@ -7,6 +7,7 @@ import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../utils/constants.dart';
 import 'customer_transactions_screen.dart';
+import 'customer_balance_screen.dart';
 import 'cash_basis_screen.dart';
 import 'bank_basis_screen.dart';
 import 'wakala_screen.dart';
@@ -75,6 +76,22 @@ class TransactionsScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const CustomerTransactionsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTransactionCard(
+                    context,
+                    icon: Icons.people,
+                    title: 'Customer Balances',
+                    subtitle: 'View all customer balance summaries',
+                    isDark: isDark,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CustomerBalanceScreen(),
                         ),
                       );
                     },
@@ -158,8 +175,8 @@ class TransactionsScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                   ],
 
-                  // Wakala Expenses Card
-                  if (permissionProvider.hasPermission(PermissionIds.transactionsWakalaExpenses)) ...[
+                  // Wakala Expenses Card (uses same permission as Wakala Transactions)
+                  if (permissionProvider.hasPermission(PermissionIds.transactionsWakala)) ...[
                     _buildTransactionCard(
                       context,
                       icon: Icons.money_off,

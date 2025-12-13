@@ -134,6 +134,8 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
 
   Widget _buildReportContent() {
     final report = _report!;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -147,11 +149,19 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Report Period:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                    ),
                   ),
-                  Text('${report.startDate} - ${report.endDate}'),
+                  Text(
+                    '${report.startDate} - ${report.endDate}',
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -159,43 +169,66 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
           const SizedBox(height: 16),
 
           // SIMs Section
-          _buildSectionHeader('SIM Cards Float'),
+          _buildSectionHeader('SIM Cards Float', isDark: isDark),
           const SizedBox(height: 8),
           _buildReportSection(report.sims, context),
           const SizedBox(height: 24),
 
           // Bank Basis Section
-          _buildSectionHeader('Bank / Mobile Money'),
+          _buildSectionHeader('Bank / Mobile Money', isDark: isDark),
           const SizedBox(height: 8),
           _buildReportSection(report.bankBasis, context),
           const SizedBox(height: 24),
 
           // Cash Basis Section
-          _buildSectionHeader('Cash Transactions'),
+          _buildSectionHeader('Cash Transactions', isDark: isDark),
           const SizedBox(height: 8),
           _buildReportSection(report.cashBasis, context),
           const SizedBox(height: 24),
 
+          // Wakala Expenses Section
+          _buildSectionHeader('Wakala Expenses', isDark: isDark),
+          const SizedBox(height: 8),
+          _buildExpensesSection(report.wakalaExpenses, context),
+          const SizedBox(height: 24),
+
           // Summary Section
-          _buildSectionHeader('Financial Summary'),
+          _buildSectionHeader('Financial Summary', isDark: isDark),
           const SizedBox(height: 8),
           _buildSummaryCard(report, context),
           const SizedBox(height: 24),
 
           // Gain/Loss Card
           _buildGainLossCard(report, context),
+          const SizedBox(height: 24),
+
+          // Creditors/Withdraw Section
+          if (report.creditors.list.isNotEmpty) ...[
+            _buildSectionHeader('Today Creditors/Withdraw', isDark: isDark),
+            const SizedBox(height: 8),
+            _buildCreditorDebtorSection(report.creditors, context, isCreditor: true),
+            const SizedBox(height: 24),
+          ],
+
+          // Debtors/Deposit Section
+          if (report.debtors.list.isNotEmpty) ...[
+            _buildSectionHeader('Today Debtors/Deposit', isDark: isDark),
+            const SizedBox(height: 8),
+            _buildCreditorDebtorSection(report.debtors, context, isCreditor: false),
+            const SizedBox(height: 24),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, {required bool isDark}) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: AppColors.secondary,
+        color: isDark ? AppColors.primary : AppColors.secondary,
       ),
     );
   }
@@ -256,26 +289,186 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     );
   }
 
-  Widget _buildSummaryCard(WakalaReport report, BuildContext context) {
+  Widget _buildExpensesSection(WakalaExpensesSection section, BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final amountColor = themeProvider.isDarkMode ? Colors.white : AppColors.secondary;
+    final isDark = themeProvider.isDarkMode;
+    final amountColor = AppColors.primary; // Expenses shown in red
 
     return GlassmorphicCard(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            _buildSummaryRow('Float (SIMs + Bank)', report.float, amountColor),
-            const SizedBox(height: 12),
-            _buildSummaryRow('Total Deposited', report.totalDeposited, amountColor),
-            const SizedBox(height: 12),
-            _buildSummaryRow('Total Withdrawn', report.totalWithdrawn, AppColors.primary),
-            const SizedBox(height: 12),
+            // Items List
+            ...section.list.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.description.isNotEmpty ? item.description : 'Expense',
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkText : AppColors.lightText,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        Formatters.formatCurrency(item.amount),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: amountColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+
+            if (section.list.isNotEmpty) const Divider(height: 24),
+
+            // Total
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Total:',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  Formatters.formatCurrency(section.total),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: amountColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(WakalaReport report, BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final amountColor = isDark ? Colors.white : AppColors.secondary;
+
+    return GlassmorphicCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
             _buildSummaryRow('Opening Balance', report.openingBalance, amountColor),
+            const SizedBox(height: 12),
+            _buildSummaryRow('Debit', report.totalDeposited, amountColor),
+            const SizedBox(height: 12),
+            _buildSummaryRow('Withdraw', report.totalWithdrawn, AppColors.primary),
+            const SizedBox(height: 12),
+            _buildSummaryRow('Closing Balance', report.closingBalance, amountColor),
             const Divider(height: 24),
             _buildSummaryRow('Net Total', report.netTotal, amountColor, isLarge: true),
             const SizedBox(height: 12),
-            _buildSummaryRow('Capital', report.capital, amountColor),
+            _buildSummaryRow('Actual Capital', report.actualCapital, amountColor),
+            const SizedBox(height: 12),
+            _buildSummaryRow('Calculated Capital', report.calculatedCapital, amountColor),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreditorDebtorSection(CreditorDebtorSection section, BuildContext context, {required bool isCreditor}) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final amountColor = isCreditor ? AppColors.primary : (isDark ? Colors.greenAccent : Colors.green.shade700);
+
+    return GlassmorphicCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Items List
+            ...section.list.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: amountColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          isCreditor ? Icons.arrow_upward : Icons.arrow_downward,
+                          color: amountColor,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.customerName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkText : AppColors.lightText,
+                              ),
+                            ),
+                            if (item.description.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                item.description,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Text(
+                        Formatters.formatCurrency(item.amount),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: amountColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+
+            const Divider(height: 24),
+
+            // Total
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Total:',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  Formatters.formatCurrency(section.total),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: amountColor,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -308,8 +501,11 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
 
   Widget _buildGainLossCard(WakalaReport report, BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
     final isGain = report.gainLoss >= 0;
-    final gainColor = themeProvider.isDarkMode ? Colors.white : AppColors.secondary;
+    final gainColor = isDark ? Colors.greenAccent : Colors.green.shade700;
+    final lossColor = AppColors.primary;
+    final resultColor = isGain ? gainColor : lossColor;
 
     return GlassmorphicCard(
       child: Container(
@@ -317,9 +513,9 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isGain
-                ? themeProvider.isDarkMode
-                    ? [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)]
-                    : [AppColors.secondary.withOpacity(0.1), AppColors.secondary.withOpacity(0.05)]
+                ? isDark
+                    ? [Colors.greenAccent.withOpacity(0.15), Colors.greenAccent.withOpacity(0.05)]
+                    : [Colors.green.withOpacity(0.1), Colors.green.withOpacity(0.05)]
                 : [AppColors.primary.withOpacity(0.3), AppColors.primary.withOpacity(0.1)],
           ),
           borderRadius: BorderRadius.circular(16),
@@ -335,15 +531,15 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isGain ? gainColor : AppColors.primary,
+                    color: resultColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Period Result',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.secondary,
+                    color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
                   ),
                 ),
               ],
@@ -352,7 +548,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
               children: [
                 Icon(
                   isGain ? Icons.trending_up : Icons.trending_down,
-                  color: isGain ? gainColor : AppColors.primary,
+                  color: resultColor,
                   size: 32,
                 ),
                 const SizedBox(width: 8),
@@ -361,7 +557,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: isGain ? gainColor : AppColors.primary,
+                    color: resultColor,
                   ),
                 ),
               ],
