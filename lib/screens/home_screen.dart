@@ -1913,31 +1913,8 @@ class _HomeScreenState extends State<HomeScreen> {
             fit: BoxFit.cover,
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
-              return Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primary.withOpacity(0.8),
-                      AppColors.primary,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Center(
-                  child: SizedBox(
-                    width: size * 0.4,
-                    height: size * 0.4,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                ),
-              );
+              // Skeleton/shimmer placeholder while loading
+              return _buildSkeletonAvatar(size);
             },
             errorBuilder: (context, error, stackTrace) {
               // Fallback to default icon on error
@@ -1950,6 +1927,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Default avatar with icon
     return _buildDefaultAvatar(size);
+  }
+
+  /// Build skeleton/shimmer placeholder for loading avatar
+  Widget _buildSkeletonAvatar(double size) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.3, end: 0.6),
+      duration: const Duration(milliseconds: 800),
+      builder: (context, value, child) {
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.grey.withOpacity(value),
+          ),
+          child: Icon(
+            Icons.person,
+            size: size * 0.5,
+            color: Colors.grey.withOpacity(0.5),
+          ),
+        );
+      },
+      onEnd: () {},
+    );
   }
 
   /// Build default avatar with person icon

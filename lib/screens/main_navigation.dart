@@ -126,14 +126,45 @@ class _MainNavigationState extends State<MainNavigation> {
 
     // Show profile picture only for Leruma (hasCommissionDashboard) and if picture exists
     if (hasCommissionDashboard && profilePicture != null && profilePicture.isNotEmpty) {
-      return CircleAvatar(
-        radius: 30,
-        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-        backgroundImage: NetworkImage(profilePicture),
-        onBackgroundImageError: (exception, stackTrace) {
-          // Error handled by showing fallback
-        },
-        child: null,
+      return Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDark ? AppColors.darkCard : Colors.white,
+        ),
+        child: ClipOval(
+          child: Image.network(
+            profilePicture,
+            width: 60,
+            height: 60,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              // Skeleton placeholder while loading
+              return Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.withOpacity(0.3),
+                ),
+                child: Icon(
+                  Icons.person,
+                  size: 30,
+                  color: Colors.grey.withOpacity(0.5),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(
+                Icons.person,
+                size: 40,
+                color: isDark ? AppColors.darkText : AppColors.primary,
+              );
+            },
+          ),
+        ),
       );
     }
 

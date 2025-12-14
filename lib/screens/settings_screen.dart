@@ -131,13 +131,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     // Show profile picture only for Leruma (hasCommissionDashboard) and if picture exists
     if (hasCommissionDashboard && profilePicture != null && profilePicture.isNotEmpty) {
-      return CircleAvatar(
-        radius: 14,
-        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightBackground,
-        backgroundImage: NetworkImage(profilePicture),
-        onBackgroundImageError: (exception, stackTrace) {
-          // Error handled by showing fallback
-        },
+      return Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDark ? AppColors.darkCard : AppColors.lightBackground,
+        ),
+        child: ClipOval(
+          child: Image.network(
+            profilePicture,
+            width: 28,
+            height: 28,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              // Skeleton placeholder while loading
+              return Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.withOpacity(0.3),
+                ),
+                child: Icon(
+                  Icons.person,
+                  size: 16,
+                  color: Colors.grey.withOpacity(0.5),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(
+                Icons.person,
+                color: AppColors.primary,
+                size: 28,
+              );
+            },
+          ),
+        ),
       );
     }
 
