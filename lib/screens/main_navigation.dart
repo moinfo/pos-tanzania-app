@@ -119,6 +119,36 @@ class _MainNavigationState extends State<MainNavigation> {
     });
   }
 
+  /// Build drawer avatar with profile picture (Leruma feature) or default icon
+  Widget _buildDrawerAvatar(dynamic user, bool isDark) {
+    final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
+    final profilePicture = user?.profilePicture;
+
+    // Show profile picture only for Leruma (hasCommissionDashboard) and if picture exists
+    if (hasCommissionDashboard && profilePicture != null && profilePicture.isNotEmpty) {
+      return CircleAvatar(
+        radius: 30,
+        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+        backgroundImage: NetworkImage(profilePicture),
+        onBackgroundImageError: (exception, stackTrace) {
+          // Error handled by showing fallback
+        },
+        child: null,
+      );
+    }
+
+    // Default avatar with icon
+    return CircleAvatar(
+      radius: 30,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+      child: Icon(
+        Icons.person,
+        size: 40,
+        color: isDark ? AppColors.darkText : AppColors.primary,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -245,15 +275,8 @@ class _MainNavigationState extends State<MainNavigation> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 40,
-                      color: isDark ? AppColors.darkText : AppColors.primary,
-                    ),
-                  ),
+                  // Profile picture (Leruma feature) or default icon
+                  _buildDrawerAvatar(user, isDark),
                   const SizedBox(height: 12),
                   Text(
                     user?.displayName ?? 'User',

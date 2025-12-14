@@ -8,6 +8,7 @@ class User {
   final String? token;
   final String? tokenType;
   final int? expiresIn;
+  final String? profilePicture; // Profile picture URL (Leruma feature)
 
   User({
     this.id,
@@ -19,6 +20,7 @@ class User {
     this.token,
     this.tokenType,
     this.expiresIn,
+    this.profilePicture,
   });
 
   String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
@@ -38,6 +40,7 @@ class User {
       token: json['token'],
       tokenType: json['token_type'],
       expiresIn: json['expires_in'],
+      profilePicture: userData['profile_picture'],
     );
   }
 
@@ -52,6 +55,7 @@ class User {
       'token': token,
       'token_type': tokenType,
       'expires_in': expiresIn,
+      'profile_picture': profilePicture,
     };
   }
 }

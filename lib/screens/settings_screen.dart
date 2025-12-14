@@ -124,6 +124,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  /// Build settings avatar with profile picture (Leruma feature) or default icon
+  Widget _buildSettingsAvatar(dynamic user, bool isDark) {
+    final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
+    final profilePicture = user?.profilePicture;
+
+    // Show profile picture only for Leruma (hasCommissionDashboard) and if picture exists
+    if (hasCommissionDashboard && profilePicture != null && profilePicture.isNotEmpty) {
+      return CircleAvatar(
+        radius: 14,
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightBackground,
+        backgroundImage: NetworkImage(profilePicture),
+        onBackgroundImageError: (exception, stackTrace) {
+          // Error handled by showing fallback
+        },
+      );
+    }
+
+    // Default avatar with icon
+    return Icon(
+      Icons.person,
+      color: isDark ? AppColors.primary : AppColors.primary,
+      size: 28,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
@@ -334,11 +359,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 // User Info
                 if (authProvider.user != null)
                   ListTile(
-                    leading: Icon(
-                      Icons.person,
-                      color: isDark ? AppColors.primary : AppColors.primary,
-                      size: 28,
-                    ),
+                    leading: _buildSettingsAvatar(authProvider.user, isDark),
                     title: Text(
                       authProvider.user!.firstName ?? 'User',
                       style: TextStyle(
