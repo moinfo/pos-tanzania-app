@@ -27,13 +27,17 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => PermissionProvider()),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
-        ChangeNotifierProxyProvider<PermissionProvider, AuthProvider>(
+        ChangeNotifierProxyProvider2<PermissionProvider, LocationProvider, AuthProvider>(
           create: (context) => AuthProvider()
             ..setPermissionProvider(
               Provider.of<PermissionProvider>(context, listen: false),
+            )
+            ..setLocationProvider(
+              Provider.of<LocationProvider>(context, listen: false),
             ),
-          update: (context, permissionProvider, authProvider) {
+          update: (context, permissionProvider, locationProvider, authProvider) {
             authProvider!.setPermissionProvider(permissionProvider);
+            authProvider.setLocationProvider(locationProvider);
             return authProvider;
           },
         ),

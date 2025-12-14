@@ -111,4 +111,19 @@ class LocationProvider with ChangeNotifier {
   Future<void> reload() async {
     await initialize();
   }
+
+  /// Clear all location data (call on logout or user change)
+  Future<void> clear() async {
+    _allowedLocations = [];
+    _selectedLocation = null;
+    _currentModuleId = null;
+    _errorMessage = null;
+
+    // Clear saved location from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('selected_location_id');
+
+    print('📍 [LocationProvider] Cleared all location data');
+    notifyListeners();
+  }
 }

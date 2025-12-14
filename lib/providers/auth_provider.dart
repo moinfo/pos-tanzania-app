@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import 'permission_provider.dart';
+import 'location_provider.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   PermissionProvider? _permissionProvider;
+  LocationProvider? _locationProvider;
 
   User? _user;
   bool _isLoading = false;
@@ -24,6 +26,11 @@ class AuthProvider with ChangeNotifier {
   /// Set permission provider (called from main.dart after providers are set up)
   void setPermissionProvider(PermissionProvider provider) {
     _permissionProvider = provider;
+  }
+
+  /// Set location provider (called from main.dart after providers are set up)
+  void setLocationProvider(LocationProvider provider) {
+    _locationProvider = provider;
   }
 
   /// Check if user is already authenticated
@@ -61,6 +68,12 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Clear previous user's cached data before login
+      ApiService.clearDashboardCache();
+      if (_locationProvider != null) {
+        await _locationProvider!.clear();
+      }
+
       final result = await _apiService.login(username, password);
 
       if (result.isSuccess && result.data != null) {
@@ -120,6 +133,14 @@ class AuthProvider with ChangeNotifier {
     if (_permissionProvider != null) {
       await _permissionProvider!.clearPermissions();
     }
+
+    // Clear location data on logout
+    if (_locationProvider != null) {
+      await _locationProvider!.clear();
+    }
+
+    // Clear dashboard cache
+    ApiService.clearDashboardCache();
 
     _user = null;
     _isAuthenticated = false;
