@@ -67,14 +67,21 @@ class Item {
 
   factory Item.fromJson(Map<String, dynamic> json) {
     // Parse quantity_by_location if present
+    // Handle both Map and empty List (PHP quirk: empty array serializes as [])
     Map<int, double>? quantityByLocation;
     if (json['quantity_by_location'] != null) {
-      final locQty = json['quantity_by_location'] as Map<String, dynamic>;
-      quantityByLocation = {};
-      locQty.forEach((key, value) {
-        final locationId = int.tryParse(key.toString()) ?? int.parse(key);
-        quantityByLocation![locationId] = (value ?? 0).toDouble();
-      });
+      final rawLocQty = json['quantity_by_location'];
+      if (rawLocQty is Map) {
+        final locQty = rawLocQty as Map<String, dynamic>;
+        quantityByLocation = {};
+        locQty.forEach((key, value) {
+          final locationId = int.tryParse(key.toString()) ?? 0;
+          if (locationId > 0) {
+            quantityByLocation![locationId] = (value ?? 0).toDouble();
+          }
+        });
+      }
+      // If it's a List (empty array from PHP), just leave quantityByLocation as null
     }
 
     return Item(
