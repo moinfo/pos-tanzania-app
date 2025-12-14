@@ -19,10 +19,12 @@ class LocationProvider with ChangeNotifier {
   bool get hasMultipleLocations => _allowedLocations.length > 1;
 
   /// Initialize and load allowed locations
-  Future<void> initialize({String? moduleId}) async {
+  /// [moduleId] - The module to filter locations for (e.g., 'sales', 'items')
+  /// [userLocationId] - The user's assigned location from login (used as default)
+  Future<void> initialize({String? moduleId, int? userLocationId}) async {
     final requestedModule = moduleId ?? 'items';
 
-    print('📍 [LocationProvider] initialize called for module: $requestedModule');
+    print('📍 [LocationProvider] initialize called for module: $requestedModule, userLocationId: $userLocationId');
     print('📍 [LocationProvider] Current state - locations: ${_allowedLocations.length}, currentModule: $_currentModuleId, selected: ${_selectedLocation?.locationName}');
 
     // If already loaded for same module, skip
@@ -43,19 +45,39 @@ class LocationProvider with ChangeNotifier {
         _currentModuleId = requestedModule;
         _errorMessage = null;
 
-        // Load previously selected location or use first one
+        // Priority for default location:
+        // 1. User's assigned location from login (if provided and valid)
+        // 2. Previously saved location from SharedPreferences
+        // 3. First location in the list
         final prefs = await SharedPreferences.getInstance();
         final savedLocationId = prefs.getInt('selected_location_id');
 
-        if (savedLocationId != null) {
-          _selectedLocation = _allowedLocations.firstWhere(
-            (loc) => loc.locationId == savedLocationId,
-            orElse: () => _allowedLocations.isNotEmpty ? _allowedLocations.first : StockLocation(locationId: 0, locationName: 'Unknown'),
-          );
-        } else if (_allowedLocations.isNotEmpty) {
+        // Try user's assigned location first
+        if (userLocationId != null) {
+          final userLocation = _allowedLocations.where((loc) => loc.locationId == userLocationId).firstOrNull;
+          if (userLocation != null) {
+            _selectedLocation = userLocation;
+            await _saveSelectedLocation();
+            print('📍 [LocationProvider] Using user assigned location: ${_selectedLocation?.locationName}');
+          }
+        }
+
+        // If not set, try saved location
+        if (_selectedLocation == null && savedLocationId != null) {
+          final savedLocation = _allowedLocations.where((loc) => loc.locationId == savedLocationId).firstOrNull;
+          if (savedLocation != null) {
+            _selectedLocation = savedLocation;
+            print('📍 [LocationProvider] Using saved location: ${_selectedLocation?.locationName}');
+          }
+        }
+
+        // If still not set, use first location
+        if (_selectedLocation == null && _allowedLocations.isNotEmpty) {
           _selectedLocation = _allowedLocations.first;
           await _saveSelectedLocation();
+          print('📍 [LocationProvider] Using first location: ${_selectedLocation?.locationName}');
         }
+
         print('📍 [LocationProvider] Loaded ${_allowedLocations.length} locations, selected: ${_selectedLocation?.locationName}');
       } else {
         _errorMessage = response.message;

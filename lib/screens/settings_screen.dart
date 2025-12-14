@@ -4,6 +4,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/location_provider.dart';
 import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../config/clients_config.dart';
@@ -370,6 +371,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
+          // Location Section (Leruma only - for users with multiple locations)
+          if (ApiService.currentClient?.features.hasCommissionDashboard ?? false)
+            Consumer<LocationProvider>(
+              builder: (context, locationProvider, child) {
+                // Only show if user has multiple locations
+                if (!locationProvider.hasMultipleLocations) {
+                  return const SizedBox.shrink();
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text(
+                        'LOCATION',
+                        style: TextStyle(
+                          color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    GlassmorphicCard(
+                      isDark: isDark,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: Icon(
+                              Icons.store,
+                              color: isDark ? AppColors.primary : AppColors.primary,
+                              size: 28,
+                            ),
+                            title: Text(
+                              'Stock Location',
+                              style: TextStyle(
+                                color: isDark ? AppColors.darkText : AppColors.text,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              locationProvider.selectedLocation?.locationName ?? 'Select location',
+                              style: TextStyle(
+                                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                fontSize: 13,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.arrow_drop_down,
+                              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                            ),
+                            onTap: () {
+                              _showLocationPicker(context, locationProvider, isDark);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
           // Account Section
           const SizedBox(height: 24),
           Padding(
@@ -494,6 +560,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+
+  /// Show location picker bottom sheet
+  void _showLocationPicker(BuildContext context, LocationProvider locationProvider, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Title
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Select Location',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.darkText : AppColors.text,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              // Location list
+              ...locationProvider.allowedLocations.map((location) {
+                final isSelected = location.locationId == locationProvider.selectedLocation?.locationId;
+                return ListTile(
+                  leading: Icon(
+                    Icons.store,
+                    color: isSelected ? AppColors.success : (isDark ? AppColors.darkTextLight : AppColors.textLight),
+                  ),
+                  title: Text(
+                    location.locationName,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkText : AppColors.text,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle, color: AppColors.success)
+                      : null,
+                  onTap: () async {
+                    await locationProvider.selectLocation(location);
+                    if (mounted) {
+                      Navigator.pop(context);
+                      // Show confirmation
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Location changed to ${location.locationName}'),
+                          backgroundColor: AppColors.success,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                );
+              }).toList(),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
     );
   }
 }

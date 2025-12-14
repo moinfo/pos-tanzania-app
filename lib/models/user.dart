@@ -9,6 +9,8 @@ class User {
   final String? tokenType;
   final int? expiresIn;
   final String? profilePicture; // Profile picture URL (Leruma feature)
+  final int? locationId; // User's assigned stock location (Leruma feature)
+  final String? locationName; // User's assigned stock location name
 
   User({
     this.id,
@@ -21,6 +23,8 @@ class User {
     this.tokenType,
     this.expiresIn,
     this.profilePicture,
+    this.locationId,
+    this.locationName,
   });
 
   String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
@@ -29,6 +33,13 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     // Handle both nested and flat user data
     final userData = json['user'] ?? json;
+
+    // Parse location_id safely
+    int? locationId;
+    final locId = userData['location_id'];
+    if (locId != null) {
+      locationId = locId is int ? locId : int.tryParse(locId.toString());
+    }
 
     return User(
       id: userData['id']?.toString(),
@@ -41,6 +52,8 @@ class User {
       tokenType: json['token_type'],
       expiresIn: json['expires_in'],
       profilePicture: userData['profile_picture'],
+      locationId: locationId,
+      locationName: userData['location_name'],
     );
   }
 
@@ -56,6 +69,8 @@ class User {
       'token_type': tokenType,
       'expires_in': expiresIn,
       'profile_picture': profilePicture,
+      'location_id': locationId,
+      'location_name': locationName,
     };
   }
 }

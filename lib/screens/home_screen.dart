@@ -45,7 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeDashboard();
+    // Use addPostFrameCallback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeDashboard();
+    });
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -89,12 +92,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeDashboard() async {
     final currentClient = ApiService.currentClient;
-    final clientId = currentClient?.id ?? 'sada';
+    final hasCommissionDashboard = currentClient?.features.hasCommissionDashboard ?? false;
 
-    // Initialize location provider for Come & Save
-    if (clientId == 'come_and_save' && mounted) {
+    // Initialize location provider for Leruma only
+    if (hasCommissionDashboard && mounted) {
+      final authProvider = context.read<AuthProvider>();
       final locationProvider = context.read<LocationProvider>();
-      await locationProvider.initialize(moduleId: 'items');
+      // Pass user's location_id to use as default
+      final userLocationId = authProvider.user?.locationId;
+      await locationProvider.initialize(
+        moduleId: 'sales',
+        userLocationId: userLocationId,
+      );
     }
 
     await _loadDashboardData();
@@ -230,16 +239,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Load dashboard for Leruma (commission tracking focused)
   Future<void> _loadLerumaDashboard() async {
+    // Get selected location from provider
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
+
     // Format dates for API
     final startDate = DateFormat('yyyy-MM-dd').format(DateTime(_selectedDate.year, _selectedDate.month, 1));
     final endDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-    print('📊 Loading Leruma dashboard: $startDate to $endDate');
+    print('📊 Loading Leruma dashboard: $startDate to $endDate, location: $selectedLocationId');
+
+    // Clear cache when location changes
+    ApiService.clearDashboardCache();
 
     // Get full dashboard data
     final dashboardResponse = await _apiService.getCommissionDashboard(
       startDate: startDate,
       endDate: endDate,
+      locationId: selectedLocationId,
     );
 
     if (dashboardResponse.isSuccess && dashboardResponse.data != null) {
@@ -402,11 +419,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Location Selector (Come & Save only)
-            if (ApiService.currentClient?.id == 'come_and_save')
+            // Location Selector (Leruma only - for users with multiple locations)
+            if (ApiService.currentClient?.features.hasCommissionDashboard ?? false)
               Consumer<LocationProvider>(
                 builder: (context, locationProvider, child) {
-                  if (locationProvider.allowedLocations.isEmpty) {
+                  // Only show if user has multiple locations
+                  if (!locationProvider.hasMultipleLocations) {
                     return const SizedBox.shrink();
                   }
 
