@@ -26,6 +26,7 @@ import 'transactions/transactions_screen.dart';
 import 'reports/reports_screen.dart';
 import 'stock_tracking/stock_tracking_screen.dart';
 import 'positions/positions_screen.dart';
+import 'seller_report_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 
@@ -80,38 +81,58 @@ class _MainNavigationState extends State<MainNavigation> {
 
   // Screen configuration with permissions
   // IMPORTANT: All screens MUST have permission checks based on ospos_permissions table
-  final List<Map<String, dynamic>> _screenConfigs = [
-    {
-      'screen': const HomeScreen(),
-      'icon': Icons.home,
-      'label': 'Home',
-      'permission': PermissionIds.home, // module: home
-    },
-    {
-      'screen': const SalesScreen(),
-      'icon': Icons.point_of_sale,
-      'label': 'Sales',
-      'permission': PermissionIds.sales, // module: sales
-    },
-    {
-      'screen': const ExpensesScreen(),
-      'icon': Icons.receipt_long,
-      'label': 'Expenses',
-      'permission': PermissionIds.expenses, // module: expenses
-    },
-    {
-      'screen': const TodaySummaryScreen(),
-      'icon': Icons.summarize,
-      'label': 'Summary',
-      'permission': PermissionIds.cashSubmit, // module: cash_submit
-    },
-    {
+  // Built dynamically to support client-specific screens (e.g., Seller for Leruma)
+  List<Map<String, dynamic>> get _screenConfigs {
+    final isLeruma = ApiService.currentClient?.id == 'leruma';
+
+    final configs = <Map<String, dynamic>>[
+      {
+        'screen': const HomeScreen(),
+        'icon': Icons.home,
+        'label': 'Home',
+        'permission': PermissionIds.home, // module: home
+      },
+      {
+        'screen': const SalesScreen(),
+        'icon': Icons.point_of_sale,
+        'label': 'Sales',
+        'permission': PermissionIds.sales, // module: sales
+      },
+      {
+        'screen': const ExpensesScreen(),
+        'icon': Icons.receipt_long,
+        'label': 'Expenses',
+        'permission': PermissionIds.expenses, // module: expenses
+      },
+      {
+        'screen': const TodaySummaryScreen(),
+        'icon': Icons.summarize,
+        'label': 'Summary',
+        'permission': PermissionIds.cashSubmit, // module: cash_submit
+      },
+    ];
+
+    // Add Seller screen for Leruma only
+    if (isLeruma) {
+      configs.add({
+        'screen': const SellerReportScreen(),
+        'icon': Icons.person_outline,
+        'label': 'Seller',
+        'permission': PermissionIds.cashSubmitSellerReport, // Leruma seller report
+        'lerumaOnly': true, // Flag for Leruma-specific screen
+      });
+    }
+
+    // Reports is always last
+    configs.add({
       'screen': const ReportsScreen(),
       'icon': Icons.assessment,
       'label': 'Reports',
       'permission': PermissionIds.reports, // module: reports
-    },
-  ];
+    });
+
+    return configs;
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -538,6 +559,22 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
+            // Seller Report - Leruma only, requires cash_submit_seller_report permission
+            if (ApiService.currentClient?.id == 'leruma')
+              PermissionWrapper(
+                permissionId: PermissionIds.cashSubmitSellerReport,
+                child: ListTile(
+                  leading: const Icon(Icons.person_outline, color: AppColors.primary),
+                  title: const Text('Seller Report'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SellerReportScreen()),
+                    );
+                  },
+                ),
+              ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings, color: AppColors.primary),

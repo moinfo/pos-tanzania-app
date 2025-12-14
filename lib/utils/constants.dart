@@ -10,11 +10,11 @@ class AppColors {
   static const Color primaryDark = Color(0xFFB82833);    // Darker red
   static const Color secondaryLight = Color(0xFF464A5E);  // Lighter dark gray
 
-  // Status colors using logo palette
-  static const Color success = Color(0xFFE63946);        // Use primary red
-  static const Color error = Color(0xFFB82833);          // Use darker red
-  static const Color warning = Color(0xFFE63946);        // Use primary red
-  static const Color info = Color(0xFF2B2D42);           // Use secondary dark gray
+  // Status colors - proper semantic colors for better UI
+  static const Color success = Color(0xFF10B981);        // Emerald green
+  static const Color error = Color(0xFFEF4444);          // Red
+  static const Color warning = Color(0xFFF59E0B);        // Amber/Orange
+  static const Color info = Color(0xFF3B82F6);           // Blue
 
   // Light Theme Colors
   static const Color lightBackground = Color(0xFFF8F9FA);     // Light gray background
@@ -23,13 +23,14 @@ class AppColors {
   static const Color lightDivider = Color(0xFFE9ECEF);        // Very light gray
   static const Color lightCard = Colors.white;
 
-  // Dark Theme Colors
-  static const Color darkBackground = Color(0xFF121212);      // Dark background
-  static const Color darkSurface = Color(0xFF1E1E1E);         // Dark surface
-  static const Color darkCard = Color(0xFF2C2C2C);            // Dark card
-  static const Color darkText = Color(0xFFE0E0E0);            // Light text for dark mode
-  static const Color darkTextLight = Color(0xFFB0B0B0);       // Lighter gray text
-  static const Color darkDivider = Color(0xFF3A3A3A);         // Dark divider
+  // Dark Theme Colors - Enhanced for better contrast
+  static const Color darkBackground = Color(0xFF0D0D0D);      // Deeper dark background
+  static const Color darkSurface = Color(0xFF171717);         // Dark surface
+  static const Color darkCard = Color(0xFF1F1F1F);            // Dark card
+  static const Color darkText = Color(0xFFF5F5F5);            // Brighter text for dark mode
+  static const Color darkTextLight = Color(0xFFA3A3A3);       // Subtle gray text
+  static const Color darkDivider = Color(0xFF2E2E2E);         // Dark divider
+  static const Color darkAccent = Color(0xFF262626);          // Accent surface for cards
 
   // Legacy properties for backward compatibility
   static const Color background = lightBackground;

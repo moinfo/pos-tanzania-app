@@ -748,6 +748,46 @@ class ApiService {
     }
   }
 
+  /// Get sellers report (Leruma-specific)
+  Future<ApiResponse<Map<String, dynamic>>> getSellersReport({
+    String? startDate,
+    String? endDate,
+    int? supervisorId,
+    int? locationId,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (supervisorId != null) queryParams['supervisor_id'] = supervisorId.toString();
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+
+      final uri = Uri.parse('$baseUrlSync/cashsubmit/sellers_report')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.success(
+          data: jsonResponse['data'],
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch sellers report',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ============ CONTRACTS ENDPOINTS ============
 
   /// Get all contracts
@@ -992,6 +1032,7 @@ class ApiService {
   Future<ApiResponse<List<Customer>>> getCustomers({
     String? search,
     String? supervisorId,
+    int? locationId,
     int limit = 50,
     int offset = 0,
   }) async {
@@ -1001,6 +1042,7 @@ class ApiService {
         'offset': offset.toString(),
         if (search != null) 'search': search,
         if (supervisorId != null) 'supervisor_id': supervisorId,
+        if (locationId != null) 'location_id': locationId.toString(),
       };
 
       final uri = Uri.parse('$baseUrlSync/customers').replace(

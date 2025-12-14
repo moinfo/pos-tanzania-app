@@ -5,6 +5,8 @@ import '../services/api_service.dart';
 import '../models/customer.dart';
 import '../models/supervisor.dart';
 import '../models/permission_model.dart';
+import '../models/stock_location.dart';
+import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
@@ -28,7 +30,21 @@ class _CustomersScreenState extends State<CustomersScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialize location after build is complete (Leruma only)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeLocation();
+    });
     _loadCustomers();
+  }
+
+  Future<void> _initializeLocation() async {
+    // Only for Leruma - customers filtered by stock location's supervisor
+    if (ApiService.currentClient?.id != 'leruma') return;
+    if (!mounted) return;
+    final locationProvider = context.read<LocationProvider>();
+    if (locationProvider.allowedLocations.isEmpty) {
+      await locationProvider.initialize();
+    }
   }
 
   Future<void> _loadCustomers() async {
@@ -37,9 +53,17 @@ class _CustomersScreenState extends State<CustomersScreen> {
       _errorMessage = null;
     });
 
+    // For Leruma: filter customers by stock location's supervisor
+    int? locationId;
+    if (ApiService.currentClient?.id == 'leruma') {
+      final locationProvider = context.read<LocationProvider>();
+      locationId = locationProvider.selectedLocation?.locationId;
+    }
+
     final response = await _apiService.getCustomers(
       search: _searchQuery.isEmpty ? null : _searchQuery,
       limit: 100,
+      locationId: locationId,
     );
 
     if (mounted) {
@@ -109,13 +133,80 @@ class _CustomersScreenState extends State<CustomersScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final locationProvider = context.watch<LocationProvider>();
     final isDark = themeProvider.isDarkMode;
+    final isLeruma = ApiService.currentClient?.id == 'leruma';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Customers'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          // Location selector - Leruma only (customers filtered by location's supervisor)
+          if (isLeruma && locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: PopupMenuButton<StockLocation>(
+                  offset: const Offset(0, 40),
+                  color: Colors.white,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_on, size: 18, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Text(
+                        locationProvider.selectedLocation!.locationName,
+                        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
+                    ],
+                  ),
+                  onSelected: (location) async {
+                    await locationProvider.selectLocation(location);
+                    _loadCustomers(); // Reload customers for new location
+                  },
+                  itemBuilder: (context) => locationProvider.allowedLocations
+                      .map((location) => PopupMenuItem<StockLocation>(
+                            value: location,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  location.locationId == locationProvider.selectedLocation?.locationId
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  size: 20,
+                                  color: location.locationId == locationProvider.selectedLocation?.locationId
+                                      ? AppColors.primary
+                                      : Colors.grey,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  location.locationName,
+                                  style: TextStyle(
+                                    color: location.locationId == locationProvider.selectedLocation?.locationId
+                                        ? AppColors.primary
+                                        : Colors.black87,
+                                    fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -143,7 +234,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
           // Customers list
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildSkeletonLoading(isDark)
                 : _errorMessage != null
                     ? Center(
                         child: Column(
@@ -185,7 +276,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: _customers.length,
                               itemBuilder: (context, index) {
-                                return _buildCustomerCard(_customers[index], isDark);
+                                return _buildCustomerCard(_customers[index], isDark, isLeruma);
                               },
                             ),
                           ),
@@ -202,7 +293,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  Widget _buildCustomerCard(Customer customer, bool isDark) {
+  Widget _buildCustomerCard(Customer customer, bool isDark, bool isLeruma) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -331,6 +422,23 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       ],
                     ),
                   ),
+                  // Days since last sale - Leruma only
+                  if (isLeruma && customer.days != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: customer.days! > 30 ? AppColors.error.withValues(alpha: 0.1) : AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${customer.days} days',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: customer.days! > 30 ? AppColors.error : AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               const Divider(height: 16),
@@ -412,6 +520,107 @@ class _CustomersScreenState extends State<CustomersScreen> {
             ],
           ),
       ),
+    );
+  }
+
+  /// Build skeleton loading placeholder for customers list
+  Widget _buildSkeletonLoading(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: 6, // Show 6 skeleton cards
+      itemBuilder: (context, index) {
+        return _buildSkeletonCard(isDark);
+      },
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    final baseColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: isDark ? AppColors.darkCard : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row with avatar and name
+            Row(
+              children: [
+                // Avatar skeleton
+                _buildShimmerBox(40, 40, baseColor, highlightColor, isCircle: true),
+                const SizedBox(width: 12),
+                // Name and supervisor
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildShimmerBox(120, 16, baseColor, highlightColor),
+                      const SizedBox(height: 6),
+                      _buildShimmerBox(80, 12, baseColor, highlightColor),
+                    ],
+                  ),
+                ),
+                // Supervisor badge skeleton
+                _buildShimmerBox(100, 24, baseColor, highlightColor, borderRadius: 12),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Phone number
+            _buildShimmerBox(100, 14, baseColor, highlightColor),
+            const SizedBox(height: 8),
+            // Credit and Balance row
+            Row(
+              children: [
+                Expanded(child: _buildShimmerBox(80, 14, baseColor, highlightColor)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildShimmerBox(80, 14, baseColor, highlightColor)),
+              ],
+            ),
+            const Divider(height: 24),
+            // Action buttons row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    _buildShimmerBox(32, 32, baseColor, highlightColor, isCircle: true),
+                    const SizedBox(width: 8),
+                    _buildShimmerBox(32, 32, baseColor, highlightColor, isCircle: true),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _buildShimmerBox(70, 28, baseColor, highlightColor, borderRadius: 4),
+                    const SizedBox(width: 8),
+                    _buildShimmerBox(80, 28, baseColor, highlightColor, borderRadius: 4),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerBox(double width, double height, Color baseColor, Color highlightColor, {bool isCircle = false, double borderRadius = 4}) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 1500),
+      builder: (context, value, child) {
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Color.lerp(baseColor, highlightColor, (value * 2 - 1).abs()),
+            borderRadius: isCircle ? null : BorderRadius.circular(borderRadius),
+            shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+          ),
+        );
+      },
     );
   }
 }
@@ -921,16 +1130,19 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 8),
-        CheckboxListTile(
-          title: const Text('Is Boda Boda'),
-          value: _isBodaBoda,
-          onChanged: (value) {
-            setState(() => _isBodaBoda = value ?? false);
-          },
-          contentPadding: EdgeInsets.zero,
-          controlAffinity: ListTileControlAffinity.leading,
-        ),
-        const SizedBox(height: 16),
+        // Hide Is Boda Boda for Leruma (column doesn't exist in Leruma database)
+        if (ApiService.currentClient?.id != 'leruma')
+          CheckboxListTile(
+            title: const Text('Is Boda Boda'),
+            value: _isBodaBoda,
+            onChanged: (value) {
+              setState(() => _isBodaBoda = value ?? false);
+            },
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+        if (ApiService.currentClient?.id != 'leruma')
+          const SizedBox(height: 16),
         // Discount Type
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,

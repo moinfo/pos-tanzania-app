@@ -236,6 +236,15 @@ class PermissionIds {
   static const String cashSubmitDifference = 'cash_submit_difference';
   static const String cashSubmitDifferenceMrBs = 'cash_submit_difference_mr_bs';
   static const String cashSubmitMainStoreReceiving = 'cash_submit_main_store_receiving';
+  // Leruma-specific permissions
+  static const String cashSubmitChipDeposited = 'cash_submit_chip_deposited';
+  static const String cashSubmitChipUsed = 'cash_submit_chip_used';
+  static const String cashSubmitManualEditing = 'cash_submit_manual_editing';
+  static const String cashSubmitManualEditingWorkout = 'cash_submit_manual_editing_workout';
+  static const String cashSubmitChangeDue = 'cash_submit_change_due';
+  static const String cashSubmitDifferenceManualEditing = 'cash_submit_difference_manual_editing';
+  static const String cashSubmitDoubleSalesItems = 'cash_submit_double_sales_items';
+  static const String cashSubmitSellerReport = 'cash_submit_seller_report';
 
   // Transactions module sub-permissions
   // Main menu permissions

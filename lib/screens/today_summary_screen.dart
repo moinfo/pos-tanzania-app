@@ -37,8 +37,8 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     final currentClient = ApiService.currentClient;
     final clientId = currentClient?.id ?? 'sada';
 
-    // Initialize location provider only for Come & Save
-    if (clientId == 'come_and_save') {
+    // Initialize location provider for Come & Save and Leruma
+    if (clientId == 'come_and_save' || clientId == 'leruma') {
       final locationProvider = context.read<LocationProvider>();
       await locationProvider.initialize(moduleId: 'sales');
     }
@@ -54,12 +54,12 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
 
     final dateStr = Formatters.formatDateForApi(_selectedDate);
 
-    // Get location only for Come & Save client
+    // Get location for Come & Save and Leruma clients
     final currentClient = ApiService.currentClient;
     final clientId = currentClient?.id ?? 'sada';
 
     int? selectedLocationId;
-    if (clientId == 'come_and_save' && mounted) {
+    if ((clientId == 'come_and_save' || clientId == 'leruma') && mounted) {
       final locationProvider = context.read<LocationProvider>();
       selectedLocationId = locationProvider.selectedLocation?.locationId;
     }
@@ -108,8 +108,8 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
-          // Location selector (Come & Save only)
-          if (ApiService.currentClient?.id == 'come_and_save' && locations.isNotEmpty)
+          // Location selector (Come & Save and Leruma)
+          if ((ApiService.currentClient?.id == 'come_and_save' || ApiService.currentClient?.id == 'leruma') && locations.isNotEmpty)
             PopupMenuButton<int>(
               icon: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -310,9 +310,10 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     final permissionProvider = Provider.of<PermissionProvider>(context);
     final rows = <Widget>[];
 
-    // Check if current client is Come & Save
+    // Check if current client
     final currentClient = ApiService.currentClient;
     final isComeAndSave = currentClient?.id == 'come_and_save';
+    final isLeruma = currentClient?.id == 'leruma';
 
     // Helper to add row with permission check
     void addRowIfPermitted(String permission, Widget row) {
@@ -477,6 +478,65 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
         isDark: isDark,
       ),
     );
+
+    // Leruma-specific fields
+    if (isLeruma) {
+      rows.add(const Divider(height: 1));
+
+      // Chip Deposited
+      addRowIfPermitted(
+        PermissionIds.cashSubmitChipDeposited,
+        _buildSummaryRow('Chip Deposited', _summaryData!['chip_deposited'], isDark: isDark),
+      );
+
+      // Chip Used
+      addRowIfPermitted(
+        PermissionIds.cashSubmitChipUsed,
+        _buildSummaryRow('Chip Used', _summaryData!['chip_used'], isNegative: true, isDark: isDark),
+      );
+
+      // Manual Editing
+      addRowIfPermitted(
+        PermissionIds.cashSubmitManualEditing,
+        _buildSummaryRow('Manual Editing', _summaryData!['manual_editing'], isDark: isDark),
+      );
+
+      // Manual Editing Workout
+      addRowIfPermitted(
+        PermissionIds.cashSubmitManualEditingWorkout,
+        _buildSummaryRow('Manual Editing Workout', _summaryData!['manual_editing_workout'], isDark: isDark),
+      );
+
+      // Difference Manual Editing
+      addRowIfPermitted(
+        PermissionIds.cashSubmitDifferenceManualEditing,
+        _buildSummaryRow(
+          'Diff Manual Editing',
+          _summaryData!['difference_manual_editing'],
+          highlight: true,
+          color: (_summaryData!['difference_manual_editing'] as num) >= 0 ? AppColors.success : AppColors.error,
+          isDark: isDark,
+        ),
+      );
+
+      // Change Due
+      addRowIfPermitted(
+        PermissionIds.cashSubmitChangeDue,
+        _buildSummaryRow('Change Due', _summaryData!['change_due'], isDark: isDark),
+      );
+
+      // Bank Difference
+      addRowIfPermitted(
+        PermissionIds.cashSubmitDifference,
+        _buildSummaryRow(
+          'Bank Difference',
+          _summaryData!['bank_difference'],
+          highlight: true,
+          color: (_summaryData!['bank_difference'] as num) >= 0 ? AppColors.success : AppColors.error,
+          isDark: isDark,
+        ),
+      );
+    }
 
     return rows;
   }

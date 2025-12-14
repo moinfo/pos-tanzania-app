@@ -397,10 +397,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: (isDark ? AppColors.darkSurface : Colors.white).withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(8),
+                      color: isDark
+                          ? AppColors.primary.withOpacity(0.15)
+                          : AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: (isDark ? AppColors.darkDivider : AppColors.lightDivider).withOpacity(0.3),
+                        color: AppColors.primary.withOpacity(isDark ? 0.3 : 0.2),
+                        width: 1,
                       ),
                     ),
                     child: Row(
@@ -408,7 +411,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Icon(
                           Icons.calendar_today,
                           size: 16,
-                          color: isDark ? AppColors.primary : AppColors.primary,
+                          color: AppColors.primary,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -936,18 +939,32 @@ class _HomeScreenState extends State<HomeScreen> {
       displayValue = '${value ?? 0}';
     }
 
+    // For dark mode: use muted/darker versions of colors
+    final cardColor = isDark
+        ? HSLColor.fromColor(color).withSaturation(0.4).withLightness(0.25).toColor()
+        : color;
+    final accentColor = isDark ? color : Colors.white;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.9), color],
+          colors: isDark
+              ? [cardColor, cardColor.withOpacity(0.85)]
+              : [color.withOpacity(0.9), color],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        border: Border.all(
+          color: isDark ? color.withOpacity(0.3) : Colors.transparent,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 8,
+            color: isDark
+                ? Colors.black.withOpacity(0.4)
+                : color.withOpacity(0.35),
+            blurRadius: isDark ? 10 : 8,
             offset: const Offset(0, 4),
           ),
         ],
@@ -963,27 +980,35 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: Text(
                   displayValue,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: isDark ? accentColor : Colors.white,
                   ),
                 ),
               ),
-              Icon(
-                icon,
-                color: Colors.white.withOpacity(0.3),
-                size: 28,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isDark ? color.withOpacity(0.2) : Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: isDark ? color.withOpacity(0.8) : Colors.white.withOpacity(0.9),
+                  size: 22,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             title,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.white.withOpacity(0.9),
-              fontWeight: FontWeight.w500,
+              color: isDark ? AppColors.darkTextLight : Colors.white.withOpacity(0.95),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
             ),
           ),
         ],
@@ -1001,6 +1026,24 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool isDark,
     bool isCount = false,
   }) {
+    // Determine color based on percentage
+    final baseColor = percentage >= 100
+        ? AppColors.success
+        : percentage >= 50
+            ? AppColors.primary
+            : AppColors.warning;
+
+    // Muted colors for dark mode
+    final iconColor = isDark
+        ? HSLColor.fromColor(AppColors.primary).withSaturation(0.5).withLightness(0.55).toColor()
+        : AppColors.primary;
+    final progressColor = isDark
+        ? HSLColor.fromColor(baseColor).withSaturation(0.6).withLightness(0.45).toColor()
+        : baseColor;
+    final badgeTextColor = isDark
+        ? HSLColor.fromColor(baseColor).withSaturation(0.5).withLightness(0.6).toColor()
+        : baseColor;
+
     return GlassmorphicCard(
       isDark: isDark,
       padding: const EdgeInsets.all(14),
@@ -1011,31 +1054,49 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, size: 20, color: AppColors.primary),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6),
+                  color: isDark
+                      ? HSLColor.fromColor(AppColors.primary).withSaturation(0.4).withLightness(0.2).toColor()
+                      : AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: isDark
+                      ? Border.all(color: AppColors.primary.withOpacity(0.2), width: 1)
+                      : null,
+                ),
+                child: Icon(icon, size: 18, color: iconColor),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? HSLColor.fromColor(baseColor).withSaturation(0.4).withLightness(0.2).toColor()
+                      : progressColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? baseColor.withOpacity(0.25) : progressColor.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       '${percentage.toStringAsFixed(1)}%',
-                      style: const TextStyle(
-                        fontSize: 10,
+                      style: TextStyle(
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.success,
+                        color: badgeTextColor,
                       ),
                     ),
-                    const Icon(Icons.arrow_upward, size: 8, color: AppColors.success),
+                    Icon(Icons.arrow_upward, size: 10, color: badgeTextColor),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           // Title on its own line
           Text(
             title,
@@ -1059,14 +1120,28 @@ class _HomeScreenState extends State<HomeScreen> {
               color: isDark ? AppColors.darkText : AppColors.text,
             ),
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (percentage / 100).clamp(0.0, 1.0),
-              backgroundColor: isDark ? AppColors.darkDivider : AppColors.lightDivider,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-              minHeight: 5,
+          const SizedBox(height: 10),
+          // Progress bar with gradient effect
+          Container(
+            height: 6,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: (percentage / 100).clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      progressColor.withOpacity(0.8),
+                      progressColor,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
             ),
           ),
         ],
@@ -1294,6 +1369,18 @@ class _HomeScreenState extends State<HomeScreen> {
     // Calculate progress percentage
     final progressPercent = target > 0 ? (average / target * 100).clamp(0.0, 100.0) : 0.0;
 
+    // Muted colors for dark mode
+    final badgeColor = isDark
+        ? HSLColor.fromColor(color).withSaturation(0.5).withLightness(0.35).toColor()
+        : color;
+    final statusColor = isAchieved ? AppColors.success : color;
+    final mutedStatusColor = isDark
+        ? HSLColor.fromColor(statusColor).withSaturation(0.5).withLightness(0.35).toColor()
+        : statusColor;
+    final progressBarColor = isDark
+        ? HSLColor.fromColor(color).withSaturation(0.6).withLightness(0.45).toColor()
+        : color;
+
     return GestureDetector(
       onTap: () => _showCommissionDetail(level, data, color, isDark),
       child: GlassmorphicCard(
@@ -1314,16 +1401,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
                         gradient: LinearGradient(
-                          colors: [color.withOpacity(0.8), color],
+                          colors: [badgeColor.withOpacity(0.9), badgeColor],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
+                        border: isDark
+                            ? Border.all(color: color.withOpacity(0.3), width: 1)
+                            : null,
                       ),
                       child: Center(
                         child: Text(
                           level,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: isDark ? color.withOpacity(0.9) : Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -1358,15 +1448,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isAchieved ? AppColors.success.withOpacity(0.2) : color.withOpacity(0.2),
+                        color: mutedStatusColor.withOpacity(isDark ? 0.3 : 0.2),
                         borderRadius: BorderRadius.circular(12),
+                        border: isDark
+                            ? Border.all(color: statusColor.withOpacity(0.3), width: 1)
+                            : null,
                       ),
                       child: Text(
                         isAchieved ? 'Achieved' : 'In Progress',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isAchieved ? AppColors.success : color,
+                          color: isDark ? statusColor.withOpacity(0.85) : statusColor,
                         ),
                       ),
                     ),
@@ -1407,13 +1500,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: (progressPercent / 100).clamp(0.0, 1.0),
-                    backgroundColor: isDark ? AppColors.darkDivider : AppColors.lightDivider,
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                    minHeight: 8,
+                Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: (progressPercent / 100).clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [progressBarColor.withOpacity(0.8), progressBarColor],
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1459,7 +1562,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: totalWithItems >= 0 ? AppColors.success : AppColors.error,
+                        color: isDark
+                            ? (totalWithItems >= 0 ? AppColors.success.withOpacity(0.85) : AppColors.error.withOpacity(0.85))
+                            : (totalWithItems >= 0 ? AppColors.success : AppColors.error),
                       ),
                     ),
                   ],
@@ -1804,15 +1909,26 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                colors: [
+                  color.withOpacity(isDark ? 0.3 : 0.2),
+                  color.withOpacity(isDark ? 0.2 : 0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(
+                color: color.withOpacity(isDark ? 0.4 : 0.2),
+                width: 1,
+              ),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1820,15 +1936,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: isDark ? AppColors.darkText : AppColors.text,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                   ),
                 ),

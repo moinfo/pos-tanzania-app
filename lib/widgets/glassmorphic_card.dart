@@ -35,13 +35,29 @@ class GlassmorphicCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? [
+                // Subtle glow effect for dark mode
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+                // Inner highlight simulation
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.02),
+                  blurRadius: 1,
+                  spreadRadius: 0,
+                  offset: const Offset(0, -1),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -61,8 +77,9 @@ class GlassmorphicCard extends StatelessWidget {
                       ]
                     : isDark
                         ? [
-                            Colors.white.withOpacity(0.15),
-                            Colors.white.withOpacity(0.08),
+                            // Enhanced dark mode gradient with subtle depth
+                            const Color(0xFF1A1A1A).withOpacity(0.95),
+                            const Color(0xFF141414).withOpacity(0.90),
                           ]
                         : [
                             Colors.white.withOpacity(0.4),
@@ -71,8 +88,10 @@ class GlassmorphicCard extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 2,
+                color: isDark
+                    ? Colors.white.withOpacity(0.08) // Subtle border for dark mode
+                    : Colors.white.withOpacity(0.3),
+                width: isDark ? 1 : 2,
               ),
             ),
             child: padding != null

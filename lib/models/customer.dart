@@ -31,6 +31,7 @@ class Customer {
   final int badDebtor;
   final String dormant;
   final double balance;
+  final int? days; // Days since last sale (Leruma feature)
   final Supervisor? supervisor;
 
   Customer({
@@ -63,6 +64,7 @@ class Customer {
     required this.badDebtor,
     required this.dormant,
     required this.balance,
+    this.days,
     this.supervisor,
   });
 
@@ -97,6 +99,7 @@ class Customer {
       badDebtor: json['bad_debtor'] as int? ?? 30,
       dormant: json['dormant'] as String? ?? 'ACTIVE',
       balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
+      days: json['days'] as int?,
       supervisor: json['supervisor'] != null
           ? Supervisor.fromJson(json['supervisor'] as Map<String, dynamic>)
           : null,
