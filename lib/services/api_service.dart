@@ -3814,4 +3814,115 @@ class ApiService {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
+
+  // ============================================================================
+  // COMMISSION DASHBOARD (Leruma-specific)
+  // ============================================================================
+
+  /// Get full commission dashboard data (Leruma only)
+  Future<ApiResponse<Map<String, dynamic>>> getCommissionDashboard({
+    String? startDate,
+    String? endDate,
+    int? locationId,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+
+      final uri = Uri.parse('$baseUrlSync/dashboard').replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+
+      print('📊 Fetching commission dashboard: $uri');
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      print('📥 Dashboard response status: ${response.statusCode}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.success(
+          data: jsonResponse['data'] as Map<String, dynamic>,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch dashboard',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      print('❌ Dashboard error: $e');
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get commission progress for all levels (Leruma only)
+  Future<ApiResponse<Map<String, dynamic>>> getCommissionProgress({
+    String? startDate,
+    String? endDate,
+    int? locationId,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+
+      final uri = Uri.parse('$baseUrlSync/dashboard/commission').replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.success(
+          data: jsonResponse['data'] as Map<String, dynamic>,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch commission progress',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get recent activity for dashboard (Leruma only)
+  Future<ApiResponse<List<Map<String, dynamic>>>> getDashboardActivity({
+    int? locationId,
+    int limit = 20,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+      };
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+
+      final uri = Uri.parse('$baseUrlSync/dashboard/activity').replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final List<dynamic> data = jsonResponse['data'] ?? [];
+        return ApiResponse.success(
+          data: data.map((e) => e as Map<String, dynamic>).toList(),
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch activity',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
 }

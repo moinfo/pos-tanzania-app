@@ -13,6 +13,7 @@ class ClientFeatures {
   final bool hasSupplierCredits;
   final bool hasReceivings;
   final bool hasSales;
+  final bool hasCommissionDashboard; // Leruma-specific commission tracking dashboard
 
   const ClientFeatures({
     this.hasContracts = true,
@@ -28,6 +29,7 @@ class ClientFeatures {
     this.hasSupplierCredits = true,
     this.hasReceivings = true,
     this.hasSales = true,
+    this.hasCommissionDashboard = false, // Default: disabled (only Leruma uses this)
   });
 }
 

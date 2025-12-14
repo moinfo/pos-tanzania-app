@@ -13,7 +13,7 @@ class ClientsConfig {
   // NETWORK CONFIGURATION
   // ============================================
   // ⚠️ CHANGE THIS IP ADDRESS when your network changes
-  static const String LOCAL_IP_ADDRESS = '192.168.0.100'; // Your computer's local IP
+  static const String LOCAL_IP_ADDRESS = '192.168.0.101'; // Your computer's local IP
 //   static const String LOCAL_IP_ADDRESS = '172.16.245.29'; // Your computer's local IP
   static const String MAMP_PORT = '8888';
 
@@ -49,6 +49,20 @@ class ClientsConfig {
         hasContracts: false,
       ),
     ),
+    ClientConfig(
+      id: 'leruma',
+      name: 'dev-leruma',
+      displayName: 'Leruma',
+      devApiUrl: 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania-leruma/public/api',
+      prodApiUrl: 'https://leruma.moinfotech.co.tz/api',
+      features: const ClientFeatures(
+        // Leruma features - disabled: contracts, profit submit
+        hasContracts: false,
+        hasProfitSubmit: false,
+        // Leruma uses commission tracking dashboard
+        hasCommissionDashboard: true,
+      ),
+    ),
 
     // ============================================
     // INACTIVE CLIENTS (Uncomment to enable)
@@ -76,13 +90,6 @@ class ClientsConfig {
     //   displayName: 'Kassim',
     //   devApiUrl: '$localBaseUrl',
     //   prodApiUrl: 'https://kassim.moinfotech.co.tz/api',
-    // ),
-    // ClientConfig(
-    //   id: 'leruma',
-    //   name: 'dev-leruma',
-    //   displayName: 'Leruma',
-    //   devApiUrl: '$localBaseUrl',
-    //   prodApiUrl: 'https://leruma.moinfotech.co.tz/api',
     // ),
     // ClientConfig(
     //   id: 'mazao',
