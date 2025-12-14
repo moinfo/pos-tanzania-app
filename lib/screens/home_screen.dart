@@ -273,6 +273,14 @@ class _HomeScreenState extends State<HomeScreen> {
         _progressCustomers = data['progress_customers'] as Map<String, dynamic>?;
         _myCommissions = data['my_commissions'] as Map<String, dynamic>?;
 
+        // Debug: Print commission data
+        print('📊 === COMMISSION DEBUG ===');
+        print('📊 Progress Commission: $_progressCommission');
+        print('📊 My Commissions user_name: ${_myCommissions?['user_name']}');
+        print('📊 My Commissions debug: ${_myCommissions?['debug']}');
+        print('📊 My Commissions levels: ${_myCommissions?['levels']}');
+        print('📊 =========================');
+
         // Parse recent activity
         final activityList = data['recent_activity'] as List<dynamic>?;
         if (activityList != null) {
@@ -767,7 +775,9 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_progressCommission != null)
                 Expanded(
                   child: _buildProgressCard(
-                    title: 'Progress Commission',
+                    title: _progressCommission!['user_name'] != null && _progressCommission!['user_name'].toString().isNotEmpty
+                        ? 'Progress Commission'
+                        : 'Progress Commission',
                     icon: Icons.shopping_cart,
                     current: (_progressCommission!['average'] ?? 0).toDouble(),
                     target: (_progressCommission!['target'] ?? 0).toDouble(),
@@ -794,9 +804,11 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 24),
         ],
 
-        // Commission Progress Section
+        // Commission Progress Section - Show the user name whose commission is displayed
         Text(
-          'My Commissions',
+          _myCommissions != null && _myCommissions!['user_name'] != null && _myCommissions!['user_name'].toString().isNotEmpty
+              ? '${_myCommissions!['user_name']} Commissions'
+              : 'My Commissions',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -805,25 +817,25 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 12),
 
-        // Commission Level Cards - Use my_commissions (user's individual data)
-        if (_myCommissions != null) ...[
+        // Commission Level Cards - Use my_commissions.levels (user's individual data)
+        if (_myCommissions != null && _myCommissions!['levels'] != null) ...[
           _buildMyCommissionLevelCard(
             level: 'I',
-            data: _myCommissions!['level_i'] as Map<String, dynamic>?,
+            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_i'] as Map<String, dynamic>?,
             color: AppColors.success,
             isDark: isDark,
           ),
           const SizedBox(height: 12),
           _buildMyCommissionLevelCard(
             level: 'II',
-            data: _myCommissions!['level_ii'] as Map<String, dynamic>?,
+            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_ii'] as Map<String, dynamic>?,
             color: AppColors.warning,
             isDark: isDark,
           ),
           const SizedBox(height: 12),
           _buildMyCommissionLevelCard(
             level: 'III',
-            data: _myCommissions!['level_iii'] as Map<String, dynamic>?,
+            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_iii'] as Map<String, dynamic>?,
             color: AppColors.primary,
             isDark: isDark,
           ),
