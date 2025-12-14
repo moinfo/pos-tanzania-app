@@ -473,12 +473,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Dashboard Content
             if (_isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: CircularProgressIndicator(),
-                ),
-              )
+              // Show skeleton placeholders while loading
+              _buildDashboardSkeleton(isDark)
             else if (_error != null)
               Center(
                 child: Padding(
@@ -1931,25 +1927,250 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build skeleton/shimmer placeholder for loading avatar
   Widget _buildSkeletonAvatar(double size) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.3, end: 0.6),
-      duration: const Duration(milliseconds: 800),
-      builder: (context, value, child) {
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.grey.withOpacity(value),
+    return _ShimmerBox(
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      child: Icon(
+        Icons.person,
+        size: size * 0.5,
+        color: Colors.grey.withOpacity(0.3),
+      ),
+    );
+  }
+
+  /// Build skeleton placeholders for dashboard loading
+  Widget _buildDashboardSkeleton(bool isDark) {
+    final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
+
+    if (hasCommissionDashboard) {
+      return _buildLerumaDashboardSkeleton(isDark);
+    } else {
+      return _buildStandardDashboardSkeleton(isDark);
+    }
+  }
+
+  /// Build Leruma dashboard skeleton with shimmer effect
+  Widget _buildLerumaDashboardSkeleton(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Top Stats Row (4 cards)
+        Row(
+          children: [
+            Expanded(child: _buildStatCardSkeleton(isDark)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildStatCardSkeleton(isDark)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _buildStatCardSkeleton(isDark)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildStatCardSkeleton(isDark)),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Progress Cards Row
+        Row(
+          children: [
+            Expanded(child: _buildProgressCardSkeleton(isDark)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildProgressCardSkeleton(isDark)),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // My Commissions Section Title
+        _ShimmerBox(
+          width: 140,
+          height: 20,
+          borderRadius: 4,
+        ),
+        const SizedBox(height: 12),
+
+        // Commission Level Cards
+        _buildCommissionCardSkeleton(isDark),
+        const SizedBox(height: 12),
+        _buildCommissionCardSkeleton(isDark),
+        const SizedBox(height: 12),
+        _buildCommissionCardSkeleton(isDark),
+      ],
+    );
+  }
+
+  /// Build standard dashboard skeleton
+  Widget _buildStandardDashboardSkeleton(bool isDark) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildDashboardCardSkeleton(isDark)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildDashboardCardSkeleton(isDark)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildDashboardCardSkeleton(isDark)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildDashboardCardSkeleton(isDark)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildDashboardCardSkeleton(isDark)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildDashboardCardSkeleton(isDark)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Build stat card skeleton (small cards for top stats)
+  Widget _buildStatCardSkeleton(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _ShimmerBox(width: 28, height: 28, borderRadius: 6),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _ShimmerBox(width: double.infinity, height: 12, borderRadius: 4),
+              ),
+            ],
           ),
-          child: Icon(
-            Icons.person,
-            size: size * 0.5,
-            color: Colors.grey.withOpacity(0.5),
+          const SizedBox(height: 8),
+          _ShimmerBox(width: 80, height: 20, borderRadius: 4),
+        ],
+      ),
+    );
+  }
+
+  /// Build progress card skeleton
+  Widget _buildProgressCardSkeleton(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ShimmerBox(width: 32, height: 32, borderRadius: 8),
+              _ShimmerBox(width: 50, height: 18, borderRadius: 4),
+            ],
           ),
-        );
-      },
-      onEnd: () {},
+          const SizedBox(height: 8),
+          _ShimmerBox(width: 100, height: 14, borderRadius: 4),
+          const SizedBox(height: 8),
+          _ShimmerBox(width: double.infinity, height: 6, borderRadius: 3),
+        ],
+      ),
+    );
+  }
+
+  /// Build commission level card skeleton
+  Widget _buildCommissionCardSkeleton(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  _ShimmerBox(width: 40, height: 40, borderRadius: 10),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _ShimmerBox(width: 70, height: 16, borderRadius: 4),
+                      const SizedBox(height: 4),
+                      _ShimmerBox(width: 90, height: 12, borderRadius: 4),
+                    ],
+                  ),
+                ],
+              ),
+              _ShimmerBox(width: 70, height: 24, borderRadius: 12),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ShimmerBox(width: 100, height: 12, borderRadius: 4),
+              _ShimmerBox(width: 50, height: 12, borderRadius: 4),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _ShimmerBox(width: double.infinity, height: 8, borderRadius: 4),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ShimmerBox(width: 70, height: 11, borderRadius: 4),
+                  const SizedBox(height: 4),
+                  _ShimmerBox(width: 80, height: 14, borderRadius: 4),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _ShimmerBox(width: 90, height: 11, borderRadius: 4),
+                  const SizedBox(height: 4),
+                  _ShimmerBox(width: 80, height: 14, borderRadius: 4),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build dashboard card skeleton (for standard dashboard)
+  Widget _buildDashboardCardSkeleton(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _ShimmerBox(width: 44, height: 44, borderRadius: 10),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ShimmerBox(width: 80, height: 12, borderRadius: 4),
+                    const SizedBox(height: 6),
+                    _ShimmerBox(width: 100, height: 18, borderRadius: 4),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1981,6 +2202,77 @@ class _HomeScreenState extends State<HomeScreen> {
         size: size * 0.53,
         color: Colors.white,
       ),
+    );
+  }
+}
+
+/// Shimmer box widget for skeleton loading effect
+class _ShimmerBox extends StatefulWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+  final Widget? child;
+
+  const _ShimmerBox({
+    required this.width,
+    required this.height,
+    this.borderRadius = 4,
+    this.child,
+  });
+
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+
+    _animation = Tween<double>(begin: -1.0, end: 2.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            gradient: LinearGradient(
+              begin: Alignment(-1.0 + _animation.value, 0),
+              end: Alignment(_animation.value, 0),
+              colors: [
+                Colors.grey.withOpacity(0.2),
+                Colors.grey.withOpacity(0.4),
+                Colors.grey.withOpacity(0.2),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+          child: widget.child != null
+              ? Center(child: widget.child)
+              : null,
+        );
+      },
     );
   }
 }

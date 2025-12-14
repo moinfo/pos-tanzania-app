@@ -34,6 +34,11 @@ class ApiService {
   // Make currentClient public so it can be accessed from main_navigation
   static ClientConfig? currentClient;
 
+  // In-memory cache for dashboard data (with 60 second TTL)
+  static Map<String, dynamic>? _dashboardCache;
+  static DateTime? _dashboardCacheTime;
+  static const int _cacheTTLSeconds = 60; // Cache for 60 seconds
+
   // Get current client configuration
   static Future<ClientConfig> getCurrentClient() async {
     final prefs = await SharedPreferences.getInstance();
@@ -3820,11 +3825,25 @@ class ApiService {
   // ============================================================================
 
   /// Get full commission dashboard data (Leruma only)
+  /// Includes caching for improved performance (60 second TTL)
   Future<ApiResponse<Map<String, dynamic>>> getCommissionDashboard({
     String? startDate,
     String? endDate,
     int? locationId,
+    bool forceRefresh = false,
   }) async {
+    // Check cache first (if not force refresh)
+    if (!forceRefresh && _dashboardCache != null && _dashboardCacheTime != null) {
+      final cacheAge = DateTime.now().difference(_dashboardCacheTime!).inSeconds;
+      if (cacheAge < _cacheTTLSeconds) {
+        print('📦 Using cached dashboard data (age: ${cacheAge}s)');
+        return ApiResponse.success(
+          data: _dashboardCache!,
+          message: 'Success (cached)',
+        );
+      }
+    }
+
     try {
       final queryParams = <String, String>{};
       if (startDate != null) queryParams['start_date'] = startDate;
@@ -3841,8 +3860,15 @@ class ApiService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] as Map<String, dynamic>;
+
+        // Cache the response
+        _dashboardCache = data;
+        _dashboardCacheTime = DateTime.now();
+        print('💾 Dashboard data cached');
+
         return ApiResponse.success(
-          data: jsonResponse['data'] as Map<String, dynamic>,
+          data: data,
           message: jsonResponse['message'] ?? 'Success',
         );
       } else {
@@ -3854,8 +3880,23 @@ class ApiService {
       }
     } catch (e) {
       print('❌ Dashboard error: $e');
+      // Return cached data on network error if available
+      if (_dashboardCache != null) {
+        print('📦 Network error, using cached data');
+        return ApiResponse.success(
+          data: _dashboardCache!,
+          message: 'Success (offline cache)',
+        );
+      }
       return ApiResponse.error(message: 'Connection error: $e');
     }
+  }
+
+  /// Clear dashboard cache (call when user logs out or switches client)
+  static void clearDashboardCache() {
+    _dashboardCache = null;
+    _dashboardCacheTime = null;
+    print('🗑️ Dashboard cache cleared');
   }
 
   /// Get commission progress for all levels (Leruma only)
