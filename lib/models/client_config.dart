@@ -14,6 +14,7 @@ class ClientFeatures {
   final bool hasReceivings;
   final bool hasSales;
   final bool hasCommissionDashboard; // Leruma-specific commission tracking dashboard
+  final bool hasItemsExtendedInfo; // Leruma-specific: variation, days since sale, mainstore quantity
 
   const ClientFeatures({
     this.hasContracts = true,
@@ -30,6 +31,7 @@ class ClientFeatures {
     this.hasReceivings = true,
     this.hasSales = true,
     this.hasCommissionDashboard = false, // Default: disabled (only Leruma uses this)
+    this.hasItemsExtendedInfo = false, // Default: disabled (only Leruma uses this)
   });
 }
 

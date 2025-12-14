@@ -61,6 +61,8 @@ class ClientsConfig {
         hasProfitSubmit: false,
         // Leruma uses commission tracking dashboard
         hasCommissionDashboard: true,
+        // Leruma uses extended item info (variation, days, mainstore)
+        hasItemsExtendedInfo: true,
       ),
     ),
 

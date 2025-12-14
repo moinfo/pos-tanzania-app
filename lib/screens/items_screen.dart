@@ -62,9 +62,14 @@ class _ItemsScreenState extends State<ItemsScreen> {
       _errorMessage = null;
     });
 
+    // Get selected location for filtering (especially for days calculation)
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
+
     final response = await _apiService.getItems(
       search: _searchController.text.isEmpty ? null : _searchController.text,
       limit: 100,
+      locationId: selectedLocationId,
     );
 
     setState(() {
@@ -229,7 +234,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildSkeletonList(isDark)
                 : _errorMessage != null
                     ? Center(
                         child: Column(
@@ -270,9 +275,76 @@ class _ItemsScreenState extends State<ItemsScreen> {
     );
   }
 
+  // Skeleton loading placeholder list
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      itemCount: 8, // Show 8 skeleton cards
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  // Skeleton loading placeholder card
+  Widget _buildSkeletonCard(bool isDark) {
+    final baseColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title skeleton
+            _SkeletonBox(
+              width: 200,
+              height: 20,
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+            ),
+            const SizedBox(height: 12),
+            // Category skeleton
+            _SkeletonBox(
+              width: 150,
+              height: 14,
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+            ),
+            const SizedBox(height: 8),
+            // Price skeleton
+            _SkeletonBox(
+              width: 120,
+              height: 14,
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+            ),
+            const SizedBox(height: 8),
+            // Discount skeleton
+            _SkeletonBox(
+              width: 160,
+              height: 14,
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+            ),
+            const SizedBox(height: 8),
+            // Stock skeleton
+            _SkeletonBox(
+              width: 180,
+              height: 14,
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildItemCard(Item item, bool isDark) {
     final locationProvider = context.watch<LocationProvider>();
     final selectedLocation = locationProvider.selectedLocation;
+    // Check if client has extended item info feature (Leruma only)
+    final isLeruma = ApiService.currentClient?.id == 'leruma';
 
     // Get quantity for selected location
     double displayQuantity = 0;
@@ -303,12 +375,55 @@ class _ItemsScreenState extends State<ItemsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text('Category: ${item.category}',
-                style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+            // Row with Category and Variation (Leruma only)
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Category: ${item.category}',
+                      style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                ),
+                if (isLeruma)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: item.variation == 'CTN' ? Colors.blue.withOpacity(0.2)
+                           : item.variation == 'BUNDLE' ? Colors.orange.withOpacity(0.2)
+                           : Colors.green.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(item.variation,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: item.variation == 'CTN' ? Colors.blue
+                               : item.variation == 'BUNDLE' ? Colors.orange
+                               : Colors.green,
+                        )),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Text('Price: ${NumberFormat('#,###').format(item.unitPrice)} TSh',
                 style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
-            Text('Discount Limit: ${NumberFormat('#,###').format(item.discountLimit)} TSh',
-                style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+            // Row with Days and Mainstore (Leruma only)
+            if (isLeruma) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Days: ${item.days ?? '-'}',
+                        style: TextStyle(
+                          color: (item.days != null && item.days! > 30)
+                              ? Colors.red
+                              : (isDark ? AppColors.darkTextLight : AppColors.textLight),
+                          fontWeight: (item.days != null && item.days! > 30) ? FontWeight.bold : FontWeight.normal,
+                        )),
+                  ),
+                  Text('Mainstore: ${item.mainstore != null ? NumberFormat('#,###.##').format(item.mainstore) : '-'}',
+                      style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
             Text('Stock: ${NumberFormat('#,###.##').format(displayQuantity)} ($locationLabel)',
                 style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)),
           ],
@@ -863,6 +978,74 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           ],
         ],
       ),
+    );
+  }
+}
+
+// Animated skeleton box widget for loading placeholders
+class _SkeletonBox extends StatefulWidget {
+  final double width;
+  final double height;
+  final Color baseColor;
+  final Color highlightColor;
+
+  const _SkeletonBox({
+    required this.width,
+    required this.height,
+    required this.baseColor,
+    required this.highlightColor,
+  });
+
+  @override
+  State<_SkeletonBox> createState() => _SkeletonBoxState();
+}
+
+class _SkeletonBoxState extends State<_SkeletonBox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+    _animation = Tween<double>(begin: -1.0, end: 2.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            gradient: LinearGradient(
+              begin: Alignment(-1.0 + _animation.value, 0),
+              end: Alignment(_animation.value, 0),
+              colors: [
+                widget.baseColor,
+                widget.highlightColor,
+                widget.baseColor,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+        );
+      },
     );
   }
 }

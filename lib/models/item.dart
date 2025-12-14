@@ -23,6 +23,9 @@ class Item {
   final int discountLimit;
   final String dormant;
   final String? child;
+  final String variation; // CTN, PC, BUNDLE
+  final int? days; // Days since last sale
+  final double? mainstore; // Quantity from mainstore (bonge database)
   final double quantity;
   final Map<int, double>? quantityByLocation; // Map of location_id to quantity
   final int deleted;
@@ -56,6 +59,9 @@ class Item {
     required this.discountLimit,
     required this.dormant,
     this.child,
+    required this.variation,
+    this.days,
+    this.mainstore,
     required this.quantity,
     this.quantityByLocation,
     this.deleted = 0,
@@ -109,6 +115,9 @@ class Item {
       discountLimit: json['discount_limit'] ?? 0,
       dormant: json['dormant'] ?? 'ACTIVE',
       child: json['child'],
+      variation: json['variation'] ?? 'CTN',
+      days: json['days'],
+      mainstore: json['mainstore'] != null ? (json['mainstore']).toDouble() : null,
       quantity: (json['quantity'] ?? 0).toDouble(),
       quantityByLocation: quantityByLocation,
       deleted: json['deleted'] ?? 0,
@@ -145,6 +154,9 @@ class Item {
       'discount_limit': discountLimit,
       'dormant': dormant,
       'child': child,
+      'variation': variation,
+      'days': days,
+      'mainstore': mainstore,
       'quantity': quantity,
     };
   }
