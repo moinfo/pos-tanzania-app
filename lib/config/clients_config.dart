@@ -7,7 +7,7 @@ class ClientsConfig {
   // Set this to the client ID you want to build for in PRODUCTION
   // Examples: 'sada', 'come_and_save', 'come_and_save', etc.
   // In DEBUG mode, this is ignored and user can select any client
-  static const String PRODUCTION_CLIENT_ID = 'sada'; // Change this before building APK
+  static const String PRODUCTION_CLIENT_ID = 'leruma'; // Change this before building APK
 
   // ============================================
   // NETWORK CONFIGURATION
@@ -54,15 +54,13 @@ class ClientsConfig {
       name: 'dev-leruma',
       displayName: 'Leruma',
       devApiUrl: 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania-leruma/public/api',
-      prodApiUrl: 'https://leruma.moinfotech.co.tz/api',
+      prodApiUrl: 'https://leruma.co.tz/api',
       features: const ClientFeatures(
         // Leruma features - disabled: contracts, profit submit
         hasContracts: false,
         hasProfitSubmit: false,
         // Leruma uses commission tracking dashboard
         hasCommissionDashboard: true,
-        // Leruma uses extended item info (variation, days, mainstore)
-        hasItemsExtendedInfo: true,
       ),
     ),
 

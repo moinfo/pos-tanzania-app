@@ -16,6 +16,7 @@ import '../../services/api_service.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/permission_wrapper.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/skeleton_loader.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_banking_screen.dart';
 
@@ -686,7 +687,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                 ),
               ),
               child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildSkeletonList(isDark)
           : _errorMessage != null
               ? Center(
                   child: Column(
@@ -1069,6 +1070,56 @@ class _BankingListScreenState extends State<BankingListScreen> {
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: 6,
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  SkeletonLoader(width: 44, height: 44, borderRadius: 12, isDark: isDark),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonLoader(width: 100, height: 16, isDark: isDark),
+                      const SizedBox(height: 4),
+                      SkeletonLoader(width: 80, height: 12, isDark: isDark),
+                    ],
+                  ),
+                ],
+              ),
+              SkeletonLoader(width: 80, height: 24, borderRadius: 12, isDark: isDark),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SkeletonLoader(width: 100, height: 14, isDark: isDark),
+              SkeletonLoader(width: 100, height: 18, isDark: isDark),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SkeletonLoader(width: 150, height: 12, isDark: isDark),
+        ],
+      ),
     );
   }
 }

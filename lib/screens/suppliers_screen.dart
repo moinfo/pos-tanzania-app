@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
+import '../widgets/skeleton_loader.dart';
 import 'supplier_credit_screen.dart';
 
 class SuppliersScreen extends StatefulWidget {
@@ -151,7 +152,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildSkeletonList(isDark)
                 : _errorMessage != null
                     ? Center(
                         child: Column(
@@ -355,6 +356,54 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                   ],
                 );
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: 8,
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      color: isDark ? AppColors.darkCard : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonLoader(width: 180, height: 18, isDark: isDark),
+                      const SizedBox(height: 8),
+                      SkeletonLoader(width: 120, height: 14, isDark: isDark),
+                    ],
+                  ),
+                ),
+                SkeletonLoader(width: 60, height: 24, borderRadius: 12, isDark: isDark),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SkeletonLoader(width: 100, height: 14, isDark: isDark),
+                SkeletonLoader(width: 80, height: 16, isDark: isDark),
+              ],
             ),
           ],
         ),

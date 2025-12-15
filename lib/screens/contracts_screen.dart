@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../models/contract.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
+import '../widgets/skeleton_loader.dart';
 import 'contract_details_screen.dart';
 
 class ContractsScreen extends StatefulWidget {
@@ -58,7 +59,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
         foregroundColor: Colors.white,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildSkeletonList(isDark)
           : _errorMessage != null
               ? Center(
                   child: Padding(
@@ -294,6 +295,60 @@ class _ContractsScreenState extends State<ContractsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 5,
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      color: isDark ? AppColors.darkCard : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SkeletonLoader(width: 150, height: 18, isDark: isDark),
+                SkeletonLoader(width: 80, height: 24, borderRadius: 12, isDark: isDark),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SkeletonLoader(width: 200, height: 14, isDark: isDark),
+            const SizedBox(height: 16),
+            ...List.generate(4, (i) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SkeletonLoader(width: 100, height: 14, isDark: isDark),
+                  SkeletonLoader(width: 80, height: 14, isDark: isDark),
+                ],
+              ),
+            )),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(3, (i) => Column(
+                children: [
+                  SkeletonLoader(width: 40, height: 20, isDark: isDark),
+                  const SizedBox(height: 4),
+                  SkeletonLoader(width: 50, height: 12, isDark: isDark),
+                ],
+              )),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
