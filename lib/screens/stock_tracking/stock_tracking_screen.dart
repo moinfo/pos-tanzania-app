@@ -7,6 +7,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'item_tracking_screen.dart';
 
 class StockTrackingScreen extends StatefulWidget {
@@ -134,7 +135,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
               _buildFilters(isDark),
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? _buildSkeletonList(isDark)
                     : _errorMessage != null
                         ? _buildError(isDark)
                         : _report == null
@@ -804,5 +805,86 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
       return value.toInt().toString();
     }
     return value.toStringAsFixed(2);
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Summary cards skeleton
+          Row(
+            children: [
+              Expanded(child: _buildSkeletonSummaryCard(isDark)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildSkeletonSummaryCard(isDark)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildSkeletonSummaryCard(isDark)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildSkeletonSummaryCard(isDark)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Category skeletons
+          ...List.generate(4, (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildSkeletonCategoryCard(isDark),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonSummaryCard(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                SkeletonLoader(width: 32, height: 32, borderRadius: 8, isDark: isDark),
+                const SizedBox(width: 8),
+                SkeletonLoader(width: 60, height: 10, isDark: isDark),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SkeletonLoader(width: 80, height: 18, isDark: isDark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonCategoryCard(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SkeletonLoader(width: 40, height: 40, borderRadius: 8, isDark: isDark),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonLoader(width: 120, height: 14, isDark: isDark),
+                  const SizedBox(height: 6),
+                  SkeletonLoader(width: 80, height: 12, isDark: isDark),
+                ],
+              ),
+            ),
+            SkeletonLoader(width: 70, height: 16, isDark: isDark),
+          ],
+        ),
+      ),
+    );
   }
 }

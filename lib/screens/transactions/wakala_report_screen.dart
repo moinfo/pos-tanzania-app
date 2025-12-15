@@ -5,6 +5,7 @@ import '../../services/api_service.dart';
 import '../../models/transaction.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
 
@@ -110,7 +111,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
           ),
         ),
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildSkeletonList(isDark)
             : _error != null
                 ? Center(
                     child: Column(
@@ -561,6 +562,73 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Summary card skeleton
+          _buildSkeletonSummaryCard(isDark),
+          const SizedBox(height: 16),
+          // Detail cards skeleton
+          ...List.generate(4, (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildSkeletonDetailCard(isDark),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonSummaryCard(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            SkeletonLoader(width: 80, height: 12, isDark: isDark),
+            const SizedBox(height: 8),
+            SkeletonLoader(width: 120, height: 28, isDark: isDark),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                SkeletonLoader(width: 24, height: 24, isDark: isDark),
+                const SizedBox(width: 8),
+                SkeletonLoader(width: 100, height: 24, isDark: isDark),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonDetailCard(bool isDark) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SkeletonLoader(width: 36, height: 36, borderRadius: 8, isDark: isDark),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonLoader(width: 100, height: 12, isDark: isDark),
+                  const SizedBox(height: 4),
+                  SkeletonLoader(width: 80, height: 16, isDark: isDark),
+                ],
+              ),
             ),
           ],
         ),

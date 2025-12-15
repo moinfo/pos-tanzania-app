@@ -6,6 +6,7 @@ import '../../models/transaction.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/skeleton_loader.dart';
 import '../../providers/theme_provider.dart';
 
 class WakalaExpensesScreen extends StatefulWidget {
@@ -271,7 +272,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
               child: RefreshIndicator(
                 onRefresh: _loadExpenses,
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? _buildSkeletonList(isDark)
                     : _error != null
                         ? Center(
                             child: Padding(
@@ -499,6 +500,50 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 8,
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: GlassmorphicCard(
+        isDark: isDark,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  SkeletonLoader(width: 36, height: 36, borderRadius: 8, isDark: isDark),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SkeletonLoader(width: 120, height: 14, isDark: isDark),
+                        const SizedBox(height: 6),
+                        SkeletonLoader(width: 80, height: 12, isDark: isDark),
+                      ],
+                    ),
+                  ),
+                  SkeletonLoader(width: 70, height: 16, isDark: isDark),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SkeletonLoader(width: double.infinity, height: 12, isDark: isDark),
+            ],
           ),
         ),
       ),

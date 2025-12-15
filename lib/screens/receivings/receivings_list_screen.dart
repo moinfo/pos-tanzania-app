@@ -10,6 +10,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'receiving_details_screen.dart';
 import 'new_receiving_screen.dart';
 
@@ -434,7 +435,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
           // List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildSkeletonList(isDark)
                 : _errorMessage != null
                     ? Center(
                         child: Column(
@@ -657,6 +658,71 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
         },
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      itemCount: 8,
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      elevation: 2,
+      color: isDark ? AppColors.darkCard : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            // Circle avatar skeleton
+            SkeletonLoader(
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              isDark: isDark,
+            ),
+            const SizedBox(width: 16),
+            // Content skeleton
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonLoader(width: 150, height: 16, isDark: isDark),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      SkeletonLoader(width: 80, height: 12, isDark: isDark),
+                      const SizedBox(width: 12),
+                      SkeletonLoader(width: 100, height: 12, isDark: isDark),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      SkeletonLoader(width: 60, height: 20, borderRadius: 4, isDark: isDark),
+                      const SizedBox(width: 8),
+                      SkeletonLoader(width: 50, height: 20, borderRadius: 4, isDark: isDark),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Trailing skeleton
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SkeletonLoader(width: 70, height: 16, isDark: isDark),
+                const SizedBox(height: 8),
+                SkeletonLoader(width: 16, height: 16, isDark: isDark),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -7,6 +7,7 @@ import '../../models/receiving.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class ReceivingDetailsScreen extends StatefulWidget {
   final int receivingId;
@@ -163,7 +164,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
         // ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildSkeletonContent(isDark)
           : _errorMessage != null
               ? Center(
                   child: Column(
@@ -455,6 +456,103 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSkeletonContent(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Header skeleton
+          Card(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SkeletonLoader(width: 100, height: 20, isDark: isDark),
+                      SkeletonLoader(width: 70, height: 24, borderRadius: 4, isDark: isDark),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonLoader(width: 60, height: 10, isDark: isDark),
+                            const SizedBox(height: 4),
+                            SkeletonLoader(width: 100, height: 14, isDark: isDark),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonLoader(width: 60, height: 10, isDark: isDark),
+                            const SizedBox(height: 4),
+                            SkeletonLoader(width: 80, height: 14, isDark: isDark),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Items skeleton
+          Card(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonLoader(width: 80, height: 16, isDark: isDark),
+                  const SizedBox(height: 16),
+                  ...List.generate(4, (index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SkeletonLoader(width: 120, height: 14, isDark: isDark),
+                              const SizedBox(height: 4),
+                              SkeletonLoader(width: 80, height: 12, isDark: isDark),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              SkeletonLoader(width: 50, height: 12, isDark: isDark),
+                              const SizedBox(height: 4),
+                              SkeletonLoader(width: 70, height: 14, isDark: isDark),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -8,6 +8,7 @@ import '../models/permission_model.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../widgets/skeleton_loader.dart';
 
 class TodaySummaryScreen extends StatefulWidget {
   const TodaySummaryScreen({super.key});
@@ -168,7 +169,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildSkeletonContent(isDark)
           : _errorMessage != null
               ? Center(
                   child: Padding(
@@ -636,6 +637,50 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: color ?? (isNegative ? AppColors.error : (isDark ? AppColors.darkText : AppColors.text)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonContent(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Summary card skeleton
+          GlassmorphicCard(
+            isDark: isDark,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  SkeletonLoader(width: 100, height: 14, isDark: isDark),
+                  const SizedBox(height: 8),
+                  SkeletonLoader(width: 150, height: 32, isDark: isDark),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Detail rows skeleton
+          GlassmorphicCard(
+            isDark: isDark,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: List.generate(8, (index) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SkeletonLoader(width: 100, height: 14, isDark: isDark),
+                      SkeletonLoader(width: 80, height: 14, isDark: isDark),
+                    ],
+                  ),
+                )),
+              ),
             ),
           ),
         ],

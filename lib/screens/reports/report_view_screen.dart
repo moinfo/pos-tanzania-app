@@ -9,6 +9,7 @@ import '../../providers/location_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class ReportViewScreen extends StatefulWidget {
   final ReportType reportType;
@@ -231,7 +232,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             // Report content
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? _buildSkeletonList(isDark)
                   : _error != null
                       ? _buildErrorView(isDark)
                       : _isGraphicalReport(widget.reportType)
@@ -1004,6 +1005,60 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             onPressed: _selectDateRange,
             icon: const Icon(Icons.date_range),
             label: const Text('Change Date Range'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Summary section skeleton
+          GlassmorphicCard(
+            isDark: isDark,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  SkeletonLoader(width: 100, height: 12, isDark: isDark),
+                  const SizedBox(height: 8),
+                  SkeletonLoader(width: 150, height: 28, isDark: isDark),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Table/List skeleton
+          GlassmorphicCard(
+            isDark: isDark,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: List.generate(8, (index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      SkeletonLoader(width: 36, height: 36, borderRadius: 8, isDark: isDark),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonLoader(width: 120, height: 14, isDark: isDark),
+                            const SizedBox(height: 6),
+                            SkeletonLoader(width: 80, height: 10, isDark: isDark),
+                          ],
+                        ),
+                      ),
+                      SkeletonLoader(width: 70, height: 16, isDark: isDark),
+                    ],
+                  ),
+                )),
+              ),
+            ),
           ),
         ],
       ),

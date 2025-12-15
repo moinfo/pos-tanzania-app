@@ -13,6 +13,7 @@ import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../widgets/skeleton_loader.dart';
 
 class CashSubmitScreen extends StatefulWidget {
   const CashSubmitScreen({super.key});
@@ -493,7 +494,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
                 ),
               ),
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? _buildSkeletonList(isDark)
                   : _submissions.isEmpty
                       ? Center(
                           child: Text(
@@ -526,6 +527,55 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 8,
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: GlassmorphicCard(
+        isDark: isDark,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  SkeletonLoader(width: 48, height: 48, borderRadius: 12, isDark: isDark),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SkeletonLoader(width: 120, height: 16, isDark: isDark),
+                        const SizedBox(height: 6),
+                        SkeletonLoader(width: 80, height: 12, isDark: isDark),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      SkeletonLoader(width: 80, height: 16, isDark: isDark),
+                      const SizedBox(height: 4),
+                      SkeletonLoader(width: 60, height: 20, borderRadius: 4, isDark: isDark),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

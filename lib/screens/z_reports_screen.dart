@@ -10,6 +10,7 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
+import '../widgets/skeleton_loader.dart';
 
 class ZReportsScreen extends StatefulWidget {
   const ZReportsScreen({super.key});
@@ -156,7 +157,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
           // Content
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildSkeletonList(isDark)
                 : _reports.isEmpty
                     ? Center(
                         child: Text(
@@ -228,6 +229,40 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 6,
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: isDark ? AppColors.darkCard : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SkeletonLoader(width: 100, height: 18, isDark: isDark),
+                SkeletonLoader(width: 70, height: 18, isDark: isDark),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SkeletonLoader(width: 150, height: 12, isDark: isDark),
+            const SizedBox(height: 8),
+            SkeletonLoader(width: 120, height: 12, isDark: isDark),
+          ],
+        ),
+      ),
     );
   }
 }

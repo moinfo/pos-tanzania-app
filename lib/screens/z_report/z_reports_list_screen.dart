@@ -15,6 +15,7 @@ import '../../utils/constants.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/permission_wrapper.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/skeleton_loader.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_z_report_screen.dart';
 
@@ -729,7 +730,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                 ),
               ),
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? _buildSkeletonList(isDark)
                   : _errorMessage != null
                       ? Center(
                           child: Column(
@@ -1091,6 +1092,118 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  Widget _buildSkeletonList(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      itemCount: 6,
+      itemBuilder: (context, index) => _buildSkeletonCard(isDark),
+    );
+  }
+
+  Widget _buildSkeletonCard(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: GlassmorphicCard(
+        isDark: isDark,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon skeleton
+                  SkeletonLoader(width: 48, height: 48, borderRadius: 12, isDark: isDark),
+                  const SizedBox(width: 12),
+                  // Title skeleton
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SkeletonLoader(width: 80, height: 17, isDark: isDark),
+                        const SizedBox(height: 8),
+                        SkeletonLoader(width: 120, height: 14, isDark: isDark),
+                      ],
+                    ),
+                  ),
+                  // Action buttons skeleton
+                  SkeletonLoader(width: 36, height: 36, borderRadius: 8, isDark: isDark),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Detail rows skeleton
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDetailCellSkeleton(isDark),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildDetailCellSkeleton(isDark),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDetailCellSkeleton(isDark),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildDetailCellSkeleton(isDark),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDetailCellSkeleton(isDark),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildDetailCellSkeleton(isDark),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailCellSkeleton(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.grey.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          SkeletonLoader(width: 18, height: 18, borderRadius: 4, isDark: isDark),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonLoader(width: 50, height: 10, isDark: isDark),
+                const SizedBox(height: 4),
+                SkeletonLoader(width: 70, height: 14, isDark: isDark),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

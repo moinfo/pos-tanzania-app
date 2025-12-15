@@ -12,6 +12,7 @@ import '../../services/api_service.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class NewProfitSubmitScreen extends StatefulWidget {
   final ProfitSubmitListItem? profit; // For edit mode
@@ -455,7 +456,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
           ),
         ),
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildSkeletonForm(isDark)
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Form(
@@ -898,6 +899,53 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
               ),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  Widget _buildSkeletonForm(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Header skeleton
+          GlassmorphicCard(
+            isDark: isDark,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  SkeletonLoader(width: 60, height: 60, borderRadius: 30, isDark: isDark),
+                  const SizedBox(height: 12),
+                  SkeletonLoader(width: 150, height: 20, isDark: isDark),
+                  const SizedBox(height: 8),
+                  SkeletonLoader(width: 200, height: 14, isDark: isDark),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Form fields skeleton
+          GlassmorphicCard(
+            isDark: isDark,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: List.generate(5, (index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonLoader(width: 80, height: 12, isDark: isDark),
+                      const SizedBox(height: 8),
+                      SkeletonLoader(width: double.infinity, height: 48, borderRadius: 8, isDark: isDark),
+                    ],
+                  ),
+                )),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
