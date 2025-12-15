@@ -107,6 +107,9 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.supplierName),

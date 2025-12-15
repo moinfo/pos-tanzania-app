@@ -684,7 +684,7 @@ class _SalesScreenState extends State<SalesScreen> {
         ],
       ),
       body: _isLoading
-          ? _buildSkeletonList(isDark)
+          ? _buildSkeletonGrid(isDark)
           : Column(
               children: [
                 // Search bar
@@ -1058,6 +1058,56 @@ class _SalesScreenState extends State<SalesScreen> {
               ],
             ),
       // Bottom navigation is now handled by MainNavigation
+    );
+  }
+
+  Widget _buildSkeletonGrid(bool isDark) {
+    return Column(
+      children: [
+        // Search bar skeleton
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SkeletonLoader(
+            width: double.infinity,
+            height: 48,
+            borderRadius: 12,
+            isDark: isDark,
+          ),
+        ),
+        // Items grid skeleton
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 0.85,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: 12,
+            itemBuilder: (context, index) => _buildSkeletonItemCard(isDark),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSkeletonItemCard(bool isDark) {
+    return Card(
+      color: isDark ? AppColors.darkCard : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SkeletonLoader(width: 50, height: 50, borderRadius: 8, isDark: isDark),
+            const SizedBox(height: 8),
+            SkeletonLoader(width: 60, height: 12, isDark: isDark),
+            const SizedBox(height: 4),
+            SkeletonLoader(width: 40, height: 14, isDark: isDark),
+          ],
+        ),
+      ),
     );
   }
 }

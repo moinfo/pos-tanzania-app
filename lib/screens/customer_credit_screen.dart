@@ -6,6 +6,7 @@ import '../models/permission_model.dart';
 import '../models/stock_location.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/permission_wrapper.dart';
@@ -219,6 +220,9 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.customerName),
