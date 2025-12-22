@@ -15,6 +15,9 @@ class ClientFeatures {
   final bool hasSales;
   final bool hasCommissionDashboard; // Leruma-specific commission tracking dashboard
   final bool hasItemsExtendedInfo; // Leruma-specific: variation, days since sale, mainstore quantity
+  final bool hasReceivingsSummary; // Leruma-specific: receivings summary reports
+  final bool hasSuppliersByLocation; // Leruma-specific: filter suppliers by stock location's supervisor
+  final bool hasReceivingCreditCardOnly; // Leruma-specific: only allow Credit Card payment in receivings
 
   const ClientFeatures({
     this.hasContracts = true,
@@ -32,6 +35,9 @@ class ClientFeatures {
     this.hasSales = true,
     this.hasCommissionDashboard = false, // Default: disabled (only Leruma uses this)
     this.hasItemsExtendedInfo = false, // Default: disabled (only Leruma uses this)
+    this.hasReceivingsSummary = false, // Default: disabled (only Leruma uses this)
+    this.hasSuppliersByLocation = false, // Default: disabled (only Leruma uses this)
+    this.hasReceivingCreditCardOnly = false, // Default: disabled (only Leruma uses this)
   });
 }
 

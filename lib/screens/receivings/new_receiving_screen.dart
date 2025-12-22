@@ -38,7 +38,30 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
       if (locationProvider.selectedLocation != null) {
         receivingProvider.setStockLocation(locationProvider.selectedLocation!.locationId);
       }
+      // For Leruma: Set Credit Card as default payment type
+      if (_hasCreditCardOnlyFeature()) {
+        receivingProvider.setPaymentType('Credit Card');
+      }
     });
+  }
+
+  /// Helper method to safely check if supplier filtering by location is enabled
+  /// This is a Leruma-specific feature
+  bool _hasSuppliersByLocationFeature() {
+    try {
+      return ApiService.currentClient?.features.hasSuppliersByLocation ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Helper method to check if only Credit Card payment is allowed (Leruma-specific)
+  bool _hasCreditCardOnlyFeature() {
+    try {
+      return ApiService.currentClient?.features.hasReceivingCreditCardOnly ?? false;
+    } catch (e) {
+      return false;
+    }
   }
 
   @override
@@ -116,7 +139,28 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
   }
 
   Future<void> _selectSupplier() async {
-    final response = await _apiService.getSuppliers();
+    // Check if we should filter suppliers by location (Leruma-specific feature)
+    final bool filterByLocation = _hasSuppliersByLocationFeature();
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocation = locationProvider.selectedLocation;
+
+    // If filtering by location, we need a selected location
+    if (filterByLocation && selectedLocation == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a stock location first'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Call the appropriate API based on feature flag
+    final response = filterByLocation && selectedLocation != null
+        ? await _apiService.getSuppliersByLocation(selectedLocation.locationId)
+        : await _apiService.getSuppliers();
 
     if (!response.isSuccess || response.data == null) {
       if (mounted) {
@@ -698,6 +742,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                   child: Column(
                     children: [
                       // Payment Type dropdown
+                      // For Leruma: Only show Credit Card option
                       DropdownButtonFormField<String>(
                         value: receivingProvider.paymentType,
                         dropdownColor: isDark ? AppColors.darkCard : Colors.white,
@@ -719,31 +764,47 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                             vertical: 8,
                           ),
                         ),
-                        items: [
-                          DropdownMenuItem(
-                            value: 'Cash',
-                            child: Text(
-                              'Cash',
-                              style: TextStyle(
-                                color: isDark ? AppColors.darkText : Colors.black87,
-                              ),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Credit Card',
-                            child: Text(
-                              'Credit Card',
-                              style: TextStyle(
-                                color: isDark ? AppColors.darkText : Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            receivingProvider.setPaymentType(value);
-                          }
-                        },
+                        items: _hasCreditCardOnlyFeature()
+                            ? [
+                                // Leruma: Only Credit Card
+                                DropdownMenuItem(
+                                  value: 'Credit Card',
+                                  child: Text(
+                                    'Credit Card',
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkText : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ]
+                            : [
+                                // Other clients: Cash and Credit Card
+                                DropdownMenuItem(
+                                  value: 'Cash',
+                                  child: Text(
+                                    'Cash',
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkText : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Credit Card',
+                                  child: Text(
+                                    'Credit Card',
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkText : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                        onChanged: _hasCreditCardOnlyFeature()
+                            ? null  // Disable changing for Leruma (only one option)
+                            : (value) {
+                                if (value != null) {
+                                  receivingProvider.setPaymentType(value);
+                                }
+                              },
                       ),
                       const SizedBox(height: 8),
                       // Reference field

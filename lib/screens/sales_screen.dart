@@ -14,6 +14,12 @@ import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/skeleton_loader.dart';
+import 'suspended_sheet_screen.dart';
+import 'suspended_sheet2_screen.dart';
+import 'suspended_sheet3_screen.dart';
+import 'customer_care_screen.dart';
+import 'map_route_screen.dart';
+import 'suspended_summary_screen.dart';
 import 'package:intl/intl.dart';
 
 class SalesScreen extends StatefulWidget {
@@ -589,6 +595,84 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
+  // Quick action button for app bar (compact, light colors on dark background)
+  Widget _buildAppBarButton(String label, IconData icon, Color color, VoidCallback onTap) {
+    return Material(
+      color: Colors.white.withOpacity(0.15),
+      borderRadius: BorderRadius.circular(4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 11),
+              const SizedBox(width: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 9,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Navigation methods for quick action buttons
+  void _navigateToSheet(int sheetNumber) {
+    if (sheetNumber == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SuspendedSheetScreen()),
+      );
+    } else if (sheetNumber == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SuspendedSheet2Screen()),
+      );
+    } else if (sheetNumber == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SuspendedSheet3Screen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sheet $sheetNumber - Coming soon'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _navigateToCustomerCare() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CustomerCareScreen()),
+    );
+  }
+
+  void _navigateToMapRoute() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MapRouteScreen()),
+    );
+  }
+
+  void _navigateToSummary() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SuspendedSummaryScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final saleProvider = context.watch<SaleProvider>();
@@ -682,6 +766,31 @@ class _SalesScreenState extends State<SalesScreen> {
             tooltip: 'Select Customer',
           ),
         ],
+        // Quick action buttons - Leruma only
+        bottom: ApiService.currentClient?.id == 'leruma'
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(32),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(left: 8, right: 8, bottom: 6),
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildAppBarButton('Sh1', Icons.description, Colors.white, () => _navigateToSheet(1))),
+                      const SizedBox(width: 4),
+                      Expanded(child: _buildAppBarButton('Sh2', Icons.description_outlined, Colors.blue.shade200, () => _navigateToSheet(2))),
+                      const SizedBox(width: 4),
+                      Expanded(child: _buildAppBarButton('Sh3', Icons.article, Colors.purple.shade200, () => _navigateToSheet(3))),
+                      const SizedBox(width: 4),
+                      Expanded(child: _buildAppBarButton('Care', Icons.support_agent, Colors.teal.shade200, _navigateToCustomerCare)),
+                      const SizedBox(width: 4),
+                      Expanded(child: _buildAppBarButton('Route', Icons.map, Colors.orange.shade200, _navigateToMapRoute)),
+                      const SizedBox(width: 4),
+                      Expanded(child: _buildAppBarButton('Sum', Icons.summarize, Colors.green.shade200, _navigateToSummary)),
+                    ],
+                  ),
+                ),
+              )
+            : null,
       ),
       body: _isLoading
           ? _buildSkeletonGrid(isDark)
@@ -689,7 +798,7 @@ class _SalesScreenState extends State<SalesScreen> {
               children: [
                 // Search bar
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: TextField(
                     controller: _searchController,
                     style: TextStyle(color: isDark ? Colors.white : Colors.black87),
@@ -1819,10 +1928,30 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
     super.dispose();
   }
 
+  // Check if customers should be filtered by location (Leruma feature)
+  bool _hasCustomersByLocationFeature() {
+    try {
+      // Leruma clients filter customers by stock location's supervisor
+      return ApiService.currentClient?.features.hasSuppliersByLocation ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<void> _loadCustomers() async {
     setState(() => _isLoading = true);
 
-    final response = await _apiService.getCustomers(limit: 100);
+    // For Leruma: filter customers by selected location's supervisor
+    int? locationId;
+    if (_hasCustomersByLocationFeature()) {
+      final locationProvider = context.read<LocationProvider>();
+      locationId = locationProvider.selectedLocation?.locationId;
+    }
+
+    final response = await _apiService.getCustomers(
+      limit: 100,
+      locationId: locationId,
+    );
 
     if (response.isSuccess && response.data != null) {
       setState(() {
@@ -1916,7 +2045,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
             // Customers list
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? _buildCustomerSkeletonList()
                   : _filteredCustomers.isEmpty
                       ? const Center(child: Text('No customers found'))
                       : ListView.builder(
@@ -1974,50 +2103,56 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
     );
   }
 
-  Widget _buildSkeletonList(bool isDark) {
-    return Column(
-      children: [
-        // Search bar skeleton
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SkeletonLoader(
-            width: double.infinity,
-            height: 48,
-            borderRadius: 8,
-            isDark: isDark,
-          ),
-        ),
-        // Items grid skeleton
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 0.85,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: 12,
-            itemBuilder: (context, index) => _buildSkeletonItemCard(isDark),
-          ),
-        ),
-      ],
+  Widget _buildCustomerSkeletonList() {
+    return ListView.builder(
+      itemCount: 8,
+      itemBuilder: (context, index) => _buildCustomerSkeletonCard(),
     );
   }
 
-  Widget _buildSkeletonItemCard(bool isDark) {
+  Widget _buildCustomerSkeletonCard() {
     return Card(
-      color: isDark ? AppColors.darkCard : Colors.white,
+      margin: const EdgeInsets.symmetric(vertical: 4),
       child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            SkeletonLoader(width: 50, height: 50, borderRadius: 8, isDark: isDark),
-            const SizedBox(height: 8),
-            SkeletonLoader(width: 60, height: 12, isDark: isDark),
-            const SizedBox(height: 4),
-            SkeletonLoader(width: 40, height: 14, isDark: isDark),
+            // Avatar skeleton
+            const SkeletonLoader(
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              isDark: true,
+            ),
+            const SizedBox(width: 12),
+            // Text content skeleton
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  SkeletonLoader(
+                    width: 150,
+                    height: 16,
+                    borderRadius: 4,
+                    isDark: true,
+                  ),
+                  SizedBox(height: 6),
+                  SkeletonLoader(
+                    width: 100,
+                    height: 12,
+                    borderRadius: 4,
+                    isDark: true,
+                  ),
+                  SizedBox(height: 4),
+                  SkeletonLoader(
+                    width: 80,
+                    height: 12,
+                    borderRadius: 4,
+                    isDark: true,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

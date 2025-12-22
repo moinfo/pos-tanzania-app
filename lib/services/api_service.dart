@@ -25,6 +25,13 @@ import '../models/transaction.dart';
 import '../models/report.dart';
 import '../models/stock_tracking.dart';
 import '../models/position.dart';
+import '../models/suspended_sheet.dart';
+import '../models/suspended_sheet2.dart';
+import '../models/suspended_sheet3.dart';
+import '../models/customer_care.dart';
+import '../models/map_route.dart';
+import '../models/suspended_summary.dart';
+import '../models/item_comment.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -1418,6 +1425,36 @@ class ApiService {
     }
   }
 
+  /// Get suppliers filtered by stock location (Leruma-specific feature)
+  /// Returns suppliers that belong to the supervisor of the given stock location
+  Future<ApiResponse<List<Supplier>>> getSuppliersByLocation(int locationId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/suppliers/by_location/$locationId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data']['suppliers'] as List;
+        final suppliers = data.map((item) => Supplier.fromJson(item)).toList();
+
+        return ApiResponse.success(
+          data: suppliers,
+          message: jsonResponse['message'] ?? 'Suppliers retrieved successfully',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to load suppliers',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Get supplier credit statement
   Future<ApiResponse<SupplierStatement>> getSupplierStatement(
     int supplierId, {
@@ -1729,6 +1766,58 @@ class ApiService {
     }
   }
 
+  /// Get receiving summary comparing mainstore sales vs Leruma receivings
+  /// Leruma-specific feature
+  Future<ApiResponse<Map<String, dynamic>>> getReceivingSummary({
+    required int locationId,
+    required String startDate,
+    required String endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'location_id': locationId.toString(),
+        'start_date': startDate,
+        'end_date': endDate,
+      };
+
+      final uri = Uri.parse('$baseUrlSync/receivings/summary').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get receiving summary2 - Leruma receivings as primary, compare with mainstore
+  /// Leruma-specific feature
+  Future<ApiResponse<Map<String, dynamic>>> getReceivingSummary2({
+    required int locationId,
+    required String startDate,
+    required String endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'location_id': locationId.toString(),
+        'start_date': startDate,
+        'end_date': endDate,
+      };
+
+      final uri = Uri.parse('$baseUrlSync/receivings/summary2').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ==================== SALES API ====================
 
   /// Get sales list with filters
@@ -1900,6 +1989,426 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
           message: jsonResponse['message'] ?? 'Failed to fetch suspended sales',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get suspended sales with items for sheet display
+  Future<ApiResponse<List<SuspendedSheetSale>>> getSuspendedSheet({
+    required int locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/sales/suspended_sheet').replace(
+        queryParameters: {'location_id': locationId.toString()},
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        List<dynamic> salesList;
+        if (data is List) {
+          salesList = data;
+        } else {
+          salesList = [];
+        }
+
+        final suspendedSheetSales = salesList
+            .map((s) => SuspendedSheetSale.fromJson(s as Map<String, dynamic>))
+            .toList();
+
+        return ApiResponse.success(
+          data: suspendedSheetSales,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch suspended sheet',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get suspended sales for delivery sheet (sheet2 format - no prices, includes free items)
+  Future<ApiResponse<List<SuspendedSheet2Sale>>> getSuspendedSheet2({
+    required int locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/sales/suspended_sheet2').replace(
+        queryParameters: {'location_id': locationId.toString()},
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        List<dynamic> salesList;
+        if (data is List) {
+          salesList = data;
+        } else {
+          salesList = [];
+        }
+
+        final suspendedSheet2Sales = salesList
+            .map((s) => SuspendedSheet2Sale.fromJson(s as Map<String, dynamic>))
+            .toList();
+
+        return ApiResponse.success(
+          data: suspendedSheet2Sales,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch delivery sheet',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get suspended sales for full receipt sheet (sheet3 format - with prices + free items)
+  Future<ApiResponse<List<SuspendedSheet3Sale>>> getSuspendedSheet3({
+    required int locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/sales/suspended_sheet3').replace(
+        queryParameters: {'location_id': locationId.toString()},
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        List<dynamic> salesList;
+        if (data is List) {
+          salesList = data;
+        } else {
+          salesList = [];
+        }
+
+        final suspendedSheet3Sales = salesList
+            .map((s) => SuspendedSheet3Sale.fromJson(s as Map<String, dynamic>))
+            .toList();
+
+        return ApiResponse.success(
+          data: suspendedSheet3Sales,
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch receipt sheet',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get customer care data (CRM view)
+  Future<ApiResponse<CustomerCareResponse>> getCustomerCare({
+    required int locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/customers/care').replace(
+        queryParameters: {'location_id': locationId.toString()},
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final customerCareResponse = CustomerCareResponse.fromJson(data);
+          return ApiResponse.success(
+            data: customerCareResponse,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.success(
+            data: CustomerCareResponse(
+              customers: [],
+              totals: CustomerCareTotals(creditLimit: 0, balance: 0, customerCount: 0),
+            ),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch customer care data',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get map route data (delivery route planning)
+  Future<ApiResponse<MapRouteResponse>> getMapRoute({
+    required int locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/customers/map_route').replace(
+        queryParameters: {'location_id': locationId.toString()},
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final mapRouteResponse = MapRouteResponse.fromJson(data);
+          return ApiResponse.success(
+            data: mapRouteResponse,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.success(
+            data: MapRouteResponse(customers: [], customerCount: 0),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch map route data',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update customer order for route planning
+  Future<ApiResponse<void>> updateCustomerOrder({
+    required List<Map<String, int>> orders,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/customers/update_order'),
+        headers: await _getHeaders(),
+        body: json.encode({'orders': orders}),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(data: null, message: 'Order updated successfully');
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to update order',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get suspended items summary
+  Future<ApiResponse<SuspendedSummaryResponse>> getSuspendedSummary({
+    required int locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/sales/suspended_summary').replace(
+        queryParameters: {'location_id': locationId.toString()},
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final summaryResponse = SuspendedSummaryResponse.fromJson(data);
+          return ApiResponse.success(
+            data: summaryResponse,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.success(
+            data: SuspendedSummaryResponse(
+              items: [],
+              totals: SuspendedSummaryTotals(
+                totalQuantity: 0,
+                grandTotal: 0,
+                totalWeight: 0,
+                itemCount: 0,
+              ),
+            ),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch suspended summary',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get item comment and history
+  Future<ApiResponse<ItemCommentResponse>> getItemComment({
+    required int itemId,
+    required int locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/item_comments/get').replace(
+        queryParameters: {
+          'item_id': itemId.toString(),
+          'location_id': locationId.toString(),
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final commentResponse = ItemCommentResponse.fromJson(data);
+          return ApiResponse.success(
+            data: commentResponse,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.success(
+            data: ItemCommentResponse(comment: null, history: []),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch comment',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Save item comment
+  Future<ApiResponse<ItemCommentResponse>> saveItemComment({
+    required int itemId,
+    required int locationId,
+    required String comment,
+    required String commentDate,
+    int? commentId,
+  }) async {
+    try {
+      final body = {
+        'item_id': itemId,
+        'location_id': locationId,
+        'comment': comment,
+        'comment_date': commentDate,
+        if (commentId != null) 'comment_id': commentId,
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/item_comments/save'),
+        headers: await _getHeaders(),
+        body: json.encode(body),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final commentResponse = ItemCommentResponse.fromJson(data);
+          return ApiResponse.success(
+            data: commentResponse,
+            message: jsonResponse['message'] ?? 'Comment saved successfully',
+          );
+        } else {
+          return ApiResponse.success(
+            data: ItemCommentResponse(comment: null, history: []),
+            message: jsonResponse['message'] ?? 'Comment saved',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to save comment',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete item comment
+  Future<ApiResponse<List<CommentHistoryItem>>> deleteItemComment({
+    required int commentId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/item_comments/delete'),
+        headers: await _getHeaders(),
+        body: json.encode({'comment_id': commentId}),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final history = (data?['history'] as List<dynamic>?)
+                ?.map((item) =>
+                    CommentHistoryItem.fromJson(item as Map<String, dynamic>))
+                .toList() ??
+            [];
+
+        return ApiResponse.success(
+          data: history,
+          message: jsonResponse['message'] ?? 'Comment deleted successfully',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to delete comment',
         );
       }
     } catch (e) {

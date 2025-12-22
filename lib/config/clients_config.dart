@@ -13,7 +13,7 @@ class ClientsConfig {
   // NETWORK CONFIGURATION
   // ============================================
   // ⚠️ CHANGE THIS IP ADDRESS when your network changes
-  static const String LOCAL_IP_ADDRESS = '192.168.0.101'; // Your computer's local IP
+  static const String LOCAL_IP_ADDRESS = '192.168.0.102'; // Your computer's local IP
 //   static const String LOCAL_IP_ADDRESS = '172.16.245.29'; // Your computer's local IP
   static const String MAMP_PORT = '8888';
 
@@ -61,6 +61,12 @@ class ClientsConfig {
         hasProfitSubmit: false,
         // Leruma uses commission tracking dashboard
         hasCommissionDashboard: true,
+        // Leruma has receivings summary reports
+        hasReceivingsSummary: true,
+        // Leruma filters suppliers by stock location's supervisor
+        hasSuppliersByLocation: true,
+        // Leruma only uses Credit Card payment in receivings
+        hasReceivingCreditCardOnly: true,
       ),
     ),
 

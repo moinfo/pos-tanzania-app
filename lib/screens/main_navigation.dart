@@ -81,9 +81,12 @@ class _MainNavigationState extends State<MainNavigation> {
 
   // Screen configuration with permissions
   // IMPORTANT: All screens MUST have permission checks based on ospos_permissions table
-  // Built dynamically to support client-specific screens (e.g., Seller for Leruma)
+  // Built dynamically to support client-specific screens
+  // - SADA: Home, Sales, Expenses, Summary, Contracts, Reports
+  // - Leruma: Home, Sales, Expenses, Summary, Seller, Reports
   List<Map<String, dynamic>> get _screenConfigs {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
+    final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
 
     final configs = <Map<String, dynamic>>[
       {
@@ -123,7 +126,17 @@ class _MainNavigationState extends State<MainNavigation> {
       });
     }
 
-    // Reports is always last
+    // Add Contracts for clients with contracts feature (SADA)
+    if (hasContracts) {
+      configs.add({
+        'screen': const ContractsScreen(),
+        'icon': Icons.assignment,
+        'label': 'Contracts',
+        'permission': PermissionIds.contracts, // module: contracts
+      });
+    }
+
+    // Reports is available to all clients
     configs.add({
       'screen': const ReportsScreen(),
       'icon': Icons.assessment,

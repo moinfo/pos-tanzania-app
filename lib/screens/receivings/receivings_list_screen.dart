@@ -13,6 +13,8 @@ import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'receiving_details_screen.dart';
 import 'new_receiving_screen.dart';
+import 'receivings_summary_screen.dart';
+import 'receivings_summary2_screen.dart';
 
 class ReceivingsListScreen extends StatefulWidget {
   const ReceivingsListScreen({super.key});
@@ -204,7 +206,28 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
     ).then((_) => _loadReceivings());
   }
 
+  void _navigateToSummary() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ReceivingsSummaryScreen(),
+      ),
+    );
+  }
+
+  void _navigateToSummary2() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ReceivingsSummary2Screen(),
+      ),
+    );
+  }
+
   Future<void> _selectDateRange() async {
+    final themeProvider = context.read<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
@@ -212,14 +235,65 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
       initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.success,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
+          data: isDark
+              ? ThemeData.dark().copyWith(
+                  colorScheme: ColorScheme.dark(
+                    primary: AppColors.success,
+                    onPrimary: Colors.white,
+                    surface: const Color(0xFF1E1E1E),
+                    onSurface: Colors.white,
+                    secondary: AppColors.success,
+                    onSecondary: Colors.white,
+                    surfaceContainerHighest: const Color(0xFF2D2D2D),
+                  ),
+                  dialogBackgroundColor: const Color(0xFF1E1E1E),
+                  textButtonTheme: TextButtonThemeData(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.success,
+                    ),
+                  ),
+                  datePickerTheme: DatePickerThemeData(
+                    backgroundColor: const Color(0xFF1E1E1E),
+                    headerBackgroundColor: AppColors.success,
+                    headerForegroundColor: Colors.white,
+                    dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.white;
+                      }
+                      if (states.contains(WidgetState.disabled)) {
+                        return Colors.grey.shade600;
+                      }
+                      return Colors.white;
+                    }),
+                    dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return AppColors.success;
+                      }
+                      return null;
+                    }),
+                    todayForegroundColor: WidgetStateProperty.all(AppColors.success),
+                    todayBackgroundColor: WidgetStateProperty.all(Colors.transparent),
+                    yearForegroundColor: WidgetStateProperty.all(Colors.white),
+                    rangePickerBackgroundColor: const Color(0xFF1E1E1E),
+                    rangePickerHeaderBackgroundColor: AppColors.success,
+                    rangePickerHeaderForegroundColor: Colors.white,
+                    rangeSelectionBackgroundColor: AppColors.success.withOpacity(0.3),
+                  ),
+                )
+              : ThemeData.light().copyWith(
+                  colorScheme: ColorScheme.light(
+                    primary: AppColors.success,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black,
+                    secondary: AppColors.success,
+                  ),
+                  datePickerTheme: DatePickerThemeData(
+                    headerBackgroundColor: AppColors.success,
+                    headerForegroundColor: Colors.white,
+                    rangeSelectionBackgroundColor: AppColors.success.withOpacity(0.2),
+                  ),
+                ),
           child: child!,
         );
       },
@@ -263,11 +337,20 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
     return '${formatter.format(amount)} TSh';
   }
 
+  bool _hasReceivingsSummaryFeature() {
+    try {
+      return ApiService.currentClient?.features.hasReceivingsSummary ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final locationProvider = context.watch<LocationProvider>();
     final isDark = themeProvider.isDarkMode;
+    final showSummaryButtons = _hasReceivingsSummaryFeature();
 
     return Scaffold(
       appBar: AppBar(
@@ -279,8 +362,9 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
           if (locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
             Center(
               child: Container(
+                constraints: const BoxConstraints(maxWidth: 160),
                 margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
@@ -291,14 +375,17 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on, size: 18, color: Colors.white),
-                      const SizedBox(width: 6),
-                      Text(
-                        locationProvider.selectedLocation!.locationName,
-                        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
-                      ),
+                      const Icon(Icons.location_on, size: 16, color: Colors.white),
                       const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
+                      Flexible(
+                        child: Text(
+                          locationProvider.selectedLocation!.locationName,
+                          style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down, size: 18, color: Colors.white),
                     ],
                   ),
                   onSelected: (location) async {
@@ -347,6 +434,48 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
       ),
       body: Column(
         children: [
+          // Summary buttons - Leruma only (before date filter)
+          if (showSummaryButtons)
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              color: isDark ? AppColors.darkSurface : AppColors.success,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _navigateToSummary,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.summarize, size: 20),
+                      label: const Text('Summary'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _navigateToSummary2,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.analytics, size: 20),
+                      label: const Text('Summary 2'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Date Range Filter
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

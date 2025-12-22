@@ -4,6 +4,7 @@ import '../utils/constants.dart';
 import '../screens/main_navigation.dart';
 import '../providers/permission_provider.dart';
 import '../models/permission_model.dart';
+import '../services/api_service.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -30,12 +31,15 @@ class AppBottomNavigation extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final permissionProvider = Provider.of<PermissionProvider>(context);
+  /// Build navigation items matching MainNavigation structure exactly
+  /// IMPORTANT: Must match MainNavigation._screenConfigs order for correct index mapping
+  /// - SADA: Home, Sales, Expenses, Summary, Contracts, Reports
+  /// - Leruma: Home, Sales, Expenses, Summary, Seller, Reports
+  List<Map<String, dynamic>> _buildNavItems() {
+    final isLeruma = ApiService.currentClient?.id == 'leruma';
+    final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
 
-    // Define all possible navigation items with their permissions
-    final allNavItems = [
+    final items = <Map<String, dynamic>>[
       {
         'icon': Icons.home,
         'label': 'Home',
@@ -56,12 +60,42 @@ class AppBottomNavigation extends StatelessWidget {
         'label': 'Summary',
         'permission': PermissionIds.cashSubmit,
       },
-      {
+    ];
+
+    // Add Seller screen for Leruma only
+    if (isLeruma) {
+      items.add({
+        'icon': Icons.person_outline,
+        'label': 'Seller',
+        'permission': PermissionIds.cashSubmitSellerReport,
+      });
+    }
+
+    // Add Contracts for clients with contracts feature (SADA)
+    if (hasContracts) {
+      items.add({
         'icon': Icons.assignment,
         'label': 'Contracts',
         'permission': PermissionIds.contracts,
-      },
-    ];
+      });
+    }
+
+    // Reports is available to all clients
+    items.add({
+      'icon': Icons.assessment,
+      'label': 'Reports',
+      'permission': PermissionIds.reports,
+    });
+
+    return items;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final permissionProvider = Provider.of<PermissionProvider>(context);
+
+    // Get navigation items (matches MainNavigation structure)
+    final allNavItems = _buildNavItems();
 
     // Filter items based on permissions
     final availableItems = <BottomNavigationBarItem>[];
