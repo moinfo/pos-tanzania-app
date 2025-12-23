@@ -34,6 +34,7 @@ import '../models/suspended_summary.dart';
 import '../models/item_comment.dart';
 import '../models/one_time_discount.dart';
 import '../models/item_quantity_offer.dart';
+import '../models/customer_card.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -4878,6 +4879,207 @@ class ApiService {
         );
       }
     } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // =====================================================
+  // NFC CUSTOMER CARD ENDPOINTS
+  // =====================================================
+
+  /// Get customer by NFC card UID
+  Future<ApiResponse<Customer>> getCustomerByCardUid(String cardUid) async {
+    try {
+      debugPrint('🔍 Looking up customer by card UID: $cardUid');
+
+      final uri = Uri.parse('$baseUrlSync/customer_cards/lookup').replace(
+        queryParameters: {'card_uid': cardUid},
+      );
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+
+        // Handle nested response: {status, data: {success, data: {...}}}
+        var rawData = jsonResponse['data'];
+        if (rawData is Map && rawData['data'] != null) {
+          // Check if inner success is true
+          if (rawData['success'] == true) {
+            return ApiResponse.success(
+              data: Customer.fromJson(rawData['data']),
+              message: jsonResponse['message'] ?? 'Customer found',
+            );
+          } else {
+            return ApiResponse.error(message: rawData['message'] ?? 'Card not registered');
+          }
+        } else if (rawData != null) {
+          return ApiResponse.success(
+            data: Customer.fromJson(rawData),
+            message: jsonResponse['message'] ?? 'Customer found',
+          );
+        }
+        return ApiResponse.error(message: 'Card not registered');
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Customer not found',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error looking up customer by card: $e');
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Register a new NFC card for a customer
+  Future<ApiResponse<CustomerCard>> registerCustomerCard({
+    required int customerId,
+    required String cardUid,
+    String cardType = 'nfc',
+  }) async {
+    try {
+      debugPrint('📝 Registering card $cardUid for customer $customerId');
+
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/customer_cards'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'customer_id': customerId,
+          'card_uid': cardUid,
+          'card_type': cardType,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.success(
+          data: CustomerCard.fromJson(jsonResponse['data']),
+          message: jsonResponse['message'] ?? 'Card registered successfully',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to register card',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error registering card: $e');
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Unregister/deactivate a customer card
+  Future<ApiResponse<void>> unregisterCustomerCard(int cardId) async {
+    try {
+      debugPrint('🗑️ Unregistering card $cardId');
+
+      final response = await http.delete(
+        Uri.parse('$baseUrlSync/customer_cards/$cardId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.success(
+          message: jsonResponse['message'] ?? 'Card unregistered successfully',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to unregister card',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error unregistering card: $e');
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get all cards for a customer
+  Future<ApiResponse<List<CustomerCard>>> getCustomerCards(int customerId) async {
+    try {
+      debugPrint('📋 Getting cards for customer $customerId');
+
+      final uri = Uri.parse('$baseUrlSync/customer_cards').replace(
+        queryParameters: {'customer_id': customerId.toString()},
+      );
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final List<dynamic> data = jsonResponse['data'] ?? [];
+        return ApiResponse.success(
+          data: data.map((e) => CustomerCard.fromJson(e)).toList(),
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to get cards',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting customer cards: $e');
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get all registered cards (admin)
+  Future<ApiResponse<List<CustomerCard>>> getAllCustomerCards({
+    int? locationId,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      };
+      if (locationId != null) queryParams['location_id'] = locationId.toString();
+
+      final uri = Uri.parse('$baseUrlSync/customer_cards/all').replace(
+        queryParameters: queryParams,
+      );
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+
+        // Handle nested response format: {status, data: {success, data: [...]}}
+        var rawData = jsonResponse['data'];
+        List<dynamic> data = [];
+
+        // Check if data is nested (API_Controller wraps response)
+        if (rawData is Map && rawData['data'] != null) {
+          rawData = rawData['data'];
+        }
+
+        if (rawData is List) {
+          data = rawData;
+        } else if (rawData is Map) {
+          debugPrint('⚠️ getAllCustomerCards: data is Map, treating as empty');
+        }
+
+        return ApiResponse.success(
+          data: data.map((e) => CustomerCard.fromJson(e)).toList(),
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to get cards',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting all cards: $e');
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }

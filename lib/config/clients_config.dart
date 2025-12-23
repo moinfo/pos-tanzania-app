@@ -13,7 +13,7 @@ class ClientsConfig {
   // NETWORK CONFIGURATION
   // ============================================
   // ⚠️ CHANGE THIS IP ADDRESS when your network changes
-  static const String LOCAL_IP_ADDRESS = '10.15.163.146'; // Your computer's local IP
+  static const String LOCAL_IP_ADDRESS = '10.197.232.146'; // Your computer's local IP
 //   static const String LOCAL_IP_ADDRESS = '172.16.245.29'; // Your computer's local IP
   static const String MAMP_PORT = '8888';
 

@@ -69,37 +69,62 @@ class Customer {
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) {
+    // Helper to parse int from string or int
+    int parseIntValue(dynamic value, [int defaultValue = 0]) {
+      if (value == null) return defaultValue;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
+    // Helper to parse double from string or num
+    double parseDoubleValue(dynamic value, [double defaultValue = 0.0]) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
+    // Helper to parse bool from various formats
+    bool parseBoolValue(dynamic value, [bool defaultValue = false]) {
+      if (value == null) return defaultValue;
+      if (value is bool) return value;
+      if (value is int) return value == 1;
+      if (value is String) return value == '1' || value.toLowerCase() == 'true' || value.toLowerCase() == 'active';
+      return defaultValue;
+    }
+
     return Customer(
-      personId: json['person_id'] as int,
-      firstName: json['first_name'] as String,
-      lastName: json['last_name'] as String,
-      email: json['email'] as String? ?? '',
-      phoneNumber: json['phone_number'] as String? ?? '',
-      address1: json['address_1'] as String? ?? '',
-      address2: json['address_2'] as String? ?? '',
-      city: json['city'] as String? ?? '',
-      state: json['state'] as String? ?? '',
-      zip: json['zip'] as String? ?? '',
-      country: json['country'] as String? ?? '',
-      comments: json['comments'] as String? ?? '',
-      gender: json['gender'] as int? ?? 0,
-      accountNumber: json['account_number'] as String?,
-      companyName: json['company_name'] as String?,
-      discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
-      discountType: json['discount_type'] as String? ?? '0',
-      taxable: json['taxable'] as bool? ?? false,
-      taxId: json['tax_id'] as String? ?? '',
-      consent: json['consent'] as bool? ?? false,
-      isBodaBoda: json['is_boda_boda'] as bool? ?? false,
-      oneTimeCredit: json['one_time_credit'] as bool? ?? false,
-      isAllowedCredit: json['is_allowed_credit'] as bool? ?? false,
-      creditLimit: (json['credit_limit'] as num?)?.toDouble() ?? 0.0,
-      oneTimeCreditLimit: (json['one_time_credit_limit'] as num?)?.toDouble() ?? 0.0,
-      dueDate: json['due_date'] as int? ?? 7,
-      badDebtor: json['bad_debtor'] as int? ?? 30,
-      dormant: json['dormant'] as String? ?? 'ACTIVE',
-      balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
-      days: json['days'] as int?,
+      personId: parseIntValue(json['person_id']),
+      firstName: json['first_name']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      phoneNumber: json['phone_number']?.toString() ?? '',
+      address1: json['address_1']?.toString() ?? '',
+      address2: json['address_2']?.toString() ?? '',
+      city: json['city']?.toString() ?? '',
+      state: json['state']?.toString() ?? '',
+      zip: json['zip']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+      comments: json['comments']?.toString() ?? '',
+      gender: parseIntValue(json['gender']),
+      accountNumber: json['account_number']?.toString(),
+      companyName: json['company_name']?.toString(),
+      discount: parseDoubleValue(json['discount']),
+      discountType: json['discount_type']?.toString() ?? '0',
+      taxable: parseBoolValue(json['taxable']),
+      taxId: json['tax_id']?.toString() ?? '',
+      consent: parseBoolValue(json['consent']),
+      isBodaBoda: parseBoolValue(json['is_boda_boda']),
+      oneTimeCredit: parseBoolValue(json['one_time_credit']),
+      isAllowedCredit: parseBoolValue(json['is_allowed_credit']),
+      creditLimit: parseDoubleValue(json['credit_limit']),
+      oneTimeCreditLimit: parseDoubleValue(json['one_time_credit_limit']),
+      dueDate: parseIntValue(json['due_date'], 7),
+      badDebtor: parseIntValue(json['bad_debtor'], 30),
+      dormant: json['dormant']?.toString() ?? 'ACTIVE',
+      balance: parseDoubleValue(json['balance']),
+      days: json['days'] != null ? parseIntValue(json['days']) : null,
       supervisor: json['supervisor'] != null
           ? Supervisor.fromJson(json['supervisor'] as Map<String, dynamic>)
           : null,

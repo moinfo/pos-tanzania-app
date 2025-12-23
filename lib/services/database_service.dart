@@ -131,6 +131,22 @@ class DatabaseService {
       )
     ''');
 
+    // Customer Cards (NFC cards linked to customers)
+    batch.execute('''
+      CREATE TABLE customer_cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_card_id INTEGER,
+        customer_id INTEGER NOT NULL,
+        card_uid TEXT NOT NULL UNIQUE,
+        card_type TEXT DEFAULT 'nfc',
+        is_active INTEGER DEFAULT 1,
+        last_synced_at TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES customers(person_id)
+      )
+    ''');
+
     // Supervisors
     batch.execute('''
       CREATE TABLE supervisors (
@@ -850,6 +866,8 @@ class DatabaseService {
     batch.execute('CREATE INDEX idx_one_time_discounts_item ON one_time_discounts(item_id)');
     batch.execute('CREATE INDEX idx_debits_credits_client ON debits_credits(client_id)');
     batch.execute('CREATE INDEX idx_customer_deposits_customer ON customer_deposits(customer_id)');
+    batch.execute('CREATE INDEX idx_customer_cards_uid ON customer_cards(card_uid)');
+    batch.execute('CREATE INDEX idx_customer_cards_customer ON customer_cards(customer_id)');
 
     await batch.commit(noResult: true);
 
@@ -1662,5 +1680,113 @@ class DatabaseService {
     await _database!.delete('sync_timestamps');
 
     debugPrint('DatabaseService: Cleared synced data');
+  }
+
+  // =====================================================
+  // CUSTOMER CARDS OPERATIONS (NFC)
+  // =====================================================
+
+  /// Save customer cards from server
+  Future<void> saveCustomerCards(List<Map<String, dynamic>> cards) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    final batch = _database!.batch();
+    final now = DateTime.now().toIso8601String();
+
+    for (final card in cards) {
+      final cardData = {
+        'server_card_id': card['id'] ?? card['card_id'],
+        'customer_id': card['customer_id'] ?? card['person_id'],
+        'card_uid': card['card_uid'],
+        'card_type': card['card_type'] ?? 'nfc',
+        'is_active': card['is_active'] == true || card['is_active'] == 1 ? 1 : 0,
+        'last_synced_at': now,
+        'created_at': card['created_at'] ?? now,
+        'updated_at': card['updated_at'] ?? now,
+      };
+      batch.insert('customer_cards', cardData, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    await batch.commit(noResult: true);
+    debugPrint('DatabaseService: Saved ${cards.length} customer cards');
+  }
+
+  /// Get customer by card UID
+  Future<Map<String, dynamic>?> getCustomerByCardUid(String cardUid) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    final result = await _database!.rawQuery('''
+      SELECT p.*, c.*, cc.card_uid, cc.card_type
+      FROM customer_cards cc
+      JOIN customers c ON cc.customer_id = c.person_id
+      JOIN people p ON c.person_id = p.person_id
+      WHERE cc.card_uid = ? AND cc.is_active = 1
+      LIMIT 1
+    ''', [cardUid]);
+
+    if (result.isEmpty) return null;
+    return result.first;
+  }
+
+  /// Get all cards for a customer
+  Future<List<Map<String, dynamic>>> getCustomerCards(int customerId) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    return await _database!.query(
+      'customer_cards',
+      where: 'customer_id = ? AND is_active = 1',
+      whereArgs: [customerId],
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  /// Save a new customer card locally
+  Future<int> saveCustomerCard(Map<String, dynamic> card) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    final now = DateTime.now().toIso8601String();
+    final cardData = {
+      'server_card_id': card['id'] ?? card['server_card_id'],
+      'customer_id': card['customer_id'],
+      'card_uid': card['card_uid'],
+      'card_type': card['card_type'] ?? 'nfc',
+      'is_active': 1,
+      'last_synced_at': now,
+      'created_at': now,
+      'updated_at': now,
+    };
+
+    return await _database!.insert(
+      'customer_cards',
+      cardData,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// Deactivate a customer card
+  Future<void> deactivateCustomerCard(String cardUid) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    await _database!.update(
+      'customer_cards',
+      {
+        'is_active': 0,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'card_uid = ?',
+      whereArgs: [cardUid],
+    );
+  }
+
+  /// Check if card UID already exists
+  Future<bool> cardUidExists(String cardUid) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    final result = await _database!.rawQuery(
+      'SELECT COUNT(*) as count FROM customer_cards WHERE card_uid = ? AND is_active = 1',
+      [cardUid],
+    );
+
+    return (result.first['count'] as int) > 0;
   }
 }

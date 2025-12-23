@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/nfc_service.dart';
 import '../models/customer.dart';
 import '../models/supervisor.dart';
 import '../models/permission_model.dart';
@@ -10,6 +11,7 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
+import '../widgets/nfc_scan_dialog.dart';
 import '../utils/constants.dart';
 import 'customer_credit_screen.dart';
 
@@ -22,10 +24,12 @@ class CustomersScreen extends StatefulWidget {
 
 class _CustomersScreenState extends State<CustomersScreen> {
   final ApiService _apiService = ApiService();
+  final NfcService _nfcService = NfcService();
   List<Customer> _customers = [];
   bool _isLoading = true;
   String? _errorMessage;
   String _searchQuery = '';
+  bool _nfcAvailable = false;
 
   @override
   void initState() {
@@ -35,6 +39,36 @@ class _CustomersScreenState extends State<CustomersScreen> {
       _initializeLocation();
     });
     _loadCustomers();
+    _checkNfcAvailability();
+  }
+
+  Future<void> _checkNfcAvailability() async {
+    final isAvailable = await _nfcService.isNfcAvailable();
+    if (mounted) {
+      setState(() => _nfcAvailable = isAvailable);
+    }
+  }
+
+  Future<void> _registerCardToCustomer(Customer customer) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => NfcRegisterCardDialog(customer: customer),
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.nfc, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('Card registered to ${customer.firstName}'),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 
   Future<void> _initializeLocation() async {
@@ -445,7 +479,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Edit and Delete buttons with permissions
+                  // Edit, Delete, and NFC buttons with permissions
                   Row(
                     children: [
                       PermissionIconButton(
@@ -465,6 +499,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         color: AppColors.error,
                         showDisabled: false,
                       ),
+                      // NFC Card Registration button
+                      if (_nfcAvailable) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () => _registerCardToCustomer(customer),
+                          icon: const Icon(Icons.nfc, size: 18),
+                          tooltip: 'Register NFC Card',
+                          color: Colors.orange,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ],
                   ),
                   // Add Payment button - only show if customer has balance > 0

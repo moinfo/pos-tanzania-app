@@ -29,6 +29,7 @@ import 'positions/positions_screen.dart';
 import 'seller_report_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
+import 'nfc_cards_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -463,6 +464,21 @@ class _MainNavigationState extends State<MainNavigation> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                  );
+                },
+              ),
+            ),
+            // NFC Cards - requires customers permission
+            PermissionWrapper(
+              permissionId: PermissionIds.customers,
+              child: ListTile(
+                leading: const Icon(Icons.nfc, color: Colors.orange),
+                title: const Text('NFC Cards'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NfcCardsScreen()),
                   );
                 },
               ),

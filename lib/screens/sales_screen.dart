@@ -25,6 +25,8 @@ import 'customer_care_screen.dart';
 import 'map_route_screen.dart';
 import 'suspended_summary_screen.dart';
 import 'package:intl/intl.dart';
+import '../widgets/nfc_scan_dialog.dart';
+import '../services/nfc_service.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -2353,15 +2355,125 @@ class CustomerSelectionDialog extends StatefulWidget {
 
 class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
   final ApiService _apiService = ApiService();
+  final NfcService _nfcService = NfcService();
   final TextEditingController _searchController = TextEditingController();
   List<Customer> _customers = [];
   List<Customer> _filteredCustomers = [];
   bool _isLoading = false;
+  bool _nfcAvailable = false;
 
   @override
   void initState() {
     super.initState();
     _loadCustomers();
+    _checkNfcAvailability();
+  }
+
+  Future<void> _checkNfcAvailability() async {
+    final isAvailable = await _nfcService.isNfcAvailable();
+    if (mounted) {
+      setState(() => _nfcAvailable = isAvailable);
+    }
+  }
+
+  Future<void> _scanNfcCard() async {
+    final result = await showDialog<NfcScanResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const NfcScanDialog(lookupCustomer: true),
+    );
+
+    if (result != null && result.success && mounted) {
+      if (result.customer != null) {
+        // Customer found - select them
+        context.read<SaleProvider>().setCustomer(result.customer!);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.nfc, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Customer: ${result.customer!.firstName} ${result.customer!.lastName}'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        // Card scanned but no customer linked
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.warning, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Card ${result.cardUid} is not linked to any customer'),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.warning,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Register',
+              textColor: Colors.white,
+              onPressed: () => _showRegisterCardPrompt(result.cardUid!),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showRegisterCardPrompt(String cardUid) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Register Card'),
+        content: const Text('Select a customer from the list to register this card.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _registerCardToCustomer(Customer customer) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => NfcRegisterCardDialog(customer: customer),
+    );
+
+    if (result == true && mounted) {
+      // Card registered successfully - optionally select the customer
+      final shouldSelect = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Card Registered'),
+          content: Text('Select ${customer.firstName} ${customer.lastName} for this sale?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Yes'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldSelect == true && mounted) {
+        context.read<SaleProvider>().setCustomer(customer);
+        Navigator.pop(context);
+      }
+    }
   }
 
   @override
@@ -2477,13 +2589,51 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
+                Row(
+                  children: [
+                    // NFC Scan Button
+                    if (_nfcAvailable)
+                      IconButton(
+                        icon: const Icon(Icons.nfc, color: AppColors.primary),
+                        onPressed: _scanNfcCard,
+                        tooltip: 'Scan NFC Card',
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 16),
+
+            // NFC hint for first-time users
+            if (_nfcAvailable)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.nfc, size: 18, color: AppColors.primary.withOpacity(0.8)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tap NFC card or search below',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primary.withOpacity(0.8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Search bar
             TextField(
@@ -2555,6 +2705,16 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                                       ),
                                   ],
                                 ),
+                                trailing: _nfcAvailable
+                                    ? IconButton(
+                                        icon: Icon(
+                                          Icons.nfc,
+                                          color: Colors.grey[400],
+                                        ),
+                                        onPressed: () => _registerCardToCustomer(customer),
+                                        tooltip: 'Register NFC card',
+                                      )
+                                    : null,
                                 onTap: () {
                                   context.read<SaleProvider>().setCustomer(customer);
                                   Navigator.pop(context);
