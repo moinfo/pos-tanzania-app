@@ -36,8 +36,8 @@ class ClientsConfig {
       features: const ClientFeatures(
         // SADA has all features enabled (default)
         hasContracts: true,
-        // Enable offline mode for SADA
-        hasOfflineMode: true,
+        // Offline mode disabled
+        hasOfflineMode: false,
       ),
     ),
     ClientConfig(
@@ -69,8 +69,8 @@ class ClientsConfig {
         hasSuppliersByLocation: true,
         // Leruma only uses Credit Card payment in receivings
         hasReceivingCreditCardOnly: true,
-        // Enable offline mode for Leruma
-        hasOfflineMode: true,
+        // Offline mode disabled
+        hasOfflineMode: false,
       ),
     ),
 
