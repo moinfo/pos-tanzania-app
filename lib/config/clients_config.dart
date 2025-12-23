@@ -13,7 +13,7 @@ class ClientsConfig {
   // NETWORK CONFIGURATION
   // ============================================
   // ⚠️ CHANGE THIS IP ADDRESS when your network changes
-  static const String LOCAL_IP_ADDRESS = '192.168.0.102'; // Your computer's local IP
+  static const String LOCAL_IP_ADDRESS = '10.15.163.146'; // Your computer's local IP
 //   static const String LOCAL_IP_ADDRESS = '172.16.245.29'; // Your computer's local IP
   static const String MAMP_PORT = '8888';
 
@@ -36,6 +36,8 @@ class ClientsConfig {
       features: const ClientFeatures(
         // SADA has all features enabled (default)
         hasContracts: true,
+        // Enable offline mode for SADA
+        hasOfflineMode: true,
       ),
     ),
     ClientConfig(
@@ -67,6 +69,8 @@ class ClientsConfig {
         hasSuppliersByLocation: true,
         // Leruma only uses Credit Card payment in receivings
         hasReceivingCreditCardOnly: true,
+        // Enable offline mode for Leruma
+        hasOfflineMode: true,
       ),
     ),
 

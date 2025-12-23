@@ -13,7 +13,13 @@ class PermissionProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  static const String _permissionsKey = 'user_permissions';
+  static const String _permissionsKeyPrefix = 'user_permissions';
+
+  /// Get client-specific permissions key
+  Future<String> _getPermissionsKey() async {
+    final client = await ApiService.getCurrentClient();
+    return '${_permissionsKeyPrefix}_${client.id}';
+  }
 
   /// Check if user has a specific permission
   bool hasPermission(String permissionId) {
@@ -94,8 +100,10 @@ class PermissionProvider with ChangeNotifier {
   Future<void> _savePermissionsLocally() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final key = await _getPermissionsKey();
       final permissionsJson = _permissions.map((p) => p.toJson()).toList();
-      await prefs.setString(_permissionsKey, jsonEncode(permissionsJson));
+      await prefs.setString(key, jsonEncode(permissionsJson));
+      debugPrint('💾 Permissions saved locally (${_permissions.length} permissions)');
     } catch (e) {
       debugPrint('Error saving permissions locally: $e');
     }
@@ -105,14 +113,18 @@ class PermissionProvider with ChangeNotifier {
   Future<void> loadPermissionsFromLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final permissionsString = prefs.getString(_permissionsKey);
+      final key = await _getPermissionsKey();
+      final permissionsString = prefs.getString(key);
 
       if (permissionsString != null) {
         final permissionsJson = jsonDecode(permissionsString) as List<dynamic>;
         _permissions = permissionsJson
             .map((p) => Permission.fromJson(p as Map<String, dynamic>))
             .toList();
+        debugPrint('📂 Permissions loaded from local (${_permissions.length} permissions)');
         notifyListeners();
+      } else {
+        debugPrint('⚠️ No cached permissions found');
       }
     } catch (e) {
       debugPrint('Error loading permissions from local storage: $e');
@@ -124,12 +136,8 @@ class PermissionProvider with ChangeNotifier {
     _permissions = [];
     _error = null;
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_permissionsKey);
-    } catch (e) {
-      debugPrint('Error clearing permissions: $e');
-    }
+    // Note: We don't clear local storage on logout to support offline login
+    // Permissions will be refreshed on next online login
 
     notifyListeners();
   }

@@ -32,6 +32,8 @@ import '../models/customer_care.dart';
 import '../models/map_route.dart';
 import '../models/suspended_summary.dart';
 import '../models/item_comment.dart';
+import '../models/one_time_discount.dart';
+import '../models/item_quantity_offer.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -2409,6 +2411,359 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
           message: jsonResponse['message'] ?? 'Failed to delete comment',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ==================== ONE TIME DISCOUNTS API (Leruma-specific) ====================
+
+  /// Check if one-time discount is available for item/customer/location/date
+  Future<ApiResponse<CheckDiscountResponse>> checkOneTimeDiscount({
+    required int customerId,
+    required int itemId,
+    required int locationId,
+    String? date,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/one_time_discounts/check').replace(
+        queryParameters: {
+          'customer_id': customerId.toString(),
+          'item_id': itemId.toString(),
+          'stock_location_id': locationId.toString(),
+          if (date != null) 'date': date,
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final checkResponse = CheckDiscountResponse.fromJson(data);
+          return ApiResponse.success(
+            data: checkResponse,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.success(
+            data: CheckDiscountResponse(available: false, discount: null),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to check discount',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get one-time discount details by ID
+  Future<ApiResponse<OneTimeDiscount>> getOneTimeDiscount(int discountId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/one_time_discounts/$discountId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data['discount'] != null) {
+          final discount = OneTimeDiscount.fromJson(data['discount']);
+          return ApiResponse.success(
+            data: discount,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.error(message: 'Discount not found');
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch discount',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get all active discounts for a customer
+  Future<ApiResponse<CustomerDiscountsResponse>> getCustomerDiscounts({
+    required int customerId,
+    int? locationId,
+    String? date,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (locationId != null) {
+        queryParams['stock_location_id'] = locationId.toString();
+      }
+      if (date != null) {
+        queryParams['date'] = date;
+      }
+
+      final uri = Uri.parse('$baseUrlSync/one_time_discounts/customer/$customerId')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final discountsResponse = CustomerDiscountsResponse.fromJson(data);
+          return ApiResponse.success(
+            data: discountsResponse,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.success(
+            data: CustomerDiscountsResponse(discounts: [], count: 0),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch discounts',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Mark one-time discount as used
+  Future<ApiResponse<void>> useOneTimeDiscount({
+    required int discountId,
+    required int saleId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/one_time_discounts/mark_used'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'discount_id': discountId,
+          'sale_id': saleId,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.success(
+          data: null,
+          message: jsonResponse['message'] ?? 'Discount marked as used',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to use discount',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ==================== ITEM QUANTITY OFFERS API (Leruma-specific) ====================
+
+  /// Check if quantity offer is available for item/customer/location/date
+  Future<ApiResponse<CheckOfferResponse>> checkQuantityOffer({
+    required int itemId,
+    required int locationId,
+    int? customerId,
+    String? date,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/item_quantity_offers/check').replace(
+        queryParameters: {
+          'item_id': itemId.toString(),
+          'stock_location_id': locationId.toString(),
+          if (customerId != null) 'customer_id': customerId.toString(),
+          if (date != null) 'date': date,
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final checkResponse = CheckOfferResponse.fromJson(data);
+          return ApiResponse.success(
+            data: checkResponse,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.success(
+            data: CheckOfferResponse(available: false, offer: null),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to check offer',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Calculate reward quantity for a purchase
+  Future<ApiResponse<RewardCalculationResponse>> calculateReward({
+    required int offerId,
+    required double purchasedQuantity,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/item_quantity_offers/calculate_reward'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'offer_id': offerId,
+          'purchased_quantity': purchasedQuantity,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final calculation = RewardCalculationResponse.fromJson(data);
+          return ApiResponse.success(
+            data: calculation,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.error(message: 'Invalid response format');
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to calculate reward',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Record offer redemption when sale completes
+  Future<ApiResponse<Map<String, dynamic>>> redeemOffer({
+    required int offerId,
+    required int saleId,
+    required int itemId,
+    required int locationId,
+    int? customerId,
+    required double purchasedQuantity,
+    required double rewardQuantity,
+    int? ratioMultiplier,
+    int? tierId,
+    required double itemUnitPrice,
+    required double totalDiscountValue,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/item_quantity_offers/redeem'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'offer_id': offerId,
+          'sale_id': saleId,
+          'item_id': itemId,
+          'stock_location_id': locationId,
+          if (customerId != null) 'customer_id': customerId,
+          'purchased_quantity': purchasedQuantity,
+          'reward_quantity': rewardQuantity,
+          if (ratioMultiplier != null) 'ratio_multiplier': ratioMultiplier,
+          if (tierId != null) 'tier_id': tierId,
+          'item_unit_price': itemUnitPrice,
+          'total_discount_value': totalDiscountValue,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] ?? {};
+        return ApiResponse.success(
+          data: data as Map<String, dynamic>,
+          message: jsonResponse['message'] ?? 'Offer redeemed successfully',
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to redeem offer',
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get all active offers for a customer at a location
+  Future<ApiResponse<ActiveOffersResponse>> getActiveOffers({
+    required int locationId,
+    int? customerId,
+    String? date,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/item_quantity_offers/active').replace(
+        queryParameters: {
+          'stock_location_id': locationId.toString(),
+          if (customerId != null) 'customer_id': customerId.toString(),
+          if (date != null) 'date': date,
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+
+        if (data != null && data is Map<String, dynamic>) {
+          final offersResponse = ActiveOffersResponse.fromJson(data);
+          return ApiResponse.success(
+            data: offersResponse,
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        } else {
+          return ApiResponse.success(
+            data: ActiveOffersResponse(offers: [], count: 0),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch offers',
         );
       }
     } catch (e) {

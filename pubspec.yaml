@@ -31,6 +31,9 @@ dependencies:
   # Shared preferences
   shared_preferences: ^2.2.2
 
+  # Crypto for password hashing
+  crypto: ^3.0.3
+
   # Loading indicators
   flutter_spinkit: ^5.2.0
 
@@ -55,6 +58,16 @@ dependencies:
 
   # URL launcher for external links
   url_launcher: ^6.2.2
+
+  # SQLite database for offline support
+  sqflite: ^2.3.0
+  path: ^1.8.3
+
+  # Network connectivity monitoring
+  connectivity_plus: ^5.0.2
+
+  # UUID generation for local IDs
+  uuid: ^4.2.1
 
 dev_dependencies:
   flutter_test:

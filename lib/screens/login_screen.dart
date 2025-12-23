@@ -9,6 +9,7 @@ import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../widgets/offline_indicator.dart';
 import '../config/clients_config.dart';
 import 'main_navigation.dart';
 import 'client_selector_screen.dart';
@@ -586,6 +587,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
+            ),
+            // Offline Indicator
+            Positioned(
+              top: 12,
+              left: 12,
+              child: OfflineIndicator(compact: true),
             ),
             // Theme Toggle Button
             Positioned(

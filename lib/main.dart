@@ -7,6 +7,8 @@ import 'providers/receiving_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/permission_provider.dart';
 import 'providers/location_provider.dart';
+import 'providers/connectivity_provider.dart';
+import 'providers/offline_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/client_selector_screen.dart';
@@ -27,19 +29,31 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => PermissionProvider()),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
-        ChangeNotifierProxyProvider2<PermissionProvider, LocationProvider, AuthProvider>(
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
+        ChangeNotifierProxyProvider3<PermissionProvider, LocationProvider, ConnectivityProvider, AuthProvider>(
           create: (context) => AuthProvider()
             ..setPermissionProvider(
               Provider.of<PermissionProvider>(context, listen: false),
             )
             ..setLocationProvider(
               Provider.of<LocationProvider>(context, listen: false),
+            )
+            ..setConnectivityProvider(
+              Provider.of<ConnectivityProvider>(context, listen: false),
             ),
-          update: (context, permissionProvider, locationProvider, authProvider) {
+          update: (context, permissionProvider, locationProvider, connectivityProvider, authProvider) {
             authProvider!.setPermissionProvider(permissionProvider);
             authProvider.setLocationProvider(locationProvider);
+            authProvider.setConnectivityProvider(connectivityProvider);
             return authProvider;
           },
+        ),
+        ChangeNotifierProxyProvider<ConnectivityProvider, OfflineProvider>(
+          create: (context) => OfflineProvider(
+            connectivityProvider: Provider.of<ConnectivityProvider>(context, listen: false),
+            apiService: ApiService(),
+          ),
+          update: (context, connectivityProvider, offlineProvider) => offlineProvider!,
         ),
         ChangeNotifierProvider(create: (_) => SaleProvider()),
         ChangeNotifierProvider(create: (_) => ReceivingProvider()),
@@ -193,6 +207,10 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
+      // Initialize connectivity provider
+      final connectivityProvider = context.read<ConnectivityProvider>();
+      await connectivityProvider.initialize();
+
       // Check if client is selected
       final prefs = await SharedPreferences.getInstance();
       final selectedClientId = prefs.getString('selected_client_id');
@@ -208,7 +226,16 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       // In RELEASE mode or if client is already selected, initialize API service with client
-      await ApiService.getCurrentClient();
+      final client = await ApiService.getCurrentClient();
+
+      // Initialize offline provider only if offline mode is enabled for this client
+      if (client.features.hasOfflineMode) {
+        final offlineProvider = context.read<OfflineProvider>();
+        await offlineProvider.initialize(client.id);
+        debugPrint('Offline mode enabled for ${client.displayName}');
+      } else {
+        debugPrint('Offline mode disabled for ${client.displayName}');
+      }
 
       final authProvider = context.read<AuthProvider>();
       final isAuthenticated = authProvider.isAuthenticated;

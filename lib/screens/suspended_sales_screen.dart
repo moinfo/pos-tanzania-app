@@ -112,34 +112,72 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // Get sale details
-    final response = await _apiService.getSaleDetails(sale.saleId);
+    try {
+      // Get sale details
+      debugPrint('Resume sale: Loading sale details for sale_id=${sale.saleId}');
+      final response = await _apiService.getSaleDetails(sale.saleId);
 
-    if (!mounted) return;
-    Navigator.pop(context); // Close loading
+      if (!mounted) return;
 
-    if (response.isSuccess && response.data != null) {
-      final saleProvider = context.read<SaleProvider>();
+      if (response.isSuccess && response.data != null) {
+        final saleProvider = context.read<SaleProvider>();
 
-      // Load sale into cart
-      saleProvider.clearCart();
+        // Load sale into cart
+        saleProvider.clearCart();
 
-      // Set customer
-      if (sale.customerId != null) {
-        // We'll need to load the customer details
-        // For now, just set the ID - the provider should handle loading customer
-        // This is a simplification - you may need to fetch customer details from API
-      }
+        // Set customer if available - MUST happen before adding items
+        if (sale.customerId != null) {
+          debugPrint('Resume sale: Loading customer_id=${sale.customerId}');
+          try {
+            // Load customer details from API
+            final customerResponse = await _apiService.getCustomer(sale.customerId!);
+            debugPrint('Resume sale: Customer API response success=${customerResponse.isSuccess}');
+            if (customerResponse.isSuccess && customerResponse.data != null) {
+              debugPrint('Resume sale: Setting customer ${customerResponse.data!.fullName}');
+              saleProvider.setCustomer(customerResponse.data);
+            } else {
+              debugPrint('Resume sale: Customer load failed - ${customerResponse.message}');
+            }
+          } catch (e) {
+            debugPrint('Resume sale: Error loading customer: $e');
+          }
+        } else {
+          debugPrint('Resume sale: No customer_id in suspended sale');
+        }
 
-      // Add items to cart
-      for (final item in response.data!.items ?? []) {
-        saleProvider.addSaleItem(item);
-      }
+        // Set stock location from LocationProvider (needed for discount checks)
+        final locationProvider = context.read<LocationProvider>();
+        if (locationProvider.selectedLocation != null) {
+          saleProvider.setStockLocation(locationProvider.selectedLocation!.locationId);
+          debugPrint('Resume sale: Set stock location to ${locationProvider.selectedLocation!.locationId}');
+        }
 
-      // Delete the suspended sale after loading
-      await _apiService.deleteSuspendedSale(sale.saleId);
+        // Add items to cart - reset discounts to avoid corruption
+        debugPrint('Resume sale: Adding ${response.data!.items?.length ?? 0} items to cart');
+        for (final item in response.data!.items ?? []) {
+          // Clear any corrupted discount values - will be recalculated if applicable
+          final cleanItem = item.copyWith(
+            discount: 0.0, // Use 0.0 for double type
+            discountType: 1, // Fixed discount
+          );
+          saleProvider.addSaleItem(cleanItem);
+        }
 
-      if (mounted) {
+        // Re-check for one-time discounts and quantity offers after loading items
+        if (sale.customerId != null && saleProvider.selectedCustomer != null) {
+          debugPrint('Resume sale: Checking one-time discounts for customer=${saleProvider.selectedCustomer!.personId}, location=${saleProvider.stockLocation}');
+          await saleProvider.checkAllOneTimeDiscounts();
+        }
+        debugPrint('Resume sale: Checking quantity offers');
+        await saleProvider.checkAllQuantityOffers();
+
+        // Delete the suspended sale after loading
+        debugPrint('Resume sale: Deleting suspended sale');
+        await _apiService.deleteSuspendedSale(sale.saleId);
+
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading dialog
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Sale resumed successfully'),
@@ -149,9 +187,10 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
 
         // Navigate back to sales screen
         Navigator.pop(context);
-      }
-    } else {
-      if (mounted) {
+      } else {
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading dialog
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to resume sale: ${response.message}'),
@@ -159,6 +198,17 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           ),
         );
       }
+    } catch (e) {
+      debugPrint('Resume sale: Unexpected error: $e');
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error resuming sale: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
@@ -633,13 +683,29 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                         ),
                                       ],
                                     ),
-                                    Text(
-                                      '${_currencyFormat.format(sale.subtotal)} TSh',
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primary,
-                                      ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        if (sale.totalDiscount > 0) ...[
+                                          Text(
+                                            '${_currencyFormat.format(sale.subtotal)} TSh',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[500],
+                                              decoration: TextDecoration.lineThrough,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                        ],
+                                        Text(
+                                          '${_currencyFormat.format(sale.total)} TSh',
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

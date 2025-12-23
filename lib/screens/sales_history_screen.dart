@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/pdf_service.dart';
 import '../models/sale.dart';
 import '../models/stock_location.dart';
 import '../providers/location_provider.dart';
@@ -452,35 +453,88 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                             }
 
                             final sale = displayList[index];
+                            // Check if sale has any offer items (from API response)
+                            final hasOfferItems = sale.hasOfferItems == true;
                         return Card(
                           margin: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 4,
                           ),
+                          color: isDark ? AppColors.darkCard : Colors.white,
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: AppColors.primary,
-                              child: Text(
-                                '#${sale.saleId}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                              radius: 24,
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    '#${sale.saleId}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                            title: Text(
-                              sale.customerName ?? 'Walk-in',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    sale.customerName ?? 'Walk-in',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? AppColors.darkText : AppColors.text,
+                                    ),
+                                  ),
+                                ),
+                                if (hasOfferItems)
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.success,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.card_giftcard,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'OFFER',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(_dateFormat.format(DateTime.parse(sale.saleTime))),
+                                Text(
+                                  _dateFormat.format(DateTime.parse(sale.saleTime)),
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.darkTextLight : Colors.grey[600],
+                                  ),
+                                ),
                                 if (sale.paymentType != null)
                                   Text(
                                     sale.paymentType!,
                                     style: TextStyle(
-                                      color: Colors.grey[600],
+                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                                       fontSize: 12,
                                     ),
                                   ),
@@ -605,6 +659,8 @@ class SaleDetailsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat('#,##0', 'en_US');
     final dateFormat = DateFormat('MMM dd, yyyy hh:mm a');
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -612,9 +668,9 @@ class SaleDetailsSheet extends StatelessWidget {
       maxChildSize: 0.95,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
@@ -624,7 +680,7 @@ class SaleDetailsSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: isDark ? Colors.grey[600] : Colors.grey[300],
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -637,19 +693,36 @@ class SaleDetailsSheet extends StatelessWidget {
                   children: [
                     Text(
                       'Sale #${sale.saleId}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkText : AppColors.text,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
+                    Row(
+                      children: [
+                        // Print button
+                        IconButton(
+                          icon: Icon(Icons.print, color: AppColors.primary),
+                          tooltip: 'Print Receipt',
+                          onPressed: () => _printReceipt(context, sale),
+                        ),
+                        // Share button
+                        IconButton(
+                          icon: Icon(Icons.share, color: AppColors.primary),
+                          tooltip: 'Share Receipt',
+                          onPressed: () => _shareReceipt(context, sale),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: isDark ? AppColors.darkText : AppColors.text),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              const Divider(),
+              Divider(color: isDark ? Colors.grey[700] : Colors.grey[300]),
 
               // Content
               Expanded(
@@ -661,44 +734,79 @@ class SaleDetailsSheet extends StatelessWidget {
                     _InfoRow(
                       label: 'Date & Time',
                       value: dateFormat.format(DateTime.parse(sale.saleTime)),
+                      isDark: isDark,
                     ),
                     _InfoRow(
                       label: 'Customer',
                       value: sale.customerName ?? 'Walk-in',
+                      isDark: isDark,
                     ),
                     _InfoRow(
                       label: 'Employee',
                       value: sale.employeeName ?? 'N/A',
+                      isDark: isDark,
                     ),
                     if (sale.comment != null && sale.comment!.isNotEmpty)
                       _InfoRow(
                         label: 'Comment',
                         value: sale.comment!,
+                        isDark: isDark,
                       ),
                     const SizedBox(height: 16),
 
                     // Items
-                    const Text(
+                    Text(
                       'Items',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkText : AppColors.text,
                       ),
                     ),
                     const SizedBox(height: 8),
                     if (sale.items != null)
-                      ...sale.items!.map((item) => Card(
+                      ...sale.items!.map((item) {
+                        // Detect free offer items by unitPrice = 0 or quantityOfferFree flag
+                        final isFreeItem = item.unitPrice == 0 || item.quantityOfferFree == true;
+
+                        return Card(
                             margin: const EdgeInsets.only(bottom: 8),
+                            color: isFreeItem
+                                ? (isDark ? AppColors.success.withOpacity(0.15) : AppColors.success.withOpacity(0.08))
+                                : (isDark ? AppColors.darkBackground : Colors.white),
                             child: Padding(
                               padding: const EdgeInsets.all(12.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    item.itemName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          item.itemName,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? AppColors.darkText : AppColors.text,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isFreeItem)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Text(
+                                            'FREE',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
@@ -707,15 +815,52 @@ class SaleDetailsSheet extends StatelessWidget {
                                       Text(
                                         '${item.quantity.toStringAsFixed(0)} x '
                                         '${currencyFormat.format(item.unitPrice)} TSh',
+                                        style: TextStyle(
+                                          color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                        ),
                                       ),
                                       Text(
                                         '${currencyFormat.format(item.subtotal)} TSh',
-                                        style: const TextStyle(
-                                          color: Colors.grey,
+                                        style: TextStyle(
+                                          color: isDark ? Colors.grey[400] : Colors.grey,
                                         ),
                                       ),
                                     ],
                                   ),
+                                  // Show if this item was a free offer item
+                                  if (isFreeItem) ...[
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.success.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: AppColors.success.withOpacity(0.4),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.card_giftcard,
+                                            size: 14,
+                                            color: AppColors.success,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'FREE (Quantity Offer)',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.success,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                   if (item.discount > 0) ...[
                                     const SizedBox(height: 4),
                                     Row(
@@ -739,14 +884,15 @@ class SaleDetailsSheet extends StatelessWidget {
                                       ],
                                     ),
                                   ],
-                                  const Divider(height: 12),
+                                  Divider(height: 12, color: isDark ? Colors.grey[700] : Colors.grey[300]),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Line Total:',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
+                                          color: isDark ? AppColors.darkText : AppColors.text,
                                         ),
                                       ),
                                       Text(
@@ -761,12 +907,13 @@ class SaleDetailsSheet extends StatelessWidget {
                                 ],
                               ),
                             ),
-                          )),
+                          );
+                      }),
                     const SizedBox(height: 16),
 
                     // Totals
                     Card(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: isDark ? AppColors.darkBackground : AppColors.primary.withOpacity(0.1),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -774,8 +921,8 @@ class SaleDetailsSheet extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Subtotal:'),
-                                Text('${currencyFormat.format(sale.subtotal)} TSh'),
+                                Text('Subtotal:', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)),
+                                Text('${currencyFormat.format(sale.subtotal)} TSh', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)),
                               ],
                             ),
                             if (sale.items != null && sale.items!.any((item) => item.discount > 0)) ...[
@@ -801,19 +948,20 @@ class SaleDetailsSheet extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Tax:'),
-                                Text('${currencyFormat.format(sale.taxTotal)} TSh'),
+                                Text('Tax:', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)),
+                                Text('${currencyFormat.format(sale.taxTotal)} TSh', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)),
                               ],
                             ),
-                            const Divider(height: 16),
+                            Divider(height: 16, color: isDark ? Colors.grey[600] : Colors.grey[300]),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
+                                Text(
                                   'Total:',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: isDark ? AppColors.darkText : AppColors.text,
                                   ),
                                 ),
                                 Text(
@@ -834,25 +982,31 @@ class SaleDetailsSheet extends StatelessWidget {
 
                     // Payments
                     if (sale.payments != null && sale.payments!.isNotEmpty) ...[
-                      const Text(
+                      Text(
                         'Payments',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.darkText : AppColors.text,
                         ),
                       ),
                       const SizedBox(height: 8),
                       ...sale.payments!.map((payment) => Card(
+                            color: isDark ? AppColors.darkBackground : Colors.white,
                             child: ListTile(
                               leading: Icon(
                                 _getPaymentIcon(payment.paymentType),
                                 color: AppColors.primary,
                               ),
-                              title: Text(payment.paymentType),
+                              title: Text(
+                                payment.paymentType,
+                                style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text),
+                              ),
                               trailing: Text(
                                 '${currencyFormat.format(payment.amount)} TSh',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  color: isDark ? AppColors.darkText : AppColors.text,
                                 ),
                               ),
                             ),
@@ -868,6 +1022,82 @@ class SaleDetailsSheet extends StatelessWidget {
     );
   }
 
+  void _printReceipt(BuildContext context, Sale sale) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Preparing receipt...'),
+            ],
+          ),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      await PdfService.printSaleReceipt(
+        sale,
+        companyName: ApiService.currentClient?.name ?? 'POS Tanzania',
+        companyAddress: null,
+        companyPhone: null,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to print receipt: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _shareReceipt(BuildContext context, Sale sale) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Preparing receipt...'),
+            ],
+          ),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      await PdfService.shareSaleReceiptPdf(
+        sale,
+        companyName: ApiService.currentClient?.name ?? 'POS Tanzania',
+        companyAddress: null,
+        companyPhone: null,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share receipt: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   IconData _getPaymentIcon(String paymentType) {
     final type = paymentType.toLowerCase();
     if (type.contains('cash')) return Icons.money;
@@ -880,8 +1110,9 @@ class SaleDetailsSheet extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
+  final bool isDark;
 
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, required this.value, this.isDark = false});
 
   @override
   Widget build(BuildContext context) {
@@ -895,15 +1126,16 @@ class _InfoRow extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.darkText : AppColors.text,
               ),
             ),
           ),

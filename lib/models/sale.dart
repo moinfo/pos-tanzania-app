@@ -15,6 +15,7 @@ class Sale {
   final String? paymentType;
   final List<SaleItem>? items;
   final List<SalePayment>? payments;
+  final bool? hasOfferItems; // True if sale has quantity offer free items
 
   Sale({
     this.saleId,
@@ -33,6 +34,7 @@ class Sale {
     this.paymentType,
     this.items,
     this.payments,
+    this.hasOfferItems,
   });
 
   factory Sale.fromJson(Map<String, dynamic> json) {
@@ -57,6 +59,7 @@ class Sale {
       payments: json['payments'] != null
           ? (json['payments'] as List).map((p) => SalePayment.fromJson(p)).toList()
           : null,
+      hasOfferItems: json['has_offer_items'] == true,
     );
   }
 
@@ -108,6 +111,11 @@ class SaleItem {
   final List<SaleTax>? taxes;
   final double? availableStock; // Available stock quantity (for display in cart)
 
+  // Quantity offer fields
+  final bool quantityOfferFree; // True if this is a free item from an offer
+  final int? parentLine; // Line number of parent item (for free items)
+  final int? quantityOfferId; // Offer ID that generated this free item
+
   SaleItem({
     required this.itemId,
     required this.itemName,
@@ -125,6 +133,9 @@ class SaleItem {
     double? lineTotal,
     this.taxes,
     this.availableStock,
+    this.quantityOfferFree = false,
+    this.parentLine,
+    this.quantityOfferId,
   })  : subtotal = subtotal ?? (quantity * unitPrice),
         lineTotal = lineTotal ?? (quantity * unitPrice);
 
@@ -217,6 +228,9 @@ class SaleItem {
     int? stockLocationId,
     List<SaleTax>? taxes,
     double? availableStock,
+    bool? quantityOfferFree,
+    int? parentLine,
+    int? quantityOfferId,
   }) {
     return SaleItem(
       itemId: itemId ?? this.itemId,
@@ -233,6 +247,9 @@ class SaleItem {
       stockLocationId: stockLocationId ?? this.stockLocationId,
       taxes: taxes ?? this.taxes,
       availableStock: availableStock ?? this.availableStock,
+      quantityOfferFree: quantityOfferFree ?? this.quantityOfferFree,
+      parentLine: parentLine ?? this.parentLine,
+      quantityOfferId: quantityOfferId ?? this.quantityOfferId,
     );
   }
 }
@@ -339,6 +356,8 @@ class SuspendedSale {
   final String? comment;
   final int itemCount;
   final double subtotal;
+  final double totalDiscount;
+  final double total;
 
   SuspendedSale({
     required this.saleId,
@@ -350,9 +369,15 @@ class SuspendedSale {
     this.comment,
     required this.itemCount,
     required this.subtotal,
-  });
+    this.totalDiscount = 0,
+    double? total,
+  }) : total = total ?? subtotal;
 
   factory SuspendedSale.fromJson(Map<String, dynamic> json) {
+    final subtotal = (json['subtotal'] as num).toDouble();
+    final totalDiscount = (json['total_discount'] as num?)?.toDouble() ?? 0;
+    final total = (json['total'] as num?)?.toDouble() ?? (subtotal - totalDiscount);
+
     return SuspendedSale(
       saleId: json['sale_id'] as int,
       saleTime: json['sale_time'] as String,
@@ -362,7 +387,9 @@ class SuspendedSale {
       customerName: json['customer_name'] as String?,
       comment: json['comment'] as String?,
       itemCount: json['item_count'] as int,
-      subtotal: (json['subtotal'] as num).toDouble(),
+      subtotal: subtotal,
+      totalDiscount: totalDiscount,
+      total: total,
     );
   }
 }

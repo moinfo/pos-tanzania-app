@@ -19,6 +19,9 @@ class ClientFeatures {
   final bool hasSuppliersByLocation; // Leruma-specific: filter suppliers by stock location's supervisor
   final bool hasReceivingCreditCardOnly; // Leruma-specific: only allow Credit Card payment in receivings
 
+  // Offline mode configuration
+  final bool hasOfflineMode; // Enable/disable offline functionality
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -38,6 +41,7 @@ class ClientFeatures {
     this.hasReceivingsSummary = false, // Default: disabled (only Leruma uses this)
     this.hasSuppliersByLocation = false, // Default: disabled (only Leruma uses this)
     this.hasReceivingCreditCardOnly = false, // Default: disabled (only Leruma uses this)
+    this.hasOfflineMode = false, // Default: disabled - enable per client as needed
   });
 }
 

@@ -4,7 +4,10 @@ import '../providers/sale_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/offline_provider.dart';
+import '../providers/connectivity_provider.dart';
 import '../services/api_service.dart';
+import '../services/pdf_service.dart';
 import '../models/item.dart';
 import '../models/customer.dart';
 import '../models/sale.dart';
@@ -14,6 +17,7 @@ import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/offline_indicator.dart';
 import 'suspended_sheet_screen.dart';
 import 'suspended_sheet2_screen.dart';
 import 'suspended_sheet3_screen.dart';
@@ -67,8 +71,29 @@ class _SalesScreenState extends State<SalesScreen> {
     setState(() => _isLoading = true);
 
     final locationProvider = context.read<LocationProvider>();
+    final connectivityProvider = context.read<ConnectivityProvider>();
+    final offlineProvider = context.read<OfflineProvider>();
     final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
+    // Check if offline
+    if (!connectivityProvider.isOnline) {
+      debugPrint('📴 Loading items from offline database');
+      final offlineItems = await offlineProvider.getOfflineItems(
+        locationId: selectedLocationId,
+        limit: 100,
+      );
+
+      if (offlineItems.isNotEmpty) {
+        setState(() {
+          _items = offlineItems.map((data) => Item.fromJson(data)).toList();
+          _filteredItems = [];
+          _isLoading = false;
+        });
+        return;
+      }
+    }
+
+    // Online - fetch from API
     final response = await _apiService.getItems(
       limit: 100,
       locationId: selectedLocationId,
@@ -81,27 +106,80 @@ class _SalesScreenState extends State<SalesScreen> {
         _isLoading = false;
       });
     } else {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message)),
-        );
+      // If API fails, try offline as fallback
+      final offlineItems = await offlineProvider.getOfflineItems(
+        locationId: selectedLocationId,
+        limit: 100,
+      );
+
+      if (offlineItems.isNotEmpty) {
+        setState(() {
+          _items = offlineItems.map((data) => Item.fromJson(data)).toList();
+          _filteredItems = [];
+          _isLoading = false;
+        });
+        debugPrint('📴 Loaded ${_items.length} items from offline (API fallback)');
+      } else {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message)),
+          );
+        }
       }
     }
   }
 
-  void _filterItems(String query) {
-    setState(() {
-      if (query.isEmpty) {
+  void _filterItems(String query) async {
+    if (query.isEmpty) {
+      setState(() {
         _filteredItems = []; // Don't show items when search is empty
-      } else {
-        _filteredItems = _items
-            .where((item) =>
-                item.name.toLowerCase().contains(query.toLowerCase()) ||
-                (item.itemNumber?.toLowerCase().contains(query.toLowerCase()) ?? false))
-            .toList();
-      }
-    });
+      });
+      return;
+    }
+
+    final locationProvider = context.read<LocationProvider>();
+    final connectivityProvider = context.read<ConnectivityProvider>();
+    final offlineProvider = context.read<OfflineProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
+
+    // Check if offline - search local database
+    if (!connectivityProvider.isOnline) {
+      final offlineItems = await offlineProvider.getOfflineItems(
+        locationId: selectedLocationId,
+        search: query,
+        limit: 50,
+      );
+
+      setState(() {
+        _filteredItems = offlineItems.map((data) => Item.fromJson(data)).toList();
+      });
+      return;
+    }
+
+    // Online - search via API
+    final response = await _apiService.getItems(
+      search: query,
+      limit: 50,
+      locationId: selectedLocationId,
+    );
+
+    if (response.isSuccess && response.data != null) {
+      setState(() {
+        _filteredItems = response.data!;
+      });
+    } else {
+      // Fallback to offline search if API fails
+      final offlineItems = await offlineProvider.getOfflineItems(
+        locationId: selectedLocationId,
+        search: query,
+        limit: 50,
+      );
+
+      setState(() {
+        _filteredItems = offlineItems.map((data) => Item.fromJson(data)).toList();
+      });
+    }
   }
 
   void _addItemToCart(Item item) {
@@ -118,6 +196,9 @@ class _SalesScreenState extends State<SalesScreen> {
       return;
     }
 
+    // Check if client is Leruma (allows selling out of stock)
+    final isLerumaClient = ApiService.currentClient?.id == 'leruma';
+
     // Get stock quantity for selected location
     double currentStock = 0;
     if (item.quantityByLocation != null) {
@@ -126,16 +207,19 @@ class _SalesScreenState extends State<SalesScreen> {
       currentStock = item.quantity ?? 0;
     }
 
-    if (currentStock <= 0) {
-      // Show error - out of stock
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${item.name} is out of stock at ${selectedLocation.locationName}!'),
-          backgroundColor: AppColors.error,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
+    // Only enforce stock validation for non-Leruma clients
+    if (!isLerumaClient) {
+      if (currentStock <= 0) {
+        // Show error - out of stock
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.name} is out of stock at ${selectedLocation.locationName}!'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
     }
 
     final saleProvider = context.read<SaleProvider>();
@@ -155,8 +239,8 @@ class _SalesScreenState extends State<SalesScreen> {
         : 0;
     final totalQuantityInCart = currentQuantityInCart + 1;
 
-    // Check if adding one more would exceed available stock
-    if (totalQuantityInCart > currentStock) {
+    // Only enforce stock limit for non-Leruma clients
+    if (!isLerumaClient && totalQuantityInCart > currentStock) {
       // Show error - insufficient stock
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -173,9 +257,14 @@ class _SalesScreenState extends State<SalesScreen> {
     // Add to cart with location-specific stock
     saleProvider.addItem(item, quantity: 1, locationId: selectedLocation.locationId);
 
+    // Show different messages for Leruma vs non-Leruma
+    final successMessage = isLerumaClient
+        ? '${item.name} added to cart (${totalQuantityInCart.toStringAsFixed(0)})'
+        : '${item.name} added to cart (${totalQuantityInCart.toStringAsFixed(0)}/${currentStock.toStringAsFixed(0)})';
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${item.name} added to cart (${totalQuantityInCart.toStringAsFixed(0)}/${currentStock.toStringAsFixed(0)})'),
+        content: Text(successMessage),
         backgroundColor: AppColors.success,
         duration: const Duration(seconds: 1),
       ),
@@ -250,9 +339,13 @@ class _SalesScreenState extends State<SalesScreen> {
     setState(() => _isProcessing = true);
 
     try {
+      final customerId = saleProvider.selectedCustomer?.personId;
+      debugPrint('Suspend sale: customer_id=$customerId, customer_name=${saleProvider.selectedCustomer?.fullName}');
+      debugPrint('Suspend sale: ${saleProvider.cartItems.length} items in cart');
+
       final response = await _apiService.suspendSale(
         items: saleProvider.cartItems,
-        customerId: saleProvider.selectedCustomer?.personId,
+        customerId: customerId,
         comment: comment?.isNotEmpty == true ? comment : null,
       );
 
@@ -291,6 +384,116 @@ class _SalesScreenState extends State<SalesScreen> {
         );
       }
     }
+  }
+
+  void _showSaleSuccessDialog(Sale sale) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: AppColors.success, size: 32),
+            const SizedBox(width: 12),
+            const Text('Sale Completed!'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Sale #${sale.saleId} has been completed successfully.',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Total: ${NumberFormat('#,##0').format(sale.total)} TSh',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Would you like to print or share the receipt?',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No Thanks'),
+          ),
+          TextButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await PdfService.shareSaleReceiptPdf(
+                  sale,
+                  companyName: ApiService.currentClient?.name ?? 'POS Tanzania',
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to share receipt: $e'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.share),
+            label: const Text('Share'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Preparing receipt...'),
+                      ],
+                    ),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+                await PdfService.printSaleReceipt(
+                  sale,
+                  companyName: ApiService.currentClient?.name ?? 'POS Tanzania',
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to print receipt: $e'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.print),
+            label: const Text('Print'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showDebugDialog(Map<String, dynamic> saleData) {
@@ -463,16 +666,40 @@ class _SalesScreenState extends State<SalesScreen> {
       return;
     }
 
-    // Show payment dialog
+    // Check if already fully paid
+    if (saleProvider.isFullyPaid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sale is already fully paid'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    // Show payment dialog with remaining amount due
+    final amountDue = saleProvider.amountDue;
     final payment = await showDialog<SalePayment>(
       context: context,
       builder: (context) => PaymentDialog(
-        total: saleProvider.amountDue > 0 ? saleProvider.amountDue : saleProvider.total,
+        total: amountDue,
         customer: saleProvider.selectedCustomer,
+        maxAmount: amountDue, // Pass max amount to prevent overpayment
       ),
     );
 
     if (payment == null) return;
+
+    // Validate payment doesn't exceed amount due
+    if (payment.amount > amountDue) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Payment amount cannot exceed amount due (${amountDue.toStringAsFixed(0)} TSh)'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     // Add payment to list
     saleProvider.addPayment(payment);
@@ -553,15 +780,21 @@ class _SalesScreenState extends State<SalesScreen> {
       setState(() => _isProcessing = false);
 
       if (response.isSuccess) {
+        // Mark one-time discounts as used BEFORE clearing cart
+        if (response.data?.saleId != null) {
+          final saleId = response.data!.saleId!;
+          debugPrint('Sale completed: Marking discounts as used for sale_id=$saleId');
+          await saleProvider.markDiscountsAsUsed(saleId);
+          await saleProvider.markOffersAsRedeemed(saleId);
+        }
+
         // Clear cart
         saleProvider.clearCart();
 
-        // Show debug info dialog
+        // Show success message and ask about printing
         if (mounted && response.data != null) {
-          _showDebugDialog(response.data!.toJson());
-        }
-
-        if (mounted) {
+          _showSaleSuccessDialog(response.data!);
+        } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Sale completed successfully!'),
@@ -702,6 +935,11 @@ class _SalesScreenState extends State<SalesScreen> {
           ],
         ),
         actions: [
+          // Offline indicator
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: OfflineIndicator(compact: true),
+          ),
           // Location selector
           if (locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
             Center(
@@ -709,7 +947,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: PopupMenuButton<StockLocation>(
@@ -796,33 +1034,75 @@ class _SalesScreenState extends State<SalesScreen> {
           ? _buildSkeletonGrid(isDark)
           : Column(
               children: [
-                // Search bar
+                // Search bar - disabled if no customer selected
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: TextField(
-                    controller: _searchController,
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                    decoration: InputDecoration(
-                      hintText: 'Search items...',
-                      hintStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                      prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.clear, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterItems('');
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: isDark ? AppColors.darkCard : Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    onChanged: _filterItems,
+                  child: Consumer<SaleProvider>(
+                    builder: (context, saleProvider, child) {
+                      final hasCustomer = saleProvider.selectedCustomer != null;
+
+                      return GestureDetector(
+                        onTap: !hasCustomer ? () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Please select a customer first'),
+                              backgroundColor: AppColors.warning,
+                              behavior: SnackBarBehavior.floating,
+                              action: SnackBarAction(
+                                label: 'SELECT',
+                                textColor: Colors.white,
+                                onPressed: _selectCustomer,
+                              ),
+                            ),
+                          );
+                        } : null,
+                        child: TextField(
+                          controller: _searchController,
+                          enabled: hasCustomer,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          decoration: InputDecoration(
+                            hintText: hasCustomer ? 'Search items...' : 'Select customer first to search items',
+                            hintStyle: TextStyle(
+                              color: hasCustomer
+                                  ? (isDark ? Colors.grey.shade400 : Colors.grey.shade600)
+                                  : AppColors.warning,
+                            ),
+                            prefixIcon: Icon(
+                              hasCustomer ? Icons.search : Icons.person_add_outlined,
+                              color: hasCustomer
+                                  ? (isDark ? Colors.grey.shade300 : Colors.grey.shade700)
+                                  : AppColors.warning,
+                            ),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(Icons.clear, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      _filterItems('');
+                                    },
+                                  )
+                                : null,
+                            filled: true,
+                            fillColor: hasCustomer
+                                ? (isDark ? AppColors.darkCard : Colors.white)
+                                : (isDark ? AppColors.darkCard.withOpacity(0.5) : Colors.grey.shade200),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: hasCustomer ? BorderSide.none : BorderSide(color: AppColors.warning, width: 1),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            disabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.warning.withOpacity(0.5), width: 1),
+                            ),
+                          ),
+                          onChanged: _filterItems,
+                        ),
+                      );
+                    },
                   ),
                 ),
 
@@ -894,21 +1174,23 @@ class _SalesScreenState extends State<SalesScreen> {
                       return const SizedBox.shrink();
                     }
 
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, -2),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                    return Flexible(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkCard : Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, -2),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(14),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
                           // Total and items count
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1090,23 +1372,27 @@ class _SalesScreenState extends State<SalesScreen> {
                               // Row 2: Add Payment and Complete Sale
                               Row(
                                 children: [
-                                  // Add Payment button - requires permission
+                                  // Add Payment button - requires permission, disabled when fully paid
                                   Expanded(
                                     child: PermissionWrapper(
                                       permissionId: PermissionIds.salesAddPayment,
                                       child: SizedBox(
                                         height: 48,
                                         child: ElevatedButton.icon(
-                                          onPressed: _isProcessing ? null : _addPayment,
+                                          onPressed: (_isProcessing || saleProvider.isFullyPaid)
+                                              ? null
+                                              : _addPayment,
                                           icon: const Icon(Icons.add_card, size: 20),
                                           label: const Text(
                                             'Add Payment',
                                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                                           ),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.primary,
+                                            backgroundColor: saleProvider.isFullyPaid
+                                                ? Colors.grey
+                                                : AppColors.primary,
                                             foregroundColor: Colors.white,
-                                            elevation: 2,
+                                            elevation: saleProvider.isFullyPaid ? 0 : 2,
                                           ),
                                         ),
                                       ),
@@ -1159,7 +1445,9 @@ class _SalesScreenState extends State<SalesScreen> {
                               ),
                             ],
                           ),
-                        ],
+                                ],
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -1348,6 +1636,141 @@ class _CartScreenState extends State<CartScreen> {
                                           ),
                                         ),
                                       ],
+                                      // Show "Discount Applied" when quantity meets requirement
+                                      if (saleProvider.hasOneTimeDiscount(item.itemId)) ...[
+                                        const SizedBox(height: 2),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(
+                                              color: AppColors.success.withOpacity(0.3),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.local_offer,
+                                                size: 12,
+                                                color: AppColors.success,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'One-time Discount Applied',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.success,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      // Show "Discount Available" when quantity NOT yet sufficient
+                                      if (saleProvider.hasPendingOneTimeDiscount(item.itemId)) ...[
+                                        const SizedBox(height: 2),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.warning.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(
+                                              color: AppColors.warning.withOpacity(0.3),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.local_offer_outlined,
+                                                size: 12,
+                                                color: AppColors.warning,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Discount Available (needs ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"} qty)',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.warning,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      if (saleProvider.hasQuantityOffer(item.itemId)) ...[
+                                        const SizedBox(height: 4),
+                                        Builder(
+                                          builder: (context) {
+                                            final offer = saleProvider.getQuantityOffer(item.itemId)!;
+                                            final freeQty = offer.calculateReward(item.quantity);
+                                            final isEligible = freeQty > 0;
+                                            final offerColor = isEligible ? AppColors.success : AppColors.primary;
+
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: offerColor.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: offerColor.withOpacity(0.4),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        isEligible ? Icons.check_circle : Icons.card_giftcard,
+                                                        size: 14,
+                                                        color: offerColor,
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        offer.offerDescription,
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color: offerColor,
+                                                          fontWeight: FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  if (isEligible) ...[
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      'You get ${freeQty.toStringAsFixed(0)} FREE!',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: AppColors.success,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ] else ...[
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      'Need ${(offer.purchaseQuantity - item.quantity).toStringAsFixed(0)} more to qualify',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: offerColor.withOpacity(0.8),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -1432,8 +1855,11 @@ class _CartScreenState extends State<CartScreen> {
                                                       return;
                                                     }
 
-                                                    // Validate against available stock
-                                                    if (item.availableStock != null && newQuantity > item.availableStock!) {
+                                                    // Check if client is Leruma (allows exceeding stock)
+                                                    final isLerumaClient = ApiService.currentClient?.id == 'leruma';
+
+                                                    // Validate against available stock (only for non-Leruma clients)
+                                                    if (!isLerumaClient && item.availableStock != null && newQuantity > item.availableStock!) {
                                                       ScaffoldMessenger.of(context).showSnackBar(
                                                         SnackBar(
                                                           content: Text(
@@ -1486,8 +1912,12 @@ class _CartScreenState extends State<CartScreen> {
                                     IconButton(
                                       icon: const Icon(Icons.add_circle_outline),
                                       onPressed: () {
-                                        // Check if incrementing would exceed available stock
-                                        if (item.availableStock != null &&
+                                        // Check if client is Leruma (allows exceeding stock)
+                                        final isLerumaClient = ApiService.currentClient?.id == 'leruma';
+
+                                        // Check if incrementing would exceed available stock (only for non-Leruma clients)
+                                        if (!isLerumaClient &&
+                                            item.availableStock != null &&
                                             item.quantity + 1 > item.availableStock!) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
@@ -1506,37 +1936,42 @@ class _CartScreenState extends State<CartScreen> {
                                   ],
                                 ),
                                 // Price
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '${currencyFormat.format(item.unitPrice * item.quantity)} TSh',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: isDark ? AppColors.darkTextLight : Colors.grey,
-                                        decoration: item.discount > 0 ? TextDecoration.lineThrough : null,
-                                      ),
-                                    ),
-                                    if (item.discount > 0) ...[
-                                      const SizedBox(height: 2),
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
                                       Text(
-                                        '${currencyFormat.format(item.calculateTotal())} TSh',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ] else
-                                      Text(
-                                        '${currencyFormat.format(item.calculateTotal())} TSh',
+                                        '${currencyFormat.format(item.unitPrice * item.quantity)} TSh',
                                         style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: isDark ? AppColors.darkText : AppColors.primary,
+                                          fontSize: 16,
+                                          color: isDark ? AppColors.darkTextLight : Colors.grey,
+                                          decoration: item.discount > 0 ? TextDecoration.lineThrough : null,
                                         ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                  ],
+                                      if (item.discount > 0) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${currencyFormat.format(item.calculateTotal())} TSh',
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ] else
+                                        Text(
+                                          '${currencyFormat.format(item.calculateTotal())} TSh',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? AppColors.darkText : AppColors.primary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -1686,11 +2121,13 @@ class _CartScreenState extends State<CartScreen> {
 class PaymentDialog extends StatefulWidget {
   final double total;
   final Customer? customer;
+  final double? maxAmount; // Maximum allowed payment amount
 
   const PaymentDialog({
     super.key,
     required this.total,
     this.customer,
+    this.maxAmount,
   });
 
   @override
@@ -1811,6 +2248,11 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
     if (amount <= 0) {
       return 'Invalid amount';
+    }
+
+    // Validate amount doesn't exceed maximum (amount due)
+    if (widget.maxAmount != null && amount > widget.maxAmount!) {
+      return 'Amount cannot exceed ${_currencyFormat.format(widget.maxAmount)} TSh (amount due)';
     }
 
     // Validate credit card payment
@@ -1941,6 +2383,9 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
   Future<void> _loadCustomers() async {
     setState(() => _isLoading = true);
 
+    final connectivityProvider = context.read<ConnectivityProvider>();
+    final offlineProvider = context.read<OfflineProvider>();
+
     // For Leruma: filter customers by selected location's supervisor
     int? locationId;
     if (_hasCustomersByLocationFeature()) {
@@ -1948,6 +2393,22 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
       locationId = locationProvider.selectedLocation?.locationId;
     }
 
+    // Check if offline
+    if (!connectivityProvider.isOnline) {
+      debugPrint('📴 Loading customers from offline database');
+      final offlineCustomers = await offlineProvider.getOfflineCustomers(limit: 100);
+
+      if (offlineCustomers.isNotEmpty) {
+        setState(() {
+          _customers = offlineCustomers.map((data) => Customer.fromJson(data)).toList();
+          _filteredCustomers = _customers;
+          _isLoading = false;
+        });
+        return;
+      }
+    }
+
+    // Online - fetch from API
     final response = await _apiService.getCustomers(
       limit: 100,
       locationId: locationId,
@@ -1960,11 +2421,23 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
         _isLoading = false;
       });
     } else {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message)),
-        );
+      // Fallback to offline
+      final offlineCustomers = await offlineProvider.getOfflineCustomers(limit: 100);
+
+      if (offlineCustomers.isNotEmpty) {
+        setState(() {
+          _customers = offlineCustomers.map((data) => Customer.fromJson(data)).toList();
+          _filteredCustomers = _customers;
+          _isLoading = false;
+        });
+        debugPrint('📴 Loaded ${_customers.length} customers from offline (API fallback)');
+      } else {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message)),
+          );
+        }
       }
     }
   }

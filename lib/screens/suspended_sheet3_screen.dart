@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../services/pdf_service.dart';
 import '../models/suspended_sheet3.dart';
-import '../models/suspended_sheet.dart';
 import '../models/stock_location.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
@@ -779,29 +778,6 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
     );
   }
 
-  // Convert Sheet3Sale to SheetSale for PDF generation
-  SuspendedSheetSale _convertToSheetSale(SuspendedSheet3Sale sale) {
-    return SuspendedSheetSale(
-      saleId: sale.saleId,
-      saleTime: sale.saleTime,
-      employeeId: sale.employeeId,
-      employeeName: sale.employeeName,
-      customerId: sale.customerId,
-      customerName: sale.customerName,
-      customerPhone: sale.customerPhone,
-      comment: sale.comment,
-      items: sale.items.map((item) => SuspendedSheetItem(
-        itemId: item.itemId,
-        itemName: item.itemName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: item.discount,
-        lineTotal: item.lineTotal,
-      )).toList(),
-      saleTotal: sale.saleTotal,
-    );
-  }
-
   Future<void> _printCard(SuspendedSheet3Sale sale) async {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -811,12 +787,7 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
         ),
       );
 
-      final sheetSale = _convertToSheetSale(sale);
-
-      await PdfService.printSuspendedSale(
-        sheetSale,
-        companyName: 'Receipt Sheet',
-      );
+      await PdfService.printSheet3(sale);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -839,12 +810,7 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
         ),
       );
 
-      final sheetSale = _convertToSheetSale(sale);
-
-      await PdfService.sharePdf(
-        sheetSale,
-        companyName: 'Receipt Sheet',
-      );
+      await PdfService.shareSheet3Pdf(sale);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -867,12 +833,7 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
         ),
       );
 
-      final sheetSale = _convertToSheetSale(sale);
-
-      await PdfService.downloadPdf(
-        sheetSale,
-        companyName: 'Receipt Sheet',
-      );
+      await PdfService.downloadSheet3Pdf(sale);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
