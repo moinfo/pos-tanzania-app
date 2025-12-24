@@ -2432,81 +2432,115 @@ class _PaymentDialogState extends State<PaymentDialog> {
     final creditLimit = customer.creditLimit;
     final availableCredit = creditLimit - currentBalance;
     final isAllowedCredit = customer.isAllowedCredit;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        border: Border.all(color: AppColors.primary),
-        borderRadius: BorderRadius.circular(8),
+        color: isDark
+            ? AppColors.primary.withValues(alpha: 0.15)
+            : AppColors.primary.withValues(alpha: 0.08),
+        border: Border.all(
+          color: isDark
+              ? AppColors.primary.withValues(alpha: 0.4)
+              : AppColors.primary.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.info_outline,
-                size: 18,
-                color: AppColors.primary,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.credit_card,
+                  size: 20,
+                  color: isDark ? Colors.white : AppColors.primary,
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
                 'Credit Information',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                  fontSize: 14,
+                  color: isDark ? Colors.white : AppColors.primary,
+                  fontSize: 16,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Divider(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : AppColors.primary.withValues(alpha: 0.2),
+            height: 1,
           ),
           const SizedBox(height: 12),
           _buildCreditInfoRow(
             'Credit Status',
             isAllowedCredit ? 'ACTIVE' : 'INACTIVE',
             isAllowedCredit ? AppColors.success : AppColors.error,
+            isDark,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           _buildCreditInfoRow(
             'Credit Limit',
             '${_currencyFormat.format(creditLimit)} TSh',
-            Colors.grey.shade700,
+            isDark ? Colors.white70 : Colors.grey.shade700,
+            isDark,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           _buildCreditInfoRow(
             'Current Balance',
             '${_currencyFormat.format(currentBalance)} TSh',
-            Colors.grey.shade700,
+            currentBalance > 0 ? Colors.orange : (isDark ? Colors.white70 : Colors.grey.shade700),
+            isDark,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
+          Divider(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : AppColors.primary.withValues(alpha: 0.2),
+            height: 1,
+          ),
+          const SizedBox(height: 10),
           _buildCreditInfoRow(
             'Available Credit',
             '${_currencyFormat.format(availableCredit)} TSh',
             availableCredit > 0 ? AppColors.success : AppColors.error,
+            isDark,
+            isHighlight: true,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCreditInfoRow(String label, String value, Color valueColor) {
+  Widget _buildCreditInfoRow(String label, String value, Color valueColor, bool isDark, {bool isHighlight = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
+            fontSize: 14,
+            color: isDark ? Colors.white60 : Colors.grey.shade600,
           ),
         ),
         Text(
           value,
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+            fontSize: isHighlight ? 16 : 14,
+            fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
             color: valueColor,
           ),
         ),
@@ -2519,23 +2553,25 @@ class _PaymentDialogState extends State<PaymentDialog> {
       return const SizedBox.shrink();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (widget.customer == null) {
       return Container(
         margin: const EdgeInsets.only(top: 16),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.warning.withValues(alpha: 0.1),
-          border: Border.all(color: AppColors.warning),
+          color: AppColors.warning.withValues(alpha: isDark ? 0.2 : 0.1),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.warning, color: AppColors.warning, size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.warning, color: AppColors.warning, size: 20),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Please select a customer to use NFC Card payment',
-                style: TextStyle(color: AppColors.warning, fontSize: 13),
+                style: TextStyle(color: isDark ? Colors.orange[300] : AppColors.warning, fontSize: 13),
               ),
             ),
           ],
@@ -2555,8 +2591,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
         margin: const EdgeInsets.only(top: 16),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
-          border: Border.all(color: AppColors.error),
+          color: AppColors.error.withValues(alpha: isDark ? 0.2 : 0.1),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -2566,7 +2602,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
             Expanded(
               child: Text(
                 _nfcError ?? 'Customer has no NFC card linked',
-                style: const TextStyle(color: AppColors.error, fontSize: 13),
+                style: TextStyle(color: isDark ? Colors.red[300] : AppColors.error, fontSize: 13),
               ),
             ),
           ],
@@ -2577,69 +2613,87 @@ class _PaymentDialogState extends State<PaymentDialog> {
     final balance = _nfcCardBalance!;
     final amount = double.tryParse(_amountController.text) ?? 0;
     final hasSufficientBalance = balance.balance >= amount;
+    final statusColor = hasSufficientBalance ? AppColors.success : AppColors.error;
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: hasSufficientBalance
-            ? AppColors.success.withValues(alpha: 0.1)
-            : AppColors.error.withValues(alpha: 0.1),
+        color: statusColor.withValues(alpha: isDark ? 0.15 : 0.08),
         border: Border.all(
-          color: hasSufficientBalance ? AppColors.success : AppColors.error,
+          color: statusColor.withValues(alpha: isDark ? 0.4 : 0.3),
+          width: 1.5,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.account_balance_wallet,
-                size: 18,
-                color: hasSufficientBalance ? AppColors.success : AppColors.error,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.nfc,
+                  size: 20,
+                  color: isDark ? Colors.orange[300] : Colors.orange[700],
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
                 'NFC Wallet Balance',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: hasSufficientBalance ? AppColors.success : AppColors.error,
-                  fontSize: 14,
+                  color: isDark ? Colors.white : Colors.orange[800],
+                  fontSize: 16,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Divider(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : statusColor.withValues(alpha: 0.2),
+            height: 1,
           ),
           const SizedBox(height: 12),
           _buildCreditInfoRow(
             'Available Balance',
             '${_currencyFormat.format(balance.balance)} TSh',
             hasSufficientBalance ? AppColors.success : AppColors.error,
+            isDark,
+            isHighlight: true,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           _buildCreditInfoRow(
             'Total Deposited',
             '${_currencyFormat.format(balance.totalDeposited)} TSh',
-            Colors.grey.shade700,
+            isDark ? Colors.white70 : Colors.grey.shade700,
+            isDark,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           _buildCreditInfoRow(
             'Total Spent',
             '${_currencyFormat.format(balance.totalSpent)} TSh',
-            Colors.grey.shade700,
+            isDark ? Colors.white70 : Colors.grey.shade700,
+            isDark,
           ),
           if (!hasSufficientBalance) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(4),
+                color: AppColors.error.withValues(alpha: isDark ? 0.3 : 0.15),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning, color: AppColors.error, size: 16),
+                  const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -2734,6 +2788,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final permissionProvider = context.watch<PermissionProvider>();
+    final hasNfcPaymentPermission = permissionProvider.hasPermission(PermissionIds.nfcPayment);
+    final isLeruma = ApiService.currentClient?.id == 'leruma';
+
     return AlertDialog(
       title: const Text('Payment'),
       content: SingleChildScrollView(
@@ -2746,7 +2804,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
               items: [
                 const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
                 const DropdownMenuItem(value: 'Credit Card', child: Text('Credit Card')),
-                if (_nfcCardBalance != null || widget.customer != null)
+                // NFC Card payment - Leruma only
+                if (isLeruma && hasNfcPaymentPermission && (_nfcCardBalance != null || widget.customer != null))
                   const DropdownMenuItem(
                     value: 'NFC Card',
                     child: Row(

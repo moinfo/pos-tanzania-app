@@ -7,8 +7,11 @@ import '../services/pdf_service.dart';
 import '../models/customer_card.dart';
 import '../models/customer.dart';
 import '../models/nfc_wallet.dart';
+import '../models/permission_model.dart';
 import '../providers/theme_provider.dart';
+import '../providers/permission_provider.dart';
 import '../widgets/nfc_scan_dialog.dart';
+import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
 
 class NfcCardsScreen extends StatefulWidget {
@@ -393,10 +396,13 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                           ),
                         ),
       floatingActionButton: _nfcAvailable
-          ? FloatingActionButton(
-              onPressed: _registerNewCard,
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add, color: Colors.white),
+          ? PermissionWrapper(
+              permissionId: PermissionIds.nfcCardsRegister,
+              child: FloatingActionButton(
+                onPressed: _registerNewCard,
+                backgroundColor: AppColors.primary,
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
             )
           : null,
     );
@@ -461,28 +467,33 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                         break;
                     }
                   },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'settings',
-                      child: Row(
-                        children: [
-                          Icon(Icons.settings),
-                          SizedBox(width: 8),
-                          Text('Settings'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'deactivate',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_outline, color: AppColors.error),
-                          SizedBox(width: 8),
-                          Text('Deactivate', style: TextStyle(color: AppColors.error)),
-                        ],
-                      ),
-                    ),
-                  ],
+                  itemBuilder: (context) {
+                    final permissionProvider = Provider.of<PermissionProvider>(context, listen: false);
+                    return [
+                      if (permissionProvider.hasPermission(PermissionIds.nfcCardsSettings))
+                        const PopupMenuItem(
+                          value: 'settings',
+                          child: Row(
+                            children: [
+                              Icon(Icons.settings),
+                              SizedBox(width: 8),
+                              Text('Settings'),
+                            ],
+                          ),
+                        ),
+                      if (permissionProvider.hasPermission(PermissionIds.nfcCardsUnregister))
+                        const PopupMenuItem(
+                          value: 'deactivate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline, color: AppColors.error),
+                              SizedBox(width: 8),
+                              Text('Deactivate', style: TextStyle(color: AppColors.error)),
+                            ],
+                          ),
+                        ),
+                    ];
+                  },
                 ),
               ],
             ),
@@ -569,25 +580,31 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showDepositDialog(card),
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: const Text('Deposit'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.success,
-                      side: const BorderSide(color: AppColors.success),
+                  child: PermissionWrapper(
+                    permissionId: PermissionIds.nfcCardsDeposit,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showDepositDialog(card),
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text('Deposit'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.success,
+                        side: const BorderSide(color: AppColors.success),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showStatement(card),
-                    icon: const Icon(Icons.receipt_long),
-                    label: const Text('Statement'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
+                  child: PermissionWrapper(
+                    permissionId: PermissionIds.nfcCardsStatement,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showStatement(card),
+                      icon: const Icon(Icons.receipt_long),
+                      label: const Text('Statement'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                      ),
                     ),
                   ),
                 ),

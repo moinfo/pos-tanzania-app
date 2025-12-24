@@ -352,4 +352,14 @@ class PermissionIds {
   // Supervisors sub-permissions
   static const String supervisorsAdd = 'supervisors_add';
   static const String supervisorsDelete = 'supervisors_delete';
+
+  // NFC Cards sub-permissions
+  static const String nfcCardsView = 'nfc_cards_view';
+  static const String nfcCardsRegister = 'nfc_cards_register';
+  static const String nfcCardsUnregister = 'nfc_cards_unregister';
+  static const String nfcCardsDeposit = 'nfc_cards_deposit';
+  static const String nfcCardsStatement = 'nfc_cards_statement';
+  static const String nfcCardsSettings = 'nfc_cards_settings';
+  static const String nfcConfirmationsView = 'nfc_confirmations_view';
+  static const String nfcPayment = 'nfc_payment';
 }

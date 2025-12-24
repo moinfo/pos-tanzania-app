@@ -31,6 +31,7 @@ import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'nfc_cards_screen.dart';
 import 'nfc_confirmations_screen.dart';
+import 'nfc_card_lookup_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -469,36 +470,54 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
-            // NFC Cards - requires customers permission
-            PermissionWrapper(
-              permissionId: PermissionIds.customers,
-              child: ListTile(
-                leading: const Icon(Icons.nfc, color: Colors.orange),
-                title: const Text('NFC Cards'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const NfcCardsScreen()),
-                  );
-                },
+            // NFC Cards - Leruma only, requires nfc_cards_view permission
+            if (ApiService.currentClient?.id == 'leruma')
+              PermissionWrapper(
+                permissionId: PermissionIds.nfcCardsView,
+                child: ListTile(
+                  leading: const Icon(Icons.nfc, color: Colors.orange),
+                  title: const Text('NFC Cards'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NfcCardsScreen()),
+                    );
+                  },
+                ),
               ),
-            ),
-            // NFC Confirmations Report - requires customers permission
-            PermissionWrapper(
-              permissionId: PermissionIds.customers,
-              child: ListTile(
-                leading: const Icon(Icons.verified, color: Colors.green),
-                title: const Text('NFC Confirmations'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const NfcConfirmationsScreen()),
-                  );
-                },
+            // NFC Confirmations Report - Leruma only, requires nfc_confirmations_view permission
+            if (ApiService.currentClient?.id == 'leruma')
+              PermissionWrapper(
+                permissionId: PermissionIds.nfcConfirmationsView,
+                child: ListTile(
+                  leading: const Icon(Icons.verified, color: Colors.green),
+                  title: const Text('NFC Confirmations'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NfcConfirmationsScreen()),
+                    );
+                  },
+                ),
               ),
-            ),
+            // NFC Card Lookup - Leruma only, requires nfc_cards_view permission
+            if (ApiService.currentClient?.id == 'leruma')
+              PermissionWrapper(
+                permissionId: PermissionIds.nfcCardsView,
+                child: ListTile(
+                  leading: const Icon(Icons.contactless, color: Colors.deepOrange),
+                  title: const Text('NFC Card Lookup'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NfcCardLookupScreen()),
+                    );
+                  },
+                ),
+              ),
             // Suppliers - requires suppliers permission
             PermissionWrapper(
               permissionId: PermissionIds.suppliers,

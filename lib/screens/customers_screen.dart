@@ -10,6 +10,7 @@ import '../models/stock_location.dart';
 import '../models/nfc_wallet.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/permission_provider.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/nfc_scan_dialog.dart';
@@ -478,8 +479,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       backgroundColor: AppColors.primary.withOpacity(0.1),
                       padding: EdgeInsets.zero,
                     ),
-                  // NFC Card indicator
-                  if (_customerNfcCards.containsKey(customer.personId)) ...[
+                  // NFC Card indicator - Leruma only
+                  if (ApiService.currentClient?.id == 'leruma' && _customerNfcCards.containsKey(customer.personId)) ...[
                     const SizedBox(width: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -624,28 +625,28 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         color: AppColors.error,
                         showDisabled: false,
                       ),
-                      // NFC Card button - different action based on whether card exists
-                      if (_nfcAvailable) ...[
+                      // NFC Card button - Leruma only, different action based on whether card exists
+                      if (_nfcAvailable && ApiService.currentClient?.id == 'leruma') ...[
                         const SizedBox(width: 8),
                         if (_customerNfcCards.containsKey(customer.personId))
                           // Customer already has NFC card - show view button
-                          IconButton(
+                          PermissionIconButton(
+                            permissionId: PermissionIds.nfcCardsView,
                             onPressed: () => _viewCustomerNfcCard(customer),
                             icon: const Icon(Icons.credit_card, size: 18),
                             tooltip: 'View NFC Card',
                             color: Colors.green,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                            showDisabled: false,
                           )
                         else
                           // Customer doesn't have NFC card - show register button
-                          IconButton(
+                          PermissionIconButton(
+                            permissionId: PermissionIds.nfcCardsRegister,
                             onPressed: () => _registerCardToCustomer(customer),
                             icon: const Icon(Icons.add_card, size: 18),
                             tooltip: 'Register NFC Card',
                             color: Colors.orange,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                            showDisabled: false,
                           ),
                       ],
                     ],
@@ -1210,45 +1211,58 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
           contentPadding: EdgeInsets.zero,
         ),
         const Divider(),
-        // NFC Settings Section
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Icon(Icons.nfc, color: Colors.orange[700], size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'NFC Card Settings',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange[700],
+        // NFC Settings Section - Leruma only, requires nfc_cards_settings permission
+        if (ApiService.currentClient?.id == 'leruma')
+          Consumer<PermissionProvider>(
+            builder: (context, permissionProvider, child) {
+              if (!permissionProvider.hasPermission(PermissionIds.nfcCardsSettings)) {
+                return const SizedBox.shrink();
+              }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.nfc, color: Colors.orange[700], size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'NFC Card Settings',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        SwitchListTile(
-          title: const Text('NFC Payment Enabled'),
-          subtitle: const Text('Allow customer to pay using NFC card balance'),
-          value: _nfcPaymentEnabled,
-          onChanged: (value) {
-            setState(() => _nfcPaymentEnabled = value);
+                SwitchListTile(
+                  title: const Text('NFC Payment Enabled'),
+                  subtitle: const Text('Allow customer to pay using NFC card balance'),
+                  value: _nfcPaymentEnabled,
+                  onChanged: (value) {
+                    setState(() => _nfcPaymentEnabled = value);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: Colors.green,
+                ),
+                SwitchListTile(
+                  title: const Text('NFC Confirmation Required'),
+                  subtitle: const Text('Require NFC card scan for credit sales'),
+                  value: _nfcConfirmRequired,
+                  onChanged: (value) {
+                    setState(() => _nfcConfirmRequired = value);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: Colors.orange,
+                ),
+                const Divider(),
+              ],
+            );
           },
-          contentPadding: EdgeInsets.zero,
-          activeColor: Colors.green,
         ),
-        SwitchListTile(
-          title: const Text('NFC Confirmation Required'),
-          subtitle: const Text('Require NFC card scan for credit sales'),
-          value: _nfcConfirmRequired,
-          onChanged: (value) {
-            setState(() => _nfcConfirmRequired = value);
-          },
-          contentPadding: EdgeInsets.zero,
-          activeColor: Colors.orange,
-        ),
-        const Divider(),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _selectedSupervisorId,
