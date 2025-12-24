@@ -27,6 +27,7 @@ import 'suspended_summary_screen.dart';
 import 'package:intl/intl.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../services/nfc_service.dart';
+import '../models/nfc_wallet.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -388,7 +389,12 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
-  void _showSaleSuccessDialog(Sale sale) {
+  void _showSaleSuccessDialog(
+    Sale sale, {
+    double? nfcAmountUsed,
+    double? nfcBalanceAfter,
+    String? nfcCardUid,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -417,6 +423,63 @@ class _SalesScreenState extends State<SalesScreen> {
                 color: AppColors.primary,
               ),
             ),
+            // Show NFC payment info if applicable
+            if (nfcAmountUsed != null && nfcAmountUsed > 0) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.nfc, color: Colors.orange[700], size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'NFC Card Payment',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Amount Deducted:'),
+                        Text(
+                          '${NumberFormat('#,##0').format(nfcAmountUsed)} TSh',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    if (nfcBalanceAfter != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Remaining Balance:'),
+                          Text(
+                            '${NumberFormat('#,##0').format(nfcBalanceAfter)} TSh',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             const Text(
               'Would you like to print or share the receipt?',
@@ -436,6 +499,9 @@ class _SalesScreenState extends State<SalesScreen> {
                 await PdfService.shareSaleReceiptPdf(
                   sale,
                   companyName: ApiService.currentClient?.name ?? 'POS Tanzania',
+                  nfcAmountUsed: nfcAmountUsed,
+                  nfcBalanceAfter: nfcBalanceAfter,
+                  nfcCardUid: nfcCardUid,
                 );
               } catch (e) {
                 if (mounted) {
@@ -474,6 +540,9 @@ class _SalesScreenState extends State<SalesScreen> {
                 await PdfService.printSaleReceipt(
                   sale,
                   companyName: ApiService.currentClient?.name ?? 'POS Tanzania',
+                  nfcAmountUsed: nfcAmountUsed,
+                  nfcBalanceAfter: nfcBalanceAfter,
+                  nfcCardUid: nfcCardUid,
                 );
               } catch (e) {
                 if (mounted) {
@@ -763,6 +832,110 @@ class _SalesScreenState extends State<SalesScreen> {
       return;
     }
 
+    // Check if NFC confirmation is required for credit sales
+    final customer = saleProvider.selectedCustomer;
+    if (customer != null && customer.nfcConfirmRequired) {
+      // Check if there's a credit payment
+      final hasCreditPayment = saleProvider.payments.any(
+        (p) => p.paymentType.toLowerCase().contains('credit'),
+      );
+
+      // Skip NFC confirmation if paying with NFC Card (card already used for payment)
+      final hasNfcCardPayment = saleProvider.payments.any(
+        (p) => p.paymentType == 'NFC Card',
+      );
+
+      if (hasCreditPayment && !hasNfcCardPayment) {
+        // Get customer's NFC card
+        final cardsResponse = await _apiService.getCustomerCards(customer.personId);
+        if (!cardsResponse.isSuccess || cardsResponse.data == null || cardsResponse.data!.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Customer has NFC confirmation required but no NFC card linked'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+
+        final card = cardsResponse.data!.first;
+        final creditAmount = saleProvider.payments
+            .where((p) => p.paymentType.toLowerCase().contains('credit'))
+            .fold<double>(0, (sum, p) => sum + p.amount);
+
+        // Show NFC confirmation dialog
+        final scanResult = await showDialog<NfcScanResult>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => NfcScanDialog(
+            title: 'Confirm Credit Sale',
+            subtitle: 'Customer must scan NFC card to confirm credit purchase of TZS ${_currencyFormat.format(creditAmount)}',
+            expectedCardUid: card.cardUid,
+            lookupCustomer: false,
+          ),
+        );
+
+        // Dialog returns null if cancelled, or result when correct card scanned
+        if (scanResult == null || !mounted) return;
+
+        // Record the confirmation
+        await _apiService.confirmCreditSaleWithNfc(
+          cardUid: card.cardUid,
+          amount: creditAmount,
+        );
+      }
+    }
+
+    // Check if there's an NFC Card payment - require card scan to confirm
+    final hasNfcCardPayment = saleProvider.payments.any(
+      (p) => p.paymentType == 'NFC Card',
+    );
+
+    String? nfcCardUid; // Store the card UID for payment processing
+
+    if (hasNfcCardPayment && customer != null) {
+      final nfcPaymentAmount = saleProvider.payments
+          .where((p) => p.paymentType == 'NFC Card')
+          .fold<double>(0, (sum, p) => sum + p.amount);
+
+      // Get customer's NFC card
+      final cardsResponse = await _apiService.getCustomerCards(customer.personId);
+      if (!cardsResponse.isSuccess || cardsResponse.data == null || cardsResponse.data!.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Customer has no NFC card linked'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      final card = cardsResponse.data!.first;
+      nfcCardUid = card.cardUid;
+
+      // Show NFC confirmation dialog for payment
+      final scanResult = await showDialog<NfcScanResult>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => NfcScanDialog(
+          title: 'Confirm NFC Payment',
+          subtitle: 'Customer must scan NFC card to pay TZS ${_currencyFormat.format(nfcPaymentAmount)}',
+          expectedCardUid: card.cardUid,
+          lookupCustomer: false,
+        ),
+      );
+
+      // Dialog only returns result when correct card is scanned
+      // Returns null if user cancelled
+      if (scanResult == null || !mounted) {
+        return; // User cancelled
+      }
+    }
+
     // Create sale
     setState(() => _isProcessing = true);
 
@@ -782,6 +955,33 @@ class _SalesScreenState extends State<SalesScreen> {
       setState(() => _isProcessing = false);
 
       if (response.isSuccess) {
+        // Process NFC Card payment - deduct from wallet
+        double? nfcAmountUsed;
+        double? nfcBalanceAfter;
+
+        if (hasNfcCardPayment && nfcCardUid != null) {
+          final nfcPaymentAmount = saleProvider.payments
+              .where((p) => p.paymentType == 'NFC Card')
+              .fold<double>(0, (sum, p) => sum + p.amount);
+
+          final paymentResponse = await _apiService.payWithNfcCard(
+            cardUid: nfcCardUid,
+            amount: nfcPaymentAmount,
+            saleId: response.data?.saleId,
+            description: 'Sale payment',
+          );
+
+          if (!paymentResponse.isSuccess) {
+            debugPrint('⚠️ NFC wallet payment failed: ${paymentResponse.message}');
+            // Note: Sale is already created, so we just log the warning
+            // The backend should handle this case
+          } else {
+            debugPrint('✅ NFC wallet payment successful');
+            nfcAmountUsed = nfcPaymentAmount;
+            nfcBalanceAfter = paymentResponse.data?.balanceAfter;
+          }
+        }
+
         // Mark one-time discounts as used BEFORE clearing cart
         if (response.data?.saleId != null) {
           final saleId = response.data!.saleId!;
@@ -795,7 +995,12 @@ class _SalesScreenState extends State<SalesScreen> {
 
         // Show success message and ask about printing
         if (mounted && response.data != null) {
-          _showSaleSuccessDialog(response.data!);
+          _showSaleSuccessDialog(
+            response.data!,
+            nfcAmountUsed: nfcAmountUsed,
+            nfcBalanceAfter: nfcBalanceAfter,
+            nfcCardUid: nfcCardUid,
+          );
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -2140,17 +2345,81 @@ class _PaymentDialogState extends State<PaymentDialog> {
   String _paymentMethod = 'Cash';
   final TextEditingController _amountController = TextEditingController();
   final NumberFormat _currencyFormat = NumberFormat('#,##0', 'en_US');
+  final ApiService _apiService = ApiService();
+
+  // NFC Card wallet info
+  NfcCardBalance? _nfcCardBalance;
+  bool _isLoadingNfcBalance = false;
+  String? _nfcError;
 
   @override
   void initState() {
     super.initState();
     _amountController.text = widget.total.toStringAsFixed(0);
+    debugPrint('💳 PaymentDialog opened');
+    debugPrint('💳 Customer: ${widget.customer?.displayName ?? "NULL"} (ID: ${widget.customer?.personId})');
+    debugPrint('💳 Total: ${widget.total}');
+    // Check if customer has NFC card and load balance
+    _checkNfcCardBalance();
   }
 
   @override
   void dispose() {
     _amountController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkNfcCardBalance() async {
+    debugPrint('🔍 _checkNfcCardBalance: Starting...');
+    debugPrint('🔍 Customer: ${widget.customer?.displayName ?? "NULL"} (ID: ${widget.customer?.personId})');
+
+    if (widget.customer == null) {
+      debugPrint('🔍 _checkNfcCardBalance: No customer selected, returning');
+      return;
+    }
+
+    // First get customer's cards to find linked NFC card
+    debugPrint('🔍 _checkNfcCardBalance: Fetching cards for customer ${widget.customer!.personId}');
+    final cardsResponse = await _apiService.getCustomerCards(widget.customer!.personId);
+
+    debugPrint('🔍 _checkNfcCardBalance: Response success=${cardsResponse.isSuccess}, data=${cardsResponse.data?.length ?? 0} cards');
+
+    if (!cardsResponse.isSuccess || cardsResponse.data == null || cardsResponse.data!.isEmpty) {
+      debugPrint('🔍 _checkNfcCardBalance: No cards found or error: ${cardsResponse.message}');
+      return;
+    }
+
+    // Get the first active card
+    final card = cardsResponse.data!.first;
+    debugPrint('🔍 _checkNfcCardBalance: Found card UID=${card.cardUid}, isActive=${card.isActive}');
+
+    if (!card.isActive) {
+      debugPrint('🔍 _checkNfcCardBalance: Card is not active, returning');
+      return;
+    }
+
+    setState(() {
+      _isLoadingNfcBalance = true;
+      _nfcError = null;
+    });
+
+    debugPrint('🔍 _checkNfcCardBalance: Fetching balance for card ${card.cardUid}');
+    final balanceResponse = await _apiService.getNfcCardBalance(card.cardUid);
+
+    debugPrint('🔍 _checkNfcCardBalance: Balance response success=${balanceResponse.isSuccess}');
+
+    if (mounted) {
+      setState(() {
+        _isLoadingNfcBalance = false;
+        if (balanceResponse.isSuccess && balanceResponse.data != null) {
+          _nfcCardBalance = balanceResponse.data;
+          debugPrint('🔍 _checkNfcCardBalance: Balance loaded = ${_nfcCardBalance?.balance}, paymentEnabled=${_nfcCardBalance?.nfcPaymentEnabled}');
+        } else {
+          _nfcError = balanceResponse.message;
+          debugPrint('🔍 _checkNfcCardBalance: Error loading balance: $_nfcError');
+        }
+      });
+    }
   }
 
   Widget _buildCreditInfo() {
@@ -2245,6 +2514,152 @@ class _PaymentDialogState extends State<PaymentDialog> {
     );
   }
 
+  Widget _buildNfcCardInfo() {
+    if (_paymentMethod != 'NFC Card') {
+      return const SizedBox.shrink();
+    }
+
+    if (widget.customer == null) {
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withValues(alpha: 0.1),
+          border: Border.all(color: AppColors.warning),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.warning, color: AppColors.warning, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Please select a customer to use NFC Card payment',
+                style: TextStyle(color: AppColors.warning, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_isLoadingNfcBalance) {
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_nfcCardBalance == null) {
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.1),
+          border: Border.all(color: AppColors.error),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error, color: AppColors.error, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _nfcError ?? 'Customer has no NFC card linked',
+                style: const TextStyle(color: AppColors.error, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final balance = _nfcCardBalance!;
+    final amount = double.tryParse(_amountController.text) ?? 0;
+    final hasSufficientBalance = balance.balance >= amount;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: hasSufficientBalance
+            ? AppColors.success.withValues(alpha: 0.1)
+            : AppColors.error.withValues(alpha: 0.1),
+        border: Border.all(
+          color: hasSufficientBalance ? AppColors.success : AppColors.error,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.account_balance_wallet,
+                size: 18,
+                color: hasSufficientBalance ? AppColors.success : AppColors.error,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'NFC Wallet Balance',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: hasSufficientBalance ? AppColors.success : AppColors.error,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildCreditInfoRow(
+            'Available Balance',
+            '${_currencyFormat.format(balance.balance)} TSh',
+            hasSufficientBalance ? AppColors.success : AppColors.error,
+          ),
+          const SizedBox(height: 6),
+          _buildCreditInfoRow(
+            'Total Deposited',
+            '${_currencyFormat.format(balance.totalDeposited)} TSh',
+            Colors.grey.shade700,
+          ),
+          const SizedBox(height: 6),
+          _buildCreditInfoRow(
+            'Total Spent',
+            '${_currencyFormat.format(balance.totalSpent)} TSh',
+            Colors.grey.shade700,
+          ),
+          if (!hasSufficientBalance) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning, color: AppColors.error, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Insufficient balance! Need ${_currencyFormat.format(amount - balance.balance)} TSh more',
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   String? _validatePayment() {
     final amount = double.tryParse(_amountController.text) ?? 0;
 
@@ -2278,6 +2693,42 @@ class _PaymentDialogState extends State<PaymentDialog> {
       }
     }
 
+    // Validate NFC Card payment
+    if (_paymentMethod == 'NFC Card') {
+      debugPrint('🔍 Validating NFC Card payment...');
+      debugPrint('🔍 Customer: ${widget.customer?.displayName ?? "NULL"}');
+      debugPrint('🔍 NFC Balance object: $_nfcCardBalance');
+      debugPrint('🔍 NFC Error: $_nfcError');
+
+      if (widget.customer == null) {
+        debugPrint('❌ Validation failed: No customer selected');
+        return 'Please select a customer to use NFC Card payment';
+      }
+
+      if (_nfcCardBalance == null) {
+        debugPrint('❌ Validation failed: _nfcCardBalance is null');
+        debugPrint('❌ This means: No cards found OR card not active OR balance fetch failed');
+        return 'Customer has no NFC card linked or wallet not enabled';
+      }
+
+      debugPrint('🔍 NFC Balance: ${_nfcCardBalance!.balance}');
+      debugPrint('🔍 NFC Payment Enabled: ${_nfcCardBalance!.nfcPaymentEnabled}');
+
+      if (!_nfcCardBalance!.nfcPaymentEnabled) {
+        debugPrint('❌ Validation failed: NFC payment not enabled for customer');
+        return 'NFC wallet payment is not enabled for this customer';
+      }
+
+      if (_nfcCardBalance!.balance < amount) {
+        debugPrint('❌ Validation failed: Insufficient balance (${_nfcCardBalance!.balance} < $amount)');
+        return 'Insufficient NFC wallet balance!\n'
+            'Available: ${_currencyFormat.format(_nfcCardBalance!.balance)} TSh\n'
+            'Requested: ${_currencyFormat.format(amount)} TSh';
+      }
+
+      debugPrint('✅ NFC Card validation passed');
+    }
+
     return null; // Valid
   }
 
@@ -2292,11 +2743,27 @@ class _PaymentDialogState extends State<PaymentDialog> {
             DropdownButtonFormField<String>(
               value: _paymentMethod,
               decoration: const InputDecoration(labelText: 'Payment Method'),
-              items: const [
-                DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                DropdownMenuItem(value: 'Credit Card', child: Text('Credit Card')),
+              items: [
+                const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                const DropdownMenuItem(value: 'Credit Card', child: Text('Credit Card')),
+                if (_nfcCardBalance != null || widget.customer != null)
+                  const DropdownMenuItem(
+                    value: 'NFC Card',
+                    child: Row(
+                      children: [
+                        Icon(Icons.nfc, size: 18),
+                        SizedBox(width: 8),
+                        Text('NFC Card'),
+                      ],
+                    ),
+                  ),
               ],
               onChanged: (value) {
+                debugPrint('💳 Payment method changed to: $value');
+                debugPrint('💳 Customer: ${widget.customer?.displayName ?? "NULL"}');
+                debugPrint('💳 NFC Card Balance: ${_nfcCardBalance?.balance ?? "NULL"}');
+                debugPrint('💳 NFC Payment Enabled: ${_nfcCardBalance?.nfcPaymentEnabled ?? "NULL"}');
+                debugPrint('💳 NFC Error: $_nfcError');
                 setState(() => _paymentMethod = value!);
               },
             ),
@@ -2309,8 +2776,13 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 suffixText: 'TSh',
                 border: OutlineInputBorder(),
               ),
+              onChanged: (value) {
+                // Trigger rebuild to update NFC balance display
+                setState(() {});
+              },
             ),
             _buildCreditInfo(),
+            _buildNfcCardInfo(),
           ],
         ),
       ),

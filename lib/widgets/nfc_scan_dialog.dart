@@ -7,11 +7,17 @@ import '../utils/constants.dart';
 class NfcScanDialog extends StatefulWidget {
   final bool lookupCustomer;
   final Function(String cardUid, Customer? customer)? onCardScanned;
+  final String? title;
+  final String? subtitle;
+  final String? expectedCardUid; // If set, validates scanned card matches
 
   const NfcScanDialog({
     super.key,
     this.lookupCustomer = true,
     this.onCardScanned,
+    this.title,
+    this.subtitle,
+    this.expectedCardUid,
   });
 
   @override
@@ -79,6 +85,25 @@ class _NfcScanDialogState extends State<NfcScanDialog>
         if (!mounted) return;
 
         if (result.success) {
+          // Validate expected card UID if provided
+          if (widget.expectedCardUid != null &&
+              result.cardUid != widget.expectedCardUid) {
+            setState(() {
+              _statusMessage = 'Wrong card! Please scan the correct card.';
+              _hasError = true;
+            });
+            // Continue scanning for the correct card
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                setState(() {
+                  _statusMessage = 'Hold card near the device...';
+                  _hasError = false;
+                });
+              }
+            });
+            return;
+          }
+
           // Card scanned successfully
           setState(() {
             _isScanning = false;
@@ -134,9 +159,9 @@ class _NfcScanDialogState extends State<NfcScanDialog>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Scan NFC Card',
-                  style: TextStyle(
+                Text(
+                  widget.title ?? 'Scan NFC Card',
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -150,6 +175,17 @@ class _NfcScanDialogState extends State<NfcScanDialog>
                 ),
               ],
             ),
+            if (widget.subtitle != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                widget.subtitle!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 32),
 
             // NFC Icon with animation

@@ -34,6 +34,10 @@ class Customer {
   final int? days; // Days since last sale (Leruma feature)
   final Supervisor? supervisor;
 
+  // NFC settings
+  final bool nfcConfirmRequired;
+  final bool nfcPaymentEnabled;
+
   Customer({
     required this.personId,
     required this.firstName,
@@ -66,6 +70,8 @@ class Customer {
     required this.balance,
     this.days,
     this.supervisor,
+    this.nfcConfirmRequired = false,
+    this.nfcPaymentEnabled = false,
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) {
@@ -128,6 +134,8 @@ class Customer {
       supervisor: json['supervisor'] != null
           ? Supervisor.fromJson(json['supervisor'] as Map<String, dynamic>)
           : null,
+      nfcConfirmRequired: parseBoolValue(json['nfc_confirm_required']),
+      nfcPaymentEnabled: parseBoolValue(json['nfc_payment_enabled']),
     );
   }
 
@@ -162,6 +170,8 @@ class Customer {
       'bad_debtor': badDebtor,
       'dormant': dormant,
       'balance': balance,
+      'nfc_confirm_required': nfcConfirmRequired,
+      'nfc_payment_enabled': nfcPaymentEnabled,
       if (supervisor != null) 'supervisor': supervisor!.toJson(),
     };
   }
@@ -199,6 +209,9 @@ class CustomerFormData {
   final int? dueDate;
   final int? badDebtor;
   final String? supervisorId;
+  // NFC settings
+  final bool? nfcConfirmRequired;
+  final bool? nfcPaymentEnabled;
 
   CustomerFormData({
     required this.firstName,
@@ -228,6 +241,8 @@ class CustomerFormData {
     this.dueDate,
     this.badDebtor,
     this.supervisorId,
+    this.nfcConfirmRequired,
+    this.nfcPaymentEnabled,
   });
 
   Map<String, dynamic> toJson() {
@@ -259,6 +274,8 @@ class CustomerFormData {
       if (dueDate != null) 'due_date': dueDate,
       if (badDebtor != null) 'bad_debtor': badDebtor,
       if (supervisorId != null) 'supervisor_id': int.tryParse(supervisorId!),
+      if (nfcConfirmRequired != null) 'nfc_confirm_required': nfcConfirmRequired,
+      if (nfcPaymentEnabled != null) 'nfc_payment_enabled': nfcPaymentEnabled,
     };
   }
 }

@@ -7,6 +7,7 @@ import '../models/customer.dart';
 import '../models/supervisor.dart';
 import '../models/permission_model.dart';
 import '../models/stock_location.dart';
+import '../models/nfc_wallet.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -31,6 +32,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
   String _searchQuery = '';
   bool _nfcAvailable = false;
 
+  // Track which customers have NFC cards linked
+  Map<int, String> _customerNfcCards = {}; // customerId -> cardUid
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +44,22 @@ class _CustomersScreenState extends State<CustomersScreen> {
     });
     _loadCustomers();
     _checkNfcAvailability();
+    _loadCustomerNfcCards();
+  }
+
+  Future<void> _loadCustomerNfcCards() async {
+    final response = await _apiService.getAllCustomerCards();
+    if (response.isSuccess && response.data != null) {
+      final cards = response.data!;
+      if (mounted) {
+        setState(() {
+          _customerNfcCards = {
+            for (var card in cards.where((c) => c.isActive))
+              card.customerId: card.cardUid
+          };
+        });
+      }
+    }
   }
 
   Future<void> _checkNfcAvailability() async {
@@ -56,6 +76,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
 
     if (result == true && mounted) {
+      // Refresh NFC cards list
+      _loadCustomerNfcCards();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -69,6 +91,82 @@ class _CustomersScreenState extends State<CustomersScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _viewCustomerNfcCard(Customer customer) async {
+    final cardUid = _customerNfcCards[customer.personId];
+    if (cardUid == null) return;
+
+    // Fetch card balance info
+    final response = await _apiService.getNfcCardBalance(cardUid);
+
+    if (!mounted) return;
+
+    if (response.isSuccess && response.data != null) {
+      final balance = response.data!;
+      final currencyFormat = NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0);
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.nfc, color: Colors.orange),
+              const SizedBox(width: 8),
+              const Text('NFC Card Details'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCardDetailRow('Customer', customer.displayName),
+              _buildCardDetailRow('Card UID', cardUid),
+              const Divider(height: 24),
+              _buildCardDetailRow('Balance', currencyFormat.format(balance.balance),
+                  valueColor: balance.balance > 0 ? Colors.green : Colors.grey),
+              _buildCardDetailRow('Total Deposited', currencyFormat.format(balance.totalDeposited)),
+              _buildCardDetailRow('Total Spent', currencyFormat.format(balance.totalSpent)),
+              const Divider(height: 24),
+              _buildCardDetailRow('Confirm Required', balance.nfcConfirmRequired ? 'Yes' : 'No'),
+              _buildCardDetailRow('Payment Enabled', balance.nfcPaymentEnabled ? 'Yes' : 'No'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading card: ${response.message}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Widget _buildCardDetailRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: valueColor,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _initializeLocation() async {
@@ -380,6 +478,33 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       backgroundColor: AppColors.primary.withOpacity(0.1),
                       padding: EdgeInsets.zero,
                     ),
+                  // NFC Card indicator
+                  if (_customerNfcCards.containsKey(customer.personId)) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.nfc, size: 14, color: Colors.orange),
+                          SizedBox(width: 4),
+                          Text(
+                            'NFC',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
               if (customer.phoneNumber.isNotEmpty || customer.email.isNotEmpty)
@@ -499,17 +624,29 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         color: AppColors.error,
                         showDisabled: false,
                       ),
-                      // NFC Card Registration button
+                      // NFC Card button - different action based on whether card exists
                       if (_nfcAvailable) ...[
                         const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: () => _registerCardToCustomer(customer),
-                          icon: const Icon(Icons.nfc, size: 18),
-                          tooltip: 'Register NFC Card',
-                          color: Colors.orange,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
+                        if (_customerNfcCards.containsKey(customer.personId))
+                          // Customer already has NFC card - show view button
+                          IconButton(
+                            onPressed: () => _viewCustomerNfcCard(customer),
+                            icon: const Icon(Icons.credit_card, size: 18),
+                            tooltip: 'View NFC Card',
+                            color: Colors.green,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          )
+                        else
+                          // Customer doesn't have NFC card - show register button
+                          IconButton(
+                            onPressed: () => _registerCardToCustomer(customer),
+                            icon: const Icon(Icons.add_card, size: 18),
+                            tooltip: 'Register NFC Card',
+                            color: Colors.orange,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
                       ],
                     ],
                   ),
@@ -720,6 +857,9 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
   bool _oneTimeCredit = false;
   String _dormantStatus = 'active';
   bool _taxable = true;
+  // NFC settings
+  bool _nfcConfirmRequired = false;
+  bool _nfcPaymentEnabled = false;
 
   @override
   void initState() {
@@ -749,6 +889,9 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
     _isAllowedCredit = widget.customer?.isAllowedCredit ?? false;
     _selectedSupervisorId = widget.customer?.supervisor?.id.toString();
     _taxable = widget.customer?.taxable ?? true;
+    // NFC settings
+    _nfcConfirmRequired = widget.customer?.nfcConfirmRequired ?? false;
+    _nfcPaymentEnabled = widget.customer?.nfcPaymentEnabled ?? false;
 
     _loadSupervisors();
   }
@@ -821,6 +964,8 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
       isAllowedCredit: _isAllowedCredit,
       isBodaBoda: _isBodaBoda,
       consent: _registrationConsent,
+      nfcConfirmRequired: _nfcConfirmRequired,
+      nfcPaymentEnabled: _nfcPaymentEnabled,
     );
 
     final response = widget.customer == null
@@ -1064,9 +1209,50 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
           },
           contentPadding: EdgeInsets.zero,
         ),
-        const SizedBox(height: 16),
+        const Divider(),
+        // NFC Settings Section
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.nfc, color: Colors.orange[700], size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'NFC Card Settings',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange[700],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SwitchListTile(
+          title: const Text('NFC Payment Enabled'),
+          subtitle: const Text('Allow customer to pay using NFC card balance'),
+          value: _nfcPaymentEnabled,
+          onChanged: (value) {
+            setState(() => _nfcPaymentEnabled = value);
+          },
+          contentPadding: EdgeInsets.zero,
+          activeColor: Colors.green,
+        ),
+        SwitchListTile(
+          title: const Text('NFC Confirmation Required'),
+          subtitle: const Text('Require NFC card scan for credit sales'),
+          value: _nfcConfirmRequired,
+          onChanged: (value) {
+            setState(() => _nfcConfirmRequired = value);
+          },
+          contentPadding: EdgeInsets.zero,
+          activeColor: Colors.orange,
+        ),
+        const Divider(),
+        const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _selectedSupervisorId,
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Supervisor Name',
             border: OutlineInputBorder(),
@@ -1075,7 +1261,10 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
           items: _supervisors.map((supervisor) {
             return DropdownMenuItem(
               value: supervisor.id,
-              child: Text(supervisor.name),
+              child: Text(
+                supervisor.name,
+                overflow: TextOverflow.ellipsis,
+              ),
             );
           }).toList(),
           onChanged: (value) {

@@ -30,6 +30,7 @@ import 'seller_report_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'nfc_cards_screen.dart';
+import 'nfc_confirmations_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -479,6 +480,21 @@ class _MainNavigationState extends State<MainNavigation> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const NfcCardsScreen()),
+                  );
+                },
+              ),
+            ),
+            // NFC Confirmations Report - requires customers permission
+            PermissionWrapper(
+              permissionId: PermissionIds.customers,
+              child: ListTile(
+                leading: const Icon(Icons.verified, color: Colors.green),
+                title: const Text('NFC Confirmations'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NfcConfirmationsScreen()),
                   );
                 },
               ),

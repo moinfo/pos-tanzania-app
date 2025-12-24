@@ -13,6 +13,13 @@ class CustomerCard {
   final String? customerPhone;
   final String? companyName;
 
+  // Wallet balance fields
+  final double balance;
+  final double totalDeposited;
+  final double totalSpent;
+  final bool nfcConfirmRequired;
+  final bool nfcPaymentEnabled;
+
   CustomerCard({
     this.id,
     required this.customerId,
@@ -24,6 +31,11 @@ class CustomerCard {
     this.customerName,
     this.customerPhone,
     this.companyName,
+    this.balance = 0.0,
+    this.totalDeposited = 0.0,
+    this.totalSpent = 0.0,
+    this.nfcConfirmRequired = false,
+    this.nfcPaymentEnabled = false,
   });
 
   factory CustomerCard.fromJson(Map<String, dynamic> json) {
@@ -33,6 +45,23 @@ class CustomerCard {
       if (value is int) return value;
       if (value is String) return int.tryParse(value);
       return null;
+    }
+
+    // Helper to parse double from string or number
+    double parseDouble(dynamic value, [double defaultValue = 0.0]) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
+    // Helper to parse bool from various types
+    bool parseBool(dynamic value, [bool defaultValue = false]) {
+      if (value == null) return defaultValue;
+      if (value is bool) return value;
+      if (value is int) return value == 1;
+      if (value is String) return value == '1' || value.toLowerCase() == 'true';
+      return defaultValue;
     }
 
     return CustomerCard(
@@ -51,6 +80,11 @@ class CustomerCard {
           '${json['first_name'] ?? ''} ${json['last_name'] ?? ''}'.trim(),
       customerPhone: json['phone_number']?.toString(),
       companyName: json['company_name']?.toString(),
+      balance: parseDouble(json['balance']),
+      totalDeposited: parseDouble(json['total_deposited']),
+      totalSpent: parseDouble(json['total_spent']),
+      nfcConfirmRequired: parseBool(json['nfc_confirm_required']),
+      nfcPaymentEnabled: parseBool(json['nfc_payment_enabled']),
     );
   }
 
@@ -85,6 +119,11 @@ class CustomerCard {
     String? customerName,
     String? customerPhone,
     String? companyName,
+    double? balance,
+    double? totalDeposited,
+    double? totalSpent,
+    bool? nfcConfirmRequired,
+    bool? nfcPaymentEnabled,
   }) {
     return CustomerCard(
       id: id ?? this.id,
@@ -97,6 +136,11 @@ class CustomerCard {
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
       companyName: companyName ?? this.companyName,
+      balance: balance ?? this.balance,
+      totalDeposited: totalDeposited ?? this.totalDeposited,
+      totalSpent: totalSpent ?? this.totalSpent,
+      nfcConfirmRequired: nfcConfirmRequired ?? this.nfcConfirmRequired,
+      nfcPaymentEnabled: nfcPaymentEnabled ?? this.nfcPaymentEnabled,
     );
   }
 

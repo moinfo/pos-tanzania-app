@@ -1233,6 +1233,10 @@ class PdfService {
     String? companyName,
     String? companyAddress,
     String? companyPhone,
+    // NFC payment info
+    double? nfcAmountUsed,
+    double? nfcBalanceAfter,
+    String? nfcCardUid,
   }) async {
     await _loadFonts();
 
@@ -1339,6 +1343,101 @@ class PdfService {
               _buildSaleReceiptPayments(sale),
             ],
             pw.SizedBox(height: 24),
+
+            // NFC Card Payment Info
+            if (nfcAmountUsed != null && nfcAmountUsed > 0) ...[
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.orange50,
+                  borderRadius: pw.BorderRadius.circular(8),
+                  border: pw.Border.all(color: PdfColors.orange200, width: 2),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Row(
+                      children: [
+                        pw.Container(
+                          width: 32,
+                          height: 32,
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.orange700,
+                            borderRadius: pw.BorderRadius.circular(16),
+                          ),
+                          child: pw.Center(
+                            child: pw.Text(
+                              'NFC',
+                              style: pw.TextStyle(
+                                fontSize: 10,
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        pw.SizedBox(width: 12),
+                        pw.Text(
+                          'NFC Card Payment',
+                          style: pw.TextStyle(
+                            fontSize: 22,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.orange800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    pw.SizedBox(height: 12),
+                    pw.Divider(color: PdfColors.orange200),
+                    pw.SizedBox(height: 12),
+                    if (nfcCardUid != null)
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Card UID:', style: const pw.TextStyle(fontSize: 18)),
+                          pw.Text(
+                            nfcCardUid,
+                            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    pw.SizedBox(height: 8),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Amount Deducted:', style: const pw.TextStyle(fontSize: 18)),
+                        pw.Text(
+                          'TZS ${NumberFormat('#,##0').format(nfcAmountUsed)}',
+                          style: pw.TextStyle(
+                            fontSize: 20,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.red700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (nfcBalanceAfter != null) ...[
+                      pw.SizedBox(height: 8),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Remaining Balance:', style: const pw.TextStyle(fontSize: 18)),
+                          pw.Text(
+                            'TZS ${NumberFormat('#,##0').format(nfcBalanceAfter)}',
+                            style: pw.TextStyle(
+                              fontSize: 22,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.green700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 24),
+            ],
 
             // Footer
             pw.Container(
@@ -1634,12 +1733,18 @@ class PdfService {
     String? companyName,
     String? companyAddress,
     String? companyPhone,
+    double? nfcAmountUsed,
+    double? nfcBalanceAfter,
+    String? nfcCardUid,
   }) async {
     final pdfData = await generateSaleReceiptPdf(
       sale,
       companyName: companyName,
       companyAddress: companyAddress,
       companyPhone: companyPhone,
+      nfcAmountUsed: nfcAmountUsed,
+      nfcBalanceAfter: nfcBalanceAfter,
+      nfcCardUid: nfcCardUid,
     );
 
     await Printing.layoutPdf(
@@ -1654,17 +1759,296 @@ class PdfService {
     String? companyName,
     String? companyAddress,
     String? companyPhone,
+    double? nfcAmountUsed,
+    double? nfcBalanceAfter,
+    String? nfcCardUid,
   }) async {
     final pdfData = await generateSaleReceiptPdf(
       sale,
       companyName: companyName,
       companyAddress: companyAddress,
       companyPhone: companyPhone,
+      nfcAmountUsed: nfcAmountUsed,
+      nfcBalanceAfter: nfcBalanceAfter,
+      nfcCardUid: nfcCardUid,
     );
 
     await Printing.sharePdf(
       bytes: pdfData,
       filename: 'Sale_Receipt_${sale.saleId}.pdf',
+    );
+  }
+
+  /// Generate PDF for NFC deposit receipt
+  static Future<Uint8List> generateNfcDepositReceiptPdf({
+    required String customerName,
+    required String cardUid,
+    required double amount,
+    required double balanceBefore,
+    required double balanceAfter,
+    String? description,
+    String? companyName,
+    String? companyAddress,
+    String? companyPhone,
+    String? employeeName,
+  }) async {
+    await _loadFonts();
+
+    final pdf = pw.Document();
+    final theme = pw.ThemeData.withFont(
+      base: _regularFont!,
+      bold: _boldFont!,
+    );
+
+    final dateFormat = DateFormat('dd MMM yyyy HH:mm:ss');
+    final now = DateTime.now();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.roll80,
+        margin: const pw.EdgeInsets.all(8),
+        theme: theme,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              // Company Header
+              if (companyName != null)
+                pw.Text(
+                  companyName,
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              if (companyAddress != null)
+                pw.Text(companyAddress, style: const pw.TextStyle(fontSize: 8)),
+              if (companyPhone != null)
+                pw.Text('Tel: $companyPhone', style: const pw.TextStyle(fontSize: 8)),
+              pw.SizedBox(height: 8),
+
+              // Title
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                decoration: const pw.BoxDecoration(
+                  border: pw.Border(
+                    top: pw.BorderSide(width: 1),
+                    bottom: pw.BorderSide(width: 1),
+                  ),
+                ),
+                child: pw.Center(
+                  child: pw.Text(
+                    'NFC WALLET DEPOSIT',
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              // Date & Time
+              pw.Text(
+                dateFormat.format(now),
+                style: const pw.TextStyle(fontSize: 9),
+              ),
+              pw.SizedBox(height: 8),
+
+              // Customer Info
+              pw.Container(
+                width: double.infinity,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _buildReceiptRow('Customer:', customerName),
+                    _buildReceiptRow('Card UID:', cardUid),
+                    if (description != null && description.isNotEmpty)
+                      _buildReceiptRow('Note:', description),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              // Divider
+              pw.Container(
+                width: double.infinity,
+                height: 1,
+                color: PdfColors.black,
+              ),
+              pw.SizedBox(height: 8),
+
+              // Amount Details
+              pw.Container(
+                width: double.infinity,
+                child: pw.Column(
+                  children: [
+                    _buildReceiptRow('Previous Balance:', 'TZS ${_currencyFormat.format(balanceBefore)}'),
+                    pw.SizedBox(height: 4),
+                    pw.Container(
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.symmetric(vertical: 6),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey200,
+                        borderRadius: pw.BorderRadius.circular(4),
+                      ),
+                      child: pw.Center(
+                        child: pw.Text(
+                          '+ TZS ${_currencyFormat.format(amount)}',
+                          style: pw.TextStyle(
+                            fontSize: 14,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    _buildReceiptRow('New Balance:', 'TZS ${_currencyFormat.format(balanceAfter)}',
+                        isBold: true),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              // Divider
+              pw.Container(
+                width: double.infinity,
+                height: 1,
+                color: PdfColors.black,
+              ),
+              pw.SizedBox(height: 8),
+
+              // New Balance Highlight
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(8),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(width: 2),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                      'CURRENT BALANCE',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'TZS ${_currencyFormat.format(balanceAfter)}',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              // Footer
+              if (employeeName != null)
+                pw.Text(
+                  'Served by: $employeeName',
+                  style: const pw.TextStyle(fontSize: 8),
+                ),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                'Thank you for your deposit!',
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  static pw.Widget _buildReceiptRow(String label, String value, {bool isBold = false}) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(label, style: const pw.TextStyle(fontSize: 9)),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            fontSize: 9,
+            fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Print NFC deposit receipt
+  static Future<void> printNfcDepositReceipt({
+    required String customerName,
+    required String cardUid,
+    required double amount,
+    required double balanceBefore,
+    required double balanceAfter,
+    String? description,
+    String? companyName,
+    String? companyAddress,
+    String? companyPhone,
+    String? employeeName,
+  }) async {
+    final pdfData = await generateNfcDepositReceiptPdf(
+      customerName: customerName,
+      cardUid: cardUid,
+      amount: amount,
+      balanceBefore: balanceBefore,
+      balanceAfter: balanceAfter,
+      description: description,
+      companyName: companyName,
+      companyAddress: companyAddress,
+      companyPhone: companyPhone,
+      employeeName: employeeName,
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdfData,
+      name: 'NFC_Deposit_Receipt',
+    );
+  }
+
+  /// Share NFC deposit receipt
+  static Future<void> shareNfcDepositReceipt({
+    required String customerName,
+    required String cardUid,
+    required double amount,
+    required double balanceBefore,
+    required double balanceAfter,
+    String? description,
+    String? companyName,
+    String? companyAddress,
+    String? companyPhone,
+    String? employeeName,
+  }) async {
+    final pdfData = await generateNfcDepositReceiptPdf(
+      customerName: customerName,
+      cardUid: cardUid,
+      amount: amount,
+      balanceBefore: balanceBefore,
+      balanceAfter: balanceAfter,
+      description: description,
+      companyName: companyName,
+      companyAddress: companyAddress,
+      companyPhone: companyPhone,
+      employeeName: employeeName,
+    );
+
+    await Printing.sharePdf(
+      bytes: pdfData,
+      filename: 'NFC_Deposit_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf',
     );
   }
 }

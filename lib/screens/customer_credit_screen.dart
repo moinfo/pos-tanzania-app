@@ -4,13 +4,16 @@ import 'package:provider/provider.dart';
 import '../models/credit.dart';
 import '../models/permission_model.dart';
 import '../models/stock_location.dart';
+import '../models/nfc_wallet.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
+import '../services/nfc_service.dart';
 import '../utils/constants.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/nfc_scan_dialog.dart';
 import 'sale_details_screen.dart';
 
 class CustomerCreditScreen extends StatefulWidget {
@@ -654,6 +657,62 @@ class _PaymentDialogState extends State<PaymentDialog> {
   Future<void> _submitPayment() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final amount = double.parse(_amountController.text);
+
+    // Check if customer requires NFC confirmation
+    final nfcSettingsResponse = await _apiService.getCustomerNfcSettings(widget.customerId);
+    if (nfcSettingsResponse.isSuccess && nfcSettingsResponse.data != null) {
+      final settings = nfcSettingsResponse.data!;
+
+      if (settings.nfcConfirmRequired) {
+        // Get customer's NFC card
+        final cardsResponse = await _apiService.getCustomerCards(widget.customerId);
+        if (!cardsResponse.isSuccess || cardsResponse.data == null || cardsResponse.data!.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Customer requires NFC confirmation but has no card linked'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+
+        final card = cardsResponse.data!.first;
+
+        // Show NFC confirmation dialog
+        final confirmed = await showDialog<NfcScanResult>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => NfcScanDialog(
+            title: 'Confirm Payment',
+            subtitle: 'Customer must scan NFC card to confirm payment of TZS ${NumberFormat('#,###').format(amount)}',
+            expectedCardUid: card.cardUid,
+            lookupCustomer: false,
+          ),
+        );
+
+        if (confirmed == null || !confirmed.success) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Payment cancelled - NFC confirmation required'),
+                backgroundColor: AppColors.warning,
+              ),
+            );
+          }
+          return;
+        }
+
+        // Record the NFC confirmation
+        await _apiService.confirmPaymentWithNfc(
+          cardUid: card.cardUid,
+          amount: amount,
+        );
+      }
+    }
+
     setState(() => _isSubmitting = true);
 
     // Get location provider to access selected location
@@ -677,7 +736,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
     final formData = PaymentFormData(
       customerId: widget.customerId,
-      amount: double.parse(_amountController.text),
+      amount: amount,
       saleId: _selectedSaleId,
       stockLocationId: stockLocationId,
       description: description.isEmpty ? null : description,
