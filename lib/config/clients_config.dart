@@ -7,13 +7,13 @@ class ClientsConfig {
   // Set this to the client ID you want to build for in PRODUCTION
   // Examples: 'sada', 'come_and_save', 'come_and_save', etc.
   // In DEBUG mode, this is ignored and user can select any client
-  static const String PRODUCTION_CLIENT_ID = 'leruma'; // Change this before building APK
+  static const String PRODUCTION_CLIENT_ID = 'come_and_save'; // Change this before building APK
 
   // ============================================
   // NETWORK CONFIGURATION
   // ============================================
   // ⚠️ CHANGE THIS IP ADDRESS when your network changes
-  static const String LOCAL_IP_ADDRESS = '10.197.232.146'; // Your computer's local IP
+  static const String LOCAL_IP_ADDRESS = '192.168.1.40'; // Your computer's local IP
 //   static const String LOCAL_IP_ADDRESS = '172.16.245.29'; // Your computer's local IP
   static const String MAMP_PORT = '8888';
 
@@ -49,6 +49,8 @@ class ClientsConfig {
       features: const ClientFeatures(
         // Come & Save does NOT have contracts feature
         hasContracts: false,
+        // Offline mode disabled
+        hasOfflineMode: false,
       ),
     ),
     ClientConfig(
