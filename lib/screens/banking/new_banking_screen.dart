@@ -230,13 +230,61 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
 
   Future<void> _pickFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-      );
+      FilePickerResult? result;
+      bool useImageFallback = false;
 
-      if (result != null) {
+      // Try with custom file types first
+      try {
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        );
+      } catch (e) {
+        debugPrint('Custom file picker failed: $e');
+        // Try with media type (images) as fallback - works without file manager
+        try {
+          result = await FilePicker.platform.pickFiles(
+            type: FileType.media,
+          );
+          useImageFallback = true;
+        } catch (e2) {
+          debugPrint('Media file picker also failed: $e2');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No file manager found. Please use "Choose from Gallery" for images, or install a file manager app for PDFs.'),
+                backgroundColor: AppColors.warning,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
+        final fileName = result.files.single.name.toLowerCase();
+
+        // Validate file extension manually
+        final allowedExtensions = useImageFallback
+            ? ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']
+            : ['pdf', 'jpg', 'jpeg', 'png'];
+        final extension = fileName.split('.').last;
+        if (!allowedExtensions.contains(extension)) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(useImageFallback
+                    ? 'Please select an image file'
+                    : 'Please select a PDF or image file (jpg, jpeg, png)'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+
         final fileSize = await file.length();
 
         // Check file size (max 10MB)
@@ -254,7 +302,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
 
         setState(() {
           _selectedFile = file;
-          _selectedFileName = result.files.single.name;
+          _selectedFileName = result!.files.single.name;
         });
       }
     } catch (e) {

@@ -651,6 +651,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: _selectedLocationFilter,
+                      isExpanded: true,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(

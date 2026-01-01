@@ -241,15 +241,63 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
 
   Future<void> _pickFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-        allowMultiple: false,
-      );
+      FilePickerResult? result;
+      bool useImageFallback = false;
+
+      // Try with custom file types first
+      try {
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+          allowMultiple: false,
+        );
+      } catch (e) {
+        debugPrint('Custom file picker failed: $e');
+        // Try with media type (images) as fallback - works without file manager
+        try {
+          result = await FilePicker.platform.pickFiles(
+            type: FileType.media,
+            allowMultiple: false,
+          );
+          useImageFallback = true;
+        } catch (e2) {
+          debugPrint('Media file picker also failed: $e2');
+          // Show helpful message to user
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No file manager found. Please use "Choose from Gallery" option for images, or install a file manager app for PDFs.'),
+                backgroundColor: AppColors.warning,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+          return;
+        }
+      }
 
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
-        final fileName = result.files.single.name;
+        final fileName = result.files.single.name.toLowerCase();
+
+        // Validate file extension manually
+        final allowedExtensions = useImageFallback
+            ? ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']
+            : ['pdf', 'jpg', 'jpeg', 'png'];
+        final extension = fileName.split('.').last;
+        if (!allowedExtensions.contains(extension)) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(useImageFallback
+                    ? 'Please select an image file'
+                    : 'Please select a PDF or image file (jpg, jpeg, png)'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
 
         // Check file size (max 10MB)
         final fileSize = await file.length();
@@ -267,7 +315,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
 
         setState(() {
           _selectedFile = file;
-          _selectedFileName = fileName;
+          _selectedFileName = result!.files.single.name;
         });
       }
     } catch (e) {

@@ -294,15 +294,74 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
-    );
+    try {
+      FilePickerResult? result;
+      bool useImageFallback = false;
 
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _selectedFile = File(result.files.single.path!);
-      });
+      // Try with custom file types first
+      try {
+        result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+        );
+      } catch (e) {
+        debugPrint('Custom file picker failed: $e');
+        // Try with media type (images) as fallback - works without file manager
+        try {
+          result = await FilePicker.platform.pickFiles(
+            type: FileType.media,
+          );
+          useImageFallback = true;
+        } catch (e2) {
+          debugPrint('Media file picker also failed: $e2');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No file manager found. Please use gallery for images, or install a file manager app for PDFs.'),
+                backgroundColor: AppColors.warning,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      if (result != null && result.files.single.path != null) {
+        final fileName = result.files.single.name.toLowerCase();
+
+        // Validate file extension manually
+        final allowedExtensions = useImageFallback
+            ? ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']
+            : ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+        final extension = fileName.split('.').last;
+        if (!allowedExtensions.contains(extension)) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(useImageFallback
+                    ? 'Please select an image file'
+                    : 'Please select a PDF, image, or document file'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+
+        setState(() {
+          _selectedFile = File(result!.files.single.path!);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking file: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
