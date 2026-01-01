@@ -93,9 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initializeDashboard() async {
     final currentClient = ApiService.currentClient;
     final hasCommissionDashboard = currentClient?.features.hasCommissionDashboard ?? false;
+    final clientId = currentClient?.id ?? 'sada';
 
-    // Initialize location provider for Leruma only
-    if (hasCommissionDashboard && mounted) {
+    // Initialize location provider for Leruma and Come and Save
+    if ((hasCommissionDashboard || clientId == 'come_and_save') && mounted) {
       final authProvider = context.read<AuthProvider>();
       final locationProvider = context.read<LocationProvider>();
       // Pass user's location_id to use as default
@@ -430,8 +431,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Location Selector (Leruma only - for users with multiple locations)
-            if (ApiService.currentClient?.features.hasCommissionDashboard ?? false)
+            // Location Selector (Leruma and Come and Save - for users with multiple locations)
+            if ((ApiService.currentClient?.features.hasCommissionDashboard ?? false) ||
+                (ApiService.currentClient?.id == 'come_and_save'))
               Consumer<LocationProvider>(
                 builder: (context, locationProvider, child) {
                   // Only show if user has multiple locations

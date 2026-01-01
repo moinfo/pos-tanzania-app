@@ -2790,7 +2790,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
   Widget build(BuildContext context) {
     final permissionProvider = context.watch<PermissionProvider>();
     final hasNfcPaymentPermission = permissionProvider.hasPermission(PermissionIds.nfcPayment);
-    final isLeruma = ApiService.currentClient?.id == 'leruma';
+    final hasNfcCard = ApiService.currentClient?.features.hasNfcCard ?? false;
 
     return AlertDialog(
       title: const Text('Payment'),
@@ -2804,8 +2804,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
               items: [
                 const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
                 const DropdownMenuItem(value: 'Credit Card', child: Text('Credit Card')),
-                // NFC Card payment - Leruma only
-                if (isLeruma && hasNfcPaymentPermission && (_nfcCardBalance != null || widget.customer != null))
+                // NFC Card payment - requires hasNfcCard feature
+                if (hasNfcCard && hasNfcPaymentPermission && (_nfcCardBalance != null || widget.customer != null))
                   const DropdownMenuItem(
                     value: 'NFC Card',
                     child: Row(

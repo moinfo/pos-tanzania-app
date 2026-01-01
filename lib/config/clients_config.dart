@@ -13,7 +13,7 @@ class ClientsConfig {
   // NETWORK CONFIGURATION
   // ============================================
   // ⚠️ CHANGE THIS IP ADDRESS when your network changes
-  static const String LOCAL_IP_ADDRESS = '192.168.1.40'; // Your computer's local IP
+  static const String LOCAL_IP_ADDRESS = '10.143.155.146'; // Your computer's local IP
 //   static const String LOCAL_IP_ADDRESS = '172.16.245.29'; // Your computer's local IP
   static const String MAMP_PORT = '8888';
 
@@ -49,6 +49,8 @@ class ClientsConfig {
       features: const ClientFeatures(
         // Come & Save does NOT have contracts feature
         hasContracts: false,
+        // NFC Card enabled
+        hasNfcCard: true,
         // Offline mode disabled
         hasOfflineMode: false,
       ),
@@ -71,6 +73,8 @@ class ClientsConfig {
         hasSuppliersByLocation: true,
         // Leruma only uses Credit Card payment in receivings
         hasReceivingCreditCardOnly: true,
+        // NFC Card enabled
+        hasNfcCard: true,
         // Offline mode disabled
         hasOfflineMode: false,
       ),

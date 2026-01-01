@@ -19,6 +19,9 @@ class ClientFeatures {
   final bool hasSuppliersByLocation; // Leruma-specific: filter suppliers by stock location's supervisor
   final bool hasReceivingCreditCardOnly; // Leruma-specific: only allow Credit Card payment in receivings
 
+  // NFC Card functionality
+  final bool hasNfcCard; // Enable NFC card wallet features (balance, deposit, payment)
+
   // Offline mode configuration
   final bool hasOfflineMode; // Enable/disable offline functionality
 
@@ -41,6 +44,7 @@ class ClientFeatures {
     this.hasReceivingsSummary = false, // Default: disabled (only Leruma uses this)
     this.hasSuppliersByLocation = false, // Default: disabled (only Leruma uses this)
     this.hasReceivingCreditCardOnly = false, // Default: disabled (only Leruma uses this)
+    this.hasNfcCard = false, // Default: disabled - enable per client
     this.hasOfflineMode = false, // Default: disabled - enable per client as needed
   });
 }

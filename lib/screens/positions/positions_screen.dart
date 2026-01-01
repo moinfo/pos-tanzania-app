@@ -576,7 +576,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: List.generate(5, (_) =>
-                      SkeletonLoader(width: 50, height: 14, isDark: isDark),
+                      Flexible(child: SkeletonLoader(width: 45, height: 14, isDark: isDark)),
                     ),
                   ),
                 ),

@@ -470,8 +470,8 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
-            // NFC Cards - Leruma only, requires nfc_cards_view permission
-            if (ApiService.currentClient?.id == 'leruma')
+            // NFC Cards - requires hasNfcCard feature and nfc_cards_view permission
+            if (ApiService.currentClient?.features.hasNfcCard ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.nfcCardsView,
                 child: ListTile(
@@ -486,8 +486,8 @@ class _MainNavigationState extends State<MainNavigation> {
                   },
                 ),
               ),
-            // NFC Confirmations Report - Leruma only, requires nfc_confirmations_view permission
-            if (ApiService.currentClient?.id == 'leruma')
+            // NFC Confirmations Report - requires hasNfcCard feature and nfc_confirmations_view permission
+            if (ApiService.currentClient?.features.hasNfcCard ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.nfcConfirmationsView,
                 child: ListTile(
@@ -502,8 +502,8 @@ class _MainNavigationState extends State<MainNavigation> {
                   },
                 ),
               ),
-            // NFC Card Lookup - Leruma only, requires nfc_cards_view permission
-            if (ApiService.currentClient?.id == 'leruma')
+            // NFC Card Lookup - requires hasNfcCard feature and nfc_cards_view permission
+            if (ApiService.currentClient?.features.hasNfcCard ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.nfcCardsView,
                 child: ListTile(
