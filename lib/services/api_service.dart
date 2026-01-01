@@ -4536,16 +4536,28 @@ class ApiService {
     required String date,
     required int stockLocationId,
   }) async {
+    final url = '$baseUrlSync/stock/tracking?date=$date&stock_location_id=$stockLocationId';
+    print('=== API: getStockTracking ===');
+    print('URL: $url');
+
     try {
+      final headers = await _getHeaders();
+      print('Headers: $headers');
+
       final response = await http.get(
-        Uri.parse('$baseUrlSync/stock/tracking?date=$date&stock_location_id=$stockLocationId'),
-        headers: await _getHeaders(),
+        Uri.parse(url),
+        headers: headers,
       );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body (first 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'];
+        print('Parsing StockTrackingReport from data...');
         final report = StockTrackingReport.fromJson(data);
+        print('Report parsed successfully - Items: ${report.items.length}');
 
         return ApiResponse.success(
           data: report,
@@ -4553,12 +4565,15 @@ class ApiService {
         );
       } else {
         final jsonResponse = json.decode(response.body);
+        print('ERROR: ${jsonResponse['message']}');
         return ApiResponse.error(
           message: jsonResponse['message'] ?? 'Failed to fetch stock tracking',
           statusCode: response.statusCode,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('EXCEPTION: $e');
+      print('Stack trace: $stackTrace');
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
@@ -4637,29 +4652,43 @@ class ApiService {
 
   /// Get stock locations for stock tracking
   Future<ApiResponse<List<StockLocation>>> getStockTrackingLocations() async {
+    final url = '$baseUrlSync/stock/locations';
+    print('=== API: getStockTrackingLocations ===');
+    print('URL: $url');
+
     try {
+      final headers = await _getHeaders();
+      print('Headers: $headers');
+
       final response = await http.get(
-        Uri.parse('$baseUrlSync/stock/locations'),
-        headers: await _getHeaders(),
+        Uri.parse(url),
+        headers: headers,
       );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'] as List;
         final locations = data.map((loc) => StockLocation.fromJson(loc)).toList();
 
+        print('Parsed ${locations.length} locations');
         return ApiResponse.success(
           data: locations,
           message: jsonResponse['message'] ?? 'Success',
         );
       } else {
         final jsonResponse = json.decode(response.body);
+        print('ERROR: ${jsonResponse['message']}');
         return ApiResponse.error(
           message: jsonResponse['message'] ?? 'Failed to fetch locations',
           statusCode: response.statusCode,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('EXCEPTION: $e');
+      print('Stack trace: $stackTrace');
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }

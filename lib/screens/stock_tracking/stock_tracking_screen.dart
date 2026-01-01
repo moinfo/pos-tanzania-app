@@ -35,20 +35,47 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
   }
 
   Future<void> _loadLocations() async {
+    print('=== STOCK TRACKING DEBUG ===');
+    print('Loading stock locations...');
+
     final response = await _apiService.getStockTrackingLocations();
+
+    print('Locations Response - isSuccess: ${response.isSuccess}');
+    print('Locations Response - message: ${response.message}');
+    print('Locations Response - data: ${response.data}');
+    print('Locations Response - statusCode: ${response.statusCode}');
+
     if (response.isSuccess && response.data != null) {
+      print('Locations loaded successfully: ${response.data!.length} locations');
+      for (var loc in response.data!) {
+        print('  - Location: ${loc.locationId} - ${loc.locationName}');
+      }
       setState(() {
         _locations = response.data!;
         if (_locations.isNotEmpty) {
           _selectedLocation = _locations.first;
+          print('Selected first location: ${_selectedLocation!.locationName}');
           _loadReport();
         }
+      });
+    } else {
+      print('ERROR loading locations: ${response.message}');
+      setState(() {
+        _errorMessage = response.message ?? 'Failed to load locations';
       });
     }
   }
 
   Future<void> _loadReport() async {
-    if (_selectedLocation == null) return;
+    if (_selectedLocation == null) {
+      print('ERROR: No location selected');
+      return;
+    }
+
+    print('=== LOADING STOCK REPORT ===');
+    print('Location ID: ${_selectedLocation!.locationId}');
+    print('Location Name: ${_selectedLocation!.locationName}');
+    print('Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}');
 
     setState(() {
       _isLoading = true;
@@ -56,17 +83,28 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
     });
 
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    print('Calling API: getStockTracking(date: $dateStr, stockLocationId: ${_selectedLocation!.locationId})');
+
     final response = await _apiService.getStockTracking(
       date: dateStr,
       stockLocationId: _selectedLocation!.locationId,
     );
 
+    print('Report Response - isSuccess: ${response.isSuccess}');
+    print('Report Response - message: ${response.message}');
+    print('Report Response - statusCode: ${response.statusCode}');
+
     if (response.isSuccess && response.data != null) {
+      print('Report loaded successfully!');
+      print('Items count: ${response.data!.items.length}');
+      print('Total Net Sales: ${response.data!.totals.totalNetSales}');
+      print('Stock Value: ${response.data!.totals.stockValue}');
       setState(() {
         _report = response.data;
         _isLoading = false;
       });
     } else {
+      print('ERROR loading report: ${response.message}');
       setState(() {
         _errorMessage = response.message ?? 'Failed to load stock tracking';
         _isLoading = false;
