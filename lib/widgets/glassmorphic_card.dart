@@ -17,6 +17,8 @@ class GlassmorphicCard extends StatelessWidget {
   final Color? customColor;
   final double? width;
   final double? height;
+  /// When true, uses transparent glassmorphic style (for cards on colored backgrounds like login)
+  final bool onColoredBackground;
 
   const GlassmorphicCard({
     super.key,
@@ -28,10 +30,14 @@ class GlassmorphicCard extends StatelessWidget {
     this.customColor,
     this.width,
     this.height,
+    this.onColoredBackground = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Use transparent glassmorphic style for cards on colored backgrounds
+    final useGlassStyle = onColoredBackground || isDark;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -51,13 +57,33 @@ class GlassmorphicCard extends StatelessWidget {
                   offset: const Offset(0, -1),
                 ),
               ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+            : onColoredBackground
+                ? [
+                    // Glassmorphic shadow for colored backgrounds
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [
+                    // Light mode - clean elevated shadow
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 1,
+                      offset: const Offset(0, 1),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -81,17 +107,26 @@ class GlassmorphicCard extends StatelessWidget {
                             const Color(0xFF1A1A1A).withOpacity(0.95),
                             const Color(0xFF141414).withOpacity(0.90),
                           ]
-                        : [
-                            Colors.white.withOpacity(0.4),
-                            Colors.white.withOpacity(0.25),
-                          ],
+                        : onColoredBackground
+                            ? [
+                                // Glassmorphic transparent style for colored backgrounds
+                                Colors.white.withOpacity(0.25),
+                                Colors.white.withOpacity(0.15),
+                              ]
+                            : [
+                                // Light mode - clean white card for gray/white backgrounds
+                                Colors.white.withOpacity(0.95),
+                                const Color(0xFFFCFCFC).withOpacity(0.92),
+                              ],
               ),
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
                 color: isDark
                     ? Colors.white.withOpacity(0.08) // Subtle border for dark mode
-                    : Colors.white.withOpacity(0.3),
-                width: isDark ? 1 : 2,
+                    : onColoredBackground
+                        ? Colors.white.withOpacity(0.3) // Transparent border for colored backgrounds
+                        : const Color(0xFFE5E7EB), // Clean gray border for light mode
+                width: onColoredBackground ? 2 : 1,
               ),
             ),
             child: padding != null

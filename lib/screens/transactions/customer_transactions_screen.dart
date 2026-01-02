@@ -535,6 +535,10 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         title: const Text('Customer Transactions'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'Deposits'),
             Tab(text: 'Withdrawals'),
@@ -568,7 +572,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
             end: Alignment.bottomCenter,
             colors: isDark
                 ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [AppColors.lightBackground, Colors.white],
+                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
           ),
         ),
         child: Column(
@@ -577,13 +581,22 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: GlassmorphicCard(
+                isDark: isDark,
                 child: DropdownButtonFormField<Customer>(
                   value: _selectedCustomer,
                   isExpanded: true,
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                    fontSize: 16,
+                  ),
+                  dropdownColor: isDark ? AppColors.darkCard : Colors.white,
+                  decoration: InputDecoration(
                     labelText: 'Select Customer',
+                    labelStyle: TextStyle(
+                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                    ),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   items: _customers.map((customer) {
                     return DropdownMenuItem(
@@ -609,12 +622,19 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
               child: _isLoading
                   ? _buildSkeletonList(isDark)
                   : _error != null
-                      ? Center(child: Text(_error!))
+                      ? Center(
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                            ),
+                          ),
+                        )
                       : TabBarView(
                           controller: _tabController,
                           children: [
-                            _buildDepositsList(permissionProvider),
-                            _buildWithdrawalsList(permissionProvider),
+                            _buildDepositsList(permissionProvider, isDark),
+                            _buildWithdrawalsList(permissionProvider, isDark),
                           ],
                         ),
             ),
@@ -651,9 +671,16 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     }
   }
 
-  Widget _buildDepositsList(PermissionProvider permissionProvider) {
+  Widget _buildDepositsList(PermissionProvider permissionProvider, bool isDark) {
     if (_deposits.isEmpty) {
-      return const Center(child: Text('No deposits found'));
+      return Center(
+        child: Text(
+          'No deposits found',
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+          ),
+        ),
+      );
     }
 
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsDepositEdit);
@@ -668,25 +695,43 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: GlassmorphicCard(
+            isDark: isDark,
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: Colors.green.withOpacity(0.2),
-                child: const Icon(Icons.arrow_downward, color: Colors.green),
+                backgroundColor: AppColors.success.withOpacity(0.15),
+                child: Icon(Icons.arrow_downward, color: AppColors.success),
               ),
               title: Text(
                 Formatters.formatCurrency(deposit.amount),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                ),
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(deposit.date),
-                  if (deposit.description.isNotEmpty) Text(deposit.description),
+                  Text(
+                    deposit.date,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                    ),
+                  ),
+                  if (deposit.description.isNotEmpty)
+                    Text(
+                      deposit.description,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                      ),
+                    ),
                 ],
               ),
               trailing: hasAnyAction
                   ? PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert),
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                      ),
                       onSelected: (value) {
                         if (value == 'edit') {
                           _showEditDepositDialog(deposit);
@@ -719,7 +764,10 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                           ),
                       ],
                     )
-                  : const Icon(Icons.chevron_right),
+                  : Icon(
+                      Icons.chevron_right,
+                      color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF),
+                    ),
             ),
           ),
         );
@@ -727,9 +775,16 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     );
   }
 
-  Widget _buildWithdrawalsList(PermissionProvider permissionProvider) {
+  Widget _buildWithdrawalsList(PermissionProvider permissionProvider, bool isDark) {
     if (_withdrawals.isEmpty) {
-      return const Center(child: Text('No withdrawals found'));
+      return Center(
+        child: Text(
+          'No withdrawals found',
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+          ),
+        ),
+      );
     }
 
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsWithdrawEdit);
@@ -744,25 +799,43 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: GlassmorphicCard(
+            isDark: isDark,
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: AppColors.error.withOpacity(0.2),
+                backgroundColor: AppColors.error.withOpacity(0.15),
                 child: Icon(Icons.arrow_upward, color: AppColors.error),
               ),
               title: Text(
                 Formatters.formatCurrency(withdrawal.amount),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                ),
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(withdrawal.date),
-                  if (withdrawal.description.isNotEmpty) Text(withdrawal.description),
+                  Text(
+                    withdrawal.date,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                    ),
+                  ),
+                  if (withdrawal.description.isNotEmpty)
+                    Text(
+                      withdrawal.description,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                      ),
+                    ),
                 ],
               ),
               trailing: hasAnyAction
                   ? PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert),
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                      ),
                       onSelected: (value) {
                         if (value == 'edit') {
                           _showEditWithdrawalDialog(withdrawal);
@@ -795,7 +868,10 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                           ),
                       ],
                     )
-                  : const Icon(Icons.chevron_right),
+                  : Icon(
+                      Icons.chevron_right,
+                      color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF),
+                    ),
             ),
           ),
         );

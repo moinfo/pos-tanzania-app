@@ -172,7 +172,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: const Text('Wakala Expenses'),
         backgroundColor: AppColors.primary,
@@ -187,25 +187,63 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
       ),
       body: Column(
         children: [
-          // Date range display
+          // Date range display - improved light mode
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: isDark
-                ? AppColors.darkSurface
-                : AppColors.primary.withOpacity(0.1),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.darkSurface
+                  : Colors.white,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark
+                      ? AppColors.darkDivider
+                      : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+              ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  _startDate == _endDate
-                      ? DateFormat('MMMM dd, yyyy').format(_startDate)
-                      : '${DateFormat('MMM dd, yyyy').format(_startDate)} - ${DateFormat('MMM dd, yyyy').format(_endDate)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: isDark ? Colors.white : AppColors.text,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.primary.withOpacity(0.15)
+                            : AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _startDate == _endDate
+                          ? DateFormat('MMMM dd, yyyy').format(_startDate)
+                          : '${DateFormat('MMM dd, yyyy').format(_startDate)} - ${DateFormat('MMM dd, yyyy').format(_endDate)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: isDark ? Colors.white : const Color(0xFF1F2937),
+                      ),
+                    ),
+                  ],
                 ),
                 TextButton.icon(
                   onPressed: _selectDateRange,
@@ -213,43 +251,92 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.primary,
+                    backgroundColor: isDark
+                        ? AppColors.primary.withOpacity(0.1)
+                        : AppColors.primary.withOpacity(0.08),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          // Total summary card
+          // Total summary card - improved light mode
           if (!_isLoading && _expenses.isNotEmpty)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               margin: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCard : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [AppColors.darkCard, AppColors.darkSurface]
+                      : [Colors.white, const Color(0xFFFAFAFA)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.08)
+                      : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+                boxShadow: isDark
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 1,
+                          offset: const Offset(0, 1),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Total Expenses',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white70 : AppColors.textLight,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet,
+                          size: 20,
+                          color: AppColors.error,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Total Expenses',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
                   ),
                   Text(
                     'TZS ${Formatters.formatCurrency(_total)}',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: AppColors.error,
                     ),
@@ -257,14 +344,14 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                 ],
               ),
             ),
-          // Content with gradient background
+          // Content with gradient background - improved light mode
           Expanded(
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isDark
                       ? [AppColors.darkBackground, AppColors.darkSurface]
-                      : [AppColors.lightBackground, Colors.white],
+                      : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -668,131 +755,298 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header
-                Text(
-                  widget.expense == null
-                      ? 'Add Wakala Expense'
-                      : 'Edit Wakala Expense',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.text,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
+    // Light mode input decoration
+    final lightInputDecoration = InputDecoration(
+      filled: true,
+      fillColor: const Color(0xFFF9FAFB),
+      labelStyle: TextStyle(
+        color: const Color(0xFF6B7280),
+        fontWeight: FontWeight.w500,
+      ),
+      hintStyle: TextStyle(
+        color: const Color(0xFF9CA3AF),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: const Color(0xFFE5E7EB),
+          width: 1.5,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: AppColors.primary,
+          width: 2,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: AppColors.error,
+          width: 1.5,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: AppColors.error,
+          width: 2,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
 
-                // Date
-                InkWell(
-                  onTap: _selectDate,
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Date',
-                      labelStyle: TextStyle(
-                        color: isDark ? Colors.white70 : null,
+    // Dark mode input decoration
+    final darkInputDecoration = InputDecoration(
+      filled: true,
+      fillColor: AppColors.darkSurface,
+      labelStyle: TextStyle(
+        color: Colors.white70,
+        fontWeight: FontWeight.w500,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Colors.white24,
+          width: 1,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: AppColors.primary,
+          width: 2,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: AppColors.error,
+          width: 1,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: AppColors.error,
+          width: 2,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
+
+    final inputDecoration = isDark ? darkInputDecoration : lightInputDecoration;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: isDark ? 0 : 8,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: isDark
+              ? Border.all(color: Colors.white.withOpacity(0.08))
+              : null,
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header with icon
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.error.withOpacity(0.8),
+                                AppColors.error,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            widget.expense == null ? Icons.add_circle : Icons.edit,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          widget.expense == null
+                              ? 'Add Wakala Expense'
+                              : 'Edit Wakala Expense',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Date
+                  InkWell(
+                    onTap: _selectDate,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InputDecorator(
+                      decoration: inputDecoration.copyWith(
+                        labelText: 'Date',
+                        prefixIcon: Icon(
+                          Icons.calendar_today,
+                          color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                        ),
                       ),
-                      prefixIcon: Icon(
-                        Icons.calendar_today,
-                        color: isDark ? Colors.white70 : null,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: isDark ? Colors.white24 : Colors.grey.shade300,
+                      child: Text(
+                        Formatters.formatDate(_selectedDate.toString()),
+                        style: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF1F2937),
+                          fontSize: 16,
                         ),
                       ),
                     ),
-                    child: Text(
-                      Formatters.formatDate(_selectedDate.toString()),
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.text,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Amount
+                  TextFormField(
+                    controller: _amountController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                      fontSize: 16,
+                    ),
+                    decoration: inputDecoration.copyWith(
+                      labelText: 'Amount (TZS)',
+                      prefixIcon: Icon(
+                        Icons.payments,
+                        color: isDark ? Colors.white70 : const Color(0xFF6B7280),
                       ),
                     ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter amount';
+                      }
+                      if (double.tryParse(value) == null ||
+                          double.parse(value) <= 0) {
+                        return 'Please enter a valid amount';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Amount
-                TextFormField(
-                  controller: _amountController,
-                  style: TextStyle(color: isDark ? Colors.white : AppColors.text),
-                  decoration: InputDecoration(
-                    labelText: 'Amount',
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
-                    prefixIcon:
-                        Icon(Icons.money, color: isDark ? Colors.white70 : null),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                  // Description
+                  TextFormField(
+                    controller: _descriptionController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                      fontSize: 16,
+                    ),
+                    decoration: inputDecoration.copyWith(
+                      labelText: 'Description (Optional)',
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(bottom: 48),
+                        child: Icon(
+                          Icons.description,
+                          color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+                        ),
                       ),
+                      alignLabelWithHint: true,
                     ),
+                    maxLines: 3,
                   ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter amount';
-                    }
-                    if (double.tryParse(value) == null ||
-                        double.parse(value) <= 0) {
-                      return 'Please enter a valid amount';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 28),
 
-                // Description
-                TextFormField(
-                  controller: _descriptionController,
-                  style: TextStyle(color: isDark ? Colors.white : AppColors.text),
-                  decoration: InputDecoration(
-                    labelText: 'Description (Optional)',
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
-                    prefixIcon: Icon(Icons.description,
-                        color: isDark ? Colors.white70 : null),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(
+                              color: isDark
+                                  ? Colors.white24
+                                  : const Color(0xFFD1D5DB),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white70
+                                  : const Color(0xFF6B7280),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _saveExpense,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  widget.expense == null ? 'Add Expense' : 'Save Changes',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 24),
-
-                // Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _saveExpense,
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(widget.expense == null ? 'Add' : 'Save'),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

@@ -78,8 +78,8 @@ class _SalesScreenState extends State<SalesScreen> {
     final offlineProvider = context.read<OfflineProvider>();
     final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
-    // Check if offline
-    if (!connectivityProvider.isOnline) {
+    // Check if offline AND offline mode is initialized (enabled for this client)
+    if (!connectivityProvider.isOnline && offlineProvider.isInitialized) {
       debugPrint('📴 Loading items from offline database');
       final offlineItems = await offlineProvider.getOfflineItems(
         locationId: selectedLocationId,
@@ -146,14 +146,17 @@ class _SalesScreenState extends State<SalesScreen> {
     final offlineProvider = context.read<OfflineProvider>();
     final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
-    // Check if offline - search local database
-    if (!connectivityProvider.isOnline) {
+    debugPrint('🔍 Search query: "$query", locationId: $selectedLocationId, online: ${connectivityProvider.isOnline}, offlineInitialized: ${offlineProvider.isInitialized}');
+
+    // Check if offline AND offline mode is initialized (enabled for this client)
+    if (!connectivityProvider.isOnline && offlineProvider.isInitialized) {
       final offlineItems = await offlineProvider.getOfflineItems(
         locationId: selectedLocationId,
         search: query,
         limit: 50,
       );
 
+      debugPrint('📴 Offline search returned ${offlineItems.length} items');
       setState(() {
         _filteredItems = offlineItems.map((data) => Item.fromJson(data)).toList();
       });
@@ -167,11 +170,14 @@ class _SalesScreenState extends State<SalesScreen> {
       locationId: selectedLocationId,
     );
 
+    debugPrint('📡 API response: success=${response.isSuccess}, itemCount=${response.data?.length ?? 0}, message=${response.message}');
+
     if (response.isSuccess && response.data != null) {
       setState(() {
         _filteredItems = response.data!;
       });
     } else {
+      debugPrint('⚠️ API failed, falling back to offline search');
       // Fallback to offline search if API fails
       final offlineItems = await offlineProvider.getOfflineItems(
         locationId: selectedLocationId,
@@ -3036,8 +3042,8 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
       locationId = locationProvider.selectedLocation?.locationId;
     }
 
-    // Check if offline
-    if (!connectivityProvider.isOnline) {
+    // Check if offline AND offline mode is initialized (enabled for this client)
+    if (!connectivityProvider.isOnline && offlineProvider.isInitialized) {
       debugPrint('📴 Loading customers from offline database');
       final offlineCustomers = await offlineProvider.getOfflineCustomers(limit: 100);
 

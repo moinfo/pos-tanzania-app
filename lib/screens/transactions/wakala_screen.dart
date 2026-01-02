@@ -549,6 +549,10 @@ class _WakalaScreenState extends State<WakalaScreen>
         title: const Text('Wakala Management'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'SIM Cards'),
             Tab(text: 'Float Transactions'),
@@ -583,18 +587,25 @@ class _WakalaScreenState extends State<WakalaScreen>
             end: Alignment.bottomCenter,
             colors: isDark
                 ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [AppColors.lightBackground, Colors.white],
+                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
           ),
         ),
         child: _isLoading
             ? _buildSkeletonList(isDark)
             : _error != null
-                ? Center(child: Text(_error!))
+                ? Center(
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                      ),
+                    ),
+                  )
                 : TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildSimsList(permissionProvider),
-                      _buildTransactionsList(permissionProvider),
+                      _buildSimsList(permissionProvider, isDark),
+                      _buildTransactionsList(permissionProvider, isDark),
                     ],
                   ),
       ),
@@ -628,12 +639,15 @@ class _WakalaScreenState extends State<WakalaScreen>
     }
   }
 
-  Widget _buildSimsList(PermissionProvider permissionProvider) {
+  Widget _buildSimsList(PermissionProvider permissionProvider, bool isDark) {
     if (_sims.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No SIM cards found\n\nAdd SIM cards for wakala float tracking',
           textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+          ),
         ),
       );
     }
@@ -650,13 +664,25 @@ class _WakalaScreenState extends State<WakalaScreen>
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: GlassmorphicCard(
+            isDark: isDark,
             child: ListTile(
               leading: const CircleAvatar(
                 backgroundColor: AppColors.primary,
                 child: Icon(Icons.sim_card, color: Colors.white),
               ),
-              title: Text(sim.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(sim.description),
+              title: Text(
+                sim.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                ),
+              ),
+              subtitle: Text(
+                sim.description,
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                ),
+              ),
               trailing: hasAnyAction
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
@@ -683,7 +709,7 @@ class _WakalaScreenState extends State<WakalaScreen>
     );
   }
 
-  Widget _buildTransactionsList(PermissionProvider permissionProvider) {
+  Widget _buildTransactionsList(PermissionProvider permissionProvider, bool isDark) {
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsWakalaEdit);
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsWakalaDelete);
     final hasAnyAction = canEdit || canDelete;
@@ -694,14 +720,19 @@ class _WakalaScreenState extends State<WakalaScreen>
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: GlassmorphicCard(
+            isDark: isDark,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Total Float:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                    ),
                   ),
                   Text(
                     Formatters.formatCurrency(_total),
@@ -720,7 +751,14 @@ class _WakalaScreenState extends State<WakalaScreen>
         // Transactions List
         Expanded(
           child: _transactions.isEmpty
-              ? const Center(child: Text('No float transactions found'))
+              ? Center(
+                  child: Text(
+                    'No float transactions found',
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                    ),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _transactions.length,
@@ -729,6 +767,7 @@ class _WakalaScreenState extends State<WakalaScreen>
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GlassmorphicCard(
+                        isDark: isDark,
                         child: ListTile(
                           leading: const CircleAvatar(
                             backgroundColor: AppColors.primary,
@@ -736,22 +775,34 @@ class _WakalaScreenState extends State<WakalaScreen>
                           ),
                           title: Text(
                             transaction.simName,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                            ),
                           ),
-                          subtitle: Text(transaction.date),
+                          subtitle: Text(
+                            transaction.date,
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                            ),
+                          ),
                           trailing: hasAnyAction
                               ? Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       Formatters.formatCurrency(transaction.amount),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
+                                        color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                                       ),
                                     ),
                                     PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert),
+                                      icon: Icon(
+                                        Icons.more_vert,
+                                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                                      ),
                                       onSelected: (value) {
                                         if (value == 'edit') {
                                           _showEditTransactionDialog(transaction);
@@ -788,9 +839,10 @@ class _WakalaScreenState extends State<WakalaScreen>
                                 )
                               : Text(
                                   Formatters.formatCurrency(transaction.amount),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
+                                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                                   ),
                                 ),
                         ),

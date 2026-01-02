@@ -558,6 +558,10 @@ class _BankBasisScreenState extends State<BankBasisScreen>
         title: const Text('Bank Basis / Mobile Money'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'Categories'),
             Tab(text: 'Transactions'),
@@ -592,7 +596,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
             end: Alignment.bottomCenter,
             colors: isDark
                 ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [AppColors.lightBackground, Colors.white],
+                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
           ),
         ),
         child: _isLoading
@@ -602,8 +606,8 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                 : TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildCategoriesList(permissionProvider),
-                      _buildTransactionsList(permissionProvider),
+                      _buildCategoriesList(permissionProvider, isDark),
+                      _buildTransactionsList(permissionProvider, isDark),
                     ],
                   ),
       ),
@@ -637,12 +641,15 @@ class _BankBasisScreenState extends State<BankBasisScreen>
     }
   }
 
-  Widget _buildCategoriesList(PermissionProvider permissionProvider) {
+  Widget _buildCategoriesList(PermissionProvider permissionProvider, bool isDark) {
     if (_categories.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No categories found\n\nAdd categories like M-Pesa, Airtel Money, Bank',
           textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+          ),
         ),
       );
     }
@@ -659,13 +666,25 @@ class _BankBasisScreenState extends State<BankBasisScreen>
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: GlassmorphicCard(
+            isDark: isDark,
             child: ListTile(
               leading: const CircleAvatar(
                 backgroundColor: AppColors.primary,
                 child: Icon(Icons.category, color: Colors.white),
               ),
-              title: Text(category.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(category.description),
+              title: Text(
+                category.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                ),
+              ),
+              subtitle: Text(
+                category.description,
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                ),
+              ),
               trailing: hasAnyAction
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
@@ -692,7 +711,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
     );
   }
 
-  Widget _buildTransactionsList(PermissionProvider permissionProvider) {
+  Widget _buildTransactionsList(PermissionProvider permissionProvider, bool isDark) {
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsBankBasisEdit);
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsBankBasisDelete);
     final hasAnyAction = canEdit || canDelete;
@@ -716,6 +735,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: GlassmorphicCard(
+                    isDark: isDark,
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Row(
@@ -723,9 +743,10 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                         children: [
                           Text(
                             '${category.name}:',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                             ),
                           ),
                           Text(
@@ -749,6 +770,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
         Padding(
           padding: EdgeInsets.fromLTRB(16, _categoryTotals.length > 1 ? 0 : 16, 16, 0),
           child: GlassmorphicCard(
+            isDark: isDark,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -756,7 +778,11 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                 children: [
                   Text(
                     _categoryTotals.length > 1 ? 'Grand Total:' : 'Total:',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                    ),
                   ),
                   Text(
                     Formatters.formatCurrency(_total),
@@ -777,7 +803,14 @@ class _BankBasisScreenState extends State<BankBasisScreen>
         // Transactions List
         Expanded(
           child: _transactions.isEmpty
-              ? const Center(child: Text('No transactions found'))
+              ? Center(
+                  child: Text(
+                    'No transactions found',
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                    ),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _transactions.length,
@@ -786,29 +819,42 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GlassmorphicCard(
+                        isDark: isDark,
                         child: ListTile(
                           leading: const CircleAvatar(
-                            backgroundColor: Colors.green,
+                            backgroundColor: AppColors.success,
                             child: Icon(Icons.money, color: Colors.white),
                           ),
                           title: Text(
                             transaction.bankBasisName,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                            ),
                           ),
-                          subtitle: Text(transaction.date),
+                          subtitle: Text(
+                            transaction.date,
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                            ),
+                          ),
                           trailing: hasAnyAction
                               ? Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       Formatters.formatCurrency(transaction.amount),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
+                                        color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                                       ),
                                     ),
                                     PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert),
+                                      icon: Icon(
+                                        Icons.more_vert,
+                                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                                      ),
                                       onSelected: (value) {
                                         if (value == 'edit') {
                                           _showEditTransactionDialog(transaction);
@@ -845,9 +891,10 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                                 )
                               : Text(
                                   Formatters.formatCurrency(transaction.amount),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
+                                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                                   ),
                                 ),
                         ),

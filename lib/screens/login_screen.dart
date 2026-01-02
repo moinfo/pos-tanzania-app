@@ -299,6 +299,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Login Form Card with Glassmorphism
                 GlassmorphicCard(
                   isDark: isDark,
+                  onColoredBackground: !isDark, // Use glass style on colored background in light mode
                   borderRadius: 20,
                   padding: const EdgeInsets.all(24.0),
                   child: Form(

@@ -292,6 +292,10 @@ class _CashBasisScreenState extends State<CashBasisScreen>
         title: const Text('Cash Basis'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'Categories'),
             Tab(text: 'Transactions'),
@@ -326,7 +330,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
             end: Alignment.bottomCenter,
             colors: isDark
                 ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [AppColors.lightBackground, Colors.white],
+                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
           ),
         ),
         child: _isLoading
@@ -336,8 +340,8 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                 : TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildCategoriesList(permissionProvider),
-                      _buildTransactionsList(permissionProvider),
+                      _buildCategoriesList(permissionProvider, isDark),
+                      _buildTransactionsList(permissionProvider, isDark),
                     ],
                   ),
       ),
@@ -480,9 +484,16 @@ class _CashBasisScreenState extends State<CashBasisScreen>
     }
   }
 
-  Widget _buildCategoriesList(PermissionProvider permissionProvider) {
+  Widget _buildCategoriesList(PermissionProvider permissionProvider, bool isDark) {
     if (_categories.isEmpty) {
-      return const Center(child: Text('No categories found'));
+      return Center(
+        child: Text(
+          'No categories found',
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+          ),
+        ),
+      );
     }
 
     // Check if user has edit or delete permissions
@@ -498,13 +509,27 @@ class _CashBasisScreenState extends State<CashBasisScreen>
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: GlassmorphicCard(
+            isDark: isDark,
             child: ListTile(
               leading: const CircleAvatar(
                 backgroundColor: AppColors.primary,
                 child: Icon(Icons.category, color: Colors.white),
               ),
-              title: Text(category.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: category.description.isNotEmpty ? Text(category.description) : null,
+              title: Text(
+                category.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                ),
+              ),
+              subtitle: category.description.isNotEmpty
+                  ? Text(
+                      category.description,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                      ),
+                    )
+                  : null,
               trailing: hasAnyAction ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -690,7 +715,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
     }
   }
 
-  Widget _buildTransactionsList(PermissionProvider permissionProvider) {
+  Widget _buildTransactionsList(PermissionProvider permissionProvider, bool isDark) {
     // Check if user has edit or delete permissions for transactions
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsCashBasisEdit);
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsCashBasisDelete);
@@ -708,6 +733,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: GlassmorphicCard(
+                    isDark: isDark,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
@@ -719,9 +745,10 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                               children: [
                                 Text(
                                   category.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
+                                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -730,7 +757,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                                     category.description,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[600],
+                                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -743,7 +770,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                              color: AppColors.success,
                             ),
                           ),
                         ],
@@ -760,14 +787,19 @@ class _CashBasisScreenState extends State<CashBasisScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: GlassmorphicCard(
+              isDark: isDark,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Grand Total:',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                      ),
                     ),
                     Text(
                       Formatters.formatCurrency(_total),
@@ -788,7 +820,14 @@ class _CashBasisScreenState extends State<CashBasisScreen>
         // Transactions List
         Expanded(
           child: _transactions.isEmpty
-              ? const Center(child: Text('No transactions found'))
+              ? Center(
+                  child: Text(
+                    'No transactions found',
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                    ),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _transactions.length,
@@ -797,31 +836,43 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GlassmorphicCard(
+                        isDark: isDark,
                         child: ListTile(
                           leading: const CircleAvatar(
-                            backgroundColor: Colors.green,
+                            backgroundColor: AppColors.success,
                             child: Icon(Icons.money, color: Colors.white),
                           ),
                           title: Text(
                             transaction.cashBasisName,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                            ),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(transaction.date),
+                              Text(
+                                transaction.date,
+                                style: TextStyle(
+                                  color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                                ),
+                              ),
                               Text(
                                 Formatters.formatCurrency(transaction.amount),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Colors.green,
+                                  color: AppColors.success,
                                 ),
                               ),
                             ],
                           ),
                           trailing: hasAnyAction ? PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert),
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                            ),
                             onSelected: (value) {
                               if (value == 'edit') {
                                 _showEditTransactionDialog(transaction);

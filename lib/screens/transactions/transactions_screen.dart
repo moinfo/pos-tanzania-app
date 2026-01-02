@@ -35,7 +35,7 @@ class TransactionsScreen extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: isDark
                 ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [AppColors.lightBackground, Colors.white],
+                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
           ),
         ),
         child: SafeArea(
@@ -242,6 +242,7 @@ class TransactionsScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return GlassmorphicCard(
+      isDark: isDark,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -252,7 +253,7 @@ class TransactionsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -270,14 +271,14 @@ class TransactionsScreen extends StatelessWidget {
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkText : AppColors.lightText,
+                            color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                           ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
+                            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
                           ),
                     ),
                   ],
@@ -285,7 +286,7 @@ class TransactionsScreen extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
+                color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF),
               ),
             ],
           ),

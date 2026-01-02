@@ -1184,7 +1184,9 @@ class ApiService {
         queryParameters: queryParams,
       );
 
+      print('🔗 Items API URL: $uri');
       final response = await http.get(uri, headers: await _getHeaders());
+      print('📥 Items API status: ${response.statusCode}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
@@ -1192,6 +1194,7 @@ class ApiService {
         final items = (data['items'] as List)
             .map((item) => Item.fromJson(item))
             .toList();
+        print('✅ Items parsed: ${items.length} items found');
 
         return ApiResponse.success(
           data: items,
