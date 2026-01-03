@@ -1053,6 +1053,7 @@ class ApiService {
     String? search,
     String? supervisorId,
     int? locationId,
+    bool? isBodaBoda,
     int limit = 50,
     int offset = 0,
   }) async {
@@ -1063,6 +1064,7 @@ class ApiService {
         if (search != null) 'search': search,
         if (supervisorId != null) 'supervisor_id': supervisorId,
         if (locationId != null) 'location_id': locationId.toString(),
+        if (isBodaBoda == true) 'is_boda_boda': '1',
       };
 
       final uri = Uri.parse('$baseUrlSync/customers').replace(

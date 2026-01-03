@@ -36,6 +36,10 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
 
+  // Search controller for customer search
+  final _customerSearchController = TextEditingController();
+  List<Customer> _filteredCustomers = [];
+
   @override
   void initState() {
     super.initState();
@@ -54,12 +58,140 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _customerSearchController.dispose();
     super.dispose();
+  }
+
+  /// Show customer search dialog
+  Future<void> _showCustomerSearchDialog(bool isDark) async {
+    _filteredCustomers = List.from(_customers);
+    _customerSearchController.clear();
+
+    final selected = await showDialog<Customer>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Select Customer'),
+            contentPadding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: Column(
+                children: [
+                  // Search field
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      controller: _customerSearchController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Search customer...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      onChanged: (query) {
+                        setDialogState(() {
+                          if (query.isEmpty) {
+                            _filteredCustomers = List.from(_customers);
+                          } else {
+                            _filteredCustomers = _customers.where((customer) {
+                              final fullName = '${customer.firstName} ${customer.lastName}'.toLowerCase();
+                              final phone = customer.phoneNumber?.toLowerCase() ?? '';
+                              final searchQuery = query.toLowerCase();
+                              return fullName.contains(searchQuery) || phone.contains(searchQuery);
+                            }).toList();
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Customer list
+                  Expanded(
+                    child: _filteredCustomers.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No customers found',
+                              style: TextStyle(
+                                color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: _filteredCustomers.length,
+                            itemBuilder: (context, index) {
+                              final customer = _filteredCustomers[index];
+                              final isSelected = _selectedCustomer?.personId == customer.personId;
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: isSelected
+                                      ? AppColors.primary
+                                      : (isDark ? AppColors.darkCard : const Color(0xFFE5E7EB)),
+                                  child: Text(
+                                    customer.firstName.isNotEmpty
+                                        ? customer.firstName[0].toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : (isDark ? AppColors.darkText : const Color(0xFF1F2937)),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  '${customer.firstName} ${customer.lastName}',
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+                                  ),
+                                ),
+                                subtitle: customer.phoneNumber != null && customer.phoneNumber!.isNotEmpty
+                                    ? Text(
+                                        customer.phoneNumber!,
+                                        style: TextStyle(
+                                          color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                                        ),
+                                      )
+                                    : null,
+                                trailing: isSelected
+                                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                                    : null,
+                                onTap: () => Navigator.pop(context, customer),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (selected != null) {
+      setState(() {
+        _selectedCustomer = selected;
+      });
+      _loadTransactions();
+    }
   }
 
   Future<void> _loadCustomers() async {
     try {
-      final response = await _apiService.getCustomers(limit: 1000);
+      // Only load boda boda customers for Customer Transactions screen
+      final response = await _apiService.getCustomers(limit: 1000, isBodaBoda: true);
       if (response.isSuccess && mounted) {
         setState(() {
           _customers = response.data ?? [];
@@ -134,10 +266,10 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     final descriptionController = TextEditingController();
     DateTime selectedDate = DateTime.now();
 
-    final result = await showDialog<bool>(
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: Text(isDeposit ? 'Add Deposit' : 'Add Withdrawal'),
           content: SingleChildScrollView(
             child: Column(
@@ -168,7 +300,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
                     final picked = await showDatePicker(
-                      context: context,
+                      context: dialogContext,
                       initialDate: selectedDate,
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now(),
@@ -185,52 +317,27 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogContext, null),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 final amount = double.tryParse(amountController.text);
                 if (amount == null || amount <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(content: Text('Please enter a valid amount')),
                   );
                   return;
                 }
 
-                Navigator.pop(context, true);
-
-                final formData = TransactionFormData(
-                  customerId: _selectedCustomer!.personId,
-                  amount: amount,
-                  description: descriptionController.text.isEmpty
+                // Return the form data instead of making API call inside dialog
+                Navigator.pop(dialogContext, {
+                  'amount': amount,
+                  'description': descriptionController.text.isEmpty
                       ? null
                       : descriptionController.text,
-                  date: DateFormat('yyyy-MM-dd').format(selectedDate),
-                );
-
-                final response = isDeposit
-                    ? await _apiService.addDeposit(formData)
-                    : await _apiService.addWithdrawal(formData);
-
-                if (context.mounted) {
-                  if (response.isSuccess) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          isDeposit
-                              ? 'Deposit added successfully'
-                              : 'Withdrawal added successfully',
-                        ),
-                      ),
-                    );
-                    _loadTransactions();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(response.message)),
-                    );
-                  }
-                }
+                  'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                });
               },
               child: const Text('Save'),
             ),
@@ -238,6 +345,39 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         ),
       ),
     );
+
+    // Handle the result after dialog closes - using parent widget's context
+    if (result != null && mounted) {
+      final formData = TransactionFormData(
+        customerId: _selectedCustomer!.personId,
+        amount: result['amount'] as double,
+        description: result['description'] as String?,
+        date: result['date'] as String,
+      );
+
+      final response = isDeposit
+          ? await _apiService.addDeposit(formData)
+          : await _apiService.addWithdrawal(formData);
+
+      if (mounted) {
+        if (response.isSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isDeposit
+                    ? 'Deposit added successfully'
+                    : 'Withdrawal added successfully',
+              ),
+            ),
+          );
+          await _loadTransactions();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message)),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _showEditDepositDialog(Deposit deposit) async {
@@ -245,10 +385,10 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     final descriptionController = TextEditingController(text: deposit.description);
     DateTime selectedDate = DateFormat('yyyy-MM-dd').parse(deposit.date);
 
-    await showDialog(
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: const Text('Edit Deposit'),
           content: SingleChildScrollView(
             child: Column(
@@ -277,7 +417,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
                     final picked = await showDatePicker(
-                      context: context,
+                      context: dialogContext,
                       initialDate: selectedDate,
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now(),
@@ -294,44 +434,26 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext, null),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 final amount = double.tryParse(amountController.text);
                 if (amount == null || amount <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(content: Text('Please enter a valid amount')),
                   );
                   return;
                 }
 
-                Navigator.pop(context);
-
-                final formData = TransactionFormData(
-                  customerId: deposit.customerId,
-                  amount: amount,
-                  description: descriptionController.text.isEmpty
+                Navigator.pop(dialogContext, {
+                  'amount': amount,
+                  'description': descriptionController.text.isEmpty
                       ? null
                       : descriptionController.text,
-                  date: DateFormat('yyyy-MM-dd').format(selectedDate),
-                );
-
-                final response = await _apiService.updateDeposit(deposit.id, formData);
-
-                if (context.mounted) {
-                  if (response.isSuccess) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Deposit updated successfully')),
-                    );
-                    _loadTransactions();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(response.message)),
-                    );
-                  }
-                }
+                  'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                });
               },
               child: const Text('Update'),
             ),
@@ -339,23 +461,47 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         ),
       ),
     );
+
+    if (result != null && mounted) {
+      final formData = TransactionFormData(
+        customerId: deposit.customerId,
+        amount: result['amount'] as double,
+        description: result['description'] as String?,
+        date: result['date'] as String,
+      );
+
+      final response = await _apiService.updateDeposit(deposit.id, formData);
+
+      if (mounted) {
+        if (response.isSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Deposit updated successfully')),
+          );
+          await _loadTransactions();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message)),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _deleteDeposit(Deposit deposit) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Deposit'),
         content: Text(
           'Are you sure you want to delete this deposit of ${Formatters.formatCurrency(deposit.amount)}?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
             ),
@@ -365,14 +511,14 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       final response = await _apiService.deleteDeposit(deposit.id);
-      if (context.mounted) {
+      if (mounted) {
         if (response.isSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Deposit deleted successfully')),
           );
-          _loadTransactions();
+          await _loadTransactions();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(response.message)),
@@ -387,10 +533,10 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     final descriptionController = TextEditingController(text: withdrawal.description);
     DateTime selectedDate = DateFormat('yyyy-MM-dd').parse(withdrawal.date);
 
-    await showDialog(
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: const Text('Edit Withdrawal'),
           content: SingleChildScrollView(
             child: Column(
@@ -419,7 +565,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
                     final picked = await showDatePicker(
-                      context: context,
+                      context: dialogContext,
                       initialDate: selectedDate,
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now(),
@@ -436,44 +582,26 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext, null),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 final amount = double.tryParse(amountController.text);
                 if (amount == null || amount <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(content: Text('Please enter a valid amount')),
                   );
                   return;
                 }
 
-                Navigator.pop(context);
-
-                final formData = TransactionFormData(
-                  customerId: withdrawal.customerId,
-                  amount: amount,
-                  description: descriptionController.text.isEmpty
+                Navigator.pop(dialogContext, {
+                  'amount': amount,
+                  'description': descriptionController.text.isEmpty
                       ? null
                       : descriptionController.text,
-                  date: DateFormat('yyyy-MM-dd').format(selectedDate),
-                );
-
-                final response = await _apiService.updateWithdrawal(withdrawal.id, formData);
-
-                if (context.mounted) {
-                  if (response.isSuccess) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Withdrawal updated successfully')),
-                    );
-                    _loadTransactions();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(response.message)),
-                    );
-                  }
-                }
+                  'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                });
               },
               child: const Text('Update'),
             ),
@@ -481,23 +609,47 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         ),
       ),
     );
+
+    if (result != null && mounted) {
+      final formData = TransactionFormData(
+        customerId: withdrawal.customerId,
+        amount: result['amount'] as double,
+        description: result['description'] as String?,
+        date: result['date'] as String,
+      );
+
+      final response = await _apiService.updateWithdrawal(withdrawal.id, formData);
+
+      if (mounted) {
+        if (response.isSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Withdrawal updated successfully')),
+          );
+          await _loadTransactions();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message)),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _deleteWithdrawal(Withdrawal withdrawal) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Withdrawal'),
         content: Text(
           'Are you sure you want to delete this withdrawal of ${Formatters.formatCurrency(withdrawal.amount)}?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
             ),
@@ -507,14 +659,14 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       final response = await _apiService.deleteWithdrawal(withdrawal.id);
-      if (context.mounted) {
+      if (mounted) {
         if (response.isSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Withdrawal deleted successfully')),
           );
-          _loadTransactions();
+          await _loadTransactions();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(response.message)),
@@ -577,42 +729,39 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         ),
         child: Column(
           children: [
-            // Customer Selector
+            // Customer Selector (Searchable)
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: GlassmorphicCard(
                 isDark: isDark,
-                child: DropdownButtonFormField<Customer>(
-                  value: _selectedCustomer,
-                  isExpanded: true,
-                  style: TextStyle(
-                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                    fontSize: 16,
-                  ),
-                  dropdownColor: isDark ? AppColors.darkCard : Colors.white,
-                  decoration: InputDecoration(
-                    labelText: 'Select Customer',
-                    labelStyle: TextStyle(
-                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  ),
-                  items: _customers.map((customer) {
-                    return DropdownMenuItem(
-                      value: customer,
-                      child: Text(
-                        '${customer.firstName} ${customer.lastName}',
-                        overflow: TextOverflow.ellipsis,
+                child: InkWell(
+                  onTap: () => _showCustomerSearchDialog(isDark),
+                  borderRadius: BorderRadius.circular(16),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Select Customer',
+                      labelStyle: TextStyle(
+                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (customer) {
-                    setState(() {
-                      _selectedCustomer = customer;
-                    });
-                    _loadTransactions();
-                  },
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      suffixIcon: Icon(
+                        Icons.search,
+                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                      ),
+                    ),
+                    child: Text(
+                      _selectedCustomer != null
+                          ? '${_selectedCustomer!.firstName} ${_selectedCustomer!.lastName}'
+                          : 'Tap to search...',
+                      style: TextStyle(
+                        color: _selectedCustomer != null
+                            ? (isDark ? AppColors.darkText : const Color(0xFF1F2937))
+                            : (isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF)),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
