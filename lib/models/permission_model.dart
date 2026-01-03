@@ -246,6 +246,9 @@ class PermissionIds {
   static const String cashSubmitDoubleSalesItems = 'cash_submit_double_sales_items';
   static const String cashSubmitSellerReport = 'cash_submit_seller_report';
 
+  // Transactions module (base permission)
+  static const String transactions = 'transactions';
+
   // Transactions module sub-permissions
   // Main menu permissions
   static const String transactionsDepositsAndWithdraws = 'transactions_deposits_and_withdraws';

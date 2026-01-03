@@ -179,19 +179,26 @@ class LocationProvider with ChangeNotifier {
   }
 
   /// Clear all location data (call on logout or user change)
-  /// Note: We keep cached locations for offline login support
   Future<void> clear() async {
     _allowedLocations = [];
     _selectedLocation = null;
     _currentModuleId = null;
     _errorMessage = null;
 
-    // Note: We don't clear cached locations to support offline login
-    // Only clear the selected location preference
+    // Clear all location-related preferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('selected_location_id');
 
-    debugPrint('📍 [LocationProvider] Cleared location state (cache preserved for offline)');
+    // Clear all cached locations for this client
+    final keys = prefs.getKeys();
+    for (final key in keys) {
+      if (key.startsWith(_locationsCacheKeyPrefix)) {
+        await prefs.remove(key);
+        debugPrint('📍 [LocationProvider] Cleared cache: $key');
+      }
+    }
+
+    debugPrint('📍 [LocationProvider] Cleared all location state and cache');
     notifyListeners();
   }
 }

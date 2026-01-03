@@ -136,8 +136,19 @@ class PermissionProvider with ChangeNotifier {
     _permissions = [];
     _error = null;
 
-    // Note: We don't clear local storage on logout to support offline login
-    // Permissions will be refreshed on next online login
+    // Clear cached permissions from local storage to prevent user data leakage
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith(_permissionsKeyPrefix)) {
+          await prefs.remove(key);
+          debugPrint('🗑️ Cleared cached permissions: $key');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error clearing cached permissions: $e');
+    }
 
     notifyListeners();
   }

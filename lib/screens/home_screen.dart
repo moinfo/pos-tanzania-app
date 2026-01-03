@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
+import '../providers/permission_provider.dart';
+import '../models/permission_model.dart';
+import '../models/transaction.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
@@ -41,6 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _progressCommission;
   Map<String, dynamic>? _progressCustomers;
   Map<String, dynamic>? _myCommissions; // User's individual commission data
+
+  // Transactions Dashboard data (Come & Save)
+  WakalaReport? _transactionsDashboardData;
 
   @override
   void initState() {
@@ -193,9 +199,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadComeAndSaveDashboard() async {
     // Get selected location from provider
     final locationProvider = context.read<LocationProvider>();
+    final permissionProvider = context.read<PermissionProvider>();
     final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
-    if (selectedLocationId == null) {
+    // Format selected date for API
+    final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+    // Check permissions
+    final hasTransactionsPermission = permissionProvider.hasPermission(PermissionIds.transactions) ||
+        permissionProvider.hasModulePermission(PermissionIds.transactions);
+    final hasLocation = selectedLocationId != null;
+
+    print('📍 Come & Save dashboard - location: $selectedLocationId, hasTransactions: $hasTransactionsPermission');
+
+    // If user has neither location nor transactions permission, show error
+    if (!hasLocation && !hasTransactionsPermission) {
       setState(() {
         _error = 'Please select a stock location';
         _isLoading = false;
@@ -203,36 +221,59 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Format selected date for API
-    final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    // Load Transactions Dashboard if user has transactions permission (no location required)
+    if (hasTransactionsPermission) {
+      print('📊 User has transactions permission, loading transactions dashboard');
+      final transactionsResponse = await _apiService.getWakalaReport(
+        startDate: dateString,
+        endDate: dateString,
+      );
 
-    print('📍 Loading Come & Save dashboard for location: $selectedLocationId on $dateString');
-
-    // Get summary for selected date and location
-    final summaryResponse = await _apiService.getCashSubmitTodaySummary(
-      date: dateString,
-      locationId: selectedLocationId,
-    );
-
-    if (summaryResponse.isSuccess) {
-      final summaryData = summaryResponse.data;
-
-      setState(() {
-        _totalSales = (summaryData?['all_sales'] ?? 0).toDouble();
-        _expenses = (summaryData?['expenses'] ?? 0).toDouble();
-        _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
-        _profit = (summaryData?['profit'] ?? 0).toDouble();
-
-        final bankingAmount = (summaryData?['banking_amount'] ?? 0).toDouble();
-        final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
-        _bankDifference = bankingAmount - supplierBank;
-
-        _totalUnpaid = 0; // Come & Save doesn't have contracts
-        _isLoading = false;
-      });
+      if (transactionsResponse.isSuccess && transactionsResponse.data != null) {
+        _transactionsDashboardData = transactionsResponse.data;
+        print('✅ Transactions dashboard data loaded successfully');
+      } else {
+        print('⚠️ Failed to load transactions dashboard: ${transactionsResponse.message}');
+        _transactionsDashboardData = null;
+      }
     } else {
+      _transactionsDashboardData = null;
+    }
+
+    // Load Sales Dashboard only if user has a location
+    if (hasLocation) {
+      print('📍 Loading sales dashboard for location: $selectedLocationId on $dateString');
+
+      final summaryResponse = await _apiService.getCashSubmitTodaySummary(
+        date: dateString,
+        locationId: selectedLocationId,
+      );
+
+      if (summaryResponse.isSuccess) {
+        final summaryData = summaryResponse.data;
+
+        setState(() {
+          _totalSales = (summaryData?['all_sales'] ?? 0).toDouble();
+          _expenses = (summaryData?['expenses'] ?? 0).toDouble();
+          _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
+          _profit = (summaryData?['profit'] ?? 0).toDouble();
+
+          final bankingAmount = (summaryData?['banking_amount'] ?? 0).toDouble();
+          final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
+          _bankDifference = bankingAmount - supplierBank;
+
+          _totalUnpaid = 0; // Come & Save doesn't have contracts
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = summaryResponse.message;
+          _isLoading = false;
+        });
+      }
+    } else {
+      // No location - just finish loading (transactions dashboard will show if available)
       setState(() {
-        _error = summaryResponse.message;
         _isLoading = false;
       });
     }
@@ -536,104 +577,372 @@ class _HomeScreenState extends State<HomeScreen> {
               // Leruma Commission Dashboard
               _buildLerumaDashboard(isDark)
             else
-              Column(
-                children: [
-                  // Row 1: Total Sales & Expenses
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDashboardCard(
-                          title: 'Total Sales',
-                          amount: _totalSales,
-                          icon: Icons.shopping_cart,
-                          color: AppColors.success,
-                          isDark: isDark,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDashboardCard(
-                          title: 'Expenses',
-                          amount: _expenses,
-                          icon: Icons.money_off,
-                          color: AppColors.error,
-                          isDark: isDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+              // Come & Save / SADA Dashboard
+              Consumer<LocationProvider>(
+                builder: (context, locationProvider, child) {
+                  final hasLocation = locationProvider.selectedLocation != null;
 
-                  // Row 2: Profit & Gain/Loss
-                  Row(
+                  return Column(
                     children: [
-                      Expanded(
-                        child: _buildDashboardCard(
-                          title: 'Profit',
-                          amount: _profit,
-                          icon: Icons.trending_up,
-                          color: AppColors.primary,
-                          isDark: isDark,
+                      // Sales Dashboard (only show if user has a location)
+                      if (hasLocation) ...[
+                        // Row 1: Total Sales & Expenses
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDashboardCard(
+                                title: 'Total Sales',
+                                amount: _totalSales,
+                                icon: Icons.shopping_cart,
+                                color: AppColors.success,
+                                isDark: isDark,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildDashboardCard(
+                                title: 'Expenses',
+                                amount: _expenses,
+                                icon: Icons.money_off,
+                                color: AppColors.error,
+                                isDark: isDark,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDashboardCard(
-                          title: 'Gain/Loss',
-                          amount: _gainLoss,
-                          icon: _gainLoss >= 0
-                              ? Icons.arrow_upward
-                              : Icons.arrow_downward,
-                          color: _gainLoss >= 0
-                              ? AppColors.success
-                              : AppColors.error,
-                          isDark: isDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
-                  // Row 3: Bank Difference & Contract Unpaid (contracts only for SADA)
-                  if (ApiService.currentClient?.features.hasContracts ?? false)
-                    // SADA: Show both Bank Difference and Contract Unpaid
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDashboardCard(
+                        // Row 2: Profit & Gain/Loss
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDashboardCard(
+                                title: 'Profit',
+                                amount: _profit,
+                                icon: Icons.trending_up,
+                                color: AppColors.primary,
+                                isDark: isDark,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildDashboardCard(
+                                title: 'Gain/Loss',
+                                amount: _gainLoss,
+                                icon: _gainLoss >= 0
+                                    ? Icons.arrow_upward
+                                    : Icons.arrow_downward,
+                                color: _gainLoss >= 0
+                                    ? AppColors.success
+                                    : AppColors.error,
+                                isDark: isDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Row 3: Bank Difference & Contract Unpaid (contracts only for SADA)
+                        if (ApiService.currentClient?.features.hasContracts ?? false)
+                          // SADA: Show both Bank Difference and Contract Unpaid
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildDashboardCard(
+                                  title: 'Bank Difference',
+                                  amount: _bankDifference,
+                                  icon: Icons.account_balance,
+                                  color: AppColors.info,
+                                  isDark: isDark,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildDashboardCard(
+                                  title: 'Contract Unpaid',
+                                  amount: _totalUnpaid,
+                                  icon: Icons.assignment_late,
+                                  color: AppColors.warning,
+                                  isDark: isDark,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          // Come & Save: Show only Bank Difference (no contracts)
+                          _buildDashboardCard(
                             title: 'Bank Difference',
                             amount: _bankDifference,
                             icon: Icons.account_balance,
                             color: AppColors.info,
                             isDark: isDark,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildDashboardCard(
-                            title: 'Contract Unpaid',
-                            amount: _totalUnpaid,
-                            icon: Icons.assignment_late,
-                            color: AppColors.warning,
-                            isDark: isDark,
-                          ),
-                        ),
                       ],
-                    )
-                  else
-                    // Come & Save: Show only Bank Difference (no contracts)
-                    _buildDashboardCard(
-                      title: 'Bank Difference',
-                      amount: _bankDifference,
-                      icon: Icons.account_balance,
-                      color: AppColors.info,
-                      isDark: isDark,
-                    ),
-                ],
+
+                      // Transactions Dashboard (Come & Save - only if user has transactions permission)
+                      // Shows regardless of location
+                      if (_transactionsDashboardData != null) ...[
+                        if (hasLocation) const SizedBox(height: 24),
+                        _buildTransactionsDashboard(isDark),
+                      ],
+                    ],
+                  );
+                },
               ),
           ],
         ),
       ),
+      ),
+    );
+  }
+
+  /// Build Transactions Dashboard for Come & Save
+  Widget _buildTransactionsDashboard(bool isDark) {
+    final data = _transactionsDashboardData!;
+
+    // Calculate totals
+    final totalFloat = data.sims.total + data.bankBasis.total;
+    final totalFloatPlusCashBasis = totalFloat + data.cashBasis.total;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Title
+        Text(
+          'Transactions Dashboard',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.darkText : AppColors.text,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Row 1: Opening & Total SIMs
+        Row(
+          children: [
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Opening',
+                amount: data.openingBalance,
+                icon: Icons.account_balance_wallet,
+                color: AppColors.info,
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Total SIMs',
+                amount: data.sims.total,
+                icon: Icons.sim_card,
+                color: AppColors.primary,
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Row 2: Bank Basis & Float
+        Row(
+          children: [
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Bank Basis',
+                amount: data.bankBasis.total,
+                icon: Icons.account_balance,
+                color: const Color(0xFF2563EB),
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Float',
+                amount: totalFloat,
+                icon: Icons.trending_up,
+                color: const Color(0xFF10B981),
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Row 3: Cash Basis & Total (Float + Cash Basis)
+        Row(
+          children: [
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Cash Basis',
+                amount: data.cashBasis.total,
+                icon: Icons.payments,
+                color: const Color(0xFFF59E0B),
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Float + Cash',
+                amount: totalFloatPlusCashBasis,
+                icon: Icons.calculate,
+                color: const Color(0xFF8B5CF6),
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Row 4: Total Deposited & Total Net
+        Row(
+          children: [
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Total Deposited',
+                amount: data.totalDeposited,
+                icon: Icons.arrow_downward,
+                color: AppColors.success,
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Total Net',
+                amount: data.netTotal,
+                icon: Icons.summarize,
+                color: const Color(0xFF06B6D4),
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Row 5: Total Withdrawn & Capital Calculated
+        Row(
+          children: [
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Total Withdrawn',
+                amount: data.totalWithdrawn,
+                icon: Icons.arrow_upward,
+                color: AppColors.error,
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Capital Calc.',
+                amount: data.calculatedCapital,
+                icon: Icons.functions,
+                color: const Color(0xFF7C3AED),
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Row 6: Actual Capital & Wakala Expenses
+        Row(
+          children: [
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Actual Capital',
+                amount: data.actualCapital,
+                icon: Icons.account_box,
+                color: const Color(0xFF0EA5E9),
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTransactionStatCard(
+                title: 'Wakala Exp.',
+                amount: data.wakalaExpenses.total,
+                icon: Icons.receipt_long,
+                color: const Color(0xFFEF4444),
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Build individual stat card for Transactions Dashboard
+  Widget _buildTransactionStatCard({
+    required String title,
+    required double amount,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    return GlassmorphicCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(14.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Icon container
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                colors: [
+                  color.withOpacity(isDark ? 0.3 : 0.2),
+                  color.withOpacity(isDark ? 0.2 : 0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(
+                color: color.withOpacity(isDark ? 0.4 : 0.3),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: isDark ? color.withOpacity(0.9) : color,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Title
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+
+          // Amount
+          Text(
+            Formatters.formatCurrency(amount),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.darkText : AppColors.text,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

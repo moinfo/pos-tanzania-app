@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
+import '../providers/location_provider.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
 import '../widgets/permission_wrapper.dart';
@@ -85,43 +86,66 @@ class _MainNavigationState extends State<MainNavigation> {
   // Screen configuration with permissions
   // IMPORTANT: All screens MUST have permission checks based on ospos_permissions table
   // Built dynamically to support client-specific screens
-  // - SADA: Home, Sales, Expenses, Summary, Contracts, Reports
+  // - SADA: Home, Sales, Expenses, Summary, Contracts, Reports (or Transactions if no stock location)
   // - Leruma: Home, Sales, Expenses, Summary, Seller, Reports
-  List<Map<String, dynamic>> get _screenConfigs {
+  // - Come & Save: Home, Sales, Expenses, Summary, Reports (or Transactions if no stock location)
+  List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
 
+    // Check if user has a stock location assigned
+    final hasStockLocation = locationProvider.selectedLocation != null ||
+        locationProvider.allowedLocations.isNotEmpty;
+
+    // Check if user has transactions permission (Come & Save)
+    final hasTransactionsPermission = permissionProvider.hasPermission(PermissionIds.transactions) ||
+        permissionProvider.hasModulePermission(PermissionIds.transactions);
+
+    // Use user ID as key to force widget recreation on user change
+    final userKey = ValueKey('user_$userId');
+
     final configs = <Map<String, dynamic>>[
       {
-        'screen': const HomeScreen(),
+        'screen': HomeScreen(key: userKey),
         'icon': Icons.home,
         'label': 'Home',
         'permission': PermissionIds.home, // module: home
       },
       {
-        'screen': const SalesScreen(),
+        'screen': SalesScreen(key: ValueKey('sales_$userId')),
         'icon': Icons.point_of_sale,
         'label': 'Sales',
         'permission': PermissionIds.sales, // module: sales
       },
       {
-        'screen': const ExpensesScreen(),
+        'screen': ExpensesScreen(key: ValueKey('expenses_$userId')),
         'icon': Icons.receipt_long,
         'label': 'Expenses',
         'permission': PermissionIds.expenses, // module: expenses
       },
       {
-        'screen': const TodaySummaryScreen(),
+        'screen': TodaySummaryScreen(key: ValueKey('summary_$userId')),
         'icon': Icons.summarize,
         'label': 'Summary',
         'permission': PermissionIds.cashSubmit, // module: cash_submit
       },
     ];
 
+    // Add Transactions screen if user has NO stock location but has transactions permission
+    // Available for both SADA and Come & Save clients
+    if (hasTransactionsPermission && !hasStockLocation) {
+      configs.add({
+        'screen': TransactionsScreen(key: ValueKey('transactions_$userId')),
+        'icon': Icons.swap_horiz,
+        'label': 'Transactions',
+        'permission': PermissionIds.transactions, // module: transactions
+      });
+    }
+
     // Add Seller screen for Leruma only
     if (isLeruma) {
       configs.add({
-        'screen': const SellerReportScreen(),
+        'screen': SellerReportScreen(key: ValueKey('seller_$userId')),
         'icon': Icons.person_outline,
         'label': 'Seller',
         'permission': PermissionIds.cashSubmitSellerReport, // Leruma seller report
@@ -132,7 +156,7 @@ class _MainNavigationState extends State<MainNavigation> {
     // Add Contracts for clients with contracts feature (SADA)
     if (hasContracts) {
       configs.add({
-        'screen': const ContractsScreen(),
+        'screen': ContractsScreen(key: ValueKey('contracts_$userId')),
         'icon': Icons.assignment,
         'label': 'Contracts',
         'permission': PermissionIds.contracts, // module: contracts
@@ -141,7 +165,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
     // Reports is available to all clients
     configs.add({
-      'screen': const ReportsScreen(),
+      'screen': ReportsScreen(key: ValueKey('reports_$userId')),
       'icon': Icons.assessment,
       'label': 'Reports',
       'permission': PermissionIds.reports, // module: reports
@@ -222,8 +246,13 @@ class _MainNavigationState extends State<MainNavigation> {
     final authProvider = context.watch<AuthProvider>();
     final themeProvider = context.watch<ThemeProvider>();
     final permissionProvider = context.watch<PermissionProvider>();
+    final locationProvider = context.watch<LocationProvider>();
     final user = authProvider.user;
     final isDark = themeProvider.isDarkMode;
+
+    // Build screen configs based on permissions, location, and user ID
+    // User ID is used as key to force widget recreation on user change (fixes cache issue)
+    final screenConfigs = _buildScreenConfigs(permissionProvider, locationProvider, user?.id);
 
     // Filter screens based on permissions AND client features
     final availableScreens = <Map<String, dynamic>>[];
@@ -233,8 +262,8 @@ class _MainNavigationState extends State<MainNavigation> {
     final currentClient = ApiService.currentClient;
     final features = currentClient?.features;
 
-    for (int i = 0; i < _screenConfigs.length; i++) {
-      final config = _screenConfigs[i];
+    for (int i = 0; i < screenConfigs.length; i++) {
+      final config = screenConfigs[i];
       final permission = config['permission'] as String?;
       final label = config['label'] as String;
 
@@ -440,9 +469,9 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
-            // Profit Submit - requires office permission (profit submission is office function)
+            // Profit Submit - requires cash_submit_profit_submitted permission
             PermissionWrapper(
-              permissionId: PermissionIds.office,
+              permissionId: PermissionIds.cashSubmitProfitSubmitted,
               child: ListTile(
                 leading: const Icon(Icons.trending_up, color: AppColors.primary),
                 title: const Text('Profit Submit'),
@@ -578,9 +607,9 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
-            // Transactions - requires customers permission (transactions are customer-related)
+            // Transactions - requires transactions permission
             PermissionWrapper(
-              permissionId: PermissionIds.customers,
+              permissionId: PermissionIds.transactions,
               child: ListTile(
                 leading: const Icon(Icons.swap_horiz, color: AppColors.primary),
                 title: const Text('Transactions'),
