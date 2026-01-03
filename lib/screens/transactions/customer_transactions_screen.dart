@@ -33,7 +33,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
   List<Customer> _customers = [];
   Customer? _selectedCustomer;
 
-  DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
+  DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
 
   // Search controller for customer search
@@ -46,9 +46,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
     _loadCustomers();
-    if (widget.customerId != null) {
-      _loadTransactions();
-    }
+    // Always load transactions on startup (shows all if no customer selected)
+    _loadTransactions();
   }
 
   void _handleTabChange() {
@@ -209,8 +208,6 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
   }
 
   Future<void> _loadTransactions() async {
-    if (_selectedCustomer == null) return;
-
     setState(() {
       _isLoading = true;
       _error = null;
@@ -220,14 +217,16 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
       final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
       final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
 
+      // If no customer selected, load all transactions for date range
+      // If customer selected, load only that customer's transactions
       final depositsResponse = await _apiService.getDeposits(
-        customerId: _selectedCustomer!.personId,
+        customerId: _selectedCustomer?.personId,
         startDate: startDateStr,
         endDate: endDateStr,
       );
 
       final withdrawalsResponse = await _apiService.getWithdrawals(
-        customerId: _selectedCustomer!.personId,
+        customerId: _selectedCustomer?.personId,
         startDate: startDateStr,
         endDate: endDateStr,
       );
@@ -861,6 +860,13 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                    deposit.customerName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? AppColors.darkText : const Color(0xFF374151),
+                    ),
+                  ),
+                  Text(
                     deposit.date,
                     style: TextStyle(
                       color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
@@ -871,6 +877,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                       deposit.description,
                       style: TextStyle(
                         color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                        fontSize: 12,
                       ),
                     ),
                 ],
@@ -965,6 +972,13 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                    withdrawal.customerName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? AppColors.darkText : const Color(0xFF374151),
+                    ),
+                  ),
+                  Text(
                     withdrawal.date,
                     style: TextStyle(
                       color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
@@ -975,6 +989,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                       withdrawal.description,
                       style: TextStyle(
                         color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+                        fontSize: 12,
                       ),
                     ),
                 ],
