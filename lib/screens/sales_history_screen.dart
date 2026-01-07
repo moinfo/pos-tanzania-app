@@ -385,6 +385,15 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                 _filterSales();
                               },
                             ),
+                            const SizedBox(width: 8),
+                            _PaymentFilterChip(
+                              label: 'LIPA NAMBA',
+                              isSelected: _paymentFilter == 'LIPA NAMBA',
+                              onTap: () {
+                                setState(() => _paymentFilter = 'LIPA NAMBA');
+                                _filterSales();
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -1102,6 +1111,7 @@ class SaleDetailsSheet extends StatelessWidget {
     final type = paymentType.toLowerCase();
     if (type.contains('cash')) return Icons.money;
     if (type.contains('card')) return Icons.credit_card;
+    if (type.contains('lipa') || type.contains('namba')) return Icons.phone_android;
     if (type.contains('credit') || type.contains('due')) return Icons.account_balance_wallet;
     return Icons.payment;
   }

@@ -32,6 +32,10 @@ class _HomeScreenState extends State<HomeScreen> {
   double _profit = 0;
   double _bankDifference = 0;
   double _totalUnpaid = 0;
+  // Come & Save specific - sales breakdown
+  double _cashSales = 0;
+  double _customerCredit = 0;
+  double _lipaNamba = 0;
 
   // Leruma Commission Dashboard data
   Map<String, dynamic>? _commissionData;
@@ -253,7 +257,14 @@ class _HomeScreenState extends State<HomeScreen> {
         final summaryData = summaryResponse.data;
 
         setState(() {
-          _totalSales = (summaryData?['all_sales'] ?? 0).toDouble();
+          // Come & Save specific - sales breakdown
+          _cashSales = (summaryData?['cash_sales'] ?? 0).toDouble();
+          _customerCredit = (summaryData?['customer_credit'] ?? 0).toDouble();
+          _lipaNamba = (summaryData?['lipa_namba'] ?? 0).toDouble();
+
+          // Total Sales = Cash + Credit + LIPA NAMBA (all payment types)
+          _totalSales = _cashSales + _customerCredit + _lipaNamba;
+
           _expenses = (summaryData?['expenses'] ?? 0).toDouble();
           _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
           _profit = (summaryData?['profit'] ?? 0).toDouble();
@@ -612,39 +623,38 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Row 2: Profit & Gain/Loss
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDashboardCard(
-                                title: 'Profit',
-                                amount: _profit,
-                                icon: Icons.trending_up,
-                                color: AppColors.primary,
-                                isDark: isDark,
+                        // SADA: Show Profit & Gain/Loss in Row 2, then Bank Difference & Contract Unpaid
+                        if (ApiService.currentClient?.features.hasContracts ?? false) ...[
+                          // Row 2: Profit & Gain/Loss
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildDashboardCard(
+                                  title: 'Profit',
+                                  amount: _profit,
+                                  icon: Icons.trending_up,
+                                  color: AppColors.primary,
+                                  isDark: isDark,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildDashboardCard(
-                                title: 'Gain/Loss',
-                                amount: _gainLoss,
-                                icon: _gainLoss >= 0
-                                    ? Icons.arrow_upward
-                                    : Icons.arrow_downward,
-                                color: _gainLoss >= 0
-                                    ? AppColors.success
-                                    : AppColors.error,
-                                isDark: isDark,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildDashboardCard(
+                                  title: 'Gain/Loss',
+                                  amount: _gainLoss,
+                                  icon: _gainLoss >= 0
+                                      ? Icons.arrow_upward
+                                      : Icons.arrow_downward,
+                                  color: _gainLoss >= 0
+                                      ? AppColors.success
+                                      : AppColors.error,
+                                  isDark: isDark,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Row 3: Bank Difference & Contract Unpaid (contracts only for SADA)
-                        if (ApiService.currentClient?.features.hasContracts ?? false)
-                          // SADA: Show both Bank Difference and Contract Unpaid
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Row 3: Bank Difference & Contract Unpaid
                           Row(
                             children: [
                               Expanded(
@@ -667,16 +677,77 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                             ],
-                          )
-                        else
-                          // Come & Save: Show only Bank Difference (no contracts)
-                          _buildDashboardCard(
-                            title: 'Bank Difference',
-                            amount: _bankDifference,
-                            icon: Icons.account_balance,
-                            color: AppColors.info,
-                            isDark: isDark,
                           ),
+                        ] else ...[
+                          // Come & Save: Show Sales Breakdown first, then Profit, then Gain/Loss alone
+                          // Row 2: Cash Sales & Credit Sales
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildDashboardCard(
+                                  title: 'Cash Sales',
+                                  amount: _cashSales,
+                                  icon: Icons.money,
+                                  color: AppColors.success,
+                                  isDark: isDark,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildDashboardCard(
+                                  title: 'Credit Sales',
+                                  amount: _customerCredit,
+                                  icon: Icons.credit_card,
+                                  color: AppColors.warning,
+                                  isDark: isDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Row 3: LIPA NAMBA & Profit
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildDashboardCard(
+                                  title: 'LIPA NAMBA',
+                                  amount: _lipaNamba,
+                                  icon: Icons.phone_android,
+                                  color: AppColors.info,
+                                  isDark: isDark,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildDashboardCard(
+                                  title: 'Profit',
+                                  amount: _profit,
+                                  icon: Icons.trending_up,
+                                  color: AppColors.primary,
+                                  isDark: isDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Row 4: Gain/Loss (centered alone)
+                          Center(
+                            child: SizedBox(
+                              width: (MediaQuery.of(context).size.width - 44) / 2,
+                              child: _buildDashboardCard(
+                                title: 'Gain/Loss',
+                                amount: _gainLoss,
+                                icon: _gainLoss >= 0
+                                    ? Icons.arrow_upward
+                                    : Icons.arrow_downward,
+                                color: _gainLoss >= 0
+                                    ? AppColors.success
+                                    : AppColors.error,
+                                isDark: isDark,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
 
                       // Transactions Dashboard (Come & Save - only if user has transactions permission)

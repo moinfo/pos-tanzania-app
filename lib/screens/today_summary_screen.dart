@@ -344,15 +344,25 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     rows.add(const Divider(height: 1));
 
     // All Sales - requires cash_submit_all_sales
+    // Calculate All Sales = Cash + Credit + LIPA NAMBA (all payment types)
+    final allSales = (_summaryData!['cash_sales'] ?? 0) +
+                     (_summaryData!['customer_credit'] ?? 0) +
+                     (_summaryData!['lipa_namba'] ?? 0);
     addRowIfPermitted(
       PermissionIds.cashSubmitAllSales,
-      _buildSummaryRow('All Sales', _summaryData!['all_sales'], highlight: true, isDark: isDark),
+      _buildSummaryRow('All Sales', allSales, highlight: true, isDark: isDark),
     );
 
     // Cash Sales - requires cash_submit_cash_sales
     addRowIfPermitted(
       PermissionIds.cashSubmitCashSales,
       _buildSummaryRow('Cash Sales', _summaryData!['cash_sales'], isDark: isDark),
+    );
+
+    // LIPA NAMBA - requires cash_submit_cash_sales (same permission as cash sales)
+    addRowIfPermitted(
+      PermissionIds.cashSubmitCashSales,
+      _buildSummaryRow('LIPA NAMBA', _summaryData!['lipa_namba'] ?? 0, isDark: isDark),
     );
 
     // Customer Credit - requires cash_submit_customer_credit
