@@ -1,4 +1,4 @@
-package co.tz.sada.pos_tanzania_mobile
+package co.tz.moinfotech.pos
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

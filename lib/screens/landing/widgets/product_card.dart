@@ -42,6 +42,8 @@ class _ProductCardState extends State<ProductCard> {
   List<String> get _allImages {
     final images = <String>[];
 
+    debugPrint('🖼️ Product: ${widget.product.name}, Portfolio count: ${widget.product.portfolio.length}');
+
     // Sort portfolio by date (newest first) and add them first
     final sortedPortfolio = List.of(widget.product.portfolio);
     sortedPortfolio.sort((a, b) {
@@ -53,6 +55,7 @@ class _ProductCardState extends State<ProductCard> {
 
     // Add portfolio images first (latest on front)
     for (final portfolio in sortedPortfolio) {
+      debugPrint('🖼️ Portfolio filename: ${portfolio.filename}');
       final url = PublicApiService.getPortfolioImageUrl(portfolio.filename);
       if (url.isNotEmpty && !images.contains(url)) {
         images.add(url);
@@ -61,12 +64,14 @@ class _ProductCardState extends State<ProductCard> {
 
     // Add main display image at the end (fallback if no portfolio)
     if (widget.product.displayImage != null) {
+      debugPrint('🖼️ Display image: ${widget.product.displayImage}');
       final mainUrl = PublicApiService.getProductImageUrl(widget.product.displayImage);
       if (mainUrl.isNotEmpty && !images.contains(mainUrl)) {
         images.add(mainUrl);
       }
     }
 
+    debugPrint('🖼️ Total images for ${widget.product.name}: ${images.length}');
     return images;
   }
 
@@ -440,8 +445,14 @@ class _ProductCardState extends State<ProductCard> {
     final message = Uri.encodeComponent(buffer.toString());
     final whatsappUrl = Uri.parse('https://wa.me/$whatsappNumber?text=$message');
 
-    if (await canLaunchUrl(whatsappUrl)) {
+    try {
       await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open WhatsApp')),
+        );
+      }
     }
   }
 

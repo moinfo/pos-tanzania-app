@@ -71,7 +71,7 @@ dependencies:
   uuid: ^4.2.1
 
   # NFC for customer card scanning
-  nfc_manager: ^3.3.0
+  nfc_manager: ^4.1.1
 
 dev_dependencies:
   flutter_test:

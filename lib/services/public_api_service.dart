@@ -42,7 +42,7 @@ class PublicApiService {
       return '';
     }
     final url = '$uploadsBaseUrl/products/$filename';
-    debugPrint('Image URL: $url');
+    debugPrint('📷 Product Image URL: $url');
     return url;
   }
 
@@ -51,7 +51,9 @@ class PublicApiService {
     if (filename == null || filename.isEmpty) {
       return '';
     }
-    return '$uploadsBaseUrl/portfolio/$filename';
+    final url = '$uploadsBaseUrl/portfolio/$filename';
+    debugPrint('📷 Portfolio Image URL: $url');
+    return url;
   }
 
   /// Get or generate device ID for like tracking

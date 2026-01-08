@@ -1,27 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Allow cleartext (HTTP) for debug builds -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />
         </trust-anchors>
     </base-config>
 
-    <!-- Allow all connections to moinfotech.co.tz -->
+    <!-- Production domains (HTTPS only) -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">moinfotech.co.tz</domain>
-        <trust-anchors>
-            <certificates src="system" />
-            <certificates src="user" />
-        </trust-anchors>
-    </domain-config>
-
-    <!-- Allow all connections to comeandsave.co.tz -->
-    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">comeandsave.co.tz</domain>
+        <domain includeSubdomains="true">leruma.co.tz</domain>
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="user" />
         </trust-anchors>
     </domain-config>
 </network-security-config>

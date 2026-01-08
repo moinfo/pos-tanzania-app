@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-import 'package:nfc_manager/platform_tags.dart';
+import 'package:nfc_manager/nfc_manager_android.dart';
+import 'package:nfc_manager/nfc_manager_ios.dart';
 import '../models/customer_card.dart';
 import '../models/customer.dart';
 import '../models/api_response.dart';
@@ -56,7 +58,8 @@ class NfcService {
   /// Check if NFC is available on this device
   Future<bool> isNfcAvailable() async {
     try {
-      return await NfcManager.instance.isAvailable();
+      final availability = await NfcManager.instance.checkAvailability();
+      return availability == NfcAvailability.enabled;
     } catch (e) {
       debugPrint('NFC: Error checking availability - $e');
       return false;
@@ -85,6 +88,11 @@ class NfcService {
 
     try {
       await NfcManager.instance.startSession(
+        pollingOptions: {
+          NfcPollingOption.iso14443,
+          NfcPollingOption.iso15693,
+          NfcPollingOption.iso18092,
+        },
         onDiscovered: (NfcTag tag) async {
           try {
             final cardUid = _extractCardUid(tag);
@@ -106,10 +114,6 @@ class NfcService {
             debugPrint('NFC: Error processing tag - $e');
             onResult(NfcScanResult.error('Error reading card: $e'));
           }
-        },
-        onError: (error) async {
-          debugPrint('NFC: Session error - $error');
-          onResult(NfcScanResult.error('NFC error: ${error.message}'));
         },
       );
     } catch (e) {
@@ -135,50 +139,89 @@ class NfcService {
   /// Extract card UID from NFC tag
   String? _extractCardUid(NfcTag tag) {
     try {
-      // Try different tag types
-
-      // NfcA (most common for MIFARE cards)
-      final nfcA = NfcA.from(tag);
-      if (nfcA != null) {
-        return _bytesToHex(nfcA.identifier);
+      if (Platform.isAndroid) {
+        return _extractCardUidAndroid(tag);
+      } else if (Platform.isIOS) {
+        return _extractCardUidIos(tag);
       }
-
-      // NfcB
-      final nfcB = NfcB.from(tag);
-      if (nfcB != null) {
-        return _bytesToHex(nfcB.identifier);
-      }
-
-      // NfcF (FeliCa)
-      final nfcF = NfcF.from(tag);
-      if (nfcF != null) {
-        return _bytesToHex(nfcF.identifier);
-      }
-
-      // NfcV (ISO 15693)
-      final nfcV = NfcV.from(tag);
-      if (nfcV != null) {
-        return _bytesToHex(nfcV.identifier);
-      }
-
-      // ISO-DEP
-      final isoDep = IsoDep.from(tag);
-      if (isoDep != null) {
-        return _bytesToHex(isoDep.identifier);
-      }
-
-      // NDEF
-      final ndef = Ndef.from(tag);
-      if (ndef != null && ndef.additionalData['identifier'] != null) {
-        return _bytesToHex(ndef.additionalData['identifier'] as List<int>);
-      }
-
-      debugPrint('NFC: Unknown tag type');
+      debugPrint('NFC: Unsupported platform');
       return null;
     } catch (e) {
       debugPrint('NFC: Error extracting UID - $e');
       return null;
     }
+  }
+
+  /// Extract card UID on Android
+  String? _extractCardUidAndroid(NfcTag tag) {
+    // Try to get the tag ID directly
+    final androidTag = NfcTagAndroid.from(tag);
+    if (androidTag != null) {
+      return _bytesToHex(androidTag.id.toList());
+    }
+
+    // Try NfcA
+    final nfcA = NfcAAndroid.from(tag);
+    if (nfcA != null) {
+      return _bytesToHex(nfcA.tag.id.toList());
+    }
+
+    // Try NfcB
+    final nfcB = NfcBAndroid.from(tag);
+    if (nfcB != null) {
+      return _bytesToHex(nfcB.tag.id.toList());
+    }
+
+    // Try NfcF
+    final nfcF = NfcFAndroid.from(tag);
+    if (nfcF != null) {
+      return _bytesToHex(nfcF.tag.id.toList());
+    }
+
+    // Try NfcV
+    final nfcV = NfcVAndroid.from(tag);
+    if (nfcV != null) {
+      return _bytesToHex(nfcV.tag.id.toList());
+    }
+
+    // Try IsoDep
+    final isoDep = IsoDepAndroid.from(tag);
+    if (isoDep != null) {
+      return _bytesToHex(isoDep.tag.id.toList());
+    }
+
+    debugPrint('NFC: Unknown Android tag type');
+    return null;
+  }
+
+  /// Extract card UID on iOS
+  String? _extractCardUidIos(NfcTag tag) {
+    // Try MiFare
+    final miFare = MiFareIos.from(tag);
+    if (miFare != null) {
+      return _bytesToHex(miFare.identifier.toList());
+    }
+
+    // Try ISO15693
+    final iso15693 = Iso15693Ios.from(tag);
+    if (iso15693 != null) {
+      return _bytesToHex(iso15693.identifier.toList());
+    }
+
+    // Try ISO7816
+    final iso7816 = Iso7816Ios.from(tag);
+    if (iso7816 != null) {
+      return _bytesToHex(iso7816.identifier.toList());
+    }
+
+    // Try FeliCa
+    final feliCa = FeliCaIos.from(tag);
+    if (feliCa != null) {
+      return _bytesToHex(feliCa.currentIDm.toList());
+    }
+
+    debugPrint('NFC: Unknown iOS tag type');
+    return null;
   }
 
   /// Convert bytes to hex string

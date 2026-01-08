@@ -43,7 +43,7 @@ class PublicProduct {
       description: json['description'] ?? '',
       retailPrice: (json['retail_price'] ?? 0).toDouble(),
       wholesalePrice: (json['wholesale_price'] ?? 0).toDouble(),
-      image: json['image'],
+      image: json['display_image'] ?? json['image'],
       defaultImage: json['default_image'],
       likesCount: json['likes_count'] ?? 0,
       isLiked: json['is_liked'] ?? false,
@@ -161,7 +161,7 @@ class PortfolioImage {
   factory PortfolioImage.fromJson(Map<String, dynamic> json) {
     return PortfolioImage(
       portfolioId: json['portfolio_id'] ?? 0,
-      filename: json['filename'] ?? '',
+      filename: json['image_filename'] ?? json['filename'] ?? '',
       title: json['title'],
       description: json['description'],
       sortOrder: json['sort_order'] ?? 0,
