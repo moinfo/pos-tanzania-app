@@ -9,6 +9,34 @@ import '../config/clients_config.dart';
 /// API Service for public-facing landing page endpoints (no authentication required)
 class PublicApiService {
   static const String _deviceIdKey = 'landing_device_id';
+  static const String _productsCacheKey = 'cached_products';
+  static const String _categoriesCacheKey = 'cached_categories';
+  static const String _cacheTimestampKey = 'cache_timestamp';
+  static const int _cacheExpiryMinutes = 30; // Cache expires after 30 minutes
+
+  /// Check if cache is still valid
+  Future<bool> _isCacheValid(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final timestamp = prefs.getInt('${key}_timestamp');
+    if (timestamp == null) return false;
+
+    final cacheTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    return now.difference(cacheTime).inMinutes < _cacheExpiryMinutes;
+  }
+
+  /// Save data to cache
+  Future<void> _saveToCache(String key, String data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, data);
+    await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  /// Get data from cache
+  Future<String?> _getFromCache(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(key);
+  }
 
   // Get base URL for public API
   static String get baseUrl {
@@ -41,9 +69,7 @@ class PublicApiService {
     if (filename == null || filename.isEmpty) {
       return '';
     }
-    final url = '$uploadsBaseUrl/products/$filename';
-    debugPrint('📷 Product Image URL: $url');
-    return url;
+    return '$uploadsBaseUrl/products/$filename';
   }
 
   /// Get portfolio image URL
@@ -51,9 +77,7 @@ class PublicApiService {
     if (filename == null || filename.isEmpty) {
       return '';
     }
-    final url = '$uploadsBaseUrl/portfolio/$filename';
-    debugPrint('📷 Portfolio Image URL: $url');
-    return url;
+    return '$uploadsBaseUrl/portfolio/$filename';
   }
 
   /// Get or generate device ID for like tracking
@@ -96,6 +120,9 @@ class PublicApiService {
     int offset = 0,
     String sort = 'latest', // latest, popular, price_low, price_high, name
   }) async {
+    // Create cache key based on parameters
+    final cacheKey = '${_productsCacheKey}_${search ?? ''}_${category ?? ''}_${limit}_${offset}_$sort';
+
     try {
       final queryParams = <String, String>{
         'limit': limit.toString(),
@@ -114,10 +141,16 @@ class PublicApiService {
       final uri = Uri.parse('$baseUrl/products').replace(queryParameters: queryParams);
       final headers = await _getHeaders();
 
-      final response = await http.get(uri, headers: headers);
+      final response = await http.get(uri, headers: headers).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Connection timeout'),
+      );
       final data = jsonDecode(response.body);
 
       if (data['status'] == 'success') {
+        // Cache the successful response
+        await _saveToCache(cacheKey, response.body);
+
         final productsData = data['data'];
         return ProductsResponse(
           products: (productsData['products'] as List)
@@ -126,12 +159,31 @@ class PublicApiService {
           total: productsData['total'] ?? 0,
           limit: productsData['limit'] ?? limit,
           offset: productsData['offset'] ?? offset,
+          fromCache: false,
         );
       } else {
         throw Exception(data['message'] ?? 'Failed to load products');
       }
     } catch (e) {
-      debugPrint('Error getting products: $e');
+      debugPrint('Error getting products: $e - trying cache');
+
+      // Try to load from cache on error
+      final cachedData = await _getFromCache(cacheKey);
+      if (cachedData != null) {
+        final data = jsonDecode(cachedData);
+        if (data['status'] == 'success') {
+          final productsData = data['data'];
+          return ProductsResponse(
+            products: (productsData['products'] as List)
+                .map((e) => PublicProduct.fromJson(e))
+                .toList(),
+            total: productsData['total'] ?? 0,
+            limit: productsData['limit'] ?? limit,
+            offset: productsData['offset'] ?? offset,
+            fromCache: true,
+          );
+        }
+      }
       rethrow;
     }
   }
@@ -164,11 +216,17 @@ class PublicApiService {
       final response = await http.get(
         Uri.parse('$baseUrl/categories'),
         headers: await _getHeaders(includeDeviceId: false),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Connection timeout'),
       );
 
       final data = jsonDecode(response.body);
 
       if (data['status'] == 'success') {
+        // Cache the successful response
+        await _saveToCache(_categoriesCacheKey, response.body);
+
         return (data['data'] as List)
             .map((e) => ProductCategory.fromJson(e))
             .toList();
@@ -176,7 +234,18 @@ class PublicApiService {
         throw Exception(data['message'] ?? 'Failed to load categories');
       }
     } catch (e) {
-      debugPrint('Error getting categories: $e');
+      debugPrint('Error getting categories: $e - trying cache');
+
+      // Try to load from cache on error
+      final cachedData = await _getFromCache(_categoriesCacheKey);
+      if (cachedData != null) {
+        final data = jsonDecode(cachedData);
+        if (data['status'] == 'success') {
+          return (data['data'] as List)
+              .map((e) => ProductCategory.fromJson(e))
+              .toList();
+        }
+      }
       rethrow;
     }
   }
@@ -348,12 +417,14 @@ class ProductsResponse {
   final int total;
   final int limit;
   final int offset;
+  final bool fromCache;
 
   ProductsResponse({
     required this.products,
     required this.total,
     required this.limit,
     required this.offset,
+    this.fromCache = false,
   });
 
   bool get hasMore => offset + products.length < total;

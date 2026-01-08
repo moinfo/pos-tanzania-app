@@ -4,6 +4,7 @@ import '../../providers/landing_provider.dart';
 import '../../models/public_product.dart';
 import '../login_screen.dart';
 import 'widgets/product_card.dart';
+import 'widgets/product_skeleton.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'order_history_screen.dart';
@@ -409,6 +410,35 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
       child: CustomScrollView(
         controller: _scrollController,
         slivers: [
+          // Offline/cache indicator banner
+          SliverToBoxAdapter(
+            child: Consumer<LandingProvider>(
+              builder: (context, provider, _) {
+                if (!provider.isFromCache) return const SizedBox.shrink();
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: Colors.orange[700],
+                  child: Row(
+                    children: [
+                      const Icon(Icons.cloud_off, color: Colors.white, size: 16),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Showing cached data. Pull to refresh.',
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => provider.initialize(),
+                        child: const Icon(Icons.refresh, color: Colors.white, size: 18),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
           // Search bar with sort options
           SliverToBoxAdapter(
             child: Consumer<LandingProvider>(
@@ -546,9 +576,13 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
   Widget _buildProductsGrid() {
     return Consumer<LandingProvider>(
       builder: (context, provider, _) {
+        // Show skeleton loading while loading products
         if (provider.isLoadingProducts && provider.products.isEmpty) {
-          return const SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator(color: LandingColors.primaryRed)),
+          return SliverToBoxAdapter(
+            child: ProductSkeletonList(
+              count: 3,
+              isDarkMode: widget.isDarkMode,
+            ),
           );
         }
 
@@ -561,10 +595,24 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
                   Icon(Icons.card_giftcard, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    _searchController.text.isNotEmpty ? 'No results found' : 'No products found',
+                    provider.errorMessage.isNotEmpty
+                        ? provider.errorMessage
+                        : (_searchController.text.isNotEmpty ? 'No results found' : 'No products found'),
                     style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
-                  if (_searchController.text.isNotEmpty) ...[
+                  if (provider.errorMessage.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => provider.initialize(),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: LandingColors.primaryRed,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ] else if (_searchController.text.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: () {
@@ -581,6 +629,7 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
           );
         }
 
+        // Show cache indicator if data is from cache
         return SliverList(
           delegate: SliverChildBuilderDelegate(
             (context, index) {

@@ -35,6 +35,9 @@ class LandingProvider with ChangeNotifier {
   // Error handling
   String? _error;
 
+  // Cache state
+  bool _isFromCache = false;
+
   // Getters
   List<PublicProduct> get products => _products;
   List<ProductCategory> get categories => _categories;
@@ -56,6 +59,8 @@ class LandingProvider with ChangeNotifier {
   String get sortBy => _sortBy;
 
   String? get error => _error;
+  String get errorMessage => _error ?? '';
+  bool get isFromCache => _isFromCache;
 
   // Cart getters
   int get cartItemCount => _cart.fold(0, (sum, item) => sum + item.quantity);
@@ -113,8 +118,9 @@ class LandingProvider with ChangeNotifier {
       _totalProducts = response.total;
       _currentOffset += response.products.length;
       _hasMoreProducts = response.hasMore;
+      _isFromCache = response.fromCache;
     } catch (e) {
-      _error = e.toString();
+      _error = 'Unable to load products. Check your internet connection.';
       debugPrint('Error loading products: $e');
     } finally {
       _isLoadingProducts = false;

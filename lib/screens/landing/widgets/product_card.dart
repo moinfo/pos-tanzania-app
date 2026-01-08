@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../models/public_product.dart';
@@ -42,8 +43,6 @@ class _ProductCardState extends State<ProductCard> {
   List<String> get _allImages {
     final images = <String>[];
 
-    debugPrint('🖼️ Product: ${widget.product.name}, Portfolio count: ${widget.product.portfolio.length}');
-
     // Sort portfolio by date (newest first) and add them first
     final sortedPortfolio = List.of(widget.product.portfolio);
     sortedPortfolio.sort((a, b) {
@@ -55,7 +54,6 @@ class _ProductCardState extends State<ProductCard> {
 
     // Add portfolio images first (latest on front)
     for (final portfolio in sortedPortfolio) {
-      debugPrint('🖼️ Portfolio filename: ${portfolio.filename}');
       final url = PublicApiService.getPortfolioImageUrl(portfolio.filename);
       if (url.isNotEmpty && !images.contains(url)) {
         images.add(url);
@@ -64,14 +62,12 @@ class _ProductCardState extends State<ProductCard> {
 
     // Add main display image at the end (fallback if no portfolio)
     if (widget.product.displayImage != null) {
-      debugPrint('🖼️ Display image: ${widget.product.displayImage}');
       final mainUrl = PublicApiService.getProductImageUrl(widget.product.displayImage);
       if (mainUrl.isNotEmpty && !images.contains(mainUrl)) {
         images.add(mainUrl);
       }
     }
 
-    debugPrint('🖼️ Total images for ${widget.product.name}: ${images.length}');
     return images;
   }
 
@@ -176,27 +172,20 @@ class _ProductCardState extends State<ProductCard> {
                     itemBuilder: (context, index) {
                       return GestureDetector(
                         onTap: widget.onTap,
-                        child: Image.network(
-                          images[index],
+                        child: CachedNetworkImage(
+                          imageUrl: images[index],
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildPlaceholder(placeholderColor),
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              color: placeholderColor,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                  strokeWidth: 2,
-                                  color: LandingColors.primaryRed,
-                                ),
+                          placeholder: (context, url) => Container(
+                            color: placeholderColor,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: LandingColors.primaryRed,
                               ),
-                            );
-                          },
+                            ),
+                          ),
+                          errorWidget: (context, url, error) =>
+                              _buildPlaceholder(placeholderColor),
                         ),
                       );
                     },
