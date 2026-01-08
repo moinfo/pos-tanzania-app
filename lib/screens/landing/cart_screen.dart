@@ -164,6 +164,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: _cardColor,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -193,9 +194,10 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                 children: [
                   Text(
                     item.itemName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
+                      color: _textColor,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -236,7 +238,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                       // Quantity controls
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: widget.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -247,16 +249,16 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                                 item.itemId,
                                 item.quantity - 1,
                               ),
-                              child: const Padding(
-                                padding: EdgeInsets.all(8),
-                                child: Icon(Icons.remove, size: 16),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(Icons.remove, size: 16, color: _textColor),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8),
                               child: Text(
                                 '${item.quantity}',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: _textColor),
                               ),
                             ),
                             InkWell(
@@ -264,9 +266,9 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                                 item.itemId,
                                 item.quantity + 1,
                               ),
-                              child: const Padding(
-                                padding: EdgeInsets.all(8),
-                                child: Icon(Icons.add, size: 16),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(Icons.add, size: 16, color: _textColor),
                               ),
                             ),
                           ],
@@ -281,7 +283,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   Text(
                     'Subtotal: TZS ${_formatPrice(item.subtotal)}',
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: _subtextColor,
                       fontSize: 13,
                     ),
                   ),
@@ -410,9 +412,15 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
 
     if (!mounted) return;
 
+    final isDark = widget.isDarkMode;
+    final sheetBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final sheetTextColor = isDark ? Colors.white : Colors.black;
+    final sheetSubtextColor = isDark ? Colors.grey[400] : Colors.grey[600];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: sheetBgColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -437,18 +445,19 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      color: isDark ? Colors.grey[600] : Colors.grey[300],
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                const Text(
+                Text(
                   'Checkout',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: sheetTextColor,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -457,19 +466,19 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: Colors.green[50],
+                      color: isDark ? Colors.green[900]!.withOpacity(0.3) : Colors.green[50],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green[200]!),
+                      border: Border.all(color: isDark ? Colors.green[700]! : Colors.green[200]!),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green[600], size: 18),
+                        Icon(Icons.check_circle, color: Colors.green[500], size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Welcome back! Your details are remembered.',
                             style: TextStyle(
-                              color: Colors.green[700],
+                              color: isDark ? Colors.green[400] : Colors.green[700],
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
@@ -481,17 +490,24 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                 else
                   Text(
                     'Enter your details to place the order',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: sheetSubtextColor),
                   ),
                 const SizedBox(height: 24),
 
                 // Name field
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: sheetTextColor),
+                  decoration: InputDecoration(
                     labelText: 'Your Name *',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: sheetSubtextColor),
+                    prefixIcon: Icon(Icons.person_outline, color: sheetSubtextColor),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -505,11 +521,19 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                 // Phone field
                 TextFormField(
                   controller: _phoneController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: sheetTextColor),
+                  decoration: InputDecoration(
                     labelText: 'Phone Number *',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: sheetSubtextColor),
+                    prefixIcon: Icon(Icons.phone_outlined, color: sheetSubtextColor),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
                     hintText: '0652894205',
+                    hintStyle: TextStyle(color: sheetSubtextColor),
                   ),
                   keyboardType: TextInputType.phone,
                   validator: (value) {
@@ -529,10 +553,17 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                 // Email field (optional)
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: sheetTextColor),
+                  decoration: InputDecoration(
                     labelText: 'Email (Optional)',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: sheetSubtextColor),
+                    prefixIcon: Icon(Icons.email_outlined, color: sheetSubtextColor),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -541,10 +572,17 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                 // Address field (optional)
                 TextFormField(
                   controller: _addressController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: sheetTextColor),
+                  decoration: InputDecoration(
                     labelText: 'Delivery Address (Optional)',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: sheetSubtextColor),
+                    prefixIcon: Icon(Icons.location_on_outlined, color: sheetSubtextColor),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
                   ),
                   maxLines: 2,
                 ),
@@ -553,11 +591,19 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                 // Notes field
                 TextFormField(
                   controller: _notesController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: sheetTextColor),
+                  decoration: InputDecoration(
                     labelText: 'Order Notes (Optional)',
-                    prefixIcon: Icon(Icons.note_outlined),
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: sheetSubtextColor),
+                    prefixIcon: Icon(Icons.note_outlined, color: sheetSubtextColor),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                    ),
                     hintText: 'Any special instructions...',
+                    hintStyle: TextStyle(color: sheetSubtextColor),
                   ),
                   maxLines: 2,
                 ),
@@ -567,7 +613,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: isDark ? Colors.grey[850] : Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -575,23 +621,24 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Items'),
-                          Text('${provider.cartItemCount}'),
+                          Text('Items', style: TextStyle(color: sheetTextColor)),
+                          Text('${provider.cartItemCount}', style: TextStyle(color: sheetTextColor)),
                         ],
                       ),
-                      const Divider(),
+                      Divider(color: isDark ? Colors.grey[700] : Colors.grey[300]),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Total',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.bold, color: sheetTextColor),
                           ),
                           Text(
                             'TZS ${_formatPrice(provider.cartTotal)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
+                              color: sheetTextColor,
                             ),
                           ),
                         ],
@@ -682,28 +729,34 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
   }
 
   void _showOrderSuccess(PublicOrder order) {
+    final isDark = widget.isDarkMode;
+    final dialogBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final dialogTextColor = isDark ? Colors.white : Colors.black;
+    final dialogSubtextColor = isDark ? Colors.grey[400] : Colors.grey[600];
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: dialogBgColor,
         title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green[600], size: 28),
+            Icon(Icons.check_circle, color: Colors.green[500], size: 28),
             const SizedBox(width: 8),
-            const Text('Order Placed!'),
+            Text('Order Placed!', style: TextStyle(color: dialogTextColor)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Order Number: ${order.orderNumber}'),
+            Text('Order Number: ${order.orderNumber}', style: TextStyle(color: dialogTextColor)),
             const SizedBox(height: 8),
-            Text('Total: TZS ${_formatPrice(order.total)}'),
+            Text('Total: TZS ${_formatPrice(order.total)}', style: TextStyle(color: dialogTextColor)),
             const SizedBox(height: 16),
             Text(
               'We will contact you at ${order.customer.phone} to confirm your order.',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: dialogSubtextColor),
             ),
           ],
         ),
@@ -722,11 +775,16 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
   }
 
   void _confirmClearCart(LandingProvider provider) {
+    final isDark = widget.isDarkMode;
+    final dialogBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final dialogTextColor = isDark ? Colors.white : Colors.black;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Cart?'),
-        content: const Text('Are you sure you want to remove all items from your cart?'),
+        backgroundColor: dialogBgColor,
+        title: Text('Clear Cart?', style: TextStyle(color: dialogTextColor)),
+        content: Text('Are you sure you want to remove all items from your cart?', style: TextStyle(color: dialogTextColor)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

@@ -256,6 +256,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
   Widget _buildOrderCard(PublicOrder order) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: _cardColor,
       child: InkWell(
         onTap: () => _showOrderDetails(order),
         borderRadius: BorderRadius.circular(12),
@@ -269,9 +270,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                 children: [
                   Text(
                     order.orderNumber,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: _textColor,
                     ),
                   ),
                   const Spacer(),
@@ -284,11 +286,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
               Text(
                 _formatDate(order.createdAt),
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: _subtextColor,
                   fontSize: 13,
                 ),
               ),
-              const Divider(height: 20),
+              Divider(height: 20, color: widget.isDarkMode ? Colors.grey[700] : Colors.grey[300]),
 
               // Items preview
               ...order.items.take(2).map((item) => Padding(
@@ -298,7 +300,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                         Text(
                           '${item.quantity.toInt()}x',
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: _subtextColor,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -308,11 +310,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                             item.itemName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: _textColor),
                           ),
                         ),
                         Text(
                           'TZS ${_formatPrice(item.subtotal)}',
-                          style: TextStyle(color: Colors.grey[700]),
+                          style: TextStyle(color: _subtextColor),
                         ),
                       ],
                     ),
@@ -324,27 +327,28 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                   child: Text(
                     '+${order.items.length - 2} more items',
                     style: TextStyle(
-                      color: Colors.grey[500],
+                      color: _subtextColor,
                       fontSize: 13,
                     ),
                   ),
                 ),
 
-              const Divider(height: 20),
+              Divider(height: 20, color: widget.isDarkMode ? Colors.grey[700] : Colors.grey[300]),
 
               // Total
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Total',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                    style: TextStyle(fontWeight: FontWeight.w500, color: _textColor),
                   ),
                   Text(
                     'TZS ${_formatPrice(order.total)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: _textColor,
                     ),
                   ),
                 ],
@@ -413,9 +417,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
   }
 
   void _showOrderDetails(PublicOrder order) {
+    final sheetBgColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: sheetBgColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -434,7 +441,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: widget.isDarkMode ? Colors.grey[600] : Colors.grey[300],
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -450,15 +457,16 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                     children: [
                       Text(
                         order.orderNumber,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
+                          color: _textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _formatDate(order.createdAt),
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(color: _subtextColor),
                       ),
                     ],
                   ),
@@ -467,21 +475,22 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
               ],
             ),
 
-            const Divider(height: 32),
+            Divider(height: 32, color: widget.isDarkMode ? Colors.grey[700] : Colors.grey[300]),
 
             // Order items
-            const Text(
+            Text(
               'Items',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
+                color: _textColor,
               ),
             ),
             const SizedBox(height: 12),
 
             ...order.items.map((item) => _buildOrderItem(item)),
 
-            const Divider(height: 32),
+            Divider(height: 32, color: widget.isDarkMode ? Colors.grey[700] : Colors.grey[300]),
 
             // Order summary
             _buildSummaryRow('Subtotal', order.subtotal),
@@ -489,18 +498,19 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
             _buildSummaryRow('Total', order.total, isBold: true),
 
             if (order.notes != null && order.notes!.isNotEmpty) ...[
-              const Divider(height: 32),
-              const Text(
+              Divider(height: 32, color: widget.isDarkMode ? Colors.grey[700] : Colors.grey[300]),
+              Text(
                 'Notes',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: _textColor,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 order.notes!,
-                style: TextStyle(color: Colors.grey[700]),
+                style: TextStyle(color: _subtextColor),
               ),
             ],
           ],
@@ -542,12 +552,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
               children: [
                 Text(
                   item.itemName,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  style: TextStyle(fontWeight: FontWeight.w500, color: _textColor),
                 ),
                 Text(
                   '${item.quantity.toInt()} x TZS ${_formatPrice(item.unitPrice)}',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: _subtextColor,
                     fontSize: 13,
                   ),
                 ),
@@ -558,7 +568,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
           // Subtotal
           Text(
             'TZS ${_formatPrice(item.subtotal)}',
-            style: const TextStyle(fontWeight: FontWeight.w500),
+            style: TextStyle(fontWeight: FontWeight.w500, color: _textColor),
           ),
         ],
       ),
@@ -567,10 +577,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
 
   Widget _buildItemPlaceholder() {
     return Container(
-      color: Colors.grey[200],
+      color: widget.isDarkMode ? Colors.grey[800] : Colors.grey[200],
       child: Icon(
         Icons.card_giftcard,
-        color: Colors.grey[400],
+        color: widget.isDarkMode ? Colors.grey[600] : Colors.grey[400],
         size: 24,
       ),
     );
@@ -584,11 +594,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
           label,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            color: _textColor,
           ),
         ),
         Text(
           'TZS ${_formatPrice(value)}',
           style: TextStyle(
+            color: _textColor,
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             fontSize: isBold ? 18 : 14,
           ),
