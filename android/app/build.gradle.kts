@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "co.tz.sada.pos_tanzania_mobile"
+    namespace = "co.tz.moinfotech.pos"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -20,14 +20,33 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "co.tz.sada.pos_tanzania_mobile"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // Base Application ID - will be overridden by flavors
+        applicationId = "co.tz.moinfotech.pos"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // Product Flavors - Each client gets a unique app
+    flavorDimensions += "client"
+
+    productFlavors {
+        create("sada") {
+            dimension = "client"
+            applicationId = "co.tz.sada.pos"
+            resValue("string", "app_name", "SADA POS")
+        }
+        create("comeAndSave") {
+            dimension = "client"
+            applicationId = "co.tz.comeandsave.pos"
+            resValue("string", "app_name", "Come & Save POS")
+        }
+        create("leruma") {
+            dimension = "client"
+            applicationId = "co.tz.leruma.pos"
+            resValue("string", "app_name", "Leruma POS")
+        }
     }
 
     buildTypes {
