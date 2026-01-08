@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../models/public_product.dart';
 import '../../../services/public_api_service.dart';
 import '../landing_screen.dart';
@@ -297,6 +299,23 @@ class _ProductCardState extends State<ProductCard> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 16),
+                InkWell(
+                  onTap: () => _openWhatsApp(),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF25D366), // WhatsApp green
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const FaIcon(
+                      FontAwesomeIcons.whatsapp,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -388,6 +407,42 @@ class _ProductCardState extends State<ProductCard> {
         ],
       ),
     );
+  }
+
+  /// Open WhatsApp with pre-filled message about this product
+  Future<void> _openWhatsApp() async {
+    const whatsappNumber = '255652894205'; // Tanzania format without leading 0
+    final product = widget.product;
+    final price = _formatPrice(product.retailPrice);
+
+    // Build detailed message
+    final buffer = StringBuffer();
+    buffer.writeln('Hi! I\'m interested in:');
+    buffer.writeln('');
+    buffer.writeln('*${product.name}*');
+    if (product.category.isNotEmpty) {
+      buffer.writeln('Category: ${product.category}');
+    }
+    buffer.writeln('Price: TZS $price');
+    if (product.hasWholesalePrice) {
+      buffer.writeln('Wholesale: TZS ${_formatPrice(product.wholesalePrice)}');
+    }
+    if (product.description.isNotEmpty) {
+      final desc = product.description.length > 100
+          ? '${product.description.substring(0, 100)}...'
+          : product.description;
+      buffer.writeln('');
+      buffer.writeln(desc);
+    }
+    buffer.writeln('');
+    buffer.writeln('Can you tell me more about this product?');
+
+    final message = Uri.encodeComponent(buffer.toString());
+    final whatsappUrl = Uri.parse('https://wa.me/$whatsappNumber?text=$message');
+
+    if (await canLaunchUrl(whatsappUrl)) {
+      await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+    }
   }
 
   Widget _buildPlaceholder(Color? placeholderColor) {

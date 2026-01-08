@@ -39,6 +39,7 @@ dependencies:
 
   # Icons
   cupertino_icons: ^1.0.6
+  font_awesome_flutter: ^10.6.0
 
   # Biometric authentication
   local_auth: ^2.3.0
