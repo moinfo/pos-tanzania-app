@@ -301,16 +301,7 @@ class LandingWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: const LandingScreen(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-      floatingActionButton: FloatingActionButton.small(
-        heroTag: 'admin_login',
-        onPressed: () => _goToAdminLogin(context),
-        backgroundColor: Colors.grey[800],
-        child: const Icon(Icons.admin_panel_settings, size: 20),
-      ),
-    );
+    return const LandingScreen();
   }
 
   void _goToAdminLogin(BuildContext context) {

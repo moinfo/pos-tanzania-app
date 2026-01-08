@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
 import '../../models/public_product.dart';
+import '../login_screen.dart';
 import 'widgets/product_card.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
@@ -16,7 +17,7 @@ class LandingColors {
   static const Color darkGrey = Color(0xFF666666);
 }
 
-/// Main landing page with Instagram-style product grid
+/// Main landing page with bottom navigation
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
 
@@ -25,17 +26,13 @@ class LandingScreen extends StatefulWidget {
 }
 
 class _LandingScreenState extends State<LandingScreen> {
-  final ScrollController _scrollController = ScrollController();
-  final TextEditingController _searchController = TextEditingController();
-  bool _showSearch = false;
+  int _currentIndex = 0;
   bool _isDarkMode = false;
+  final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-
-    // Initialize data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LandingProvider>().initialize();
     });
@@ -43,92 +40,53 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
-    _searchController.dispose();
+    _pageController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      context.read<LandingProvider>().loadMoreProducts();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Colors based on dark mode
     final bgColor = _isDarkMode ? const Color(0xFF121212) : LandingColors.white;
-    final textColor = _isDarkMode ? LandingColors.white : LandingColors.black;
     final cardColor = _isDarkMode ? const Color(0xFF1E1E1E) : LandingColors.white;
+    final textColor = _isDarkMode ? LandingColors.white : LandingColors.black;
 
-    // Apply landing page theme with brand colors
     return Theme(
       data: Theme.of(context).copyWith(
         primaryColor: LandingColors.primaryRed,
         scaffoldBackgroundColor: bgColor,
         colorScheme: _isDarkMode
-          ? ColorScheme.dark(
-              primary: LandingColors.primaryRed,
-              secondary: LandingColors.primaryRed,
-              surface: cardColor,
-            )
-          : ColorScheme.light(
-              primary: LandingColors.primaryRed,
-              secondary: LandingColors.black,
-              surface: LandingColors.white,
-            ),
+            ? ColorScheme.dark(
+                primary: LandingColors.primaryRed,
+                secondary: LandingColors.primaryRed,
+                surface: cardColor,
+              )
+            : const ColorScheme.light(
+                primary: LandingColors.primaryRed,
+                secondary: LandingColors.black,
+                surface: LandingColors.white,
+              ),
         appBarTheme: AppBarTheme(
           backgroundColor: bgColor,
           foregroundColor: textColor,
           elevation: 0,
         ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: LandingColors.primaryRed,
-          foregroundColor: LandingColors.white,
-        ),
-        cardTheme: CardThemeData(
-          color: cardColor,
-        ),
+        cardTheme: CardThemeData(color: cardColor),
       ),
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: _buildAppBar(),
-        body: RefreshIndicator(
-          color: LandingColors.primaryRed,
-          onRefresh: () => context.read<LandingProvider>().initialize(),
-          child: CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              // Search bar (when expanded)
-              if (_showSearch) _buildSearchBar(),
-
-              // Sort options
-              _buildSortOptions(),
-
-              // Products grid
-              _buildProductsGrid(),
-
-              // Loading indicator
-              _buildLoadingIndicator(),
-            ],
-          ),
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() => _currentIndex = index);
+          },
+          children: [
+            _HomeTab(isDarkMode: _isDarkMode),
+            CartScreen(isDarkMode: _isDarkMode),
+            OrderHistoryScreen(isDarkMode: _isDarkMode),
+          ],
         ),
-        floatingActionButton: _buildCartFAB(),
-      ),
-    );
-  }
-
-  Widget _buildLogoHeader() {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        color: LandingColors.white,
-        child: Image.asset(
-          'assets/images/come_and_save_logo.png',
-          height: 80,
-          fit: BoxFit.contain,
-        ),
+        bottomNavigationBar: _buildBottomNav(),
       ),
     );
   }
@@ -142,7 +100,7 @@ class _LandingScreenState extends State<LandingScreen> {
         children: [
           Image.asset(
             'assets/images/come_and_save_logo.png',
-            height: 40,
+            height: 36,
             fit: BoxFit.contain,
           ),
           const Expanded(
@@ -152,7 +110,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 style: TextStyle(
                   color: LandingColors.primaryRed,
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                  fontSize: 16,
                 ),
               ),
             ),
@@ -168,153 +126,350 @@ class _LandingScreenState extends State<LandingScreen> {
         ),
       ),
       actions: [
-        // Search toggle
-        IconButton(
-          icon: Icon(Icons.search, color: iconColor),
-          onPressed: () {
-            setState(() {
-              _showSearch = !_showSearch;
-              if (!_showSearch) {
-                _searchController.clear();
-                context.read<LandingProvider>().searchProducts('');
-              }
-            });
-          },
-        ),
-        // Order history
-        IconButton(
-          icon: Icon(Icons.receipt_long_outlined, color: iconColor),
-          onPressed: _showOrderHistory,
-        ),
         // Dark mode toggle
         IconButton(
           icon: Icon(
             _isDarkMode ? Icons.light_mode : Icons.dark_mode,
             color: iconColor,
+            size: 22,
           ),
           onPressed: () {
-            setState(() {
-              _isDarkMode = !_isDarkMode;
-            });
+            setState(() => _isDarkMode = !_isDarkMode);
+          },
+        ),
+        // Login button
+        IconButton(
+          icon: Icon(
+            Icons.admin_panel_settings,
+            color: iconColor,
+            size: 22,
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
           },
         ),
       ],
     );
   }
 
-  Widget _buildSearchBar() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search products...',
-            prefixIcon: const Icon(Icons.search, color: LandingColors.darkGrey),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, color: LandingColors.darkGrey),
-                    onPressed: () {
-                      _searchController.clear();
-                      context.read<LandingProvider>().searchProducts('');
-                    },
-                  )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: LandingColors.primaryRed),
+  Widget _buildBottomNav() {
+    return Consumer<LandingProvider>(
+      builder: (context, provider, _) {
+        final cartCount = provider.cart.length;
+
+        return Container(
+          color: _isDarkMode ? const Color(0xFF121212) : LandingColors.lightGrey,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            child: Container(
+              height: 70,
+                decoration: BoxDecoration(
+                  gradient: _isDarkMode
+                      ? const LinearGradient(
+                          colors: [Color(0xFF2A2A2A), Color(0xFF1E1E1E)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        )
+                      : const LinearGradient(
+                          colors: [Colors.white, Color(0xFFFAFAFA)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _isDarkMode
+                          ? Colors.black.withValues(alpha: 0.4)
+                          : Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                      spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: _isDarkMode
+                          ? Colors.black.withValues(alpha: 0.2)
+                          : Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: _isDarkMode
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.black.withValues(alpha: 0.03),
+                    width: 1,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildNavItem(0, Icons.home_rounded, 'Home'),
+                      _buildNavItem(1, Icons.shopping_bag_rounded, 'Cart', badge: cartCount),
+                      _buildNavItem(2, Icons.receipt_long_rounded, 'Orders'),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: LandingColors.primaryRed, width: 2),
+        );
+      },
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label, {int badge = 0}) {
+    final isSelected = _currentIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() => _currentIndex = index);
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 20 : 16,
+          vertical: 10,
+        ),
+        decoration: isSelected
+            ? BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFE31E24),
+                    Color(0xFFFF4D4D),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE31E24).withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              )
+            : null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedScale(
+                  scale: isSelected ? 1.1 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    icon,
+                    color: isSelected
+                        ? Colors.white
+                        : (_isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                    size: 24,
+                  ),
+                ),
+                if (badge > 0)
+                  Positioned(
+                    right: -10,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: isSelected
+                            ? const LinearGradient(
+                                colors: [Colors.white, Color(0xFFF0F0F0)],
+                              )
+                            : const LinearGradient(
+                                colors: [Color(0xFFE31E24), Color(0xFFFF4D4D)],
+                              ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isSelected
+                                ? Colors.black.withValues(alpha: 0.2)
+                                : const Color(0xFFE31E24).withValues(alpha: 0.4),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      constraints: const BoxConstraints(minWidth: 18),
+                      child: Text(
+                        badge > 99 ? '99+' : '$badge',
+                        style: TextStyle(
+                          color: isSelected ? const Color(0xFFE31E24) : Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            filled: true,
-            fillColor: LandingColors.lightGrey,
-          ),
-          cursorColor: LandingColors.primaryRed,
-          onSubmitted: (value) {
-            context.read<LandingProvider>().searchProducts(value);
-          },
-          onChanged: (value) {
-            // Debounce search
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (_searchController.text == value) {
-                context.read<LandingProvider>().searchProducts(value);
-              }
-            });
-          },
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              child: SizedBox(width: isSelected ? 8 : 0),
+            ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(-0.2, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: isSelected
+                  ? Text(
+                      label,
+                      key: ValueKey('${label}_selected'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('empty')),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildCategories() {
-    return Consumer<LandingProvider>(
-      builder: (context, provider, _) {
-        if (provider.categories.isEmpty) {
-          return const SliverToBoxAdapter(child: SizedBox.shrink());
-        }
+/// Home tab with search and products feed
+class _HomeTab extends StatefulWidget {
+  final bool isDarkMode;
 
-        return SliverToBoxAdapter(
-          child: SizedBox(
-            height: 48,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: provider.categories.length + 1, // +1 for "All" chip
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  // "All" chip
-                  final isSelected = provider.selectedCategory == null;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: FilterChip(
-                      label: Text(
-                        'All',
-                        style: TextStyle(
-                          color: isSelected ? LandingColors.white : LandingColors.black,
-                        ),
+  const _HomeTab({required this.isDarkMode});
+
+  @override
+  State<_HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<LandingProvider>().loadMoreProducts();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    final bgColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : LandingColors.lightGrey;
+
+    return RefreshIndicator(
+      color: LandingColors.primaryRed,
+      onRefresh: () => context.read<LandingProvider>().initialize(),
+      child: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // Search bar
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              color: widget.isDarkMode ? const Color(0xFF121212) : Colors.white,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(
+                        color: widget.isDarkMode ? Colors.white : Colors.black,
                       ),
-                      selected: isSelected,
-                      selectedColor: LandingColors.primaryRed,
-                      backgroundColor: LandingColors.lightGrey,
-                      checkmarkColor: LandingColors.white,
-                      onSelected: (_) {
-                        provider.filterByCategory(null);
+                      decoration: InputDecoration(
+                        hintText: 'Search products...',
+                        hintStyle: TextStyle(
+                          color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
+                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear,
+                                  color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  context.read<LandingProvider>().searchProducts('');
+                                  setState(() {});
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: bgColor,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onSubmitted: (value) {
+                        context.read<LandingProvider>().searchProducts(value);
+                      },
+                      onChanged: (value) {
+                        setState(() {});
+                        Future.delayed(const Duration(milliseconds: 500), () {
+                          if (_searchController.text == value) {
+                            context.read<LandingProvider>().searchProducts(value);
+                          }
+                        });
                       },
                     ),
-                  );
-                }
-
-                final category = provider.categories[index - 1];
-                final isSelected = provider.selectedCategory == category.name;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: FilterChip(
-                    label: Text(
-                      '${category.name} (${category.productCount})',
-                      style: TextStyle(
-                        color: isSelected ? LandingColors.white : LandingColors.black,
-                      ),
-                    ),
-                    selected: isSelected,
-                    selectedColor: LandingColors.primaryRed,
-                    backgroundColor: LandingColors.lightGrey,
-                    checkmarkColor: LandingColors.white,
-                    onSelected: (_) {
-                      provider.filterByCategory(
-                        provider.selectedCategory == category.name
-                            ? null
-                            : category.name,
-                      );
-                    },
                   ),
-                );
-              },
+                ],
+              ),
             ),
           ),
-        );
-      },
+          // Sort options
+          _buildSortOptions(),
+          // Products grid
+          _buildProductsGrid(),
+          // Loading indicator
+          _buildLoadingIndicator(),
+        ],
+      ),
     );
   }
 
@@ -329,12 +484,11 @@ class _LandingScreenState extends State<LandingScreen> {
                 Text(
                   '${provider.totalProducts} products',
                   style: TextStyle(
-                    color: _isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
+                    color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
                     fontSize: 13,
                   ),
                 ),
                 const Spacer(),
-                // Sort dropdown
                 PopupMenuButton<String>(
                   initialValue: provider.sortBy,
                   onSelected: (value) => provider.changeSortOrder(value),
@@ -350,14 +504,14 @@ class _LandingScreenState extends State<LandingScreen> {
                     children: [
                       Text(
                         _getSortLabel(provider.sortBy),
-                        style: const TextStyle(
-                          color: LandingColors.primaryRed,
+                        style: TextStyle(
+                          color: widget.isDarkMode ? Colors.grey[300] : LandingColors.black,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Icons.arrow_drop_down,
-                        color: LandingColors.primaryRed,
+                        color: widget.isDarkMode ? Colors.grey[300] : LandingColors.black,
                       ),
                     ],
                   ),
@@ -370,14 +524,23 @@ class _LandingScreenState extends State<LandingScreen> {
     );
   }
 
+  String _getSortLabel(String sortBy) {
+    switch (sortBy) {
+      case 'latest': return 'Latest';
+      case 'popular': return 'Popular';
+      case 'price_low': return 'Price ↑';
+      case 'price_high': return 'Price ↓';
+      case 'name': return 'Name';
+      default: return 'Latest';
+    }
+  }
+
   Widget _buildProductsGrid() {
     return Consumer<LandingProvider>(
       builder: (context, provider, _) {
         if (provider.isLoadingProducts && provider.products.isEmpty) {
           return const SliverFillRemaining(
-            child: Center(
-              child: CircularProgressIndicator(color: LandingColors.primaryRed),
-            ),
+            child: Center(child: CircularProgressIndicator(color: LandingColors.primaryRed)),
           );
         }
 
@@ -387,18 +550,23 @@ class _LandingScreenState extends State<LandingScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.inventory_2_outlined, size: 64, color: LandingColors.darkGrey),
+                  Icon(Icons.card_giftcard, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
-                  const Text(
-                    'No products found',
-                    style: TextStyle(fontSize: 18, color: LandingColors.darkGrey),
+                  Text(
+                    _searchController.text.isNotEmpty ? 'No results found' : 'No products found',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
                   ),
-                  if (provider.searchQuery != null || provider.selectedCategory != null)
+                  if (_searchController.text.isNotEmpty) ...[
+                    const SizedBox(height: 8),
                     TextButton(
-                      onPressed: () => provider.clearFilters(),
-                      style: TextButton.styleFrom(foregroundColor: LandingColors.primaryRed),
-                      child: const Text('Clear filters'),
+                      onPressed: () {
+                        _searchController.clear();
+                        context.read<LandingProvider>().searchProducts('');
+                        setState(() {});
+                      },
+                      child: const Text('Clear search'),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -411,10 +579,10 @@ class _LandingScreenState extends State<LandingScreen> {
               final product = provider.products[index];
               return ProductCard(
                 product: product,
-                onTap: () => _openProductDetail(product),
+                isDarkMode: widget.isDarkMode,
+                onTap: () => _openProductDetail(context, product),
                 onLike: () => provider.toggleLike(product.itemId),
-                onAddToCart: () => _addToCart(product),
-                isDarkMode: _isDarkMode,
+                onAddToCart: () => _quickAddToCart(context, provider, product),
               );
             },
             childCount: provider.products.length,
@@ -427,201 +595,41 @@ class _LandingScreenState extends State<LandingScreen> {
   Widget _buildLoadingIndicator() {
     return Consumer<LandingProvider>(
       builder: (context, provider, _) {
-        if (provider.isLoadingProducts && provider.products.isNotEmpty) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(
-                child: CircularProgressIndicator(color: LandingColors.primaryRed),
-              ),
-            ),
-          );
+        if (!provider.isLoadingProducts || provider.products.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
         }
-        return const SliverToBoxAdapter(child: SizedBox(height: 80));
-      },
-    );
-  }
-
-  Widget _buildCartFAB() {
-    return Consumer<LandingProvider>(
-      builder: (context, provider, _) {
-        if (provider.isCartEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return FloatingActionButton.extended(
-          onPressed: () => _openCart(),
-          icon: Badge(
-            label: Text('${provider.cartItemCount}'),
-            child: const Icon(Icons.shopping_cart),
+        return const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator(color: LandingColors.primaryRed)),
           ),
-          label: Text('TZS ${_formatPrice(provider.cartTotal)}'),
         );
       },
     );
   }
 
-  String _getSortLabel(String sort) {
-    switch (sort) {
-      case 'latest':
-        return 'Latest';
-      case 'popular':
-        return 'Popular';
-      case 'price_low':
-        return 'Price ↑';
-      case 'price_high':
-        return 'Price ↓';
-      case 'name':
-        return 'Name';
-      default:
-        return 'Sort';
-    }
-  }
-
-  String _formatPrice(double price) {
-    if (price >= 1000) {
-      return '${(price / 1000).toStringAsFixed(0)}K';
-    }
-    return price.toStringAsFixed(0);
-  }
-
-  void _openProductDetail(PublicProduct product) {
+  void _openProductDetail(BuildContext context, PublicProduct product) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ProductDetailScreen(
           product: product,
-          isDarkMode: _isDarkMode,
+          isDarkMode: widget.isDarkMode,
         ),
       ),
     );
   }
 
-  void _addToCart(PublicProduct product) {
-    context.read<LandingProvider>().addToCart(product);
+  void _quickAddToCart(BuildContext context, LandingProvider provider, PublicProduct product) {
+    provider.addToCart(product, quantity: 1, priceType: 'retail');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${product.name} added to cart'),
-        duration: const Duration(seconds: 1),
-        action: SnackBarAction(
-          label: 'View Cart',
-          onPressed: _openCart,
-        ),
-      ),
-    );
-  }
-
-  void _openCart() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CartScreen()),
-    );
-  }
-
-  void _showOrderHistory() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const OrderHistoryScreen()),
-    );
-  }
-
-  void _showBusinessInfo() {
-    final provider = context.read<LandingProvider>();
-    final info = provider.businessInfo;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.5,
-        maxChildSize: 0.9,
-        minChildSize: 0.3,
-        expand: false,
-        builder: (context, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                info?.businessName ?? 'Gift Shop',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (info?.tagline != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  info!.tagline!,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-              if (info?.description != null) ...[
-                const SizedBox(height: 16),
-                Text(info!.description!),
-              ],
-              const Divider(height: 32),
-              if (info?.hasPhone ?? false)
-                _buildContactRow(Icons.phone, 'Phone', info!.phone!),
-              if (info?.hasWhatsapp ?? false)
-                _buildContactRow(Icons.message, 'WhatsApp', info!.whatsapp!),
-              if (info?.email != null)
-                _buildContactRow(Icons.email, 'Email', info!.email!),
-              if (info?.address != null)
-                _buildContactRow(Icons.location_on, 'Address', info!.address!),
-              if (info?.workingHours != null)
-                _buildContactRow(Icons.access_time, 'Hours', info!.workingHours!),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContactRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(fontSize: 15),
-                ),
-              ],
-            ),
-          ),
-        ],
+        backgroundColor: Colors.green[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

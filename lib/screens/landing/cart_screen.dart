@@ -4,21 +4,31 @@ import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
 
-/// Shopping cart screen
+/// Shopping cart screen (used as tab)
 class CartScreen extends StatefulWidget {
-  const CartScreen({super.key});
+  final bool isDarkMode;
+
+  const CartScreen({super.key, this.isDarkMode = false});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
+class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  Color get _bgColor => widget.isDarkMode ? const Color(0xFF121212) : Colors.white;
+  Color get _cardColor => widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+  Color get _textColor => widget.isDarkMode ? Colors.white : Colors.black;
+  Color get _subtextColor => widget.isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
 
   @override
   void dispose() {
@@ -32,46 +42,56 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Your Cart'),
-        actions: [
-          Consumer<LandingProvider>(
-            builder: (context, provider, _) {
-              if (provider.isCartEmpty) return const SizedBox.shrink();
-              return IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _confirmClearCart(provider),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Consumer<LandingProvider>(
-        builder: (context, provider, _) {
-          if (provider.isCartEmpty) {
-            return _buildEmptyCart();
-          }
+    super.build(context);
 
-          return Column(
-            children: [
-              // Cart items
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.cart.length,
-                  itemBuilder: (context, index) {
-                    return _buildCartItem(provider.cart[index], provider);
-                  },
-                ),
+    return Consumer<LandingProvider>(
+      builder: (context, provider, _) {
+        if (provider.isCartEmpty) {
+          return _buildEmptyCart();
+        }
+
+        return Column(
+          children: [
+            // Header with clear button
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey[50],
+              child: Row(
+                children: [
+                  Text(
+                    'Your Cart',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: _textColor,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => _confirmClearCart(provider),
+                    icon: Icon(Icons.delete_outline, size: 18, color: Colors.red[400]),
+                    label: Text('Clear', style: TextStyle(color: Colors.red[400])),
+                  ),
+                ],
               ),
+            ),
 
-              // Order summary
-              _buildOrderSummary(provider),
-            ],
-          );
-        },
-      ),
+            // Cart items
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: provider.cart.length,
+                itemBuilder: (context, index) {
+                  return _buildCartItem(provider.cart[index], provider);
+                },
+              ),
+            ),
+
+            // Order summary
+            _buildOrderSummary(provider),
+          ],
+        );
+      },
     );
   }
 
@@ -82,28 +102,25 @@ class _CartScreenState extends State<CartScreen> {
         children: [
           Icon(
             Icons.shopping_cart_outlined,
-            size: 80,
-            color: Colors.grey[400],
+            size: 64,
+            color: widget.isDarkMode ? Colors.grey[600] : Colors.grey[400],
           ),
           const SizedBox(height: 16),
           Text(
             'Your cart is empty',
             style: TextStyle(
-              fontSize: 20,
-              color: Colors.grey[600],
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: _textColor,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Add some products to get started',
+            'Add products from the Home tab',
             style: TextStyle(
-              color: Colors.grey[500],
+              color: _subtextColor,
+              fontSize: 14,
             ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Browse Products'),
           ),
         ],
       ),
@@ -295,52 +312,56 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildOrderSummary(LandingProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(widget.isDarkMode ? 0.3 : 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
         ],
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            // Summary row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Total
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   '${provider.cartItemCount} items',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: _subtextColor, fontSize: 12),
                 ),
                 Text(
-                  'Total: TZS ${_formatPrice(provider.cartTotal)}',
-                  style: const TextStyle(
-                    fontSize: 18,
+                  'TZS ${_formatPrice(provider.cartTotal)}',
+                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: _textColor,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-
+            const SizedBox(width: 16),
             // Checkout button
-            SizedBox(
-              width: double.infinity,
+            Expanded(
               child: ElevatedButton(
                 onPressed: () => _showCheckoutDialog(provider),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: const Color(0xFFE31E24),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: const Text(
-                  'Proceed to Checkout',
+                  'Checkout',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

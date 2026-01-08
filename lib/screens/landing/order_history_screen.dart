@@ -4,17 +4,27 @@ import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
 
-/// Order history screen - lookup orders by phone number
+/// Order history screen - lookup orders by phone number (used as tab)
 class OrderHistoryScreen extends StatefulWidget {
-  const OrderHistoryScreen({super.key});
+  final bool isDarkMode;
+
+  const OrderHistoryScreen({super.key, this.isDarkMode = false});
 
   @override
   State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
 }
 
-class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
+class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticKeepAliveClientMixin {
   final _phoneController = TextEditingController();
   bool _hasSearched = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  Color get _textColor => widget.isDarkMode ? Colors.white : Colors.black;
+  Color get _subtextColor => widget.isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+  Color get _cardColor => widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+  Color get _bgColor => widget.isDarkMode ? const Color(0xFF121212) : Colors.grey[100]!;
 
   @override
   void dispose() {
@@ -24,48 +34,45 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Orders'),
-      ),
-      body: Column(
-        children: [
-          // Phone input
-          _buildPhoneInput(),
+    super.build(context);
 
-          // Orders list
-          Expanded(
-            child: Consumer<LandingProvider>(
-              builder: (context, provider, _) {
-                if (provider.isLoadingOrders) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+    return Column(
+      children: [
+        // Phone input
+        _buildPhoneInput(),
 
-                if (!_hasSearched) {
-                  return _buildInitialState();
-                }
+        // Orders list
+        Expanded(
+          child: Consumer<LandingProvider>(
+            builder: (context, provider, _) {
+              if (provider.isLoadingOrders) {
+                return const Center(child: CircularProgressIndicator(color: Color(0xFFE31E24)));
+              }
 
-                if (provider.orderHistory.isEmpty) {
-                  return _buildNoOrders();
-                }
+              if (!_hasSearched) {
+                return _buildInitialState();
+              }
 
-                return _buildOrdersList(provider.orderHistory);
-              },
-            ),
+              if (provider.orderHistory.isEmpty) {
+                return _buildNoOrders();
+              }
+
+              return _buildOrdersList(provider.orderHistory);
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildPhoneInput() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.05),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -76,24 +83,33 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           Expanded(
             child: TextField(
               controller: _phoneController,
+              style: TextStyle(color: _textColor),
               decoration: InputDecoration(
                 hintText: '0652894205',
-                prefixIcon: const Icon(Icons.phone),
+                hintStyle: TextStyle(color: _subtextColor),
+                prefixIcon: Icon(Icons.phone, color: _subtextColor),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: _bgColor,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
               keyboardType: TextInputType.phone,
               onSubmitted: (_) => _searchOrders(),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           ElevatedButton(
             onPressed: _searchOrders,
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              backgroundColor: const Color(0xFFE31E24),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Search'),
           ),
