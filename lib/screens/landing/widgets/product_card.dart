@@ -172,20 +172,31 @@ class _ProductCardState extends State<ProductCard> {
                     itemBuilder: (context, index) {
                       return GestureDetector(
                         onTap: widget.onTap,
-                        child: CachedNetworkImage(
-                          imageUrl: images[index],
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: placeholderColor,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: LandingColors.primaryRed,
+                        // Intercept long press to prevent image saving
+                        onLongPress: () => _showProtectionMessage(),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CachedNetworkImage(
+                              imageUrl: images[index],
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: placeholderColor,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: LandingColors.primaryRed,
+                                  ),
+                                ),
                               ),
+                              errorWidget: (context, url, error) =>
+                                  _buildPlaceholder(placeholderColor),
                             ),
-                          ),
-                          errorWidget: (context, url, error) =>
-                              _buildPlaceholder(placeholderColor),
+                            // Invisible overlay to block context menus
+                            Positioned.fill(
+                              child: Container(color: Colors.transparent),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -443,6 +454,25 @@ class _ProductCardState extends State<ProductCard> {
         );
       }
     }
+  }
+
+  /// Show message when user tries to long-press save image
+  void _showProtectionMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.shield, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text('Images are protected'),
+          ],
+        ),
+        backgroundColor: Colors.grey[800],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Widget _buildPlaceholder(Color? placeholderColor) {

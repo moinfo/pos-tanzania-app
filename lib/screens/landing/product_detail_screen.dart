@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/public_product.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
+import '../../services/screen_protection_service.dart';
 import 'landing_screen.dart';
 
 /// Product detail screen with image gallery and portfolio
@@ -195,10 +196,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 if (imageUrl != null && imageUrl.isNotEmpty) {
                   return GestureDetector(
                     onTap: () => _showFullScreenImage(imageUrl),
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                    onLongPress: () => _showProtectionMessage(),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                        ),
+                        // Invisible overlay to block context menus
+                        Positioned.fill(
+                          child: Container(color: Colors.transparent),
+                        ),
+                      ],
                     ),
                   );
                 }
@@ -687,6 +698,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                       return GestureDetector(
                         onTap: () => _showFullScreenImage(imageUrl),
+                        onLongPress: () => _showProtectionMessage(),
                         child: Container(
                           margin: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -715,6 +727,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       color: _subtextColor,
                                     ),
                                   ),
+                                ),
+                                // Invisible overlay to block context menus
+                                Positioned.fill(
+                                  child: Container(color: Colors.transparent),
                                 ),
                                 // Title overlay at bottom
                                 if (portfolio.title != null && portfolio.title!.isNotEmpty)
@@ -932,41 +948,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
+  /// Show message when user tries to long-press save image
+  void _showProtectionMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.shield, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text('Images are protected'),
+          ],
+        ),
+        backgroundColor: Colors.grey[800],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _showFullScreenImage(String imageUrl) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          extendBodyBehindAppBar: true,
-          body: Center(
-            child: InteractiveViewer(
-              minScale: 0.5,
-              maxScale: 4.0,
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.contain,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                      color: LandingColors.primaryRed,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
+        builder: (context) => _ProtectedFullScreenImage(imageUrl: imageUrl),
       ),
     );
   }
@@ -976,5 +981,89 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
+  }
+}
+
+/// Protected fullscreen image viewer with screenshot prevention
+class _ProtectedFullScreenImage extends StatefulWidget {
+  final String imageUrl;
+
+  const _ProtectedFullScreenImage({required this.imageUrl});
+
+  @override
+  State<_ProtectedFullScreenImage> createState() => _ProtectedFullScreenImageState();
+}
+
+class _ProtectedFullScreenImageState extends State<_ProtectedFullScreenImage> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure protection is enabled for fullscreen view
+    ScreenProtectionService().enableProtection();
+  }
+
+  void _showProtectionMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.shield, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text('Images are protected'),
+          ],
+        ),
+        backgroundColor: Colors.grey[800],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      extendBodyBehindAppBar: true,
+      body: GestureDetector(
+        onLongPress: _showProtectionMessage,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Image.network(
+                  widget.imageUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                        color: LandingColors.primaryRed,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            // Invisible overlay to block context menus
+            Positioned.fill(
+              child: Container(color: Colors.transparent),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
 import '../../models/public_product.dart';
+import '../../services/screen_protection_service.dart';
 import '../login_screen.dart';
 import 'widgets/product_card.dart';
 import 'widgets/product_skeleton.dart';
@@ -34,6 +35,8 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   void initState() {
     super.initState();
+    // Enable screenshot protection
+    ScreenProtectionService().enableProtection();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LandingProvider>().initialize();
     });
