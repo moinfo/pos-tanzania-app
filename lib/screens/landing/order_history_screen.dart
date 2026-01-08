@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
@@ -17,6 +18,10 @@ class OrderHistoryScreen extends StatefulWidget {
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticKeepAliveClientMixin {
   final _phoneController = TextEditingController();
   bool _hasSearched = false;
+  bool _isInitialized = false;
+
+  // Key for SharedPreferences (same as cart_screen)
+  static const _keyCustomerPhone = 'customer_phone';
 
   @override
   bool get wantKeepAlive => true;
@@ -27,14 +32,49 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
   Color get _bgColor => widget.isDarkMode ? const Color(0xFF121212) : Colors.grey[100]!;
 
   @override
+  void initState() {
+    super.initState();
+    _loadSavedPhoneAndSearch();
+  }
+
+  @override
   void dispose() {
     _phoneController.dispose();
     super.dispose();
   }
 
+  /// Load saved phone number and auto-search if available
+  Future<void> _loadSavedPhoneAndSearch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPhone = prefs.getString(_keyCustomerPhone);
+
+    if (savedPhone != null && savedPhone.isNotEmpty) {
+      _phoneController.text = savedPhone;
+      // Auto-search orders with saved phone
+      if (mounted) {
+        setState(() {
+          _hasSearched = true;
+          _isInitialized = true;
+        });
+        context.read<LandingProvider>().loadOrderHistory(savedPhone);
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    // Show loading while initializing saved phone
+    if (!_isInitialized) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFE31E24)));
+    }
 
     return Column(
       children: [
@@ -66,6 +106,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
   }
 
   Widget _buildPhoneInput() {
+    final hasRememberedPhone = _phoneController.text.isNotEmpty && _hasSearched;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -78,40 +120,63 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _phoneController,
-              style: TextStyle(color: _textColor),
-              decoration: InputDecoration(
-                hintText: '0652894205',
-                hintStyle: TextStyle(color: _subtextColor),
-                prefixIcon: Icon(Icons.phone, color: _subtextColor),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+          if (hasRememberedPhone)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green[600], size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Welcome back! Your number is remembered.',
+                    style: TextStyle(
+                      color: Colors.green[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _phoneController,
+                  style: TextStyle(color: _textColor),
+                  decoration: InputDecoration(
+                    hintText: '0652894205',
+                    hintStyle: TextStyle(color: _subtextColor),
+                    prefixIcon: Icon(Icons.phone, color: _subtextColor),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: _bgColor,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  onSubmitted: (_) => _searchOrders(),
                 ),
-                filled: true,
-                fillColor: _bgColor,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              keyboardType: TextInputType.phone,
-              onSubmitted: (_) => _searchOrders(),
-            ),
-          ),
-          const SizedBox(width: 10),
-          ElevatedButton(
-            onPressed: _searchOrders,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              backgroundColor: const Color(0xFFE31E24),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: _searchOrders,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  backgroundColor: const Color(0xFFE31E24),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text('Search'),
               ),
-            ),
-            child: const Text('Search'),
+            ],
           ),
         ],
       ),

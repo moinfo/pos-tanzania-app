@@ -82,7 +82,14 @@ class _LandingScreenState extends State<LandingScreen> {
           },
           children: [
             _HomeTab(isDarkMode: _isDarkMode),
-            CartScreen(isDarkMode: _isDarkMode),
+            CartScreen(
+              isDarkMode: _isDarkMode,
+              onNavigateToOrders: () {
+                // Navigate to Orders tab (index 2)
+                _pageController.jumpToPage(2);
+                setState(() => _currentIndex = 2);
+              },
+            ),
             OrderHistoryScreen(isDarkMode: _isDarkMode),
           ],
         ),
@@ -402,125 +409,126 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
       child: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          // Search bar
+          // Search bar with sort options
           SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              color: widget.isDarkMode ? const Color(0xFF121212) : Colors.white,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      style: TextStyle(
-                        color: widget.isDarkMode ? Colors.white : Colors.black,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Search products...',
-                        hintStyle: TextStyle(
-                          color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
+            child: Consumer<LandingProvider>(
+              builder: (context, provider, _) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  color: widget.isDarkMode ? const Color(0xFF121212) : Colors.white,
+                  child: Row(
+                    children: [
+                      // Search field
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: TextField(
+                            controller: _searchController,
+                            style: TextStyle(
+                              color: widget.isDarkMode ? Colors.white : Colors.black,
+                              fontSize: 14,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search...',
+                              hintStyle: TextStyle(
+                                color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
+                                size: 20,
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(
+                                        Icons.clear,
+                                        color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
+                                        size: 18,
+                                      ),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        context.read<LandingProvider>().searchProducts('');
+                                        setState(() {});
+                                      },
+                                    )
+                                  : null,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: bgColor,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                            ),
+                            onSubmitted: (value) {
+                              context.read<LandingProvider>().searchProducts(value);
+                            },
+                            onChanged: (value) {
+                              setState(() {});
+                              Future.delayed(const Duration(milliseconds: 500), () {
+                                if (_searchController.text == value) {
+                                  context.read<LandingProvider>().searchProducts(value);
+                                }
+                              });
+                            },
+                          ),
                         ),
-                        prefixIcon: Icon(
-                          Icons.search,
+                      ),
+                      const SizedBox(width: 12),
+                      // Products count
+                      Text(
+                        '${provider.totalProducts}',
+                        style: TextStyle(
                           color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(
-                                  Icons.clear,
-                                  color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
-                                ),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  context.read<LandingProvider>().searchProducts('');
-                                  setState(() {});
-                                },
-                              )
-                            : null,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: bgColor,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      onSubmitted: (value) {
-                        context.read<LandingProvider>().searchProducts(value);
-                      },
-                      onChanged: (value) {
-                        setState(() {});
-                        Future.delayed(const Duration(milliseconds: 500), () {
-                          if (_searchController.text == value) {
-                            context.read<LandingProvider>().searchProducts(value);
-                          }
-                        });
-                      },
-                    ),
+                      const SizedBox(width: 8),
+                      // Sort dropdown
+                      PopupMenuButton<String>(
+                        initialValue: provider.sortBy,
+                        onSelected: (value) => provider.changeSortOrder(value),
+                        padding: EdgeInsets.zero,
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(value: 'latest', child: Text('Latest')),
+                          const PopupMenuItem(value: 'popular', child: Text('Most Popular')),
+                          const PopupMenuItem(value: 'price_low', child: Text('Price: Low to High')),
+                          const PopupMenuItem(value: 'price_high', child: Text('Price: High to Low')),
+                          const PopupMenuItem(value: 'name', child: Text('Name')),
+                        ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _getSortLabel(provider.sortBy),
+                              style: TextStyle(
+                                color: widget.isDarkMode ? Colors.grey[300] : LandingColors.black,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_drop_down,
+                              color: widget.isDarkMode ? Colors.grey[300] : LandingColors.black,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
-          // Sort options
-          _buildSortOptions(),
           // Products grid
           _buildProductsGrid(),
           // Loading indicator
           _buildLoadingIndicator(),
         ],
       ),
-    );
-  }
-
-  Widget _buildSortOptions() {
-    return Consumer<LandingProvider>(
-      builder: (context, provider, _) {
-        return SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Text(
-                  '${provider.totalProducts} products',
-                  style: TextStyle(
-                    color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
-                    fontSize: 13,
-                  ),
-                ),
-                const Spacer(),
-                PopupMenuButton<String>(
-                  initialValue: provider.sortBy,
-                  onSelected: (value) => provider.changeSortOrder(value),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'latest', child: Text('Latest')),
-                    const PopupMenuItem(value: 'popular', child: Text('Most Popular')),
-                    const PopupMenuItem(value: 'price_low', child: Text('Price: Low to High')),
-                    const PopupMenuItem(value: 'price_high', child: Text('Price: High to Low')),
-                    const PopupMenuItem(value: 'name', child: Text('Name')),
-                  ],
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _getSortLabel(provider.sortBy),
-                        style: TextStyle(
-                          color: widget.isDarkMode ? Colors.grey[300] : LandingColors.black,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_drop_down,
-                        color: widget.isDarkMode ? Colors.grey[300] : LandingColors.black,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 

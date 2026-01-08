@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
@@ -7,8 +8,9 @@ import '../../services/public_api_service.dart';
 /// Shopping cart screen (used as tab)
 class CartScreen extends StatefulWidget {
   final bool isDarkMode;
+  final VoidCallback? onNavigateToOrders;
 
-  const CartScreen({super.key, this.isDarkMode = false});
+  const CartScreen({super.key, this.isDarkMode = false, this.onNavigateToOrders});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -21,6 +23,12 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
+
+  // Keys for SharedPreferences
+  static const _keyCustomerName = 'customer_name';
+  static const _keyCustomerPhone = 'customer_phone';
+  static const _keyCustomerEmail = 'customer_email';
+  static const _keyCustomerAddress = 'customer_address';
 
   @override
   bool get wantKeepAlive => true;
@@ -38,6 +46,28 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
     _addressController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  /// Load saved customer details from SharedPreferences
+  Future<void> _loadSavedCustomerDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    _nameController.text = prefs.getString(_keyCustomerName) ?? '';
+    _phoneController.text = prefs.getString(_keyCustomerPhone) ?? '';
+    _emailController.text = prefs.getString(_keyCustomerEmail) ?? '';
+    _addressController.text = prefs.getString(_keyCustomerAddress) ?? '';
+  }
+
+  /// Save customer details to SharedPreferences
+  Future<void> _saveCustomerDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCustomerName, _nameController.text.trim());
+    await prefs.setString(_keyCustomerPhone, _phoneController.text.trim());
+    if (_emailController.text.trim().isNotEmpty) {
+      await prefs.setString(_keyCustomerEmail, _emailController.text.trim());
+    }
+    if (_addressController.text.trim().isNotEmpty) {
+      await prefs.setString(_keyCustomerAddress, _addressController.text.trim());
+    }
   }
 
   @override
@@ -373,7 +403,13 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
     );
   }
 
-  void _showCheckoutDialog(LandingProvider provider) {
+  Future<void> _showCheckoutDialog(LandingProvider provider) async {
+    // Load saved customer details when opening checkout
+    await _loadSavedCustomerDetails();
+    final hasRememberedDetails = _nameController.text.isNotEmpty && _phoneController.text.isNotEmpty;
+
+    if (!mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -416,10 +452,37 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Enter your details to place the order',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
+                if (hasRememberedDetails)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green[600], size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Welcome back! Your details are remembered.',
+                            style: TextStyle(
+                              color: Colors.green[700],
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Text(
+                    'Enter your details to place the order',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
                 const SizedBox(height: 24),
 
                 // Name field
@@ -596,8 +659,18 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
     );
 
     if (order != null && mounted) {
-      Navigator.pop(context); // Close checkout dialog
-      _showOrderSuccess(order);
+      // Save customer details for next time
+      await _saveCustomerDetails();
+
+      // Close checkout dialog first, then show success
+      Navigator.of(context).pop();
+
+      // Use a slight delay to ensure navigation completes before showing dialog
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _showOrderSuccess(order);
+        }
+      });
     } else if (provider.error != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -612,7 +685,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Row(
           children: [
             Icon(Icons.check_circle, color: Colors.green[600], size: 28),
@@ -637,10 +710,11 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to landing
+              Navigator.of(dialogContext).pop(); // Close dialog
+              // Navigate to Orders tab
+              widget.onNavigateToOrders?.call();
             },
-            child: const Text('Continue Shopping'),
+            child: const Text('View My Orders'),
           ),
         ],
       ),

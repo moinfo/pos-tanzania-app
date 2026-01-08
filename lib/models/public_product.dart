@@ -12,6 +12,7 @@ class PublicProduct {
   final bool isLiked;
   final List<ProductImage> images;
   final List<PortfolioImage> portfolio;
+  final DateTime? latestMediaAt;
 
   PublicProduct({
     required this.itemId,
@@ -26,9 +27,15 @@ class PublicProduct {
     required this.isLiked,
     this.images = const [],
     this.portfolio = const [],
+    this.latestMediaAt,
   });
 
   factory PublicProduct.fromJson(Map<String, dynamic> json) {
+    DateTime? latestMedia;
+    if (json['latest_media_at'] != null) {
+      latestMedia = DateTime.tryParse(json['latest_media_at']);
+    }
+
     return PublicProduct(
       itemId: json['item_id'] ?? 0,
       name: json['name'] ?? '',
@@ -46,6 +53,7 @@ class PublicProduct {
       portfolio: json['portfolio'] != null
           ? (json['portfolio'] as List).map((e) => PortfolioImage.fromJson(e)).toList()
           : [],
+      latestMediaAt: latestMedia,
     );
   }
 
@@ -54,6 +62,36 @@ class PublicProduct {
 
   /// Check if product has wholesale price
   bool get hasWholesalePrice => wholesalePrice > 0;
+
+  /// Get "time ago" string for latest media
+  String get timeAgo {
+    if (latestMediaAt == null) return '';
+
+    final now = DateTime.now();
+    final difference = now.difference(latestMediaAt!);
+
+    if (difference.inSeconds < 60) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      final mins = difference.inMinutes;
+      return '$mins ${mins == 1 ? 'minute' : 'minutes'} ago';
+    } else if (difference.inHours < 24) {
+      final hours = difference.inHours;
+      return '$hours ${hours == 1 ? 'hour' : 'hours'} ago';
+    } else if (difference.inDays < 7) {
+      final days = difference.inDays;
+      return '$days ${days == 1 ? 'day' : 'days'} ago';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return '$months ${months == 1 ? 'month' : 'months'} ago';
+    } else {
+      final years = (difference.inDays / 365).floor();
+      return '$years ${years == 1 ? 'year' : 'years'} ago';
+    }
+  }
 
   /// Copy with updated like status
   PublicProduct copyWith({
@@ -73,6 +111,7 @@ class PublicProduct {
       isLiked: isLiked ?? this.isLiked,
       images: images,
       portfolio: portfolio,
+      latestMediaAt: latestMediaAt,
     );
   }
 }
