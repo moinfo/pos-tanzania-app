@@ -416,7 +416,7 @@ class _ProductCardState extends State<ProductCard> {
 
   /// Open WhatsApp with pre-filled message about this product
   Future<void> _openWhatsApp() async {
-    const whatsappNumber = '255652894205'; // Tanzania format without leading 0
+    const whatsappNumber = '255762995775'; // Tanzania format without leading 0
     final product = widget.product;
     final price = _formatPrice(product.retailPrice);
 

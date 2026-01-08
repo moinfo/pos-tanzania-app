@@ -532,7 +532,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
                     ),
-                    hintText: '0652894205',
+                    hintText: '0762995775',
                     hintStyle: TextStyle(color: sheetSubtextColor),
                   ),
                   keyboardType: TextInputType.phone,
@@ -543,7 +543,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                     // Validate Tanzanian phone format
                     final phone = value.trim();
                     if (!RegExp(r'^0[67]\d{8}$').hasMatch(phone)) {
-                      return 'Enter valid phone (e.g., 0652894205)';
+                      return 'Enter valid phone (e.g., 0762995775)';
                     }
                     return null;
                   },

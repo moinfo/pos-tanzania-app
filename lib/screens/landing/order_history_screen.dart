@@ -148,7 +148,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                   controller: _phoneController,
                   style: TextStyle(color: _textColor),
                   decoration: InputDecoration(
-                    hintText: '0652894205',
+                    hintText: '0762995775',
                     hintStyle: TextStyle(color: _subtextColor),
                     prefixIcon: Icon(Icons.phone, color: _subtextColor),
                     border: OutlineInputBorder(
@@ -203,7 +203,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
           ),
           const SizedBox(height: 8),
           Text(
-            'e.g., 0652894205',
+            'e.g., 0762995775',
             style: TextStyle(
               color: Colors.grey[500],
             ),
