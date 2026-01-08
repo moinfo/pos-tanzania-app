@@ -13,6 +13,7 @@ import '../widgets/offline_indicator.dart';
 import '../config/clients_config.dart';
 import 'main_navigation.dart';
 import 'client_selector_screen.dart';
+import 'landing/landing_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -524,6 +525,41 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 const SizedBox(height: 16),
+
+                // Browse Shop Button (only for clients with landing page enabled)
+                if (ClientsConfig.getDefaultClient().features.hasLandingPage)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => const LandingScreen(),
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      Icons.storefront,
+                      color: isDark ? AppColors.darkText : Colors.white,
+                    ),
+                    label: Text(
+                      'Browse Shop',
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkText : Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: isDark ? AppColors.darkText : Colors.white,
+                        width: 2,
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 12),
 
                 // Change Client Button (only in debug mode)
                 if (ClientsConfig.isClientSwitchingEnabled)

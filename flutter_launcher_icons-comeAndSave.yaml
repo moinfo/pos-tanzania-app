@@ -1,0 +1,9 @@
+# Flutter Launcher Icons configuration for Come & Save flavor
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/come_and_save_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icons/come_and_save_icon.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21

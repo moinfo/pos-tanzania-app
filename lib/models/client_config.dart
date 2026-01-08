@@ -25,6 +25,9 @@ class ClientFeatures {
   // Offline mode configuration
   final bool hasOfflineMode; // Enable/disable offline functionality
 
+  // Landing page / Public shop
+  final bool hasLandingPage; // Enable public shop landing page (Come & Save only)
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -46,6 +49,7 @@ class ClientFeatures {
     this.hasReceivingCreditCardOnly = false, // Default: disabled (only Leruma uses this)
     this.hasNfcCard = false, // Default: disabled - enable per client
     this.hasOfflineMode = false, // Default: disabled - enable per client as needed
+    this.hasLandingPage = false, // Default: disabled - only Come & Save uses this
   });
 }
 

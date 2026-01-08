@@ -9,9 +9,11 @@ import 'providers/permission_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'providers/offline_provider.dart';
+import 'providers/landing_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/client_selector_screen.dart';
+import 'screens/landing/landing_screen.dart';
 import 'services/api_service.dart';
 import 'config/clients_config.dart';
 import 'utils/constants.dart';
@@ -58,6 +60,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SaleProvider()),
         ChangeNotifierProvider(create: (_) => ReceivingProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LandingProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) => MaterialApp(
@@ -202,6 +205,26 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkAuth();
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.storefront,
+              size: 80,
+              color: Theme.of(context).primaryColor,
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _checkAuth() async {
     // Wait for initialization
     await Future.delayed(const Duration(seconds: 1));
@@ -247,72 +270,64 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => isAuthenticated
-                ? const MainNavigation()
-                : const LoginScreen(),
-          ),
-        );
+        // Check if client has landing page feature enabled
+        if (client.features.hasLandingPage) {
+          // Show landing page first, users can access admin from there
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const LandingWrapper(),
+            ),
+          );
+        } else {
+          // No landing page - go directly to login or main navigation
+          if (isAuthenticated) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const MainNavigation()),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
+          }
+        }
       }
     }
   }
+}
+
+/// Wrapper that shows landing page with option to access admin login
+class LandingWrapper extends StatelessWidget {
+  const LandingWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 140,
-              height: 140,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Image.asset(
-                'logo.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              AppConstants.appName,
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Point of Sale System',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-                fontWeight: FontWeight.w300,
-              ),
-            ),
-            const SizedBox(height: 48),
-            const CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 3,
-            ),
-          ],
-        ),
+      body: const LandingScreen(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      floatingActionButton: FloatingActionButton.small(
+        heroTag: 'admin_login',
+        onPressed: () => _goToAdminLogin(context),
+        backgroundColor: Colors.grey[800],
+        child: const Icon(Icons.admin_panel_settings, size: 20),
       ),
     );
+  }
+
+  void _goToAdminLogin(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+
+    if (authProvider.isAuthenticated) {
+      // Already logged in, go to main navigation
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
+      );
+    } else {
+      // Show login screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
   }
 }

@@ -8,6 +8,27 @@ class ClientsConfig {
   //   flutter build apk --flavor sada --dart-define=FLAVOR=sada
   //   flutter build apk --flavor comeAndSave --dart-define=FLAVOR=comeAndSave
   //   flutter build apk --flavor leruma --dart-define=FLAVOR=leruma
+//    # SADA
+//     flutter build apk --flavor sada --dart-define=FLAVOR=sada --release --android-skip-build-dependency-validation
+//
+//     # Come & Save
+//     flutter build apk --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release --android-skip-build-dependency-validation
+//
+//     # Leruma
+//     flutter build apk --flavor leruma --dart-define=FLAVOR=leruma --release --android-skip-build-dependency-validation
+
+//  # Android APK
+//   flutter build apk --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
+//
+//   # Android App Bundle
+
+
+//   # Android App Bundle
+//   flutter build appbundle --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
+//
+//   # iOS
+//   flutter build ios --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
+
   static const String _buildFlavor = String.fromEnvironment('FLAVOR', defaultValue: '');
 
   // Map flavor names to client IDs
@@ -62,6 +83,7 @@ class ClientsConfig {
         hasContracts: false,
         hasNfcCard: true,
         hasOfflineMode: false,
+        hasLandingPage: true, // Public shop landing page enabled
       ),
     ),
     // Leruma
