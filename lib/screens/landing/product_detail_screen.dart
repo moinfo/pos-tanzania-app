@@ -120,17 +120,40 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildSliverAppBar() {
-    // Collect all images
-    final List<String?> allImages = [];
+    // Collect all images - same approach as ProductCard
+    final List<String> allImages = [];
+
+    // Sort portfolio by date (newest first) and add them first
+    final sortedPortfolio = List.of(_product.portfolio);
+    sortedPortfolio.sort((a, b) {
+      if (a.createdAt == null && b.createdAt == null) return 0;
+      if (a.createdAt == null) return 1;
+      if (b.createdAt == null) return -1;
+      return b.createdAt!.compareTo(a.createdAt!);
+    });
+
+    // Add portfolio images first (these are shown in "Our Work" section but also make good main images)
+    for (final portfolio in sortedPortfolio) {
+      final url = PublicApiService.getPortfolioImageUrl(portfolio.filename);
+      if (url.isNotEmpty && !allImages.contains(url)) {
+        allImages.add(url);
+      }
+    }
 
     // Add gallery images
     for (var img in _product.images) {
-      allImages.add(img.filename);
+      final url = PublicApiService.getProductImageUrl(img.filename);
+      if (url.isNotEmpty && !allImages.contains(url)) {
+        allImages.add(url);
+      }
     }
 
-    // If no gallery images, add default image
-    if (allImages.isEmpty) {
-      allImages.add(_product.defaultImage ?? _product.image);
+    // Add main display image as fallback
+    if (_product.displayImage != null) {
+      final mainUrl = PublicApiService.getProductImageUrl(_product.displayImage);
+      if (mainUrl.isNotEmpty && !allImages.contains(mainUrl)) {
+        allImages.add(mainUrl);
+      }
     }
 
     return SliverAppBar(
@@ -180,20 +203,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           fit: StackFit.expand,
           children: [
             // Image carousel
-            PageView.builder(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentImageIndex = index;
-                });
-              },
-              itemCount: allImages.length,
-              itemBuilder: (context, index) {
-                final imageUrl = allImages[index] != null
-                    ? PublicApiService.getProductImageUrl(allImages[index])
-                    : null;
+            if (allImages.isNotEmpty)
+              PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentImageIndex = index;
+                  });
+                },
+                itemCount: allImages.length,
+                itemBuilder: (context, index) {
+                  final imageUrl = allImages[index];
 
-                if (imageUrl != null && imageUrl.isNotEmpty) {
                   return GestureDetector(
                     onTap: () => _showFullScreenImage(imageUrl),
                     onLongPress: () => _showProtectionMessage(),
@@ -212,10 +233,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ],
                     ),
                   );
-                }
-                return _buildImagePlaceholder();
-              },
-            ),
+                },
+              )
+            else
+              _buildImagePlaceholder(),
 
             // Gradient overlay at bottom
             Positioned(
