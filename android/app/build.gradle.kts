@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "co.tz.moinfotech.pos"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // Required by plugins
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -22,8 +22,8 @@ android {
     defaultConfig {
         // Base Application ID - will be overridden by flavors
         applicationId = "co.tz.moinfotech.pos"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = flutter.minSdkVersion  // Android 5.0 - supports 99%+ of devices
+        targetSdk = 35  // Android 15
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

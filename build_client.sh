@@ -73,10 +73,11 @@ build_flavor() {
     echo ""
 
     # Build APK
-    flutter build apk --flavor "$flavor" --dart-define=FLAVOR="$flavor" --release
+    flutter build apk --flavor "$flavor" --dart-define=FLAVOR="$flavor" --release --android-skip-build-dependency-validation
 
-    # Get output path
-    local output_path="build/app/outputs/flutter-apk/app-${flavor}-release.apk"
+    # Get output path (flavor name is lowercase in file path)
+    local flavor_lower=$(echo "$flavor" | tr '[:upper:]' '[:lower:]')
+    local output_path="build/app/outputs/flutter-apk/app-${flavor_lower}-release.apk"
 
     if [ -f "$output_path" ]; then
         # Create output directory if not exists

@@ -133,7 +133,7 @@ SPEC CHECKSUMS:
   flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
   image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
-  nfc_manager: 9c40fe22528ab871ca11e52ea8b95790e9d92ca2
+  nfc_manager: f6d5609c09b4640b914a3dc67479a2e392965fd0
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   printing: 54ff03f28fe9ba3aa93358afb80a8595a071dd07
   ReachabilitySwift: 32793e867593cfc1177f5d16491e3a197d2fccda

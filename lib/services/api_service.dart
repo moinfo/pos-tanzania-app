@@ -52,11 +52,11 @@ class ApiService {
 
   // Get current client configuration
   static Future<ClientConfig> getCurrentClient() async {
-    // In RELEASE mode: Always use PRODUCTION_CLIENT_ID (ignore SharedPreferences)
+    // In RELEASE mode: Use getDefaultClient() which checks FLAVOR first, then falls back to PRODUCTION_CLIENT_ID
     if (kReleaseMode) {
-      currentClient = ClientsConfig.getClientById(ClientsConfig.PRODUCTION_CLIENT_ID);
-      currentClient ??= ClientsConfig.getDefaultClient();
-      print('🏭 RELEASE MODE: Using production client: ${currentClient?.displayName} (${currentClient?.id})');
+      currentClient = ClientsConfig.getDefaultClient();
+      print('🏭 RELEASE MODE: Using client: ${currentClient?.displayName} (${currentClient?.id})');
+      print('🏭 Build flavor: "${ClientsConfig.buildFlavor}" | Is flavored: ${ClientsConfig.isFlavoredBuild}');
       return currentClient!;
     }
 

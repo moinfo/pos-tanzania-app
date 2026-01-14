@@ -1,13 +1,15 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+import 'package:flutter/services.dart';
 
 /// Service to protect screen content from screenshots and screen recording
 class ScreenProtectionService {
   static final ScreenProtectionService _instance = ScreenProtectionService._internal();
   factory ScreenProtectionService() => _instance;
   ScreenProtectionService._internal();
+
+  static const MethodChannel _channel = MethodChannel('com.comeandsave/screen_protection');
 
   bool _isProtectionEnabled = false;
 
@@ -21,12 +23,11 @@ class ScreenProtectionService {
 
     try {
       if (Platform.isAndroid) {
-        await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+        await _channel.invokeMethod('enableSecureMode');
         _isProtectionEnabled = true;
         debugPrint('Screen protection enabled (Android FLAG_SECURE)');
       } else if (Platform.isIOS) {
         // iOS doesn't have a direct equivalent to FLAG_SECURE
-        // We can use a workaround with screen recording detection
         _isProtectionEnabled = true;
         debugPrint('Screen protection enabled (iOS - limited)');
       }
@@ -41,7 +42,7 @@ class ScreenProtectionService {
 
     try {
       if (Platform.isAndroid) {
-        await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+        await _channel.invokeMethod('disableSecureMode');
         _isProtectionEnabled = false;
         debugPrint('Screen protection disabled');
       } else if (Platform.isIOS) {
