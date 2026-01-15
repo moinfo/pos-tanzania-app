@@ -250,7 +250,21 @@ class SaleProvider with ChangeNotifier {
         removeItem(index);
       } else {
         final itemId = _cartItems[index].itemId;
-        _cartItems[index] = _cartItems[index].copyWith(quantity: quantity);
+        final oldItem = _cartItems[index];
+
+        // Preserve discount: recalculate total discount based on new quantity
+        // Discount is stored as total (discount per item × quantity)
+        double newDiscount = oldItem.discount;
+        if (oldItem.discount > 0 && oldItem.quantity > 0 && oldItem.discountType == 1) {
+          // Fixed discount per item - recalculate for new quantity
+          final discountPerItem = oldItem.discount / oldItem.quantity;
+          newDiscount = discountPerItem * quantity;
+        }
+
+        _cartItems[index] = oldItem.copyWith(
+          quantity: quantity,
+          discount: newDiscount,
+        );
         notifyListeners();
 
         // Check for quantity offers after updating quantity

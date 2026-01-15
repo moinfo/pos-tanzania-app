@@ -52,15 +52,22 @@ class ApiService {
 
   // Get current client configuration
   static Future<ClientConfig> getCurrentClient() async {
-    // In RELEASE mode: Use getDefaultClient() which checks FLAVOR first, then falls back to PRODUCTION_CLIENT_ID
-    if (kReleaseMode) {
+    // If FLAVOR is explicitly set (via --dart-define=FLAVOR=xxx), use it in both modes
+    if (ClientsConfig.isFlavoredBuild) {
       currentClient = ClientsConfig.getDefaultClient();
-      print('🏭 RELEASE MODE: Using client: ${currentClient?.displayName} (${currentClient?.id})');
-      print('🏭 Build flavor: "${ClientsConfig.buildFlavor}" | Is flavored: ${ClientsConfig.isFlavoredBuild}');
+      print('🎯 FLAVOR BUILD: Using client: ${currentClient?.displayName} (${currentClient?.id})');
+      print('🎯 Build flavor: "${ClientsConfig.buildFlavor}"');
       return currentClient!;
     }
 
-    // In DEBUG mode: Use SharedPreferences if available
+    // In RELEASE mode without explicit flavor: Use PRODUCTION_CLIENT_ID
+    if (kReleaseMode) {
+      currentClient = ClientsConfig.getDefaultClient();
+      print('🏭 RELEASE MODE: Using client: ${currentClient?.displayName} (${currentClient?.id})');
+      return currentClient!;
+    }
+
+    // In DEBUG mode without flavor: Use SharedPreferences if available
     final prefs = await SharedPreferences.getInstance();
     final clientId = prefs.getString('selected_client_id');
 

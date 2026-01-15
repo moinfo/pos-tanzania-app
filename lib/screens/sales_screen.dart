@@ -1128,128 +1128,377 @@ class _SalesScreenState extends State<SalesScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
-      appBar: AppBar(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Sales', style: TextStyle(fontSize: 18)),
-            if (saleProvider.selectedCustomer != null)
-              Text(
-                '${saleProvider.selectedCustomer!.firstName} ${saleProvider.selectedCustomer!.lastName}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-              )
-            else
-              const Text(
-                'No Customer Selected',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: AppColors.warning),
-              ),
-          ],
-        ),
-        actions: [
-          // Offline indicator
-          const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: OfflineIndicator(compact: true),
-          ),
-          // Location selector
-          if (locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: PopupMenuButton<StockLocation>(
-                  offset: const Offset(0, 40),
-                  color: isDark ? AppColors.darkCard : Colors.white,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.location_on, size: 18, color: Colors.white),
-                      const SizedBox(width: 6),
-                      Text(
-                        locationProvider.selectedLocation!.locationName,
-                        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
-                    ],
-                  ),
-                  onSelected: (location) async {
-                    await locationProvider.selectLocation(location);
-                    _loadItems(); // Reload items for new location
-                  },
-                  itemBuilder: (context) => locationProvider.allowedLocations
-                      .map((location) => PopupMenuItem<StockLocation>(
-                            value: location,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? Icons.check_circle
-                                      : Icons.radio_button_unchecked,
-                                  size: 20,
-                                  color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
-                                      : Colors.grey,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  location.locationName,
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ))
-                      .toList(),
-                ),
-              ),
-            ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: _selectCustomer,
-            tooltip: 'Select Customer',
-          ),
-        ],
-        // Quick action buttons - Leruma only
-        bottom: ApiService.currentClient?.id == 'leruma'
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(32),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(left: 8, right: 8, bottom: 6),
-                  child: Row(
-                    children: [
-                      Expanded(child: _buildAppBarButton('Sh1', Icons.description, Colors.white, () => _navigateToSheet(1))),
-                      const SizedBox(width: 4),
-                      Expanded(child: _buildAppBarButton('Sh2', Icons.description_outlined, Colors.blue.shade200, () => _navigateToSheet(2))),
-                      const SizedBox(width: 4),
-                      Expanded(child: _buildAppBarButton('Sh3', Icons.article, Colors.purple.shade200, () => _navigateToSheet(3))),
-                      const SizedBox(width: 4),
-                      Expanded(child: _buildAppBarButton('Care', Icons.support_agent, Colors.teal.shade200, _navigateToCustomerCare)),
-                      const SizedBox(width: 4),
-                      Expanded(child: _buildAppBarButton('Route', Icons.map, Colors.orange.shade200, _navigateToMapRoute)),
-                      const SizedBox(width: 4),
-                      Expanded(child: _buildAppBarButton('Sum', Icons.summarize, Colors.green.shade200, _navigateToSummary)),
-                    ],
-                  ),
-                ),
-              )
-            : null,
-      ),
+      appBar: null,
       body: _isLoading
           ? _buildSkeletonGrid(isDark)
           : Column(
               children: [
+                // Toolbar row - Location and Sheet only
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface : Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Location dropdown
+                      if (locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
+                        Expanded(
+                          child: PopupMenuButton<StockLocation>(
+                            offset: const Offset(0, 40),
+                            color: isDark ? AppColors.darkCard : Colors.white,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkCard : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.store, size: 18, color: isDark ? Colors.white70 : Colors.grey.shade600),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      locationProvider.selectedLocation!.locationName,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Icon(Icons.keyboard_arrow_down, size: 20, color: isDark ? Colors.white70 : Colors.grey.shade600),
+                                ],
+                              ),
+                            ),
+                            onSelected: (location) async {
+                              await locationProvider.selectLocation(location);
+                              _loadItems();
+                            },
+                            itemBuilder: (context) => locationProvider.allowedLocations
+                                .map((location) => PopupMenuItem<StockLocation>(
+                                      value: location,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            location.locationId == locationProvider.selectedLocation?.locationId
+                                                ? Icons.check_circle
+                                                : Icons.radio_button_unchecked,
+                                            size: 18,
+                                            color: location.locationId == locationProvider.selectedLocation?.locationId
+                                                ? AppColors.primary
+                                                : Colors.grey,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            location.locationName,
+                                            style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
+                                          ),
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                      // Sheet button - Leruma only
+                      if (ApiService.currentClient?.id == 'leruma') ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _navigateToSheet(1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.description, size: 18, color: Colors.white),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Sheet',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Customer selector - full width above search
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: GestureDetector(
+                    onTap: _selectCustomer,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: saleProvider.selectedCustomer != null
+                            ? (isDark ? AppColors.darkCard : Colors.white)
+                            : AppColors.warning.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: saleProvider.selectedCustomer != null
+                              ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
+                              : AppColors.warning,
+                          width: saleProvider.selectedCustomer != null ? 1 : 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: saleProvider.selectedCustomer != null
+                                  ? AppColors.primary.withValues(alpha: 0.1)
+                                  : AppColors.warning.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              saleProvider.selectedCustomer != null ? Icons.person : Icons.person_add,
+                              size: 20,
+                              color: saleProvider.selectedCustomer != null ? AppColors.primary : AppColors.warning,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  saleProvider.selectedCustomer != null ? 'Customer' : 'No Customer Selected',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  saleProvider.selectedCustomer != null
+                                      ? '${saleProvider.selectedCustomer!.firstName} ${saleProvider.selectedCustomer!.lastName}'
+                                      : 'Tap to select customer',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: saleProvider.selectedCustomer != null
+                                        ? (isDark ? Colors.white : Colors.black87)
+                                        : AppColors.warning,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Inline Cart Section - Leruma only (above search)
+                if (ApiService.currentClient?.id == 'leruma')
+                  Consumer<SaleProvider>(
+                    builder: (context, saleProvider, child) {
+                      if (!saleProvider.hasItems) {
+                        return const SizedBox.shrink();
+                      }
+                      return Container(
+                        margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                        constraints: const BoxConstraints(maxHeight: 180),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Cart header
+                            Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.shopping_cart, size: 18, color: AppColors.primary),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Cart (${saleProvider.itemCount})',
+                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87),
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '${_currencyFormat.format(saleProvider.total)} TSh',
+                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      InkWell(
+                                        onTap: () => saleProvider.clearCart(),
+                                        child: Icon(Icons.delete_outline, size: 20, color: AppColors.error),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Cart items (scrollable list)
+                            Flexible(
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                                itemCount: saleProvider.cartItems.length,
+                                itemBuilder: (context, idx) {
+                                  final item = saleProvider.cartItems[idx];
+                                  final discountLimit = item.discountLimit ?? 0;
+                                  final hasOffer = saleProvider.hasQuantityOffer(item.itemId);
+                                  final hasOneTimeDiscount = saleProvider.hasOneTimeDiscount(item.itemId);
+                                  final hasPendingOTC = saleProvider.hasPendingOneTimeDiscount(item.itemId);
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 6),
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? AppColors.darkCard : Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: hasOneTimeDiscount || (hasOffer && saleProvider.getQuantityOffer(item.itemId)!.calculateReward(item.quantity) > 0)
+                                            ? AppColors.success.withValues(alpha: 0.5)
+                                            : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // Row 1: Name, qty controls, total, delete
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(item.itemName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                  Text('@ ${_currencyFormat.format(item.unitPrice)} TSh', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
+                                                ],
+                                              ),
+                                            ),
+                                            InkWell(
+                                              onTap: () => saleProvider.decrementQuantity(idx),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                                                child: Icon(Icons.remove, size: 16, color: AppColors.error),
+                                              ),
+                                            ),
+                                            InkWell(
+                                              onTap: () {
+                                                final controller = TextEditingController(text: item.quantity.toStringAsFixed(0));
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (ctx) => AlertDialog(
+                                                    backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+                                                    title: Text('Quantity', style: TextStyle(fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
+                                                    content: TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
+                                                    actions: [
+                                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                                      ElevatedButton(onPressed: () { final qty = double.tryParse(controller.text) ?? item.quantity; if (qty > 0) saleProvider.updateQuantity(idx, qty); Navigator.pop(ctx); }, child: const Text('OK')),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                constraints: const BoxConstraints(minWidth: 40),
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                                decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, borderRadius: BorderRadius.circular(4), border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300)),
+                                                child: Text(item.quantity.toStringAsFixed(0), textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                                              ),
+                                            ),
+                                            InkWell(
+                                              onTap: () => saleProvider.incrementQuantity(idx),
+                                              child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Icon(Icons.add, size: 16, color: AppColors.success)),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            SizedBox(width: 60, child: Text('${_currencyFormat.format(item.calculateTotal())}', textAlign: TextAlign.right, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87))),
+                                            InkWell(onTap: () => saleProvider.removeItem(idx), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.close, size: 16, color: AppColors.error))),
+                                          ],
+                                        ),
+                                        // Row 2: Discount + Offer badges
+                                        if (discountLimit > 0 || hasOffer || hasOneTimeDiscount || hasPendingOTC)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 6),
+                                            child: Wrap(
+                                              spacing: 6,
+                                              runSpacing: 4,
+                                              children: [
+                                                if (discountLimit > 0)
+                                                  InkWell(
+                                                    onTap: () {
+                                                      final discPerItem = item.discount > 0 ? (item.discount / item.quantity) : 0;
+                                                      final controller = TextEditingController(text: discPerItem > 0 ? discPerItem.toStringAsFixed(0) : '');
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (ctx) => AlertDialog(
+                                                          backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+                                                          title: Text('Discount per item', style: TextStyle(fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
+                                                          content: Column(mainAxisSize: MainAxisSize.min, children: [Text('Max: ${_currencyFormat.format(discountLimit)} TSh', style: TextStyle(fontSize: 12, color: AppColors.warning)), const SizedBox(height: 8), TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: InputDecoration(labelText: 'Discount (TSh)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))))]),
+                                                          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), ElevatedButton(onPressed: () { var disc = double.tryParse(controller.text) ?? 0; if (disc > discountLimit) disc = discountLimit.toDouble(); saleProvider.updateDiscount(idx, disc * item.quantity, discountType: 1); Navigator.pop(ctx); }, child: const Text('Apply'))],
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(color: item.discount > 0 ? AppColors.warning.withValues(alpha: 0.15) : (isDark ? Colors.grey.shade800 : Colors.grey.shade200), borderRadius: BorderRadius.circular(4), border: Border.all(color: item.discount > 0 ? AppColors.warning : Colors.transparent)),
+                                                      child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.discount, size: 12, color: item.discount > 0 ? AppColors.warning : Colors.grey), const SizedBox(width: 4), Text(item.discount > 0 ? '-${_currencyFormat.format(item.discount)}' : 'Disc', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: item.discount > 0 ? AppColors.warning : Colors.grey))]),
+                                                    ),
+                                                  ),
+                                                if (hasOneTimeDiscount)
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer, size: 12, color: AppColors.success), const SizedBox(width: 4), Text('OTC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success))])),
+                                                if (hasPendingOTC && !hasOneTimeDiscount)
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer_outlined, size: 12, color: AppColors.warning), const SizedBox(width: 4), Text('OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning))])),
+                                                if (hasOffer)
+                                                  Builder(builder: (context) {
+                                                    final offer = saleProvider.getQuantityOffer(item.itemId)!;
+                                                    final freeQty = offer.calculateReward(item.quantity);
+                                                    final isEligible = freeQty > 0;
+                                                    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isEligible ? AppColors.success.withValues(alpha: 0.15) : AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(isEligible ? Icons.card_giftcard : Icons.card_giftcard_outlined, size: 12, color: isEligible ? AppColors.success : AppColors.primary), const SizedBox(width: 4), Text(isEligible ? '+${freeQty.toStringAsFixed(0)} FREE' : 'Buy ${offer.purchaseQuantity.toStringAsFixed(0)}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isEligible ? AppColors.success : AppColors.primary))]));
+                                                  }),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
                 // Search bar - disabled if no customer selected
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                   child: Consumer<SaleProvider>(
                     builder: (context, saleProvider, child) {
                       final hasCustomer = saleProvider.selectedCustomer != null;
@@ -1269,57 +1518,84 @@ class _SalesScreenState extends State<SalesScreen> {
                             ),
                           );
                         } : null,
-                        child: TextField(
-                          controller: _searchController,
-                          enabled: hasCustomer,
-                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                          decoration: InputDecoration(
-                            hintText: hasCustomer ? 'Search items...' : 'Select customer first to search items',
-                            hintStyle: TextStyle(
-                              color: hasCustomer
-                                  ? (isDark ? Colors.grey.shade400 : Colors.grey.shade600)
-                                  : AppColors.warning,
-                            ),
-                            prefixIcon: Icon(
-                              hasCustomer ? Icons.search : Icons.person_add_outlined,
-                              color: hasCustomer
-                                  ? (isDark ? Colors.grey.shade300 : Colors.grey.shade700)
-                                  : AppColors.warning,
-                            ),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: Icon(Icons.clear, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      _filterItems('');
-                                    },
-                                  )
-                                : null,
-                            filled: true,
-                            fillColor: hasCustomer
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: hasCustomer
                                 ? (isDark ? AppColors.darkCard : Colors.white)
-                                : (isDark ? AppColors.darkCard.withOpacity(0.5) : Colors.grey.shade200),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: hasCustomer ? BorderSide.none : BorderSide(color: AppColors.warning, width: 1),
+                                : (isDark ? AppColors.darkCard.withValues(alpha: 0.5) : Colors.grey.shade100),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: hasCustomer
+                                  ? AppColors.primary
+                                  : AppColors.warning,
+                              width: 1.5,
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            disabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.warning.withOpacity(0.5), width: 1),
-                            ),
+                            boxShadow: hasCustomer ? [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ] : null,
                           ),
-                          onChanged: _filterItems,
+                          child: TextField(
+                            controller: _searchController,
+                            enabled: hasCustomer,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: hasCustomer ? 'Search items by name or barcode...' : 'Select customer first',
+                              hintStyle: TextStyle(
+                                fontSize: 15,
+                                color: hasCustomer
+                                    ? (isDark ? Colors.grey.shade400 : Colors.grey.shade500)
+                                    : AppColors.warning,
+                              ),
+                              prefixIcon: Container(
+                                padding: const EdgeInsets.all(12),
+                                child: Icon(
+                                  hasCustomer ? Icons.search_rounded : Icons.person_add_outlined,
+                                  size: 24,
+                                  color: hasCustomer ? AppColors.primary : AppColors.warning,
+                                ),
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(Icons.clear_rounded, color: isDark ? Colors.grey.shade300 : Colors.grey.shade600),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _filterItems('');
+                                      },
+                                    )
+                                  : hasCustomer
+                                      ? Container(
+                                          padding: const EdgeInsets.only(right: 8),
+                                          child: Icon(
+                                            Icons.qr_code_scanner_rounded,
+                                            size: 22,
+                                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                                          ),
+                                        )
+                                      : null,
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                            ),
+                            onChanged: _filterItems,
+                          ),
                         ),
                       );
                     },
                   ),
                 ),
 
-                // Items list
+                // Search Results only
                 Expanded(
                   child: Consumer<LocationProvider>(
                     builder: (context, locationProvider, child) {
@@ -1342,10 +1618,7 @@ class _SalesScreenState extends State<SalesScreen> {
                           }
 
                           return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
-                            ),
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             color: isDark ? AppColors.darkCard : Colors.white,
                             elevation: isDark ? 2 : 1,
                             child: ListTile(
@@ -1357,8 +1630,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                 ),
                               ),
                               subtitle: Text(
-                                'Stock: ${stockQty.toStringAsFixed(0)} ($locationName) | '
-                                'Price: ${_currencyFormat.format(item.unitPrice)} TSh',
+                                'Stock: ${stockQty.toStringAsFixed(0)} ($locationName) | Price: ${_currencyFormat.format(item.unitPrice)} TSh',
                                 style: TextStyle(
                                   color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                   fontSize: 13,
@@ -1367,7 +1639,7 @@ class _SalesScreenState extends State<SalesScreen> {
                               trailing: IconButton(
                                 icon: Icon(
                                   Icons.add_shopping_cart,
-                                  color: isDark ? AppColors.primary.withOpacity(0.8) : AppColors.primary,
+                                  color: isDark ? AppColors.primary.withValues(alpha: 0.8) : AppColors.primary,
                                 ),
                                 onPressed: () => _addItemToCart(item),
                               ),
@@ -1387,50 +1659,51 @@ class _SalesScreenState extends State<SalesScreen> {
                       return const SizedBox.shrink();
                     }
 
-                    return Flexible(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkCard : Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, -2),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(14),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                          // Total and items count
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${saleProvider.itemCount} items',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                              ),
-                              Text(
-                                '${_currencyFormat.format(saleProvider.total)} TSh',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? AppColors.primary.withOpacity(0.9) : AppColors.primary,
-                                ),
-                              ),
-                            ],
+                    final isLeruma = ApiService.currentClient?.id == 'leruma';
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkCard : Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, -2),
                           ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Total and items count - hide for Leruma (shown in cart above)
+                          if (!isLeruma)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${saleProvider.itemCount} items',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                Text(
+                                  '${_currencyFormat.format(saleProvider.total)} TSh',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? AppColors.primary.withValues(alpha: 0.9) : AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
 
                           // Payment list (if any)
                           if (saleProvider.hasPayments) ...[
-                            const SizedBox(height: 12),
-                            Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                            if (!isLeruma) const SizedBox(height: 12),
+                            if (!isLeruma) Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                             const SizedBox(height: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1524,42 +1797,44 @@ class _SalesScreenState extends State<SalesScreen> {
                             ),
                           ],
 
-                          const SizedBox(height: 12),
+                          if (!isLeruma) const SizedBox(height: 12),
                           // Action buttons - Compact layout
                           Column(
                             children: [
-                              // Row 1: View Cart and Suspend
+                              // Row 1: View Cart and Suspend - hide View Cart for Leruma
                               Row(
                                 children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: SizedBox(
-                                      height: 44,
-                                      child: OutlinedButton.icon(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => const CartScreen(),
-                                            ),
-                                          );
-                                        },
-                                        icon: const Icon(Icons.shopping_cart, size: 18),
-                                        label: const Text(
-                                          'View Cart',
-                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                                        ),
-                                        style: OutlinedButton.styleFrom(
-                                          side: BorderSide(color: AppColors.primary, width: 1.5),
-                                          foregroundColor: AppColors.primary,
+                                  if (!isLeruma) ...[
+                                    Expanded(
+                                      flex: 3,
+                                      child: SizedBox(
+                                        height: 44,
+                                        child: OutlinedButton.icon(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => const CartScreen(),
+                                              ),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.shopping_cart, size: 18),
+                                          label: const Text(
+                                            'View Cart',
+                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            side: BorderSide(color: AppColors.primary, width: 1.5),
+                                            foregroundColor: AppColors.primary,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
+                                    const SizedBox(width: 8),
+                                  ],
                                   // Suspend button - requires permission
                                   Expanded(
-                                    flex: 2,
+                                    flex: isLeruma ? 1 : 2,
                                     child: PermissionWrapper(
                                       permissionId: PermissionIds.salesSuspended,
                                       child: SizedBox(
@@ -1585,71 +1860,65 @@ class _SalesScreenState extends State<SalesScreen> {
                               // Row 2: Add Payment and Complete Sale
                               Row(
                                 children: [
-                                  // Add Payment button - requires permission, disabled when fully paid
+                                  // Add Payment button - disabled when fully paid
                                   Expanded(
-                                    child: PermissionWrapper(
-                                      permissionId: PermissionIds.salesAddPayment,
-                                      child: SizedBox(
-                                        height: 48,
-                                        child: ElevatedButton.icon(
-                                          onPressed: (_isProcessing || saleProvider.isFullyPaid)
-                                              ? null
-                                              : _addPayment,
-                                          icon: const Icon(Icons.add_card, size: 20),
-                                          label: const Text(
-                                            'Add Payment',
-                                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: saleProvider.isFullyPaid
-                                                ? Colors.grey
-                                                : AppColors.primary,
-                                            foregroundColor: Colors.white,
-                                            elevation: saleProvider.isFullyPaid ? 0 : 2,
-                                          ),
+                                    child: SizedBox(
+                                      height: 48,
+                                      child: ElevatedButton.icon(
+                                        onPressed: (_isProcessing || saleProvider.isFullyPaid)
+                                            ? null
+                                            : _addPayment,
+                                        icon: const Icon(Icons.add_card, size: 20),
+                                        label: const Text(
+                                          'Add Payment',
+                                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: saleProvider.isFullyPaid
+                                              ? Colors.grey
+                                              : AppColors.primary,
+                                          foregroundColor: Colors.white,
+                                          elevation: saleProvider.isFullyPaid ? 0 : 2,
                                         ),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  // Complete Sale button - requires permission
+                                  // Complete Sale button
                                   Expanded(
-                                    child: PermissionWrapper(
-                                      permissionId: PermissionIds.salesAdd,
-                                      child: SizedBox(
-                                        height: 48,
-                                        child: ElevatedButton.icon(
-                                          onPressed: (_isProcessing || !saleProvider.isFullyPaid)
-                                              ? null
-                                              : _completeSale,
-                                          icon: _isProcessing
-                                              ? const SizedBox(
-                                                  width: 18,
-                                                  height: 18,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Colors.white,
-                                                  ),
-                                                )
-                                              : Icon(
-                                                  saleProvider.isFullyPaid
-                                                      ? Icons.check_circle
-                                                      : Icons.lock,
-                                                  size: 20,
+                                    child: SizedBox(
+                                      height: 48,
+                                      child: ElevatedButton.icon(
+                                        onPressed: (_isProcessing || !saleProvider.isFullyPaid)
+                                            ? null
+                                            : _completeSale,
+                                        icon: _isProcessing
+                                            ? const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white,
                                                 ),
-                                          label: Text(
-                                            saleProvider.isFullyPaid ? 'Complete' : 'Complete',
-                                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: saleProvider.isFullyPaid
-                                                ? AppColors.success
-                                                : Colors.grey.shade400,
-                                            foregroundColor: Colors.white,
-                                            elevation: saleProvider.isFullyPaid ? 2 : 0,
-                                            disabledBackgroundColor: Colors.grey.shade300,
-                                            disabledForegroundColor: Colors.grey.shade600,
-                                          ),
+                                              )
+                                            : Icon(
+                                                saleProvider.isFullyPaid
+                                                    ? Icons.check_circle
+                                                    : Icons.shopping_cart_checkout,
+                                                size: 20,
+                                              ),
+                                        label: const Text(
+                                          'Complete',
+                                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: saleProvider.isFullyPaid
+                                              ? AppColors.success
+                                              : Colors.grey.shade400,
+                                          foregroundColor: Colors.white,
+                                          elevation: saleProvider.isFullyPaid ? 2 : 0,
+                                          disabledBackgroundColor: Colors.grey.shade300,
+                                          disabledForegroundColor: Colors.grey.shade600,
                                         ),
                                       ),
                                     ),
@@ -1658,9 +1927,7 @@ class _SalesScreenState extends State<SalesScreen> {
                               ),
                             ],
                           ),
-                                ],
-                          ),
-                        ),
+                        ],
                       ),
                     );
                   },

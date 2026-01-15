@@ -90,11 +90,20 @@ class Item {
       // If it's a List (empty array from PHP), just leave quantityByLocation as null
     }
 
+    // Helper to parse int from String or int (SQLite stores as String)
+    int? parseIntOrNull(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      return null;
+    }
+    int parseIntOrZero(dynamic value) => parseIntOrNull(value) ?? 0;
+
     return Item(
-      itemId: json['item_id'],
+      itemId: parseIntOrZero(json['item_id']),
       name: json['name'] ?? '',
       category: json['category'] ?? '',
-      supplierId: json['supplier_id'],
+      supplierId: parseIntOrNull(json['supplier_id']),
       supplierName: json['supplier_name'],
       itemNumber: json['item_number'],
       description: json['description'] ?? '',
@@ -103,28 +112,28 @@ class Item {
       reorderLevel: (json['reorder_level'] ?? 0).toDouble(),
       receivingQuantity: (json['receiving_quantity'] ?? 1).toDouble(),
       picFilename: json['pic_filename'],
-      allowAltDescription: json['allow_alt_description'] == 1 || json['allow_alt_description'] == true,
-      isSerialized: json['is_serialized'] == 1 || json['is_serialized'] == true,
-      stockType: json['stock_type'] ?? 0,
-      itemType: json['item_type'] ?? 0,
-      taxCategoryId: json['tax_category_id'],
+      allowAltDescription: json['allow_alt_description'] == 1 || json['allow_alt_description'] == true || json['allow_alt_description'] == '1',
+      isSerialized: json['is_serialized'] == 1 || json['is_serialized'] == true || json['is_serialized'] == '1',
+      stockType: parseIntOrZero(json['stock_type']),
+      itemType: parseIntOrZero(json['item_type']),
+      taxCategoryId: parseIntOrNull(json['tax_category_id']),
       qtyPerPack: (json['qty_per_pack'] ?? 1).toDouble(),
       packName: json['pack_name'] ?? 'Each',
       hsnCode: json['hsn_code'] ?? '',
-      arrange: json['arrange'] ?? 0,
-      discountLimit: json['discount_limit'] ?? 0,
+      arrange: parseIntOrZero(json['arrange']),
+      discountLimit: parseIntOrZero(json['discount_limit']),
       dormant: json['dormant'] ?? 'ACTIVE',
-      child: json['child'],
+      child: json['child']?.toString(),
       variation: json['variation'] ?? 'CTN',
-      days: json['days'],
-      mainstore: json['mainstore'] != null ? (json['mainstore']).toDouble() : null,
-      quantity: (json['quantity'] ?? 0).toDouble(),
+      days: parseIntOrNull(json['days']),
+      mainstore: json['mainstore'] != null ? double.tryParse(json['mainstore'].toString()) : null,
+      quantity: double.tryParse((json['quantity'] ?? 0).toString()) ?? 0,
       quantityByLocation: quantityByLocation,
-      deleted: json['deleted'] ?? 0,
+      deleted: parseIntOrZero(json['deleted']),
       tax1Name: json['tax_1_name'],
-      tax1Percent: json['tax_1_percent'] != null ? (json['tax_1_percent']).toDouble() : null,
+      tax1Percent: json['tax_1_percent'] != null ? double.tryParse(json['tax_1_percent'].toString()) : null,
       tax2Name: json['tax_2_name'],
-      tax2Percent: json['tax_2_percent'] != null ? (json['tax_2_percent']).toDouble() : null,
+      tax2Percent: json['tax_2_percent'] != null ? double.tryParse(json['tax_2_percent'].toString()) : null,
     );
   }
 
