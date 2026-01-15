@@ -5,8 +5,11 @@ import '../services/api_service.dart';
 import '../services/pdf_service.dart';
 import '../models/suspended_sheet.dart';
 import '../models/stock_location.dart';
+import '../models/sale.dart';
+import '../models/customer.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/sale_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
 
@@ -641,7 +644,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
             ),
           ),
 
-          // Footer with Print, PDF, and Download buttons
+          // Footer with Unsuspend, Print, PDF, and Download buttons
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -651,40 +654,61 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                 bottomRight: Radius.circular(12),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                Text(
-                  '${sale.items.length} items',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                // Unsuspend button - full width
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _unsuspendSale(sale),
+                    icon: const Icon(Icons.restore, size: 18),
+                    label: const Text('Unsuspend', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                // Other action buttons
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildActionButton(
-                      icon: Icons.print,
-                      label: 'Print',
-                      color: AppColors.primary,
-                      onTap: () => _printCard(sale),
-                      isDark: isDark,
+                    Text(
+                      '${sale.items.length} items',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    _buildActionButton(
-                      icon: Icons.picture_as_pdf,
-                      label: 'PDF',
-                      color: Colors.red.shade600,
-                      onTap: () => _exportPdf(sale),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildActionButton(
-                      icon: Icons.download,
-                      label: 'Download',
-                      color: Colors.green.shade600,
-                      onTap: () => _downloadPdf(sale),
-                      isDark: isDark,
+                    Row(
+                      children: [
+                        _buildActionButton(
+                          icon: Icons.print,
+                          label: 'Print',
+                          color: AppColors.primary,
+                          onTap: () => _printCard(sale),
+                          isDark: isDark,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildActionButton(
+                          icon: Icons.picture_as_pdf,
+                          label: 'PDF',
+                          color: Colors.red.shade600,
+                          onTap: () => _exportPdf(sale),
+                          isDark: isDark,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildActionButton(
+                          icon: Icons.download,
+                          label: 'Download',
+                          color: Colors.green.shade600,
+                          onTap: () => _downloadPdf(sale),
+                          isDark: isDark,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -817,6 +841,131 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Download failed: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _unsuspendSale(SuspendedSheetSale sale) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsuspend Sale'),
+        content: Text('Load ${sale.items.length} items from ${sale.customerName} into the cart?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade600,
+            ),
+            child: const Text('Unsuspend'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final saleProvider = context.read<SaleProvider>();
+      final locationProvider = context.read<LocationProvider>();
+
+      // Convert SuspendedSheetItem to SaleItem
+      final saleItems = sale.items.map((item) => SaleItem(
+        itemId: item.itemId,
+        itemName: item.itemName,
+        quantity: item.quantity,
+        costPrice: 0, // Not available in suspended sheet
+        unitPrice: item.unitPrice,
+        discount: item.discount,
+        discountType: 0, // Assume percent
+        stockLocationId: locationProvider.selectedLocation?.locationId,
+        subtotal: item.quantity * item.unitPrice,
+        lineTotal: item.lineTotal,
+      )).toList();
+
+      // Clear current cart and load suspended items
+      saleProvider.clearCart();
+
+      // Set customer if available
+      if (sale.customerId != null) {
+        final nameParts = sale.customerName.split(' ');
+        final customer = Customer(
+          personId: sale.customerId!,
+          firstName: nameParts.isNotEmpty ? nameParts.first : '',
+          lastName: nameParts.length > 1 ? nameParts.skip(1).join(' ') : '',
+          email: '',
+          phoneNumber: sale.customerPhone ?? '',
+          address1: '',
+          address2: '',
+          city: '',
+          state: '',
+          zip: '',
+          country: '',
+          comments: '',
+          gender: 0,
+          discount: 0,
+          discountType: '0',
+          taxable: true,
+          taxId: '',
+          consent: false,
+          isBodaBoda: false,
+          oneTimeCredit: false,
+          isAllowedCredit: false,
+          creditLimit: 0,
+          oneTimeCreditLimit: 0,
+          dueDate: 0,
+          badDebtor: 0,
+          dormant: 'ACTIVE',
+          balance: 0,
+        );
+        saleProvider.setCustomer(customer);
+      }
+
+      // Add items to cart
+      for (final item in saleItems) {
+        saleProvider.addSaleItem(item);
+      }
+
+      // Delete the suspended sale from server
+      final response = await _apiService.deleteSuspendedSale(sale.saleId);
+
+      if (mounted) {
+        if (response.isSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Loaded ${sale.items.length} items into cart'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          // Navigate back to sales screen
+          Navigator.pop(context);
+        } else {
+          // Still loaded into cart, just warn about delete failure
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Items loaded. Note: ${response.message}'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unsuspend failed: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
