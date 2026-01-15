@@ -345,9 +345,10 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
 
     // All Sales - requires cash_submit_all_sales
     // Calculate All Sales = Cash + Credit + LIPA NAMBA (all payment types)
+    // For Leruma, exclude LIPA NAMBA from calculation
     final allSales = (_summaryData!['cash_sales'] ?? 0) +
                      (_summaryData!['customer_credit'] ?? 0) +
-                     (_summaryData!['lipa_namba'] ?? 0);
+                     (isLeruma ? 0 : (_summaryData!['lipa_namba'] ?? 0));
     addRowIfPermitted(
       PermissionIds.cashSubmitAllSales,
       _buildSummaryRow('All Sales', allSales, highlight: true, isDark: isDark),
@@ -360,10 +361,13 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     );
 
     // LIPA NAMBA - requires cash_submit_cash_sales (same permission as cash sales)
-    addRowIfPermitted(
-      PermissionIds.cashSubmitCashSales,
-      _buildSummaryRow('LIPA NAMBA', _summaryData!['lipa_namba'] ?? 0, isDark: isDark),
-    );
+    // Hidden for Leruma client
+    if (ApiService.currentClient?.id != 'leruma') {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitCashSales,
+        _buildSummaryRow('LIPA NAMBA', _summaryData!['lipa_namba'] ?? 0, isDark: isDark),
+      );
+    }
 
     // Customer Credit - requires cash_submit_customer_credit
     addRowIfPermitted(
@@ -391,10 +395,13 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     );
 
     // Supplier Debit Bank - requires cash_submit_debit_supplier_bank
-    addRowIfPermitted(
-      PermissionIds.cashSubmitDebitSupplierBank,
-      _buildSummaryRow('Supplier Debit Bank', _summaryData!['supplier_debit_bank'], isDark: isDark),
-    );
+    // Hidden for Leruma
+    if (!isLeruma) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitDebitSupplierBank,
+        _buildSummaryRow('Supplier Debit Bank', _summaryData!['supplier_debit_bank'], isDark: isDark),
+      );
+    }
     rows.add(const Divider(height: 1));
 
     // Sales Discount - requires cash_submit_sales_discount
@@ -404,10 +411,13 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     );
 
     // Supplier Credit - requires cash_submit_supplier_credit
-    addRowIfPermitted(
-      PermissionIds.cashSubmitSupplierCredit,
-      _buildSummaryRow('Supplier Credit', _summaryData!['supplier_credit'], isDark: isDark),
-    );
+    // Hidden for Leruma
+    if (!isLeruma) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitSupplierCredit,
+        _buildSummaryRow('Supplier Credit', _summaryData!['supplier_credit'], isDark: isDark),
+      );
+    }
 
     // Supplier Cash - requires cash_submit_supplier_cash
     addRowIfPermitted(
@@ -416,10 +426,13 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     );
 
     // Receiving Return - requires cash_submit_receiving_return
-    addRowIfPermitted(
-      PermissionIds.cashSubmitReceivingReturn,
-      _buildSummaryRow('Receiving Return', _summaryData!['receiving_return'], isDark: isDark),
-    );
+    // Hidden for Leruma
+    if (!isLeruma) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitReceivingReturn,
+        _buildSummaryRow('Receiving Return', _summaryData!['receiving_return'], isDark: isDark),
+      );
+    }
     rows.add(const Divider(height: 1));
 
     // Expenses - requires cash_submit_expenses
@@ -448,10 +461,13 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     );
 
     // Cash Submitted - requires cash_submit_cash_submitted
-    addRowIfPermitted(
-      PermissionIds.cashSubmitCashSubmitted,
-      _buildSummaryRow('Cash Submitted', _summaryData!['cash_submitted'], highlight: true, isDark: isDark),
-    );
+    // Hidden for Leruma
+    if (!isLeruma) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitCashSubmitted,
+        _buildSummaryRow('Cash Submitted', _summaryData!['cash_submitted'], highlight: true, isDark: isDark),
+      );
+    }
 
     // Profit Submitted - requires cash_submit_profit_submitted
     addRowIfPermitted(
@@ -467,16 +483,22 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     );
 
     // Amount Due - requires cash_submit_amount_due (not in constants yet, using view permission)
-    addRowIfPermitted(
-      PermissionIds.cashSubmitAmountDue,
-      _buildSummaryRow('Amount Due', _summaryData!['amount_due'], highlight: true, isDark: isDark),
-    );
+    // Hidden for Leruma
+    if (!isLeruma) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitAmountDue,
+        _buildSummaryRow('Amount Due', _summaryData!['amount_due'], highlight: true, isDark: isDark),
+      );
+    }
 
     // Amount Tendered - requires cash_submit_amount_tendered (not in constants yet, using view permission)
-    addRowIfPermitted(
-      PermissionIds.cashSubmitAmountTendered,
-      _buildSummaryRow('Amount Tendered', _summaryData!['amount_tendered'], highlight: true, isDark: isDark),
-    );
+    // Hidden for Leruma
+    if (!isLeruma) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitAmountTendered,
+        _buildSummaryRow('Amount Tendered', _summaryData!['amount_tendered'], highlight: true, isDark: isDark),
+      );
+    }
 
     // Gain/Loss - requires cash_submit_gain_loss
     addRowIfPermitted(
@@ -494,29 +516,29 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     if (isLeruma) {
       rows.add(const Divider(height: 1));
 
-      // Chip Deposited
-      addRowIfPermitted(
-        PermissionIds.cashSubmitChipDeposited,
-        _buildSummaryRow('Chip Deposited', _summaryData!['chip_deposited'], isDark: isDark),
-      );
+      // Chip Deposited - commented out for now
+      // addRowIfPermitted(
+      //   PermissionIds.cashSubmitChipDeposited,
+      //   _buildSummaryRow('Chip Deposited', _summaryData!['chip_deposited'], isDark: isDark),
+      // );
 
-      // Chip Used
-      addRowIfPermitted(
-        PermissionIds.cashSubmitChipUsed,
-        _buildSummaryRow('Chip Used', _summaryData!['chip_used'], isNegative: true, isDark: isDark),
-      );
+      // Chip Used - commented out for now
+      // addRowIfPermitted(
+      //   PermissionIds.cashSubmitChipUsed,
+      //   _buildSummaryRow('Chip Used', _summaryData!['chip_used'], isNegative: true, isDark: isDark),
+      // );
 
-      // Manual Editing
-      addRowIfPermitted(
-        PermissionIds.cashSubmitManualEditing,
-        _buildSummaryRow('Manual Editing', _summaryData!['manual_editing'], isDark: isDark),
-      );
+      // Manual Editing - commented out for now
+      // addRowIfPermitted(
+      //   PermissionIds.cashSubmitManualEditing,
+      //   _buildSummaryRow('Manual Editing', _summaryData!['manual_editing'], isDark: isDark),
+      // );
 
-      // Manual Editing Workout
-      addRowIfPermitted(
-        PermissionIds.cashSubmitManualEditingWorkout,
-        _buildSummaryRow('Manual Editing Workout', _summaryData!['manual_editing_workout'], isDark: isDark),
-      );
+      // Manual Editing Workout - commented out for now
+      // addRowIfPermitted(
+      //   PermissionIds.cashSubmitManualEditingWorkout,
+      //   _buildSummaryRow('Manual Editing Workout', _summaryData!['manual_editing_workout'], isDark: isDark),
+      // );
 
       // Difference Manual Editing
       addRowIfPermitted(

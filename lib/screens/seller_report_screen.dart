@@ -846,7 +846,9 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             _buildDataRow('R-S-DO', rSdo, isDark),
             _buildDataRow('Cash Sales', cashSales, isDark),
             _buildDataRow('Credit Sales', creditSales, isDark),
-            _buildDataRow('Turnover', turnover, isDark),
+            // Turnover - hidden for Leruma
+            if (!_isLeruma)
+              _buildDataRow('Turnover', turnover, isDark),
             _buildDataRow('Sales Discount', discount, isDark, isNegative: true),
             _buildDataRow('Debit Sales', customerDebit, isDark),
             const Divider(height: 16),
@@ -856,7 +858,9 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             const SizedBox(height: 8),
             _buildDataRow('Chip Deposited', chipDeposited, isDark),
             _buildDataRow('Chip Used', chipUsed, isDark, isNegative: true),
-            _buildDataRow('Expenses', expenses, isDark, isNegative: true),
+            // Expenses - hidden for Leruma
+            if (!_isLeruma)
+              _buildDataRow('Expenses', expenses, isDark, isNegative: true),
             _buildDataRow('Bank Amount', bankAmount, isDark),
             _buildDataRow('Direct Deposit', directDeposit, isDark),
             _buildDataRow('Difference Deposit', differenceDeposit, isDark),
@@ -868,11 +872,19 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             _buildSectionHeader('Supplier & Returns', isDark),
             const SizedBox(height: 8),
             _buildDataRow('Supplier Bank', supplierBank, isDark),
-            _buildDataRow('Receiving Return', receivingReturn, isDark, isNegative: true),
-            _buildDataRow('Bonge Sales Return', bongeSalesReturn, isDark, isNegative: true),
-            _buildDataRow('Supplier Credits', supplierCredits, isDark),
+            // Receiving Return - hidden for Leruma
+            if (!_isLeruma)
+              _buildDataRow('Receiving Return', receivingReturn, isDark, isNegative: true),
+            // Bonge Sales Return - hidden for Leruma
+            if (!_isLeruma)
+              _buildDataRow('Bonge Sales Return', bongeSalesReturn, isDark, isNegative: true),
+            // Supplier Credits - hidden for Leruma
+            if (!_isLeruma)
+              _buildDataRow('Supplier Credits', supplierCredits, isDark),
             _buildDataRow('Sales Return', salesReturn, isDark, isNegative: true),
-            _buildDataRow('Return Difference', returnDifference, isDark),
+            // Return Difference - hidden for Leruma
+            if (!_isLeruma)
+              _buildDataRow('Return Difference', returnDifference, isDark),
             const Divider(height: 16),
 
             // Summary
@@ -880,8 +892,10 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                 color: gainLoss >= 0 ? AppColors.success : AppColors.error),
             _buildHighlightRow('Total Differences', totalDifferences, isDark,
                 color: totalDifferences > 1000 ? AppColors.error : (totalDifferences > 100 ? Colors.orange : AppColors.success)),
-            _buildHighlightRow('Profit', profit, isDark,
-                color: profit >= 0 ? AppColors.success : AppColors.error),
+            // Profit - hidden for Leruma
+            if (!_isLeruma)
+              _buildHighlightRow('Profit', profit, isDark,
+                  color: profit >= 0 ? AppColors.success : AppColors.error),
           ],
         ),
       ),

@@ -3077,9 +3077,11 @@ class _PaymentDialogState extends State<PaymentDialog> {
               items: [
                 const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
                 const DropdownMenuItem(value: 'Credit Card', child: Text('Credit Card')),
-                const DropdownMenuItem(value: 'LIPA NAMBA', child: Text('LIPA NAMBA')),
-                // NFC Card payment - requires hasNfcCard feature
-                if (hasNfcCard && hasNfcPaymentPermission && (_nfcCardBalance != null || widget.customer != null))
+                // LIPA NAMBA - hidden for Leruma
+                if (ApiService.currentClient?.id != 'leruma')
+                  const DropdownMenuItem(value: 'LIPA NAMBA', child: Text('LIPA NAMBA')),
+                // NFC Card payment - requires hasNfcCard feature, hidden for Leruma
+                if (ApiService.currentClient?.id != 'leruma' && hasNfcCard && hasNfcPaymentPermission && (_nfcCardBalance != null || widget.customer != null))
                   const DropdownMenuItem(
                     value: 'NFC Card',
                     child: Row(

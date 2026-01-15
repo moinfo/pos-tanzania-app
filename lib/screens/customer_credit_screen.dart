@@ -335,13 +335,16 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
           ),
         ],
       ),
-      floatingActionButton: PermissionFAB(
-        permissionId: PermissionIds.customersAddPayment,
-        onPressed: _showPaymentDialog,
-        backgroundColor: AppColors.success,
-        tooltip: 'Add Payment',
-        child: const Icon(Icons.payment, color: Colors.white),
-      ),
+      // Only show Add Payment button when there's a balance to pay
+      floatingActionButton: (_statement?.currentBalance ?? 0) > 0
+          ? PermissionFAB(
+              permissionId: PermissionIds.customersAddPayment,
+              onPressed: _showPaymentDialog,
+              backgroundColor: AppColors.success,
+              tooltip: 'Add Payment',
+              child: const Icon(Icons.payment, color: Colors.white),
+            )
+          : null,
     );
   }
 

@@ -651,54 +651,32 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       ],
                     ],
                   ),
-                  // Add Payment button - only show if customer has balance > 0
+                  // View Credit Account button - only show if customer has balance > 0
                   if (customer.balance > 0)
                     Flexible(
                       child: PermissionWrapper(
-                        permissionId: PermissionIds.customersAddPayment,
+                        permissionId: PermissionIds.customersViewCredit,
                         child: TextButton.icon(
-                          icon: const Icon(Icons.payment, size: 16),
-                          label: const Text('Add Payment', overflow: TextOverflow.ellipsis),
+                          icon: const Icon(Icons.account_balance, size: 16),
+                          label: const Text('View Credit', overflow: TextOverflow.ellipsis),
                           onPressed: () {
-                            // TODO: Navigate to Add Payment screen
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Add Payment feature coming soon'),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CustomerCreditScreen(
+                                  customerId: customer.personId,
+                                  customerName: customer.displayName,
+                                ),
                               ),
                             );
                           },
                           style: TextButton.styleFrom(
-                            foregroundColor: AppColors.success,
+                            foregroundColor: AppColors.primary,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                           ),
                         ),
                       ),
                     ),
-                  // View Credit Account button
-                  Flexible(
-                    child: PermissionWrapper(
-                      permissionId: PermissionIds.customersViewCredit,
-                      child: TextButton.icon(
-                        icon: const Icon(Icons.account_balance, size: 16),
-                        label: const Text('View Credit', overflow: TextOverflow.ellipsis),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CustomerCreditScreen(
-                                customerId: customer.personId,
-                                customerName: customer.displayName,
-                              ),
-                            ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ],
