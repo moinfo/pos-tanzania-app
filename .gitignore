@@ -4,6 +4,11 @@
 *.pyc
 *.swp
 .DS_Store
+*.hprof
+
+# APK releases (large build files)
+releases/
+*.apk
 .atom/
 .build/
 .buildlog/
