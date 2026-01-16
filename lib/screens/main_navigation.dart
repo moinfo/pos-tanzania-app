@@ -33,6 +33,7 @@ import 'settings_screen.dart';
 import 'nfc_cards_screen.dart';
 import 'nfc_confirmations_screen.dart';
 import 'nfc_card_lookup_screen.dart';
+import 'credits_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -495,6 +496,21 @@ class _MainNavigationState extends State<MainNavigation> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                  );
+                },
+              ),
+            ),
+            // Credits - requires credits permission (supervisor credits list)
+            PermissionWrapper(
+              permissionId: PermissionIds.credits,
+              child: ListTile(
+                leading: const Icon(Icons.credit_card, color: AppColors.error),
+                title: const Text('Customer Credits'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CreditsScreen()),
                   );
                 },
               ),

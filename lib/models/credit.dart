@@ -252,3 +252,263 @@ class SaleDetails {
     );
   }
 }
+
+/// Supervisor credit data for the credits list screen
+class SupervisorCredit {
+  final int supervisorId;
+  final String name;
+  final String phone;
+  final double credit;
+  final double debit;
+  final double balance;
+
+  SupervisorCredit({
+    required this.supervisorId,
+    required this.name,
+    required this.phone,
+    required this.credit,
+    required this.debit,
+    required this.balance,
+  });
+
+  factory SupervisorCredit.fromJson(Map<String, dynamic> json) {
+    return SupervisorCredit(
+      supervisorId: json['supervisor_id'] ?? 0,
+      name: json['name'] ?? '',
+      phone: json['phone'] ?? '',
+      credit: (json['credit'] ?? 0).toDouble(),
+      debit: (json['debit'] ?? 0).toDouble(),
+      balance: (json['balance'] ?? 0).toDouble(),
+    );
+  }
+}
+
+/// Summary for supervisor credits
+class CreditsSummary {
+  final double totalCredit;
+  final double totalDebit;
+  final double totalBalance;
+  final int supervisorCount;
+
+  CreditsSummary({
+    required this.totalCredit,
+    required this.totalDebit,
+    required this.totalBalance,
+    required this.supervisorCount,
+  });
+
+  factory CreditsSummary.fromJson(Map<String, dynamic> json) {
+    return CreditsSummary(
+      totalCredit: (json['total_credit'] ?? 0).toDouble(),
+      totalDebit: (json['total_debit'] ?? 0).toDouble(),
+      totalBalance: (json['total_balance'] ?? 0).toDouble(),
+      supervisorCount: json['supervisor_count'] ?? 0,
+    );
+  }
+}
+
+/// Response from GET /api/credits/supervisors
+class SupervisorCreditsResponse {
+  final List<SupervisorCredit> supervisors;
+  final CreditsSummary summary;
+
+  SupervisorCreditsResponse({
+    required this.supervisors,
+    required this.summary,
+  });
+
+  factory SupervisorCreditsResponse.fromJson(Map<String, dynamic> json) {
+    var supervisorsJson = json['supervisors'] as List? ?? [];
+    List<SupervisorCredit> supervisorsList = supervisorsJson
+        .map((s) => SupervisorCredit.fromJson(s))
+        .toList();
+
+    return SupervisorCreditsResponse(
+      supervisors: supervisorsList,
+      summary: CreditsSummary.fromJson(json['summary'] ?? {}),
+    );
+  }
+}
+
+/// Customer credit data for supervisor's customer list
+class CustomerCredit {
+  final int customerId;
+  final String firstName;
+  final String lastName;
+  final String phone;
+  final double credit;
+  final double debit;
+  final double balance;
+
+  CustomerCredit({
+    required this.customerId,
+    required this.firstName,
+    required this.lastName,
+    required this.phone,
+    required this.credit,
+    required this.debit,
+    required this.balance,
+  });
+
+  String get fullName => '$firstName $lastName'.trim();
+
+  factory CustomerCredit.fromJson(Map<String, dynamic> json) {
+    return CustomerCredit(
+      customerId: json['customer_id'] ?? 0,
+      firstName: json['first_name'] ?? '',
+      lastName: json['last_name'] ?? '',
+      phone: json['phone'] ?? '',
+      credit: (json['credit'] ?? 0).toDouble(),
+      debit: (json['debit'] ?? 0).toDouble(),
+      balance: (json['balance'] ?? 0).toDouble(),
+    );
+  }
+}
+
+/// Customer summary for supervisor
+class CustomerCreditsSummary {
+  final double totalCredit;
+  final double totalDebit;
+  final double totalBalance;
+  final int customerCount;
+
+  CustomerCreditsSummary({
+    required this.totalCredit,
+    required this.totalDebit,
+    required this.totalBalance,
+    required this.customerCount,
+  });
+
+  factory CustomerCreditsSummary.fromJson(Map<String, dynamic> json) {
+    return CustomerCreditsSummary(
+      totalCredit: (json['total_credit'] ?? 0).toDouble(),
+      totalDebit: (json['total_debit'] ?? 0).toDouble(),
+      totalBalance: (json['total_balance'] ?? 0).toDouble(),
+      customerCount: json['customer_count'] ?? 0,
+    );
+  }
+}
+
+/// Response from GET /api/credits/supervisor/:id/customers
+class SupervisorCustomersResponse {
+  final int supervisorId;
+  final String supervisorName;
+  final List<CustomerCredit> customers;
+  final CustomerCreditsSummary summary;
+
+  SupervisorCustomersResponse({
+    required this.supervisorId,
+    required this.supervisorName,
+    required this.customers,
+    required this.summary,
+  });
+
+  factory SupervisorCustomersResponse.fromJson(Map<String, dynamic> json) {
+    var customersJson = json['customers'] as List? ?? [];
+    List<CustomerCredit> customersList = customersJson
+        .map((c) => CustomerCredit.fromJson(c))
+        .toList();
+
+    return SupervisorCustomersResponse(
+      supervisorId: json['supervisor_id'] ?? 0,
+      supervisorName: json['supervisor_name'] ?? '',
+      customers: customersList,
+      summary: CustomerCreditsSummary.fromJson(json['summary'] ?? {}),
+    );
+  }
+}
+
+/// Daily debt collection entry
+class DailyDebtEntry {
+  final int id;
+  final String date;
+  final String customerName;
+  final int customerId;
+  final double amount;
+  final String supervisorName;
+  final int supervisorId;
+  final String locationName;
+  final String employeeName;
+  final int employeeId;
+  final String description;
+  final int paymentId;
+
+  DailyDebtEntry({
+    required this.id,
+    required this.date,
+    required this.customerName,
+    required this.customerId,
+    required this.amount,
+    required this.supervisorName,
+    required this.supervisorId,
+    required this.locationName,
+    required this.employeeName,
+    required this.employeeId,
+    required this.description,
+    required this.paymentId,
+  });
+
+  factory DailyDebtEntry.fromJson(Map<String, dynamic> json) {
+    return DailyDebtEntry(
+      id: json['id'] ?? 0,
+      date: json['date'] ?? '',
+      customerName: json['customer_name'] ?? '',
+      customerId: json['customer_id'] ?? 0,
+      amount: (json['amount'] ?? 0).toDouble(),
+      supervisorName: json['supervisor_name'] ?? '',
+      supervisorId: json['supervisor_id'] ?? 0,
+      locationName: json['location_name'] ?? '',
+      employeeName: json['employee_name'] ?? '',
+      employeeId: json['employee_id'] ?? 0,
+      description: json['description'] ?? '',
+      paymentId: json['payment_id'] ?? 0,
+    );
+  }
+}
+
+/// Summary for daily debt report
+class DailyDebtSummary {
+  final double totalAmount;
+  final int count;
+
+  DailyDebtSummary({
+    required this.totalAmount,
+    required this.count,
+  });
+
+  factory DailyDebtSummary.fromJson(Map<String, dynamic> json) {
+    return DailyDebtSummary(
+      totalAmount: (json['total_amount'] ?? 0).toDouble(),
+      count: json['count'] ?? 0,
+    );
+  }
+}
+
+/// Response from GET /api/credits/daily_debt_report
+class DailyDebtReportResponse {
+  final String startDate;
+  final String endDate;
+  final List<DailyDebtEntry> debts;
+  final DailyDebtSummary summary;
+
+  DailyDebtReportResponse({
+    required this.startDate,
+    required this.endDate,
+    required this.debts,
+    required this.summary,
+  });
+
+  factory DailyDebtReportResponse.fromJson(Map<String, dynamic> json) {
+    var debtsJson = json['debts'] as List? ?? [];
+    List<DailyDebtEntry> debtsList = debtsJson
+        .map((d) => DailyDebtEntry.fromJson(d))
+        .toList();
+
+    return DailyDebtReportResponse(
+      startDate: json['start_date'] ?? '',
+      endDate: json['end_date'] ?? '',
+      debts: debtsList,
+      summary: DailyDebtSummary.fromJson(json['summary'] ?? {}),
+    );
+  }
+}

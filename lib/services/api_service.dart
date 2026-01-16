@@ -1337,6 +1337,83 @@ class ApiService {
     }
   }
 
+  /// Get all supervisors with credit balances (filtered by allowed stock locations)
+  Future<ApiResponse<SupervisorCreditsResponse>> getSupervisorCredits({
+    List<int>? locationIds,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (locationIds != null && locationIds.isNotEmpty) {
+        queryParams['location_ids'] = locationIds.join(',');
+      }
+
+      final uri = Uri.parse('$baseUrlSync/credits/supervisors')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<SupervisorCreditsResponse>(
+        response,
+        (data) => SupervisorCreditsResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get customers under a supervisor with credit balances
+  Future<ApiResponse<SupervisorCustomersResponse>> getSupervisorCustomers(
+    int supervisorId,
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/credits/supervisor_customers/$supervisorId'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<SupervisorCustomersResponse>(
+        response,
+        (data) => SupervisorCustomersResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get daily debt collection report (filtered by allowed stock locations)
+  Future<ApiResponse<DailyDebtReportResponse>> getDailyDebtReport({
+    String? startDate,
+    String? endDate,
+    List<int>? locationIds,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (locationIds != null && locationIds.isNotEmpty) {
+        queryParams['location_ids'] = locationIds.join(',');
+      }
+
+      final uri = Uri.parse('$baseUrlSync/credits/daily_debt_report')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<DailyDebtReportResponse>(
+        response,
+        (data) => DailyDebtReportResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Add payment for customer credit
   Future<ApiResponse<Map<String, dynamic>>> addCreditPayment(
       PaymentFormData formData) async {
