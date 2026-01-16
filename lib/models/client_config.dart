@@ -17,6 +17,7 @@ class ClientFeatures {
   final bool hasItemsExtendedInfo; // Leruma-specific: variation, days since sale, mainstore quantity
   final bool hasReceivingsSummary; // Leruma-specific: receivings summary reports
   final bool hasSuppliersByLocation; // Leruma-specific: filter suppliers by stock location's supervisor
+  final bool hasSupervisorByLocation; // Leruma-specific: filter supervisors by stock location (banking)
   final bool hasReceivingCreditCardOnly; // Leruma-specific: only allow Credit Card payment in receivings
 
   // NFC Card functionality
@@ -27,6 +28,9 @@ class ClientFeatures {
 
   // Landing page / Public shop
   final bool hasLandingPage; // Enable public shop landing page (Come & Save only)
+
+  // TRA (Tanzania Revenue Authority) module
+  final bool hasTRA; // Enable TRA module for tax reporting (Leruma only)
 
   const ClientFeatures({
     this.hasContracts = true,
@@ -46,10 +50,12 @@ class ClientFeatures {
     this.hasItemsExtendedInfo = false, // Default: disabled (only Leruma uses this)
     this.hasReceivingsSummary = false, // Default: disabled (only Leruma uses this)
     this.hasSuppliersByLocation = false, // Default: disabled (only Leruma uses this)
+    this.hasSupervisorByLocation = false, // Default: disabled (only Leruma uses this)
     this.hasReceivingCreditCardOnly = false, // Default: disabled (only Leruma uses this)
     this.hasNfcCard = false, // Default: disabled - enable per client
     this.hasOfflineMode = false, // Default: disabled - enable per client as needed
     this.hasLandingPage = false, // Default: disabled - only Come & Save uses this
+    this.hasTRA = false, // Default: disabled - only Leruma uses this
   });
 }
 

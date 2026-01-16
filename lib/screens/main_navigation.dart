@@ -35,6 +35,7 @@ import 'nfc_confirmations_screen.dart';
 import 'nfc_card_lookup_screen.dart';
 import 'credits_screen.dart';
 import 'suppliers_credits_screen.dart';
+import 'tra/tra_main_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -396,36 +397,283 @@ class _MainNavigationState extends State<MainNavigation> {
                 ],
               ),
             ),
-            // Sales History - requires sales permission
+            // 1. Customers Menu
+            ExpansionTile(
+              leading: const Icon(Icons.people, color: AppColors.primary),
+              title: const Text('Customers'),
+              childrenPadding: const EdgeInsets.only(left: 16),
+              children: [
+                // Customers List
+                PermissionWrapper(
+                  permissionId: PermissionIds.customers,
+                  child: ListTile(
+                    leading: const Icon(Icons.people_outline, color: AppColors.primary),
+                    title: const Text('Customers List'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                      );
+                    },
+                  ),
+                ),
+                // Customer Credits
+                PermissionWrapper(
+                  permissionId: PermissionIds.credits,
+                  child: ListTile(
+                    leading: const Icon(Icons.credit_card, color: AppColors.error),
+                    title: const Text('Customer Credits'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CreditsScreen()),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            // 2. Items - requires items permission
             PermissionWrapper(
-              permissionId: PermissionIds.sales,
+              permissionId: PermissionIds.items,
               child: ListTile(
-                leading: const Icon(Icons.history, color: AppColors.primary),
-                title: const Text('Sales History'),
+                leading: const Icon(Icons.inventory_2, color: AppColors.primary),
+                title: const Text('Items'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const SalesHistoryScreen()),
+                    MaterialPageRoute(builder: (_) => const ItemsScreen()),
                   );
                 },
               ),
             ),
-            // Suspended Sales - requires sales_suspended permission
+            // 3. Sales Menu
+            ExpansionTile(
+              leading: const Icon(Icons.point_of_sale, color: AppColors.primary),
+              title: const Text('Sales'),
+              childrenPadding: const EdgeInsets.only(left: 16),
+              children: [
+                // Sales History
+                PermissionWrapper(
+                  permissionId: PermissionIds.sales,
+                  child: ListTile(
+                    leading: const Icon(Icons.history, color: AppColors.primary),
+                    title: const Text('Sales History'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SalesHistoryScreen()),
+                      );
+                    },
+                  ),
+                ),
+                // Suspended Sales
+                PermissionWrapper(
+                  permissionId: PermissionIds.salesSuspended,
+                  child: ListTile(
+                    leading: const Icon(Icons.pause_circle, color: AppColors.warning),
+                    title: const Text('Suspended Sales'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SuspendedSalesScreen()),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            // 4. Suppliers Menu
+            ExpansionTile(
+              leading: const Icon(Icons.local_shipping, color: AppColors.primary),
+              title: const Text('Suppliers'),
+              childrenPadding: const EdgeInsets.only(left: 16),
+              children: [
+                // Suppliers List
+                PermissionWrapper(
+                  permissionId: PermissionIds.suppliers,
+                  child: ListTile(
+                    leading: const Icon(Icons.local_shipping_outlined, color: AppColors.primary),
+                    title: const Text('Suppliers List'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SuppliersScreen()),
+                      );
+                    },
+                  ),
+                ),
+                // Supplier Credits
+                PermissionWrapper(
+                  permissionId: PermissionIds.credits,
+                  child: ListTile(
+                    leading: const Icon(Icons.credit_card, color: AppColors.error),
+                    title: const Text('Supplier Credits'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SuppliersCreditsScreen()),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            // 4. Receivings - requires receivings permission
             PermissionWrapper(
-              permissionId: PermissionIds.salesSuspended,
+              permissionId: PermissionIds.receivings,
               child: ListTile(
-                leading: const Icon(Icons.pause_circle, color: AppColors.warning),
-                title: const Text('Suspended Sales'),
+                leading: const Icon(Icons.inventory, color: AppColors.success),
+                title: const Text('Receivings'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const SuspendedSalesScreen()),
+                    MaterialPageRoute(builder: (_) => const ReceivingsListScreen()),
                   );
                 },
               ),
             ),
+            // 5. Cash Submit - requires cash_submit module permission
+            PermissionWrapper(
+              permissionId: PermissionIds.cashSubmit,
+              child: ListTile(
+                leading: const Icon(Icons.attach_money, color: AppColors.success),
+                title: const Text('Cash Submit'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CashSubmitScreen()),
+                  );
+                },
+              ),
+            ),
+            // 6. Banking - requires cash_submit_banking permission
+            PermissionWrapper(
+              permissionId: PermissionIds.cashSubmitBanking,
+              child: ListTile(
+                leading: const Icon(Icons.account_balance, color: AppColors.primary),
+                title: const Text('Banking'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BankingListScreen()),
+                  );
+                },
+              ),
+            ),
+            // 7. TRADE (TRA) - requires tra permission
+            if (ApiService.currentClient?.features.hasTRA ?? false)
+              PermissionWrapper(
+                permissionId: PermissionIds.tra,
+                child: ListTile(
+                  leading: const Icon(Icons.receipt_long, color: Colors.deepPurple),
+                  title: const Text('Trade'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TRAMainScreen()),
+                    );
+                  },
+                ),
+              ),
+            // 8. NFC Menu - requires hasNfcCard feature
+            if (ApiService.currentClient?.features.hasNfcCard ?? false)
+              ExpansionTile(
+                leading: const Icon(Icons.nfc, color: Colors.orange),
+                title: const Text('NFC'),
+                childrenPadding: const EdgeInsets.only(left: 16),
+                children: [
+                  // NFC Cards
+                  PermissionWrapper(
+                    permissionId: PermissionIds.nfcCardsView,
+                    child: ListTile(
+                      leading: const Icon(Icons.credit_card, color: Colors.orange),
+                      title: const Text('NFC Cards'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const NfcCardsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  // NFC Confirmations
+                  PermissionWrapper(
+                    permissionId: PermissionIds.nfcConfirmationsView,
+                    child: ListTile(
+                      leading: const Icon(Icons.verified, color: Colors.green),
+                      title: const Text('NFC Confirmations'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const NfcConfirmationsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  // NFC Card Lookup
+                  PermissionWrapper(
+                    permissionId: PermissionIds.nfcCardsView,
+                    child: ListTile(
+                      leading: const Icon(Icons.contactless, color: Colors.deepOrange),
+                      title: const Text('NFC Card Lookup'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const NfcCardLookupScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            // 9. Seller Report - Leruma only, requires cash_submit_seller_report permission
+            if (ApiService.currentClient?.id == 'leruma')
+              PermissionWrapper(
+                permissionId: PermissionIds.cashSubmitSellerReport,
+                child: ListTile(
+                  leading: const Icon(Icons.person_outline, color: AppColors.primary),
+                  title: const Text('Seller Report'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SellerReportScreen()),
+                    );
+                  },
+                ),
+              ),
+            // 10. Financial Position - requires office permission
+            PermissionWrapper(
+              permissionId: PermissionIds.office,
+              child: ListTile(
+                leading: const Icon(Icons.analytics, color: AppColors.primary),
+                title: const Text('Financial Position'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PositionsScreen()),
+                  );
+                },
+              ),
+            ),
+            const Divider(),
+            // Other menus
             // Z Reports - requires cash_submit_z_report permission
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitZReport,
@@ -441,36 +689,6 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
-            // Cash Submit - requires cash_submit module permission
-            PermissionWrapper(
-              permissionId: PermissionIds.cashSubmit,
-              child: ListTile(
-                leading: const Icon(Icons.attach_money, color: AppColors.success),
-                title: const Text('Cash Submit'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CashSubmitScreen()),
-                  );
-                },
-              ),
-            ),
-            // Banking - requires cash_submit_banking permission
-            PermissionWrapper(
-              permissionId: PermissionIds.cashSubmitBanking,
-              child: ListTile(
-                leading: const Icon(Icons.account_balance, color: AppColors.primary),
-                title: const Text('Banking'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BankingListScreen()),
-                  );
-                },
-              ),
-            ),
             // Profit Submit - requires cash_submit_profit_submitted permission
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitProfitSubmitted,
@@ -482,144 +700,6 @@ class _MainNavigationState extends State<MainNavigation> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ProfitSubmitListScreen()),
-                  );
-                },
-              ),
-            ),
-            // Customers - requires customers permission
-            PermissionWrapper(
-              permissionId: PermissionIds.customers,
-              child: ListTile(
-                leading: const Icon(Icons.people, color: AppColors.primary),
-                title: const Text('Customers'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CustomersScreen()),
-                  );
-                },
-              ),
-            ),
-            // Credits - requires credits permission (supervisor credits list)
-            PermissionWrapper(
-              permissionId: PermissionIds.credits,
-              child: ListTile(
-                leading: const Icon(Icons.credit_card, color: AppColors.error),
-                title: const Text('Customer Credits'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CreditsScreen()),
-                  );
-                },
-              ),
-            ),
-            // Supplier Credits - requires credits permission
-            PermissionWrapper(
-              permissionId: PermissionIds.credits,
-              child: ListTile(
-                leading: const Icon(Icons.local_shipping, color: AppColors.primary),
-                title: const Text('Supplier Credits'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SuppliersCreditsScreen()),
-                  );
-                },
-              ),
-            ),
-            // NFC Cards - requires hasNfcCard feature and nfc_cards_view permission
-            if (ApiService.currentClient?.features.hasNfcCard ?? false)
-              PermissionWrapper(
-                permissionId: PermissionIds.nfcCardsView,
-                child: ListTile(
-                  leading: const Icon(Icons.nfc, color: Colors.orange),
-                  title: const Text('NFC Cards'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const NfcCardsScreen()),
-                    );
-                  },
-                ),
-              ),
-            // NFC Confirmations Report - requires hasNfcCard feature and nfc_confirmations_view permission
-            if (ApiService.currentClient?.features.hasNfcCard ?? false)
-              PermissionWrapper(
-                permissionId: PermissionIds.nfcConfirmationsView,
-                child: ListTile(
-                  leading: const Icon(Icons.verified, color: Colors.green),
-                  title: const Text('NFC Confirmations'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const NfcConfirmationsScreen()),
-                    );
-                  },
-                ),
-              ),
-            // NFC Card Lookup - requires hasNfcCard feature and nfc_cards_view permission
-            if (ApiService.currentClient?.features.hasNfcCard ?? false)
-              PermissionWrapper(
-                permissionId: PermissionIds.nfcCardsView,
-                child: ListTile(
-                  leading: const Icon(Icons.contactless, color: Colors.deepOrange),
-                  title: const Text('NFC Card Lookup'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const NfcCardLookupScreen()),
-                    );
-                  },
-                ),
-              ),
-            // Suppliers - requires suppliers permission
-            PermissionWrapper(
-              permissionId: PermissionIds.suppliers,
-              child: ListTile(
-                leading: const Icon(Icons.local_shipping, color: AppColors.primary),
-                title: const Text('Suppliers'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SuppliersScreen()),
-                  );
-                },
-              ),
-            ),
-            // Items - requires items permission
-            PermissionWrapper(
-              permissionId: PermissionIds.items,
-              child: ListTile(
-                leading: const Icon(Icons.inventory_2, color: AppColors.primary),
-                title: const Text('Items'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ItemsScreen()),
-                  );
-                },
-              ),
-            ),
-            // Receivings - requires receivings permission
-            PermissionWrapper(
-              permissionId: PermissionIds.receivings,
-              child: ListTile(
-                leading: const Icon(Icons.inventory, color: AppColors.success),
-                title: const Text('Receivings'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ReceivingsListScreen()),
                   );
                 },
               ),
@@ -669,37 +749,6 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
-            // Financial Position - requires office permission
-            PermissionWrapper(
-              permissionId: PermissionIds.office,
-              child: ListTile(
-                leading: const Icon(Icons.analytics, color: AppColors.primary),
-                title: const Text('Financial Position'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PositionsScreen()),
-                  );
-                },
-              ),
-            ),
-            // Seller Report - Leruma only, requires cash_submit_seller_report permission
-            if (ApiService.currentClient?.id == 'leruma')
-              PermissionWrapper(
-                permissionId: PermissionIds.cashSubmitSellerReport,
-                child: ListTile(
-                  leading: const Icon(Icons.person_outline, color: AppColors.primary),
-                  title: const Text('Seller Report'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SellerReportScreen()),
-                    );
-                  },
-                ),
-              ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.settings, color: AppColors.primary),

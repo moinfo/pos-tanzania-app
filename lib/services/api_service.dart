@@ -691,10 +691,19 @@ class ApiService {
   }
 
   /// Get supervisors list
-  Future<ApiResponse<List<Supervisor>>> getSupervisors() async {
+  /// [locationId] - Optional location ID to filter supervisors by location
+  Future<ApiResponse<List<Supervisor>>> getSupervisors({int? locationId}) async {
     try {
+      final queryParams = <String, String>{};
+      if (locationId != null) {
+        queryParams['location_id'] = locationId.toString();
+      }
+
+      final uri = Uri.parse('$baseUrlSync/cashsubmit/supervisors')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
       final response = await http.get(
-        Uri.parse('$baseUrlSync/cashsubmit/supervisors'),
+        uri,
         headers: await _getHeaders(),
       );
 

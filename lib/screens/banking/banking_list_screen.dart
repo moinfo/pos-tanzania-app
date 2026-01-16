@@ -33,7 +33,8 @@ class _BankingListScreenState extends State<BankingListScreen> {
   List<BankingListItem> _bankings = [];
   bool _isLoading = false;
   String? _errorMessage;
-  DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
+  // Default to today - will be updated based on permission
+  DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
 
   @override
@@ -49,6 +50,13 @@ class _BankingListScreenState extends State<BankingListScreen> {
     if (!mounted) return;
     final locationProvider = context.read<LocationProvider>();
     await locationProvider.initialize(moduleId: 'sales'); // Use sales permissions
+
+    // Default date is always today - permission only controls if user can change it
+    setState(() {
+      _startDate = DateTime.now();
+      _endDate = DateTime.now();
+    });
+
     _loadBankings();
   }
 
@@ -98,6 +106,20 @@ class _BankingListScreenState extends State<BankingListScreen> {
   }
 
   Future<void> _selectDateRange() async {
+    // Check for date range filter permission
+    final permissionProvider = context.read<PermissionProvider>();
+    final hasDateRangePermission = permissionProvider.hasPermission(PermissionIds.bankingDateRangeFilter);
+
+    if (!hasDateRangePermission) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You do not have permission to change the date range'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
@@ -557,8 +579,9 @@ class _BankingListScreenState extends State<BankingListScreen> {
     final selectedLocation = locationProvider.selectedLocation;
     final locations = locationProvider.allowedLocations;
     final permissionProvider = context.watch<PermissionProvider>();
-    final hasEditPermission = permissionProvider.hasPermission(PermissionIds.cashSubmitEditBanking);
-    final hasDeletePermission = permissionProvider.hasPermission(PermissionIds.cashSubmitDeleteBanking);
+    final hasEditPermission = permissionProvider.hasPermission(PermissionIds.bankingEditDeposit);
+    final hasDeletePermission = permissionProvider.hasPermission(PermissionIds.bankingDeleteDeposit);
+    final hasDateRangePermission = permissionProvider.hasPermission(PermissionIds.bankingDateRangeFilter);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -620,11 +643,13 @@ class _BankingListScreenState extends State<BankingListScreen> {
                 }).toList();
               },
             ),
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
-          ),
+          // Only show calendar icon if user has date range permission
+          if (hasDateRangePermission)
+            IconButton(
+              icon: const Icon(Icons.calendar_today),
+              onPressed: _selectDateRange,
+              tooltip: 'Select Date Range',
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _onRefresh,
@@ -664,14 +689,16 @@ class _BankingListScreenState extends State<BankingListScreen> {
                     ],
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: _selectDateRange,
-                  icon: const Icon(Icons.edit_calendar, size: 18),
-                  label: const Text('Change'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                // Only show Change button if user has date range permission
+                if (hasDateRangePermission)
+                  TextButton.icon(
+                    onPressed: _selectDateRange,
+                    icon: const Icon(Icons.edit_calendar, size: 18),
+                    label: const Text('Change'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -1063,7 +1090,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
         ],
       ),
       floatingActionButton: PermissionFAB(
-        permissionId: PermissionIds.cashSubmitAddBanking,
+        permissionId: PermissionIds.bankingAddDeposit,
         onPressed: _navigateToNewBanking,
         tooltip: 'Add Banking',
         backgroundColor: AppColors.primary,

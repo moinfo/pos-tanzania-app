@@ -101,9 +101,11 @@ class ClientsConfig {
         hasCommissionDashboard: true,
         hasReceivingsSummary: true,
         hasSuppliersByLocation: true,
+        hasSupervisorByLocation: true,
         hasReceivingCreditCardOnly: true,
         hasNfcCard: true,
         hasOfflineMode: false,
+        hasTRA: true, // TRA tax reporting module enabled
       ),
     ),
   ];

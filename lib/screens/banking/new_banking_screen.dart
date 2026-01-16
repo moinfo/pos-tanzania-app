@@ -60,7 +60,10 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
       _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
     }
 
-    _loadSupervisors();
+    // Load supervisors after frame is built (to access LocationProvider)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSupervisors();
+    });
   }
 
   @override
@@ -71,11 +74,27 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
     super.dispose();
   }
 
+  /// Helper method to check if supervisor filtering by location is enabled (Leruma-specific)
+  bool _hasSupervisorByLocationFeature() {
+    try {
+      return ApiService.currentClient?.features.hasSupervisorByLocation ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<void> _loadSupervisors() async {
     setState(() => _isLoading = true);
 
     try {
-      final response = await _apiService.getSupervisors();
+      // Get location from provider - only filter by location for Leruma
+      int? locationId;
+      if (_hasSupervisorByLocationFeature()) {
+        final locationProvider = context.read<LocationProvider>();
+        locationId = locationProvider.selectedLocation?.locationId;
+      }
+
+      final response = await _apiService.getSupervisors(locationId: locationId);
 
       if (response.isSuccess && response.data != null) {
         setState(() {
@@ -83,6 +102,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
           if (widget.banking != null) {
             _selectedSupervisorId = widget.banking!.supervisorId.toString();
           } else if (_supervisors.isNotEmpty) {
+            // Auto-select the first (and likely only) supervisor for the location
             _selectedSupervisorId = _supervisors.first.id;
           }
           _isLoading = false;
@@ -107,7 +127,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
 
   Future<void> _selectDate() async {
     final permissionProvider = context.read<PermissionProvider>();
-    final hasDatePermission = permissionProvider.hasPermission(PermissionIds.cashSubmitBankingDate);
+    final hasDatePermission = permissionProvider.hasPermission(PermissionIds.bankingDate);
 
     if (!hasDatePermission) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -609,7 +629,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                     // Date with permission
                     Consumer<PermissionProvider>(
                       builder: (context, permissionProvider, child) {
-                        final hasDatePermission = permissionProvider.hasPermission(PermissionIds.cashSubmitBankingDate);
+                        final hasDatePermission = permissionProvider.hasPermission(PermissionIds.bankingDate);
 
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

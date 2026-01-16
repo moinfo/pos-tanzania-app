@@ -5,6 +5,7 @@ class Supervisor {
   final String? firstName;
   final String? lastName;
   final String? email;
+  final int? locationId;
 
   Supervisor({
     required this.id,
@@ -13,6 +14,7 @@ class Supervisor {
     this.firstName,
     this.lastName,
     this.email,
+    this.locationId,
   });
 
   String get displayName => name.isNotEmpty ? name : '${firstName ?? ''} ${lastName ?? ''}'.trim();
@@ -25,6 +27,7 @@ class Supervisor {
       firstName: json['first_name'],
       lastName: json['last_name'],
       email: json['email'],
+      locationId: json['location_id'] != null ? int.tryParse(json['location_id'].toString()) : null,
     );
   }
 
@@ -36,6 +39,7 @@ class Supervisor {
       'first_name': firstName,
       'last_name': lastName,
       'email': email,
+      'location_id': locationId,
     };
   }
 }

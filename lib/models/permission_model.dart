@@ -102,8 +102,15 @@ class PermissionIds {
 
   // Module aliases for features
   static const String zreports = cashSubmitZReport;
-  static const String banking = cashSubmitBanking;
   static const String profitSubmit = office;
+
+  // Banking module permissions
+  static const String banking = 'banking';
+  static const String bankingAddDeposit = 'banking_add_deposit';
+  static const String bankingEditDeposit = 'banking_edit_deposit';
+  static const String bankingDeleteDeposit = 'banking_delete_deposit';
+  static const String bankingDateRangeFilter = 'banking_date_range_filter';
+  static const String bankingDate = 'banking_date'; // Permission to change date when adding/editing
 
   // Items sub-permissions
   static const String itemsAdd = 'items_add';
@@ -367,4 +374,30 @@ class PermissionIds {
   static const String nfcCardsSettings = 'nfc_cards_settings';
   static const String nfcConfirmationsView = 'nfc_confirmations_view';
   static const String nfcPayment = 'nfc_payment';
+
+  // TRA (TRADE) module permissions
+  static const String tra = 'TRA';
+  static const String traDateFilter = 'tra_date_filter';
+  static const String traFilterAllEfd = 'tra_filter_all_efd';
+  static const String traEditZNumbers = 'tra_edit_z_numbers';
+  // Sales
+  static const String traViewSales = 'tra_view_sales';
+  static const String traAddSales = 'tra_add_sales';
+  static const String traEditSales = 'tra_edit_sales';
+  static const String traDeleteSales = 'tra_delete_sales';
+  // Purchases
+  static const String traViewPurchases = 'tra_view_purchases';
+  static const String traAddPurchases = 'tra_add_purchases';
+  static const String traEditPurchases = 'tra_edit_purchases';
+  static const String traDeletePurchases = 'tra_delete_purchases';
+  // Expenses
+  static const String traViewExpenses = 'tra_view_expenses';
+  static const String traAddExpenses = 'tra_add_expenses';
+  static const String traEditExpenses = 'tra_edit_expenses';
+  static const String traDeleteExpenses = 'tra_delete_expenses';
+  // Reports
+  static const String traViewReports = 'tra_view_reports';
+  static const String traViewExpensesReports = 'tra_view_expenses_reports';
+  static const String traViewSalesReports = 'tra_view_sales_reports';
+  static const String traViewPurchasesReports = 'tra_view_purchases_reports';
 }

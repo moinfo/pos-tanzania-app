@@ -1,0 +1,115 @@
+================================================================================
+LERUMA POS - PLAY STORE LISTING
+================================================================================
+
+APP NAME: Leruma POS
+DEVELOPER: Leruma Enterprises
+
+--------------------------------------------------------------------------------
+SHORT DESCRIPTION (80 characters max)
+--------------------------------------------------------------------------------
+Current: 74 characters
+
+Point of Sale system for sales, inventory, credits & reports management.
+
+--------------------------------------------------------------------------------
+FULL DESCRIPTION (4000 characters max)
+--------------------------------------------------------------------------------
+
+Leruma POS is a comprehensive Point of Sale application designed for efficient business management. Built for Leruma Enterprises, this powerful mobile solution puts complete control of your business operations in your pocket.
+
+KEY FEATURES:
+
+📊 SALES MANAGEMENT
+• Process sales quickly and efficiently
+• View sales history and transaction details
+• Handle suspended sales and resume later
+• Multiple payment methods support
+
+📦 INVENTORY & STOCK
+• Real-time stock tracking across locations
+• Monitor stock levels and movements
+• Manage multiple stock locations
+• Track item quantities and pricing
+
+💳 CREDIT MANAGEMENT
+• Customer credit accounts and statements
+• Supplier credit tracking
+• Record payments and transactions
+• Daily debt collection reports
+
+📈 COMPREHENSIVE REPORTS
+• Z-Reports for daily summaries
+• Sales reports by date range
+• Stock tracking reports
+• Profit and expense analysis
+
+💰 FINANCIAL OPERATIONS
+• Cash submission tracking
+• Banking records management
+• Expense recording and monitoring
+• Profit submission reports
+
+👥 CUSTOMER & SUPPLIER MANAGEMENT
+• Maintain customer database
+• Track customer transactions
+• Manage supplier accounts
+• Monitor supplier credits and payments
+
+🏢 MULTI-LOCATION SUPPORT
+• Manage multiple business locations
+• Location-based stock tracking
+• Transfer stock between locations
+• Location-specific reports
+
+🔒 SECURE & RELIABLE
+• User authentication and permissions
+• Role-based access control
+• Secure data handling
+• Offline capability for uninterrupted work
+
+PERFECT FOR:
+• Retail businesses
+• Wholesale operations
+• Distribution companies
+• Multi-branch businesses
+• Inventory-focused enterprises
+
+Leruma POS streamlines your daily business operations, from processing sales to managing credits, tracking inventory, and generating insightful reports. Experience efficient business management with our user-friendly interface designed for the Tanzanian market.
+
+Download now and take control of your business!
+
+--------------------------------------------------------------------------------
+CATEGORY
+--------------------------------------------------------------------------------
+Business
+
+--------------------------------------------------------------------------------
+TAGS/KEYWORDS
+--------------------------------------------------------------------------------
+POS, Point of Sale, Inventory, Sales, Stock Management, Business, Tanzania,
+Credits, Accounting, Reports, Retail, Wholesale
+
+--------------------------------------------------------------------------------
+CONTENT RATING
+--------------------------------------------------------------------------------
+Everyone (No objectionable content)
+
+--------------------------------------------------------------------------------
+PRIVACY POLICY (Sample - Create your own or use a generator)
+--------------------------------------------------------------------------------
+You need a privacy policy URL. Options:
+1. Create at: https://app-privacy-policy-generator.firebaseapp.com/
+2. Use: https://www.freeprivacypolicy.com/
+3. Host on your website
+
+Required information for privacy policy:
+- App name: Leruma POS
+- Developer: Leruma Enterprises
+- Contact email: [YOUR EMAIL]
+- Data collected: User account info, sales data, inventory data
+- Data usage: Business operations management only
+- Data sharing: Not shared with third parties
+- Data storage: Secure servers
+
+================================================================================
