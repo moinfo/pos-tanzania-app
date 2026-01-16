@@ -336,9 +336,10 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
         ],
       ),
       // Only show Add Payment button when there's a balance to pay
+      // Uses credits_pay permission for customer credit payments
       floatingActionButton: (_statement?.currentBalance ?? 0) > 0
           ? PermissionFAB(
-              permissionId: PermissionIds.customersAddPayment,
+              permissionId: PermissionIds.creditsPay,
               onPressed: _showPaymentDialog,
               backgroundColor: AppColors.success,
               tooltip: 'Add Payment',
@@ -907,10 +908,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
-              // Date field with permission
+              // Date field - only show if user has credits_edit_date permission
               Consumer<PermissionProvider>(
                 builder: (context, permissionProvider, child) {
-                  if (permissionProvider.hasPermission(PermissionIds.creditsDate)) {
+                  if (permissionProvider.hasPermission(PermissionIds.creditsEditDate)) {
                     return InkWell(
                       onTap: _selectDate,
                       child: InputDecorator(
@@ -1182,10 +1183,10 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
-              // Date field with permission
+              // Date field - only show if user has credits_edit_date permission
               Consumer<PermissionProvider>(
                 builder: (context, permissionProvider, child) {
-                  if (permissionProvider.hasPermission(PermissionIds.creditsDate)) {
+                  if (permissionProvider.hasPermission(PermissionIds.creditsEditDate)) {
                     return InkWell(
                       onTap: _selectDate,
                       child: InputDecorator(

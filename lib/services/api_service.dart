@@ -16,6 +16,7 @@ import '../models/expense.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
 import '../models/credit.dart' hide SaleItem; // Hide SaleItem from credit to avoid conflict
+import '../models/supplier_credit.dart';
 import '../models/supplier.dart';
 import '../models/receiving.dart';
 import '../models/sale.dart'; // Use SaleItem from sale.dart
@@ -1756,6 +1757,129 @@ class ApiService {
           final supervisors = data['supervisors'] as List;
           return supervisors.map((s) => s as Map<String, dynamic>).toList();
         },
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ==================== SUPPLIERS CREDITORS API ====================
+
+  /// Get all suppliers with credit balances
+  Future<ApiResponse<SupplierCreditsResponse>> getSupplierCreditors({
+    List<int>? locationIds,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (locationIds != null && locationIds.isNotEmpty) {
+        queryParams['location_ids'] = locationIds.join(',');
+      }
+
+      final uri = Uri.parse('$baseUrlSync/suppliers_creditors')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<SupplierCreditsResponse>(
+        response,
+        (data) => SupplierCreditsResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get individual supplier account with transactions
+  Future<ApiResponse<SupplierAccountResponse>> getSupplierCreditorAccount(
+    int supplierId, {
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/suppliers_creditors/account/$supplierId')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<SupplierAccountResponse>(
+        response,
+        (data) => SupplierAccountResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add payment to supplier (debt payment)
+  Future<ApiResponse<Map<String, dynamic>>> addSupplierCreditorPayment(
+    SupplierPaymentFormData formData,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/suppliers_creditors/add_payment'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get daily credit report for suppliers (credit purchases)
+  Future<ApiResponse<SupplierDailyCreditResponse>> getSupplierDailyCreditReport({
+    String? startDate,
+    String? endDate,
+    List<int>? locationIds,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (locationIds != null && locationIds.isNotEmpty) {
+        queryParams['location_ids'] = locationIds.join(',');
+      }
+
+      final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_credit_report')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<SupplierDailyCreditResponse>(
+        response,
+        (data) => SupplierDailyCreditResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get daily debt report for suppliers (payments to suppliers)
+  Future<ApiResponse<SupplierDailyDebtResponse>> getSupplierDailyDebtReport({
+    String? startDate,
+    String? endDate,
+    List<int>? locationIds,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (locationIds != null && locationIds.isNotEmpty) {
+        queryParams['location_ids'] = locationIds.join(',');
+      }
+
+      final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_debt_report')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<SupplierDailyDebtResponse>(
+        response,
+        (data) => SupplierDailyDebtResponse.fromJson(data),
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');

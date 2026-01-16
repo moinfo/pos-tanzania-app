@@ -168,6 +168,7 @@ class PermissionIds {
   static const String suppliersCreditorsView = 'suppliers_creditors_view';
   static const String suppliersCreditorsPayment = 'suppliers_creditors_make_payment';
   static const String suppliersCreditorsDate = 'suppliers_creditors_date';
+  static const String suppliersCreditorsEditDate = 'suppliers_creditors_edit_date';
 
   // Clients sub-permissions
   static const String clientsEdit = 'clients_edit';
@@ -180,6 +181,7 @@ class PermissionIds {
   static const String creditsPay = 'credits_pay';
   static const String creditsTransfer = 'credits_transfer';
   static const String creditsDate = 'credits_date';
+  static const String creditsEditDate = 'credits_edit_date';
 
   // Cash submission sub-permissions (comprehensive list)
   // Note: Location permissions use sales_ prefix (sales_KIWANGWA, sales_BAGAMOYO)
