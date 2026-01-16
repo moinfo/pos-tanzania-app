@@ -436,10 +436,13 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     rows.add(const Divider(height: 1));
 
     // Expenses - requires cash_submit_expenses
-    addRowIfPermitted(
-      PermissionIds.cashSubmitExpenses,
-      _buildSummaryRow('Expenses', _summaryData!['expenses'], isNegative: true, isDark: isDark),
-    );
+    // Hidden for Leruma
+    if (!isLeruma) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitExpenses,
+        _buildSummaryRow('Expenses', _summaryData!['expenses'], isNegative: true, isDark: isDark),
+      );
+    }
 
     // Transportation Cost - requires cash_submit_transport_cost
     addRowIfPermitted(

@@ -865,7 +865,9 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             _buildDataRow('Direct Deposit', directDeposit, isDark),
             _buildDataRow('Difference Deposit', differenceDeposit, isDark),
             _buildDataRow('Bank Difference', bankDifference, isDark),
-            _buildDataRow('Banking', banking, isDark),
+            // Banking - hidden for Leruma
+            if (!_isLeruma)
+              _buildDataRow('Banking', banking, isDark),
             const Divider(height: 16),
 
             // Supplier & Returns section
