@@ -548,7 +548,7 @@ class _MainNavigationState extends State<MainNavigation> {
             PermissionWrapper(
               permissionId: PermissionIds.receivings,
               child: ListTile(
-                leading: const Icon(Icons.inventory, color: AppColors.success),
+                leading: const Icon(Icons.inventory, color: AppColors.primary),
                 title: const Text('Receivings'),
                 onTap: () {
                   Navigator.pop(context);
@@ -564,7 +564,7 @@ class _MainNavigationState extends State<MainNavigation> {
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
                 child: ListTile(
-                  leading: const Icon(Icons.attach_money, color: AppColors.success),
+                  leading: const Icon(Icons.attach_money, color: AppColors.primary),
                   title: const Text('Cash Submit'),
                   onTap: () {
                     Navigator.pop(context);
@@ -595,7 +595,7 @@ class _MainNavigationState extends State<MainNavigation> {
               PermissionWrapper(
                 permissionId: PermissionIds.tra,
                 child: ListTile(
-                  leading: const Icon(Icons.receipt_long, color: Colors.deepPurple),
+                  leading: const Icon(Icons.receipt_long, color: AppColors.primary),
                   title: const Text('Trade'),
                   onTap: () {
                     Navigator.pop(context);
@@ -609,7 +609,7 @@ class _MainNavigationState extends State<MainNavigation> {
             // 8. NFC Menu - requires hasNfcCard feature
             if (ApiService.currentClient?.features.hasNfcCard ?? false)
               ExpansionTile(
-                leading: const Icon(Icons.nfc, color: Colors.orange),
+                leading: const Icon(Icons.nfc, color: AppColors.primary),
                 title: const Text('NFC'),
                 childrenPadding: const EdgeInsets.only(left: 16),
                 children: [
@@ -617,7 +617,7 @@ class _MainNavigationState extends State<MainNavigation> {
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
                     child: ListTile(
-                      leading: const Icon(Icons.credit_card, color: Colors.orange),
+                      leading: const Icon(Icons.credit_card, color: AppColors.primary),
                       title: const Text('NFC Cards'),
                       onTap: () {
                         Navigator.pop(context);
@@ -632,7 +632,7 @@ class _MainNavigationState extends State<MainNavigation> {
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcConfirmationsView,
                     child: ListTile(
-                      leading: const Icon(Icons.verified, color: Colors.green),
+                      leading: const Icon(Icons.verified, color: AppColors.primary),
                       title: const Text('NFC Confirmations'),
                       onTap: () {
                         Navigator.pop(context);
@@ -647,7 +647,7 @@ class _MainNavigationState extends State<MainNavigation> {
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
                     child: ListTile(
-                      leading: const Icon(Icons.contactless, color: Colors.deepOrange),
+                      leading: const Icon(Icons.contactless, color: AppColors.primary),
                       title: const Text('NFC Card Lookup'),
                       onTap: () {
                         Navigator.pop(context);

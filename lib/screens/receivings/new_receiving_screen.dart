@@ -806,59 +806,60 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                                 }
                               },
                       ),
-                      const SizedBox(height: 8),
-                      // Reference field
-                      TextField(
-                        controller: _referenceController,
-                        style: TextStyle(
-                          color: isDark ? AppColors.darkText : Colors.black87,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Reference (Optional)',
-                          labelStyle: TextStyle(
-                            color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
-                          ),
-                          hintText: 'PO number, invoice...',
-                          hintStyle: TextStyle(
-                            color: isDark ? AppColors.darkTextLight : Colors.grey.shade500,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          filled: true,
-                          fillColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _commentController,
-                        style: TextStyle(
-                          color: isDark ? AppColors.darkText : Colors.black87,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Comment (Optional)',
-                          labelStyle: TextStyle(
-                            color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
-                          ),
-                          hintText: 'Additional notes...',
-                          hintStyle: TextStyle(
-                            color: isDark ? AppColors.darkTextLight : Colors.grey.shade500,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          filled: true,
-                          fillColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                      ),
+                      // Reference and Comment fields hidden per user request
+                      // const SizedBox(height: 8),
+                      // // Reference field
+                      // TextField(
+                      //   controller: _referenceController,
+                      //   style: TextStyle(
+                      //     color: isDark ? AppColors.darkText : Colors.black87,
+                      //   ),
+                      //   decoration: InputDecoration(
+                      //     labelText: 'Reference (Optional)',
+                      //     labelStyle: TextStyle(
+                      //       color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                      //     ),
+                      //     hintText: 'PO number, invoice...',
+                      //     hintStyle: TextStyle(
+                      //       color: isDark ? AppColors.darkTextLight : Colors.grey.shade500,
+                      //     ),
+                      //     border: OutlineInputBorder(
+                      //       borderRadius: BorderRadius.circular(8),
+                      //     ),
+                      //     filled: true,
+                      //     fillColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
+                      //     contentPadding: const EdgeInsets.symmetric(
+                      //       horizontal: 12,
+                      //       vertical: 8,
+                      //     ),
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 8),
+                      // TextField(
+                      //   controller: _commentController,
+                      //   style: TextStyle(
+                      //     color: isDark ? AppColors.darkText : Colors.black87,
+                      //   ),
+                      //   decoration: InputDecoration(
+                      //     labelText: 'Comment (Optional)',
+                      //     labelStyle: TextStyle(
+                      //       color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                      //     ),
+                      //     hintText: 'Additional notes...',
+                      //     hintStyle: TextStyle(
+                      //       color: isDark ? AppColors.darkTextLight : Colors.grey.shade500,
+                      //     ),
+                      //     border: OutlineInputBorder(
+                      //       borderRadius: BorderRadius.circular(8),
+                      //     ),
+                      //     filled: true,
+                      //     fillColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
+                      //     contentPadding: const EdgeInsets.symmetric(
+                      //       horizontal: 12,
+                      //       vertical: 8,
+                      //     ),
+                      //   ),
+                      // ),
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
