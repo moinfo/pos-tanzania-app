@@ -171,6 +171,8 @@ class CartItem {
   final String? image;
   final double retailPrice;
   final double wholesalePrice;
+  final double retailQuantity;   // Stock at location 2
+  final double wholesaleQuantity; // Stock at location 3
   int quantity;
   String priceType; // 'retail' or 'wholesale'
   String? notes;
@@ -181,6 +183,8 @@ class CartItem {
     this.image,
     required this.retailPrice,
     required this.wholesalePrice,
+    this.retailQuantity = 0,
+    this.wholesaleQuantity = 0,
     this.quantity = 1,
     this.priceType = 'retail',
     this.notes,
@@ -196,6 +200,12 @@ class CartItem {
 
   /// Check if wholesale is available
   bool get hasWholesale => wholesalePrice > 0;
+
+  /// Get available stock for current price type
+  double get availableStock => priceType == 'wholesale' ? wholesaleQuantity : retailQuantity;
+
+  /// Check if current quantity exceeds available stock
+  bool get exceedsStock => quantity > availableStock;
 
   /// Convert to order item JSON
   Map<String, dynamic> toOrderJson() {
@@ -215,6 +225,8 @@ class CartItem {
       image: product.displayImage,
       retailPrice: product.retailPrice,
       wholesalePrice: product.wholesalePrice,
+      retailQuantity: product.retailQuantity ?? 0,
+      wholesaleQuantity: product.wholesaleQuantity ?? 0,
     );
   }
 }

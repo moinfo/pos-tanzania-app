@@ -229,9 +229,28 @@ class LandingProvider with ChangeNotifier {
   // CART
   // ========================================
 
-  /// Add item to cart
-  void addToCart(PublicProduct product, {int quantity = 1, String priceType = 'retail'}) {
-    final existingIndex = _cart.indexWhere((item) => item.itemId == product.itemId);
+  /// Add item to cart with stock validation
+  /// Returns null on success, or error message on failure
+  String? addToCart(PublicProduct product, {int quantity = 1, String priceType = 'retail'}) {
+    final availableStock = product.getStock(priceType);
+
+    // Check if item is in stock
+    if (availableStock <= 0) {
+      return 'Out of stock';
+    }
+
+    // Find existing cart item with same price type
+    final existingIndex = _cart.indexWhere(
+      (item) => item.itemId == product.itemId && item.priceType == priceType
+    );
+
+    final currentCartQty = existingIndex != -1 ? _cart[existingIndex].quantity : 0;
+    final newTotalQty = currentCartQty + quantity;
+
+    // Validate stock availability
+    if (newTotalQty > availableStock) {
+      return 'Insufficient stock (${availableStock.toInt()} available)';
+    }
 
     if (existingIndex != -1) {
       _cart[existingIndex].quantity += quantity;
@@ -242,35 +261,60 @@ class LandingProvider with ChangeNotifier {
         image: product.displayImage,
         retailPrice: product.retailPrice,
         wholesalePrice: product.wholesalePrice,
+        retailQuantity: product.retailQuantity,
+        wholesaleQuantity: product.wholesaleQuantity,
         quantity: quantity,
         priceType: priceType,
       ));
     }
 
     notifyListeners();
+    return null; // Success
   }
 
-  /// Update cart item quantity
-  void updateCartQuantity(int itemId, int quantity) {
+  /// Update cart item quantity with stock validation
+  /// Returns null on success, or error message on failure
+  String? updateCartQuantity(int itemId, int quantity) {
     if (quantity <= 0) {
       removeFromCart(itemId);
-      return;
+      return null;
     }
 
     final index = _cart.indexWhere((item) => item.itemId == itemId);
     if (index != -1) {
+      final item = _cart[index];
+      final availableStock = item.availableStock;
+
+      // Validate stock availability
+      if (quantity > availableStock) {
+        return 'Maximum quantity reached (${availableStock.toInt()} available)';
+      }
+
       _cart[index].quantity = quantity;
       notifyListeners();
     }
+    return null;
   }
 
-  /// Update cart item price type
-  void updateCartPriceType(int itemId, String priceType) {
+  /// Update cart item price type with stock validation
+  /// Returns null on success, or error message on failure
+  String? updateCartPriceType(int itemId, String priceType) {
     final index = _cart.indexWhere((item) => item.itemId == itemId);
     if (index != -1) {
+      final item = _cart[index];
+      final newAvailableStock = priceType == 'wholesale'
+          ? item.wholesaleQuantity
+          : item.retailQuantity;
+
+      // Validate stock for new price type
+      if (item.quantity > newAvailableStock) {
+        return 'Insufficient stock for ${priceType} (${newAvailableStock.toInt()} available)';
+      }
+
       _cart[index].priceType = priceType;
       notifyListeners();
     }
+    return null;
   }
 
   /// Remove item from cart

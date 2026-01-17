@@ -349,13 +349,49 @@ class _ProductCardState extends State<ProductCard> {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    '${widget.product.likesCount} likes',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: textColor,
-                    ),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${widget.product.likesCount} likes',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: textColor,
+                        ),
+                      ),
+                      const Spacer(),
+                      // Stock indicator
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: widget.product.isInStock
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              widget.product.isInStock ? Icons.check_circle : Icons.cancel,
+                              size: 12,
+                              color: widget.product.isInStock ? Colors.green : Colors.red,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              widget.product.isInStock
+                                  ? '${widget.product.retailQuantity.toInt()} in stock'
+                                  : 'Out of stock',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: widget.product.isInStock ? Colors.green : Colors.red,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Padding(

@@ -13,6 +13,8 @@ class PublicProduct {
   final List<ProductImage> images;
   final List<PortfolioImage> portfolio;
   final DateTime? latestMediaAt;
+  final double retailQuantity;   // Stock at location 2
+  final double wholesaleQuantity; // Stock at location 3
 
   PublicProduct({
     required this.itemId,
@@ -28,6 +30,8 @@ class PublicProduct {
     this.images = const [],
     this.portfolio = const [],
     this.latestMediaAt,
+    this.retailQuantity = 0,
+    this.wholesaleQuantity = 0,
   });
 
   factory PublicProduct.fromJson(Map<String, dynamic> json) {
@@ -54,6 +58,8 @@ class PublicProduct {
           ? (json['portfolio'] as List).map((e) => PortfolioImage.fromJson(e)).toList()
           : [],
       latestMediaAt: latestMedia,
+      retailQuantity: (json['retail_quantity'] ?? 0).toDouble(),
+      wholesaleQuantity: (json['wholesale_quantity'] ?? 0).toDouble(),
     );
   }
 
@@ -62,6 +68,17 @@ class PublicProduct {
 
   /// Check if product has wholesale price
   bool get hasWholesalePrice => wholesalePrice > 0;
+
+  /// Get stock quantity for a price type
+  double getStock(String priceType) {
+    return priceType == 'wholesale' ? wholesaleQuantity : retailQuantity;
+  }
+
+  /// Check if product is in stock for retail
+  bool get isInStock => retailQuantity > 0;
+
+  /// Check if product is in stock for wholesale
+  bool get isInStockWholesale => wholesaleQuantity > 0;
 
   /// Get "time ago" string for latest media
   String get timeAgo {
@@ -112,6 +129,8 @@ class PublicProduct {
       images: images,
       portfolio: portfolio,
       latestMediaAt: latestMediaAt,
+      retailQuantity: retailQuantity,
+      wholesaleQuantity: wholesaleQuantity,
     );
   }
 }

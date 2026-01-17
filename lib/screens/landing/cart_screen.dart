@@ -211,16 +211,53 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                         _buildPriceTypeChip(
                           'Retail',
                           item.priceType == 'retail',
-                          () => provider.updateCartPriceType(item.itemId, 'retail'),
+                          () {
+                            final error = provider.updateCartPriceType(item.itemId, 'retail');
+                            if (error != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error), backgroundColor: Colors.red),
+                              );
+                            }
+                          },
                         ),
                         const SizedBox(width: 8),
                         _buildPriceTypeChip(
                           'Wholesale',
                           item.priceType == 'wholesale',
-                          () => provider.updateCartPriceType(item.itemId, 'wholesale'),
+                          () {
+                            final error = provider.updateCartPriceType(item.itemId, 'wholesale');
+                            if (error != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error), backgroundColor: Colors.red),
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),
+
+                  const SizedBox(height: 4),
+
+                  // Stock indicator
+                  Row(
+                    children: [
+                      Icon(
+                        item.availableStock > 0 ? Icons.check_circle : Icons.cancel,
+                        size: 12,
+                        color: item.availableStock > 0 ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.availableStock > 0
+                            ? '${item.availableStock.toInt()} in stock'
+                            : 'Out of stock',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: item.availableStock > 0 ? Colors.green : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
 
                   const SizedBox(height: 8),
 
@@ -245,10 +282,17 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             InkWell(
-                              onTap: () => provider.updateCartQuantity(
-                                item.itemId,
-                                item.quantity - 1,
-                              ),
+                              onTap: () {
+                                final error = provider.updateCartQuantity(
+                                  item.itemId,
+                                  item.quantity - 1,
+                                );
+                                if (error != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(error), backgroundColor: Colors.red),
+                                  );
+                                }
+                              },
                               child: Padding(
                                 padding: const EdgeInsets.all(8),
                                 child: Icon(Icons.remove, size: 16, color: _textColor),
@@ -262,10 +306,17 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                               ),
                             ),
                             InkWell(
-                              onTap: () => provider.updateCartQuantity(
-                                item.itemId,
-                                item.quantity + 1,
-                              ),
+                              onTap: () {
+                                final error = provider.updateCartQuantity(
+                                  item.itemId,
+                                  item.quantity + 1,
+                                );
+                                if (error != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(error), backgroundColor: Colors.red),
+                                  );
+                                }
+                              },
                               child: Padding(
                                 padding: const EdgeInsets.all(8),
                                 child: Icon(Icons.add, size: 16, color: _textColor),

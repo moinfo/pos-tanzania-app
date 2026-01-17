@@ -1298,6 +1298,143 @@ class ApiService {
     }
   }
 
+  /// Create item with images (multipart upload)
+  Future<ApiResponse<Item>> createItemWithImages(
+    ItemFormData formData, {
+    String? mainImagePath,
+    List<String>? galleryImagePaths,
+    List<String>? portfolioImagePaths,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrlSync/items/create'),
+      );
+
+      // Add headers
+      request.headers.addAll(await _getMultipartHeaders());
+
+      // Add form fields
+      final formJson = formData.toJson();
+      formJson.forEach((key, value) {
+        if (value != null) {
+          if (value is Map) {
+            request.fields[key] = json.encode(value);
+          } else {
+            request.fields[key] = value.toString();
+          }
+        }
+      });
+
+      // Add main image if provided
+      if (mainImagePath != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'item_pic',
+          mainImagePath,
+        ));
+      }
+
+      // Add gallery images if provided
+      if (galleryImagePaths != null) {
+        for (var i = 0; i < galleryImagePaths.length; i++) {
+          request.files.add(await http.MultipartFile.fromPath(
+            'gallery_images[]',
+            galleryImagePaths[i],
+          ));
+        }
+      }
+
+      // Add portfolio images if provided
+      if (portfolioImagePaths != null) {
+        for (var i = 0; i < portfolioImagePaths.length; i++) {
+          request.files.add(await http.MultipartFile.fromPath(
+            'history_images[]',
+            portfolioImagePaths[i],
+          ));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      return _handleResponse<Item>(
+        response,
+        (data) => Item.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update item with images (multipart upload)
+  Future<ApiResponse<Item>> updateItemWithImages(
+    int id,
+    ItemFormData formData, {
+    String? mainImagePath,
+    List<String>? galleryImagePaths,
+    List<String>? portfolioImagePaths,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrlSync/items/update/$id'),
+      );
+
+      // Add headers
+      request.headers.addAll(await _getMultipartHeaders());
+
+      // Add form fields
+      final formJson = formData.toJson();
+      formJson.forEach((key, value) {
+        if (value != null) {
+          if (value is Map) {
+            request.fields[key] = json.encode(value);
+          } else {
+            request.fields[key] = value.toString();
+          }
+        }
+      });
+
+      // Add main image if provided
+      if (mainImagePath != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'item_pic',
+          mainImagePath,
+        ));
+      }
+
+      // Add gallery images if provided
+      if (galleryImagePaths != null) {
+        for (var i = 0; i < galleryImagePaths.length; i++) {
+          request.files.add(await http.MultipartFile.fromPath(
+            'gallery_images[]',
+            galleryImagePaths[i],
+          ));
+        }
+      }
+
+      // Add portfolio images if provided
+      if (portfolioImagePaths != null) {
+        for (var i = 0; i < portfolioImagePaths.length; i++) {
+          request.files.add(await http.MultipartFile.fromPath(
+            'history_images[]',
+            portfolioImagePaths[i],
+          ));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      return _handleResponse<Item>(
+        response,
+        (data) => Item.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ============================================================================
   // CREDIT MANAGEMENT
   // ============================================================================

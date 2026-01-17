@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/item.dart';
@@ -83,10 +86,15 @@ class _ItemsScreenState extends State<ItemsScreen> {
   }
 
   void _showItemForm({Item? item}) {
+    // Get current location for location-specific pricing
+    final locationProvider = context.read<LocationProvider>();
+    final currentLocationId = locationProvider.selectedLocation?.locationId;
+
     showDialog(
       context: context,
       builder: (context) => ItemFormDialog(
         item: item,
+        currentLocationId: currentLocationId,
         onSaved: () {
           Navigator.pop(context);
           _loadItems();
@@ -189,15 +197,18 @@ class _ItemsScreenState extends State<ItemsScreen> {
                                       : Colors.grey,
                                 ),
                                 const SizedBox(width: 12),
-                                Text(
-                                  location.locationName,
-                                  style: TextStyle(
-                                    color: location.locationId == locationProvider.selectedLocation?.locationId
-                                        ? AppColors.primary
-                                        : Colors.black87,
-                                    fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
+                                Flexible(
+                                  child: Text(
+                                    location.locationName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: location.locationId == locationProvider.selectedLocation?.locationId
+                                          ? AppColors.primary
+                                          : Colors.black87,
+                                      fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -478,11 +489,13 @@ class _ItemsScreenState extends State<ItemsScreen> {
 class ItemFormDialog extends StatefulWidget {
   final Item? item;
   final VoidCallback onSaved;
+  final int? currentLocationId; // Current location for location-specific pricing
 
   const ItemFormDialog({
     super.key,
     this.item,
     required this.onSaved,
+    this.currentLocationId,
   });
 
   @override
@@ -507,10 +520,12 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   late TextEditingController _hsnCodeController;
   late TextEditingController _arrangeController;
   late TextEditingController _discountLimitController;
+  late TextEditingController _wholesalePriceController;
 
   bool _isSubmitting = false;
   bool _allowAltDescription = false;
   bool _isSerialized = false;
+  bool _showOnLanding = false;
   int _stockType = 0;
   int _itemType = 0;
   int? _taxCategoryId;
@@ -520,10 +535,16 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   List<StockLocation> _stockLocations = [];
   Map<int, TextEditingController> _quantityControllers = {};
 
+  // Image picker state
+  final ImagePicker _imagePicker = ImagePicker();
+  File? _mainImage;
+  List<File> _galleryImages = [];
+  List<File> _portfolioImages = [];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
 
     _nameController = TextEditingController(text: widget.item?.name);
     _categoryController = TextEditingController(text: widget.item?.category);
@@ -556,10 +577,14 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     _discountLimitController = TextEditingController(
       text: widget.item?.discountLimit.toString() ?? '0',
     );
+    _wholesalePriceController = TextEditingController(
+      text: widget.item?.wholesalePrice.toString() ?? '0',
+    );
 
     // Initialize state variables
     _allowAltDescription = widget.item?.allowAltDescription ?? false;
     _isSerialized = widget.item?.isSerialized ?? false;
+    _showOnLanding = widget.item?.showOnLanding ?? false;
     _stockType = widget.item?.stockType ?? 0;
     _itemType = widget.item?.itemType ?? 0;
     _taxCategoryId = widget.item?.taxCategoryId;
@@ -585,6 +610,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     _hsnCodeController.dispose();
     _arrangeController.dispose();
     _discountLimitController.dispose();
+    _wholesalePriceController.dispose();
     for (var controller in _quantityControllers.values) {
       controller.dispose();
     }
@@ -610,8 +636,110 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     }
   }
 
+  // Image picker methods
+  Future<void> _pickMainImage() async {
+    final XFile? image = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1280,
+      maxHeight: 1280,
+      imageQuality: 85,
+    );
+    if (image != null) {
+      setState(() => _mainImage = File(image.path));
+    }
+  }
+
+  Future<void> _pickGalleryImages() async {
+    final List<XFile> images = await _imagePicker.pickMultiImage(
+      maxWidth: 1280,
+      maxHeight: 1280,
+      imageQuality: 85,
+    );
+    if (images.isNotEmpty) {
+      setState(() {
+        _galleryImages.addAll(images.map((img) => File(img.path)));
+      });
+    }
+  }
+
+  Future<void> _pickPortfolioImages() async {
+    final List<XFile> images = await _imagePicker.pickMultiImage(
+      maxWidth: 1280,
+      maxHeight: 1280,
+      imageQuality: 85,
+    );
+    if (images.isNotEmpty) {
+      setState(() {
+        _portfolioImages.addAll(images.map((img) => File(img.path)));
+      });
+    }
+  }
+
+  void _removeMainImage() {
+    setState(() => _mainImage = null);
+  }
+
+  void _removeGalleryImage(int index) {
+    setState(() => _galleryImages.removeAt(index));
+  }
+
+  void _removePortfolioImage(int index) {
+    setState(() => _portfolioImages.removeAt(index));
+  }
+
+  /// Validate profit margin to ensure no loss
+  /// Returns error message if validation fails, null if valid
+  String? _validateProfitMargin() {
+    final costPrice = double.tryParse(_costPriceController.text) ?? 0;
+    final unitPrice = double.tryParse(_unitPriceController.text) ?? 0;
+    final discountLimit = double.tryParse(_discountLimitController.text) ?? 0;
+
+    // Skip validation if prices are not set
+    if (unitPrice <= 0) return null;
+
+    // Selling price must be >= cost price
+    if (costPrice > 0 && unitPrice < costPrice) {
+      return 'Selling price (${NumberFormat('#,###').format(unitPrice)}) cannot be less than cost price (${NumberFormat('#,###').format(costPrice)})';
+    }
+
+    // Discount limit cannot exceed profit margin (sell - cost)
+    if (costPrice > 0 && discountLimit > 0) {
+      final maxDiscount = unitPrice - costPrice;
+      if (discountLimit > maxDiscount) {
+        return 'Discount limit (${NumberFormat('#,###').format(discountLimit)}) exceeds profit margin (${NumberFormat('#,###').format(maxDiscount)}). Maximum discount allowed is ${NumberFormat('#,###').format(maxDiscount)} TSh.';
+      }
+    }
+
+    return null;
+  }
+
   Future<void> _saveItem() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Validate profit margin before saving
+    final profitError = _validateProfitMargin();
+    if (profitError != null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 8),
+              Text('Validation Error'),
+            ],
+          ),
+          content: Text(profitError),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
     setState(() => _isSubmitting = true);
 
@@ -621,6 +749,35 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       quantityByLocation[entry.key] = double.tryParse(entry.value.text) ?? 0;
     }
 
+    // Build location-specific pricing if editing from a specific location
+    // This ensures the price the user sees and edits is saved to the correct location
+    Map<int, ItemLocationPriceFormData>? locationPrices;
+
+    // When editing from a specific location, only update location-specific prices
+    // Keep default prices unchanged (use original values from item)
+    double defaultCostPrice = double.tryParse(_costPriceController.text) ?? 0;
+    double defaultUnitPrice = double.tryParse(_unitPriceController.text) ?? 0;
+    int defaultDiscountLimit = int.tryParse(_discountLimitController.text) ?? 0;
+
+    if (widget.currentLocationId != null && widget.item != null) {
+      final unitPrice = double.tryParse(_unitPriceController.text);
+      final costPrice = double.tryParse(_costPriceController.text);
+      final discountLimit = int.tryParse(_discountLimitController.text);
+
+      locationPrices = {
+        widget.currentLocationId!: ItemLocationPriceFormData(
+          costPrice: costPrice,
+          unitPrice: unitPrice,
+          discountLimit: discountLimit,
+        ),
+      };
+
+      // Use original default prices (not the edited location-specific values)
+      defaultCostPrice = widget.item!.defaultCostPrice ?? widget.item!.costPrice;
+      defaultUnitPrice = widget.item!.defaultUnitPrice ?? widget.item!.unitPrice;
+      defaultDiscountLimit = widget.item!.defaultDiscountLimit ?? widget.item!.discountLimit;
+    }
+
     final formData = ItemFormData(
       name: _nameController.text.trim(),
       category: _categoryController.text.trim(),
@@ -628,12 +785,14 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       itemNumber: _itemNumberController.text.trim().isEmpty
           ? null
           : _itemNumberController.text.trim(),
-      costPrice: double.tryParse(_costPriceController.text) ?? 0,
-      unitPrice: double.tryParse(_unitPriceController.text) ?? 0,
+      costPrice: defaultCostPrice,
+      unitPrice: defaultUnitPrice,
+      wholesalePrice: double.tryParse(_wholesalePriceController.text) ?? 0,
       reorderLevel: double.tryParse(_reorderLevelController.text) ?? 0,
       receivingQuantity: double.tryParse(_receivingQuantityController.text) ?? 1,
       allowAltDescription: _allowAltDescription,
       isSerialized: _isSerialized,
+      showOnLanding: _showOnLanding,
       stockType: _stockType,
       itemType: _itemType,
       taxCategoryId: _taxCategoryId,
@@ -641,14 +800,35 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       qtyPerPack: double.tryParse(_qtyPerPackController.text) ?? 1,
       packName: _packNameController.text.trim(),
       arrange: int.tryParse(_arrangeController.text) ?? 0,
-      discountLimit: int.tryParse(_discountLimitController.text) ?? 0,
+      discountLimit: defaultDiscountLimit,
       dormant: _dormant,
       quantityByLocation: quantityByLocation,
+      locationPrices: locationPrices,
     );
 
-    final response = widget.item == null
-        ? await _apiService.createItem(formData)
-        : await _apiService.updateItem(widget.item!.itemId, formData);
+    // Check if any images are selected - use multipart upload if so
+    final hasImages = _mainImage != null ||
+        _galleryImages.isNotEmpty ||
+        _portfolioImages.isNotEmpty;
+
+    final response = hasImages
+        ? (widget.item == null
+            ? await _apiService.createItemWithImages(
+                formData,
+                mainImagePath: _mainImage?.path,
+                galleryImagePaths: _galleryImages.map((f) => f.path).toList(),
+                portfolioImagePaths: _portfolioImages.map((f) => f.path).toList(),
+              )
+            : await _apiService.updateItemWithImages(
+                widget.item!.itemId,
+                formData,
+                mainImagePath: _mainImage?.path,
+                galleryImagePaths: _galleryImages.map((f) => f.path).toList(),
+                portfolioImagePaths: _portfolioImages.map((f) => f.path).toList(),
+              ))
+        : (widget.item == null
+            ? await _apiService.createItem(formData)
+            : await _apiService.updateItem(widget.item!.itemId, formData));
 
     setState(() => _isSubmitting = false);
 
@@ -696,7 +876,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
               labelColor: AppColors.primary,
               tabs: const [
                 Tab(text: 'Basic Info'),
-                Tab(text: 'Additional Details'),
+                Tab(text: 'Details'),
+                Tab(text: 'Images'),
               ],
             ),
             // Tab Views
@@ -708,6 +889,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                   children: [
                     _buildBasicInfoTab(canSeeCostPrice),
                     _buildAdditionalDetailsTab(canSeeQuantity),
+                    _buildImagesTab(),
                   ],
                 ),
               ),
@@ -832,6 +1014,25 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 16),
+          // Wholesale Price
+          TextFormField(
+            controller: _wholesalePriceController,
+            decoration: const InputDecoration(
+              labelText: 'Wholesale Price',
+              border: OutlineInputBorder(),
+              helperText: 'Price for wholesale/bulk orders',
+            ),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 8),
+          // Show on Landing
+          SwitchListTile(
+            title: const Text('Show on Landing Page'),
+            subtitle: const Text('Display this item on the public landing page'),
+            value: _showOnLanding,
+            onChanged: (value) => setState(() => _showOnLanding = value),
           ),
         ],
       ),
@@ -976,6 +1177,315 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
               );
             }).toList(),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagesTab() {
+    final existingMainImage = widget.item?.picFilename;
+    final existingGalleryImages = widget.item?.galleryImages ?? [];
+    final existingPortfolioImages = widget.item?.portfolioImages ?? [];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Main Item Image
+          const Text(
+            'Main Item Image',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          _mainImage != null
+              ? Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        _mainImage!,
+                        height: 150,
+                        width: 150,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: _removeMainImage,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(Icons.close, color: Colors.white, size: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : existingMainImage != null && existingMainImage.isNotEmpty
+                  ? Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: '${ApiService.baseUrlSync}/uploads/item_pics/$existingMainImage.png',
+                            height: 150,
+                            width: 150,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              height: 150,
+                              width: 150,
+                              color: Colors.grey[200],
+                              child: const Center(child: CircularProgressIndicator()),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              height: 150,
+                              width: 150,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.broken_image, size: 40),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: _pickMainImage,
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.blue,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(Icons.edit, color: Colors.white, size: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: _pickMainImage,
+                      icon: const Icon(Icons.add_photo_alternate),
+                      label: const Text('Select Main Image'),
+                    ),
+          const SizedBox(height: 24),
+
+          // Gallery Images
+          const Text(
+            'Gallery Images',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Additional images for product gallery',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          if (existingGalleryImages.isNotEmpty || _galleryImages.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                // Existing gallery images from API
+                ...existingGalleryImages.map((img) {
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CachedNetworkImage(
+                          imageUrl: img.url,
+                          height: 80,
+                          width: 80,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            height: 80,
+                            width: 80,
+                            color: Colors.grey[200],
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            height: 80,
+                            width: 80,
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.broken_image, size: 24),
+                          ),
+                        ),
+                      ),
+                      if (img.isPrimary)
+                        Positioned(
+                          bottom: 2,
+                          left: 2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('Primary', style: TextStyle(color: Colors.white, fontSize: 8)),
+                          ),
+                        ),
+                    ],
+                  );
+                }),
+                // New gallery images (local files)
+                ..._galleryImages.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final image = entry.value;
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          image,
+                          height: 80,
+                          width: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: GestureDetector(
+                          onTap: () => _removeGalleryImage(index),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            padding: const EdgeInsets.all(2),
+                            child: const Icon(Icons.close, color: Colors.white, size: 12),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 2,
+                        left: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('New', style: TextStyle(color: Colors.white, fontSize: 8)),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+          OutlinedButton.icon(
+            onPressed: _pickGalleryImages,
+            icon: const Icon(Icons.add_photo_alternate),
+            label: Text(existingGalleryImages.isEmpty && _galleryImages.isEmpty ? 'Select Gallery Images' : 'Add More'),
+          ),
+          const SizedBox(height: 24),
+
+          // Portfolio/History Images
+          const Text(
+            'Portfolio Images',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Product history or manufacturing images',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          if (existingPortfolioImages.isNotEmpty || _portfolioImages.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                // Existing portfolio images from API
+                ...existingPortfolioImages.map((img) {
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CachedNetworkImage(
+                          imageUrl: img.url,
+                          height: 80,
+                          width: 80,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            height: 80,
+                            width: 80,
+                            color: Colors.grey[200],
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            height: 80,
+                            width: 80,
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.broken_image, size: 24),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+                // New portfolio images (local files)
+                ..._portfolioImages.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final image = entry.value;
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          image,
+                          height: 80,
+                          width: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: GestureDetector(
+                          onTap: () => _removePortfolioImage(index),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            padding: const EdgeInsets.all(2),
+                            child: const Icon(Icons.close, color: Colors.white, size: 12),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 2,
+                        left: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('New', style: TextStyle(color: Colors.white, fontSize: 8)),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+          OutlinedButton.icon(
+            onPressed: _pickPortfolioImages,
+            icon: const Icon(Icons.add_photo_alternate),
+            label: Text(existingPortfolioImages.isEmpty && _portfolioImages.isEmpty ? 'Select Portfolio Images' : 'Add More'),
+          ),
         ],
       ),
     );
