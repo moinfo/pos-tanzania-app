@@ -456,6 +456,24 @@ class _MainNavigationState extends State<MainNavigation> {
               title: const Text('Sales'),
               childrenPadding: const EdgeInsets.only(left: 16),
               children: [
+                // New Sales
+                PermissionWrapper(
+                  permissionId: PermissionIds.sales,
+                  child: ListTile(
+                    leading: const Icon(Icons.add_shopping_cart, color: AppColors.primary),
+                    title: const Text('New Sales'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      // Find the Sales screen index in availableScreens
+                      final salesIndex = availableScreens.indexWhere(
+                        (config) => config['label'] == 'Sales'
+                      );
+                      if (salesIndex != -1) {
+                        _onItemTapped(salesIndex);
+                      }
+                    },
+                  ),
+                ),
                 // Sales History
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
@@ -541,21 +559,22 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
-            // 5. Cash Submit - requires cash_submit module permission
-            PermissionWrapper(
-              permissionId: PermissionIds.cashSubmit,
-              child: ListTile(
-                leading: const Icon(Icons.attach_money, color: AppColors.success),
-                title: const Text('Cash Submit'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CashSubmitScreen()),
-                  );
-                },
+            // 5. Cash Submit - requires cash_submit module permission (hidden for Leruma)
+            if (ApiService.currentClient?.id != 'leruma')
+              PermissionWrapper(
+                permissionId: PermissionIds.cashSubmit,
+                child: ListTile(
+                  leading: const Icon(Icons.attach_money, color: AppColors.success),
+                  title: const Text('Cash Submit'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CashSubmitScreen()),
+                    );
+                  },
+                ),
               ),
-            ),
             // 6. Banking - requires cash_submit_banking permission
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitBanking,
@@ -657,21 +676,22 @@ class _MainNavigationState extends State<MainNavigation> {
                   },
                 ),
               ),
-            // 10. Financial Position - requires office permission
-            PermissionWrapper(
-              permissionId: PermissionIds.office,
-              child: ListTile(
-                leading: const Icon(Icons.analytics, color: AppColors.primary),
-                title: const Text('Financial Position'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PositionsScreen()),
-                  );
-                },
+            // 10. Financial Position - requires office permission (hidden for Leruma)
+            if (ApiService.currentClient?.id != 'leruma')
+              PermissionWrapper(
+                permissionId: PermissionIds.office,
+                child: ListTile(
+                  leading: const Icon(Icons.analytics, color: AppColors.primary),
+                  title: const Text('Financial Position'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PositionsScreen()),
+                    );
+                  },
+                ),
               ),
-            ),
             const Divider(),
             // Other menus
             // Z Reports - requires cash_submit_z_report permission

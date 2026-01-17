@@ -238,26 +238,27 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
 
                   const SizedBox(height: 4),
 
-                  // Stock indicator
-                  Row(
-                    children: [
-                      Icon(
-                        item.availableStock > 0 ? Icons.check_circle : Icons.cancel,
-                        size: 12,
-                        color: item.availableStock > 0 ? Colors.green : Colors.red,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        item.availableStock > 0
-                            ? '${item.availableStock.toInt()} in stock'
-                            : 'Out of stock',
-                        style: TextStyle(
-                          fontSize: 11,
+                  // Stock indicator (only shown if feature enabled for this client)
+                  if (provider.hasStockDisplay)
+                    Row(
+                      children: [
+                        Icon(
+                          item.availableStock > 0 ? Icons.check_circle : Icons.cancel,
+                          size: 12,
                           color: item.availableStock > 0 ? Colors.green : Colors.red,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 4),
+                        Text(
+                          item.availableStock > 0
+                              ? '${item.availableStock.toInt()} in stock'
+                              : 'Out of stock',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: item.availableStock > 0 ? Colors.green : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
 
                   const SizedBox(height: 8),
 

@@ -48,14 +48,12 @@ class ClientsConfig {
   // ============================================
   // NETWORK CONFIGURATION
   // ============================================
-  // ⚠️ CHANGE THIS IP ADDRESS when your network changes
-//   static const String LOCAL_IP_ADDRESS = '192.168.1.77'; // Your computer's local IP
-//   static const String LOCAL_IP_ADDRESS = '10.143.155.146'; // Your computer's local IP
-  static const String LOCAL_IP_ADDRESS = '192.168.0.102'; // Your computer's local IP
-  static const String MAMP_PORT = '8888';
+  // Local Laravel server: php artisan serve --port=8085
+  static const String LOCAL_HOST = 'localhost';
+  static const String LOCAL_PORT = '8085';
 
-  // Base URLs (automatically constructed from IP address)
-  static const String localBaseUrl = 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania/public/api';
+  // Base URLs
+  static const String localBaseUrl = 'http://$LOCAL_HOST:$LOCAL_PORT/api';
   static const String prodBaseUrl = 'https://moinfotech.co.tz/api';
 
   // ============================================
@@ -67,7 +65,7 @@ class ClientsConfig {
       id: 'sada',
       name: 'dev-sada',
       displayName: 'SADA',
-      devApiUrl: '$localBaseUrl',
+      devApiUrl: localBaseUrl,
       prodApiUrl: 'https://moinfotech.co.tz/api',
       features: const ClientFeatures(
         hasContracts: true,
@@ -79,13 +77,15 @@ class ClientsConfig {
       id: 'come_and_save',
       name: 'dev-come_and_save',
       displayName: 'Come & Save',
-      devApiUrl: 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania-come_and_save/public/api',
+      devApiUrl: localBaseUrl,
       prodApiUrl: 'https://comeandsave.co.tz/api',
       features: const ClientFeatures(
         hasContracts: false,
         hasNfcCard: true,
         hasOfflineMode: false,
         hasLandingPage: true, // Public shop landing page enabled
+        hasLocationBasedPricing: true, // Different prices per stock location
+        hasLandingStockDisplay: true, // Show stock and validate orders on landing page
       ),
     ),
     // Leruma
@@ -93,7 +93,7 @@ class ClientsConfig {
       id: 'leruma',
       name: 'dev-leruma',
       displayName: 'Leruma',
-      devApiUrl: 'http://$LOCAL_IP_ADDRESS:$MAMP_PORT/PointOfSalesTanzania-leruma/public/api',
+      devApiUrl: localBaseUrl,
       prodApiUrl: 'https://leruma.co.tz/api',
       features: const ClientFeatures(
         hasContracts: false,

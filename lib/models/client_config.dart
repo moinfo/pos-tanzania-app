@@ -32,6 +32,12 @@ class ClientFeatures {
   // TRA (Tanzania Revenue Authority) module
   final bool hasTRA; // Enable TRA module for tax reporting (Leruma only)
 
+  // Location-based pricing (Come & Save only)
+  final bool hasLocationBasedPricing; // Enable different prices per stock location
+
+  // Landing page stock display (Come & Save only)
+  final bool hasLandingStockDisplay; // Show stock quantities and validate orders on landing page
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -56,6 +62,8 @@ class ClientFeatures {
     this.hasOfflineMode = false, // Default: disabled - enable per client as needed
     this.hasLandingPage = false, // Default: disabled - only Come & Save uses this
     this.hasTRA = false, // Default: disabled - only Leruma uses this
+    this.hasLocationBasedPricing = false, // Default: disabled - only Come & Save uses this
+    this.hasLandingStockDisplay = false, // Default: disabled - only Come & Save uses this
   });
 }
 

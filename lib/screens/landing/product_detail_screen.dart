@@ -418,48 +418,49 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Stock indicator
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: _product.isInStock
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _product.isInStock ? Icons.check_circle : Icons.cancel,
-                  size: 16,
-                  color: _product.isInStock ? Colors.green : Colors.red,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _product.isInStock
-                      ? '${_product.retailQuantity.toInt()} available (Retail)'
-                      : 'Out of stock',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: _product.isInStock ? Colors.green[700] : Colors.red,
+          // Stock indicator (only shown if feature enabled for this client)
+          if (context.read<LandingProvider>().hasStockDisplay)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _product.isInStock
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _product.isInStock ? Icons.check_circle : Icons.cancel,
+                    size: 16,
+                    color: _product.isInStock ? Colors.green : Colors.red,
                   ),
-                ),
-                if (_product.hasWholesalePrice && _product.wholesaleQuantity > 0) ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 6),
                   Text(
-                    '| ${_product.wholesaleQuantity.toInt()} (Wholesale)',
+                    _product.isInStock
+                        ? '${_product.retailQuantity.toInt()} available (Retail)'
+                        : 'Out of stock',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Colors.green[700],
+                      color: _product.isInStock ? Colors.green[700] : Colors.red,
                     ),
                   ),
+                  if (_product.hasWholesalePrice && _product.wholesaleQuantity > 0) ...[
+                    const SizedBox(width: 12),
+                    Text(
+                      '| ${_product.wholesaleQuantity.toInt()} (Wholesale)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );

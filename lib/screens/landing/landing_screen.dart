@@ -640,6 +640,7 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
               return ProductCard(
                 product: product,
                 isDarkMode: widget.isDarkMode,
+                showStockIndicator: provider.hasStockDisplay,
                 onTap: () => _openProductDetail(context, product),
                 onLike: () => provider.toggleLike(product.itemId),
                 onAddToCart: () => _quickAddToCart(context, provider, product),

@@ -14,6 +14,7 @@ class ProductCard extends StatefulWidget {
   final VoidCallback onAddToCart;
   final String currencySymbol;
   final bool isDarkMode;
+  final bool showStockIndicator;
 
   const ProductCard({
     super.key,
@@ -23,6 +24,7 @@ class ProductCard extends StatefulWidget {
     required this.onAddToCart,
     this.currencySymbol = 'TZS',
     this.isDarkMode = false,
+    this.showStockIndicator = false,
   });
 
   @override
@@ -360,37 +362,38 @@ class _ProductCardState extends State<ProductCard> {
                         ),
                       ),
                       const Spacer(),
-                      // Stock indicator
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: widget.product.isInStock
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              widget.product.isInStock ? Icons.check_circle : Icons.cancel,
-                              size: 12,
-                              color: widget.product.isInStock ? Colors.green : Colors.red,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              widget.product.isInStock
-                                  ? '${widget.product.retailQuantity.toInt()} in stock'
-                                  : 'Out of stock',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
+                      // Stock indicator (only shown if feature enabled)
+                      if (widget.showStockIndicator)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: widget.product.isInStock
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                widget.product.isInStock ? Icons.check_circle : Icons.cancel,
+                                size: 12,
                                 color: widget.product.isInStock ? Colors.green : Colors.red,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.product.isInStock
+                                    ? '${widget.product.retailQuantity.toInt()} in stock'
+                                    : 'Out of stock',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: widget.product.isInStock ? Colors.green : Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
