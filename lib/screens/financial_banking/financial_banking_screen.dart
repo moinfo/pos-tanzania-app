@@ -1395,18 +1395,27 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
     required bool isDark,
     double? percentage,
   }) {
+    // Format large numbers with M/K suffix
+    String formatValue(double value) {
+      if (value >= 1000000) {
+        return '${(value / 1000000).toStringAsFixed(2)}M';
+      } else if (value >= 1000) {
+        return '${(value / 1000).toStringAsFixed(1)}K';
+      }
+      return _currencyFormat.format(value);
+    }
+
     return Container(
-      height: 100, // Fixed height for uniform cards
-      padding: const EdgeInsets.all(12),
+      height: 110,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border(left: BorderSide(color: color, width: 4)),
+        color: color,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: color.withOpacity(0.4),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1416,78 +1425,81 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.darkTextLight : Colors.grey[600],
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    amount != null ? formatValue(amount) : count.toString(),
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(5),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: color, size: 14),
+                child: Icon(icon, color: Colors.white, size: 22),
               ),
             ],
           ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              amount != null ? _currencyFormat.format(amount) : count.toString(),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkText : Colors.black87,
-                letterSpacing: -0.5,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
               ),
-            ),
-          ),
-          if (percentage != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Stack(
+              if (percentage != null) ...[
+                const SizedBox(height: 4),
+                Row(
                   children: [
-                    Container(
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.grey[800] : Colors.grey[200],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    FractionallySizedBox(
-                      widthFactor: (percentage / 100).clamp(0.0, 1.0),
+                    Expanded(
                       child: Container(
                         height: 4,
                         decoration: BoxDecoration(
-                          color: color,
+                          color: Colors.white.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(2),
                         ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: (percentage / 100).clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${percentage.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white.withOpacity(0.9),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${percentage.toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ],
-            )
-          else
-            const SizedBox(height: 18), // Placeholder to maintain height
+            ],
+          ),
         ],
       ),
     );
