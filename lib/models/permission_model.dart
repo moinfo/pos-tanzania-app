@@ -111,6 +111,8 @@ class PermissionIds {
   static const String bankingDeleteDeposit = 'banking_delete_deposit';
   static const String bankingDateRangeFilter = 'banking_date_range_filter';
   static const String bankingDate = 'banking_date'; // Permission to change date when adding/editing
+  static const String bankingSelectAllEfds = 'banking_select_all_efds'; // Can see all EFDs
+  static const String bankingMismatchReport = 'banking_mismatch_report'; // View mismatch report
 
   // Items sub-permissions
   static const String itemsAdd = 'items_add';

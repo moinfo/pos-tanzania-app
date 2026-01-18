@@ -22,6 +22,7 @@ import 'sales_history_screen.dart';
 import 'suspended_sales_screen.dart';
 import 'receivings/receivings_list_screen.dart';
 import 'banking/banking_list_screen.dart';
+import 'financial_banking/financial_banking_screen.dart';
 import 'profit_submit/profit_submit_list_screen.dart';
 import 'transactions/transactions_screen.dart';
 import 'reports/reports_screen.dart';
@@ -590,6 +591,22 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
             ),
+            // 6.5 Financial Banking - Leruma only (uses 'banking' permission from web)
+            if (ApiService.currentClient?.features.hasFinancialBanking ?? false)
+              PermissionWrapper(
+                permissionId: PermissionIds.banking,
+                child: ListTile(
+                  leading: const Icon(Icons.analytics, color: AppColors.primary),
+                  title: const Text('Financial Banking'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const FinancialBankingScreen()),
+                    );
+                  },
+                ),
+              ),
             // 7. TRADE (TRA) - requires tra permission
             if (ApiService.currentClient?.features.hasTRA ?? false)
               PermissionWrapper(

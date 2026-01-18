@@ -10,6 +10,7 @@ import '../models/zreport.dart';
 import '../models/cash_submit.dart';
 import '../models/supervisor.dart';
 import '../models/banking.dart';
+import '../models/financial_banking.dart';
 import '../models/profit_submit.dart';
 import '../models/contract.dart';
 import '../models/expense.dart';
@@ -3249,6 +3250,145 @@ class ApiService {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrlSync/banking/delete/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get Financial Banking Dashboard (Leruma only)
+  /// Returns summary statistics, deposit list with verification status
+  Future<ApiResponse<FinancialDashboard>> getFinancialDashboard({
+    String? startDate,
+    String? endDate,
+    int? efdId,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+
+      if (startDate != null) {
+        queryParams['start_date'] = startDate;
+      }
+      if (endDate != null) {
+        queryParams['end_date'] = endDate;
+      }
+      if (efdId != null) {
+        queryParams['efd_id'] = efdId.toString();
+      }
+
+      final uri = Uri.parse('$baseUrlSync/banking/financial_dashboard')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<FinancialDashboard>(
+        response,
+        (data) => FinancialDashboard.fromJson(data as Map<String, dynamic>),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Create a new banking deposit (Financial Banking - Leruma)
+  Future<ApiResponse<Map<String, dynamic>>> createBankingDeposit(
+      CreateDepositRequest request) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/banking/add_deposit'),
+        headers: await _getHeaders(),
+        body: jsonEncode(request.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Create a new banking deposit with attachment (Financial Banking - Leruma)
+  /// Uses multipart/form-data for file upload
+  Future<ApiResponse<Map<String, dynamic>>> createBankingDepositWithAttachment(
+      CreateDepositRequest request, String? attachmentPath) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/banking/add_deposit_with_attachment');
+      final multipartRequest = http.MultipartRequest('POST', uri);
+
+      // Add headers
+      final headers = await _getHeaders();
+      headers.remove('Content-Type'); // Let the request set its own content-type
+      multipartRequest.headers.addAll(headers);
+
+      // Add form fields
+      multipartRequest.fields['beneficiary_id'] = request.beneficiaryId.toString();
+      multipartRequest.fields['supplier_id'] = request.supplierId.toString();
+      multipartRequest.fields['efd_id'] = request.efdId.toString();
+      multipartRequest.fields['amount'] = request.amount.toString();
+      multipartRequest.fields['deposit_date'] = request.depositDate;
+      if (request.invoiceDate != null) {
+        multipartRequest.fields['invoice_date'] = request.invoiceDate!;
+      }
+      multipartRequest.fields['reference_number'] = request.referenceNumber;
+      multipartRequest.fields['payment_method'] = request.paymentMethod;
+      multipartRequest.fields['bank_name'] = request.bankName;
+      multipartRequest.fields['account_number'] = request.accountNumber;
+      multipartRequest.fields['beneficiary_account_id'] = request.beneficiaryAccountId.toString();
+      multipartRequest.fields['bank_id'] = request.bankId.toString();
+      if (request.notes != null) {
+        multipartRequest.fields['notes'] = request.notes!;
+      }
+
+      // Add file if provided
+      if (attachmentPath != null && attachmentPath.isNotEmpty) {
+        final file = await http.MultipartFile.fromPath('attachment', attachmentPath);
+        multipartRequest.files.add(file);
+      }
+
+      // Send request
+      final streamedResponse = await multipartRequest.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update an existing banking deposit (Financial Banking - Leruma)
+  Future<ApiResponse<Map<String, dynamic>>> updateBankingDeposit(
+      int id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrlSync/banking/update_deposit/$id'),
+        headers: await _getHeaders(),
+        body: jsonEncode(data),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete a banking deposit (Financial Banking - Leruma)
+  Future<ApiResponse<Map<String, dynamic>>> deleteBankingDeposit(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrlSync/banking/delete_deposit/$id'),
         headers: await _getHeaders(),
       );
 
