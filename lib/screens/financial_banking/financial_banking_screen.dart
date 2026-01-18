@@ -390,8 +390,8 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
             const SizedBox(height: 20),
 
-            // Quick Actions - Grid layout
-            _buildQuickActionsGrid(isDark),
+            // Statistics by EFD
+            _buildStatisticsByEfd(isDark),
           ],
         ),
       ),
@@ -489,6 +489,276 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Build Statistics by EFD table
+  Widget _buildStatisticsByEfd(bool isDark) {
+    final dashboard = _dashboard!;
+    final deposits = dashboard.deposits;
+
+    // Group deposits by EFD name and calculate statistics
+    final Map<String, Map<String, dynamic>> efdStats = {};
+
+    for (final deposit in deposits) {
+      final efdName = deposit.efdName.isNotEmpty ? deposit.efdName : 'Unknown';
+
+      if (!efdStats.containsKey(efdName)) {
+        efdStats[efdName] = {
+          'total': 0,
+          'mismatches': 0,
+          'notDeposited': 0,
+        };
+      }
+
+      efdStats[efdName]!['total'] = (efdStats[efdName]!['total'] as int) + 1;
+
+      if (deposit.status == 'Mismatch') {
+        efdStats[efdName]!['mismatches'] = (efdStats[efdName]!['mismatches'] as int) + 1;
+      } else if (deposit.status == 'Not yet deposited' || deposit.status == 'Pending') {
+        efdStats[efdName]!['notDeposited'] = (efdStats[efdName]!['notDeposited'] as int) + 1;
+      }
+    }
+
+    final sortedEfds = efdStats.keys.toList()..sort();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Statistics by EFD',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDark ? AppColors.darkText : Colors.black87,
+              ),
+            ),
+          ),
+          // Table Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'EFD Name',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'Total',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Mismatch',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Not Dep.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Status',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Table Rows
+          if (sortedEfds.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Text(
+                  'No EFD data available',
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextLight : Colors.grey,
+                  ),
+                ),
+              ),
+            )
+          else
+            ...sortedEfds.map((efdName) {
+              final stats = efdStats[efdName]!;
+              final total = stats['total'] as int;
+              final mismatches = stats['mismatches'] as int;
+              final notDeposited = stats['notDeposited'] as int;
+              final mismatchPercent = total > 0 ? (mismatches / total * 100) : 0.0;
+              final notDepositedPercent = total > 0 ? (notDeposited / total * 100) : 0.0;
+              final isAllClear = mismatches == 0 && notDeposited == 0;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // EFD Name
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        efdName.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? AppColors.darkText : Colors.black87,
+                        ),
+                      ),
+                    ),
+                    // Total Transactions
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        total.toString(),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.darkText : Colors.black87,
+                        ),
+                      ),
+                    ),
+                    // Mismatches
+                    Expanded(
+                      flex: 2,
+                      child: RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '$mismatches ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkText : Colors.black87,
+                              ),
+                            ),
+                            TextSpan(
+                              text: '(${mismatchPercent.toStringAsFixed(0)}%)',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark ? AppColors.darkTextLight : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Not Deposited
+                    Expanded(
+                      flex: 2,
+                      child: RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '$notDeposited ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkText : Colors.black87,
+                              ),
+                            ),
+                            TextSpan(
+                              text: '(${notDepositedPercent.toStringAsFixed(0)}%)',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark ? AppColors.darkTextLight : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Status
+                    Expanded(
+                      flex: 2,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isAllClear
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            isAllClear ? 'All Clear' : 'Issues',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
