@@ -2182,6 +2182,36 @@ class ApiService {
     }
   }
 
+  /// Get main store data for today - shows items sold from mainstore
+  /// Leruma-specific feature
+  Future<ApiResponse<MainStoreData>> getMainStore({
+    int? locationId,
+    String? date,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+
+      if (locationId != null) {
+        queryParams['location_id'] = locationId.toString();
+      }
+
+      if (date != null && date.isNotEmpty) {
+        queryParams['date'] = date;
+      }
+
+      final uri = Uri.parse('$baseUrlSync/receivings/main_store')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<MainStoreData>(
+        response,
+        (data) => MainStoreData.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ==================== SALES API ====================
 
   /// Get sales list with filters

@@ -4,6 +4,7 @@ import '../../utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/item.dart';
+import '../../models/receiving.dart';
 import '../../models/supplier.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/receiving_provider.dart';
@@ -12,7 +13,10 @@ import '../../services/api_service.dart';
 import '../../widgets/app_bottom_navigation.dart';
 
 class NewReceivingScreen extends StatefulWidget {
-  const NewReceivingScreen({super.key});
+  /// Optional list of items to preload into the cart (from Main Store)
+  final List<ReceivingItem>? preloadedItems;
+
+  const NewReceivingScreen({super.key, this.preloadedItems});
 
   @override
   State<NewReceivingScreen> createState() => _NewReceivingScreenState();
@@ -42,7 +46,22 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
       if (_hasCreditCardOnlyFeature()) {
         receivingProvider.setPaymentType('Credit Card');
       }
+      // Load preloaded items if provided (from Main Store)
+      if (widget.preloadedItems != null && widget.preloadedItems!.isNotEmpty) {
+        _loadPreloadedItems();
+      }
     });
+  }
+
+  /// Load preloaded items into the cart
+  void _loadPreloadedItems() {
+    final receivingProvider = context.read<ReceivingProvider>();
+    // Clear existing items first
+    receivingProvider.clearCart();
+    // Add each preloaded item using addReceivingItem method
+    for (final item in widget.preloadedItems!) {
+      receivingProvider.addReceivingItem(item);
+    }
   }
 
   /// Helper method to safely check if supplier filtering by location is enabled

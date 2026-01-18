@@ -230,3 +230,167 @@ class Receiving {
     };
   }
 }
+
+// ======== Main Store Models ========
+
+/// Item in a mainstore sale
+class MainStoreSaleItem {
+  final int itemId;
+  final String itemNumber;
+  final String itemName;
+  final double quantity;
+  final double mainstoreUnitPrice;
+  final double lerumaUnitPrice;
+  final String status; // 'match' or 'mismatch'
+  final double total;
+
+  MainStoreSaleItem({
+    required this.itemId,
+    required this.itemNumber,
+    required this.itemName,
+    required this.quantity,
+    required this.mainstoreUnitPrice,
+    required this.lerumaUnitPrice,
+    required this.status,
+    required this.total,
+  });
+
+  factory MainStoreSaleItem.fromJson(Map<String, dynamic> json) {
+    return MainStoreSaleItem(
+      itemId: json['item_id'] ?? 0,
+      itemNumber: json['item_number'] ?? '',
+      itemName: json['item_name'] ?? '',
+      quantity: (json['quantity'] ?? 0).toDouble(),
+      mainstoreUnitPrice: (json['mainstore_unit_price'] ?? 0).toDouble(),
+      lerumaUnitPrice: (json['leruma_unit_price'] ?? 0).toDouble(),
+      status: json['status'] ?? 'mismatch',
+      total: (json['total'] ?? 0).toDouble(),
+    );
+  }
+
+  bool get isMatch => status == 'match';
+  bool get isMismatch => status == 'mismatch';
+}
+
+/// A sale from mainstore containing multiple items
+class MainStoreSale {
+  final int saleId;
+  final String saleTime;
+  final String customerName;
+  final List<MainStoreSaleItem> items;
+  final double saleTotal;
+
+  MainStoreSale({
+    required this.saleId,
+    required this.saleTime,
+    required this.customerName,
+    required this.items,
+    required this.saleTotal,
+  });
+
+  factory MainStoreSale.fromJson(Map<String, dynamic> json) {
+    final itemsJson = json['items'] as List? ?? [];
+    return MainStoreSale(
+      saleId: json['sale_id'] ?? 0,
+      saleTime: json['sale_time'] ?? '',
+      customerName: json['customer_name'] ?? '',
+      items: itemsJson.map((item) => MainStoreSaleItem.fromJson(item)).toList(),
+      saleTotal: (json['sale_total'] ?? 0).toDouble(),
+    );
+  }
+
+  /// Get all items for receiving cart
+  List<Map<String, dynamic>> getItemsForReceiving() {
+    return items.map((item) => {
+      'item_id': item.itemId,
+      'quantity': item.quantity,
+    }).toList();
+  }
+}
+
+/// Summary statistics for main store data
+class MainStoreSummary {
+  final int totalSales;
+  final double totalQuantity;
+  final double grandTotal;
+  final int matchCount;
+  final int mismatchCount;
+
+  MainStoreSummary({
+    required this.totalSales,
+    required this.totalQuantity,
+    required this.grandTotal,
+    required this.matchCount,
+    required this.mismatchCount,
+  });
+
+  factory MainStoreSummary.fromJson(Map<String, dynamic> json) {
+    return MainStoreSummary(
+      totalSales: json['total_sales'] ?? 0,
+      totalQuantity: (json['total_quantity'] ?? 0).toDouble(),
+      grandTotal: (json['grand_total'] ?? 0).toDouble(),
+      matchCount: json['match_count'] ?? 0,
+      mismatchCount: json['mismatch_count'] ?? 0,
+    );
+  }
+}
+
+/// Stock location for dropdown
+class MainStoreLocation {
+  final int locationId;
+  final String locationName;
+
+  MainStoreLocation({
+    required this.locationId,
+    required this.locationName,
+  });
+
+  factory MainStoreLocation.fromJson(Map<String, dynamic> json) {
+    return MainStoreLocation(
+      locationId: json['location_id'] ?? 0,
+      locationName: json['location_name'] ?? '',
+    );
+  }
+}
+
+/// Complete main store response
+class MainStoreData {
+  final int locationId;
+  final String locationName;
+  final String date;
+  final List<MainStoreSale> sales;
+  final MainStoreSummary summary;
+  final List<MainStoreLocation> stockLocations;
+
+  MainStoreData({
+    required this.locationId,
+    required this.locationName,
+    required this.date,
+    required this.sales,
+    required this.summary,
+    required this.stockLocations,
+  });
+
+  factory MainStoreData.fromJson(Map<String, dynamic> json) {
+    final salesJson = json['sales'] as List? ?? [];
+    final locationsJson = json['stock_locations'] as List? ?? [];
+
+    return MainStoreData(
+      locationId: json['location_id'] ?? 0,
+      locationName: json['location_name'] ?? '',
+      date: json['date'] ?? '',
+      sales: salesJson.map((s) => MainStoreSale.fromJson(s)).toList(),
+      summary: MainStoreSummary.fromJson(json['summary'] ?? {}),
+      stockLocations: locationsJson.map((l) => MainStoreLocation.fromJson(l)).toList(),
+    );
+  }
+
+  /// Get all items from all sales for "Copy All" functionality
+  List<Map<String, dynamic>> getAllItemsForReceiving() {
+    List<Map<String, dynamic>> allItems = [];
+    for (final sale in sales) {
+      allItems.addAll(sale.getItemsForReceiving());
+    }
+    return allItems;
+  }
+}

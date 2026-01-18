@@ -15,6 +15,7 @@ import 'receiving_details_screen.dart';
 import 'new_receiving_screen.dart';
 import 'receivings_summary_screen.dart';
 import 'receivings_summary2_screen.dart';
+import 'main_store_screen.dart';
 
 class ReceivingsListScreen extends StatefulWidget {
   const ReceivingsListScreen({super.key});
@@ -222,6 +223,15 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
         builder: (context) => const ReceivingsSummary2Screen(),
       ),
     );
+  }
+
+  void _navigateToMainStore() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MainStoreScreen(),
+      ),
+    ).then((_) => _loadReceivings());
   }
 
   Future<void> _selectDateRange() async {
@@ -439,38 +449,58 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               color: isDark ? AppColors.darkSurface : AppColors.primary,
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _navigateToSummary,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _navigateToSummary,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.summarize, size: 18),
+                          label: const Text('Summary', style: TextStyle(fontSize: 13)),
                         ),
                       ),
-                      icon: const Icon(Icons.summarize, size: 20),
-                      label: const Text('Summary'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _navigateToSummary2,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _navigateToSummary2,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.analytics, size: 18),
+                          label: const Text('Summary 2', style: TextStyle(fontSize: 13)),
                         ),
                       ),
-                      icon: const Icon(Icons.analytics, size: 20),
-                      label: const Text('Summary 2'),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _navigateToMainStore,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.store, size: 18),
+                          label: const Text('MS', style: TextStyle(fontSize: 13)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
