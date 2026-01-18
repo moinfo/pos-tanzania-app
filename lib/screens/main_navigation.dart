@@ -336,8 +336,11 @@ class _MainNavigationState extends State<MainNavigation> {
       _selectedIndex = 0;
     }
 
-    return Scaffold(
-      appBar: AppBar(
+    return SafeArea(
+      bottom: false, // Don't add safe area padding at the bottom
+      child: Scaffold(
+        extendBody: true, // Allow body to extend behind bottom nav
+        appBar: AppBar(
         title: const Text(AppConstants.appName),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -837,23 +840,220 @@ class _MainNavigationState extends State<MainNavigation> {
       body: availableScreens.isNotEmpty
           ? availableScreens[_selectedIndex]['screen'] as Widget
           : const Center(child: Text('No access to any screens')),
+      floatingActionButton: _buildSalesFab(availableScreens, permissionProvider),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: availableScreens.length > 1
-          ? BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-              selectedItemColor: AppColors.primary,
-              unselectedItemColor: AppColors.textLight,
-              type: BottomNavigationBarType.fixed,
-              selectedFontSize: 12,
-              unselectedFontSize: 11,
-              items: availableScreens.map((config) {
-                return BottomNavigationBarItem(
-                  icon: Icon(config['icon'] as IconData),
-                  label: config['label'] as String,
-                );
-              }).toList(),
+          ? MediaQuery(
+              data: MediaQuery.of(context).removePadding(removeBottom: true),
+              child: _buildCurvedBottomNav(availableScreens, isDark),
             )
-          : null, // Hide bottom nav if only one or no screens available
+          : null,
+      ),
     );
   }
+
+  /// Build curved bottom navigation with notch for FAB
+  Widget _buildCurvedBottomNav(List<Map<String, dynamic>> screens, bool isDark) {
+    // Separate screens into left and right sides (excluding Sales which is the FAB)
+    // Left: Home, Summary  |  Center: Sales FAB  |  Right: Seller, Reports
+    final leftItems = <Map<String, dynamic>>[];
+    final rightItems = <Map<String, dynamic>>[];
+    int salesIndex = -1;
+
+    // Define which items go on the left side
+    const leftLabels = {'Home', 'Summary', 'Expenses'};
+
+    for (int i = 0; i < screens.length; i++) {
+      final label = screens[i]['label'] as String;
+      if (label == 'Sales') {
+        salesIndex = i;
+      } else if (leftLabels.contains(label)) {
+        leftItems.add({...screens[i], 'originalIndex': i});
+      } else {
+        rightItems.add({...screens[i], 'originalIndex': i});
+      }
+    }
+
+    // If no Sales screen, fall back to standard navigation
+    if (salesIndex == -1) {
+      return BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textLight,
+        type: BottomNavigationBarType.fixed,
+        selectedFontSize: 12,
+        unselectedFontSize: 11,
+        items: screens.map((config) {
+          return BottomNavigationBarItem(
+            icon: Icon(config['icon'] as IconData),
+            label: config['label'] as String,
+          );
+        }).toList(),
+      );
+    }
+
+    return SizedBox(
+      height: 80,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        clipBehavior: Clip.none,
+        children: [
+          // Custom curved background
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: CustomPaint(
+              size: const Size(double.infinity, 80),
+              painter: _CurvedNavPainter(
+                color: isDark ? AppColors.darkCard : Colors.white,
+              ),
+            ),
+          ),
+          // Navigation items
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 60,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                // Left side items
+                ...leftItems.map((item) => _buildNavItem(
+                  item['icon'] as IconData,
+                  item['label'] as String,
+                  item['originalIndex'] as int,
+                  isDark,
+                )),
+                // Center space for FAB
+                const SizedBox(width: 70),
+                // Right side items
+                ...rightItems.map((item) => _buildNavItem(
+                  item['icon'] as IconData,
+                  item['label'] as String,
+                  item['originalIndex'] as int,
+                  isDark,
+                )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index, bool isDark) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.primary : AppColors.textLight,
+              size: 24,
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isSelected ? AppColors.primary : AppColors.textLight,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build Sales FAB if user has permission - circular design for notched bar
+  Widget? _buildSalesFab(List<Map<String, dynamic>> screens, PermissionProvider permissionProvider) {
+    // Find Sales screen index
+    int salesIndex = -1;
+    for (int i = 0; i < screens.length; i++) {
+      if (screens[i]['label'] == 'Sales') {
+        salesIndex = i;
+        break;
+      }
+    }
+
+    if (salesIndex == -1) return null;
+
+    return Transform.translate(
+      offset: const Offset(0, 30),
+      child: SizedBox(
+        width: 50,
+        height: 50,
+        child: FloatingActionButton(
+          onPressed: () => _onItemTapped(salesIndex),
+          backgroundColor: AppColors.primary,
+          elevation: 4,
+          child: const Icon(Icons.shopping_cart, color: Colors.white, size: 24),
+        ),
+      ),
+    );
+  }
+}
+
+// Custom painter for curved navigation bar with notch at top
+class _CurvedNavPainter extends CustomPainter {
+  final Color color;
+
+  _CurvedNavPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final centerX = size.width / 2;
+    final curveRadius = 35.0;
+    final curveDepth = 20.0;
+
+    // Start from bottom left
+    path.moveTo(0, size.height);
+    // Line to top left
+    path.lineTo(0, curveDepth);
+    // Line to before curve
+    path.lineTo(centerX - curveRadius - 10, curveDepth);
+    // Curve down and around the FAB area
+    path.quadraticBezierTo(
+      centerX - curveRadius,
+      curveDepth,
+      centerX - curveRadius + 5,
+      curveDepth + 15,
+    );
+    path.arcToPoint(
+      Offset(centerX + curveRadius - 5, curveDepth + 15),
+      radius: const Radius.circular(30),
+      clockwise: false,
+    );
+    path.quadraticBezierTo(
+      centerX + curveRadius,
+      curveDepth,
+      centerX + curveRadius + 10,
+      curveDepth,
+    );
+    // Line to top right
+    path.lineTo(size.width, curveDepth);
+    // Line to bottom right
+    path.lineTo(size.width, size.height);
+    // Close path
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
