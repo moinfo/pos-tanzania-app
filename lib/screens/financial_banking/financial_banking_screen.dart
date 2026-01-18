@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../models/api_response.dart';
 import '../../models/financial_banking.dart';
 import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
@@ -24,6 +25,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
   int _currentIndex = 0;
   FinancialDashboard? _dashboard;
+  List<EfdAnalysisItem>? _efdAnalysis;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -36,6 +38,8 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
   bool _canSelectAllEfds = false;
   bool _canViewMismatchReport = false;
   bool _canAddDeposit = false;
+  bool _canEditDeposit = false;
+  bool _canDeleteDeposit = false;
 
   @override
   void initState() {
@@ -55,6 +59,10 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
           permissionProvider.hasPermission(PermissionIds.bankingMismatchReport);
       _canAddDeposit =
           permissionProvider.hasPermission(PermissionIds.bankingAddDeposit);
+      _canEditDeposit =
+          permissionProvider.hasPermission(PermissionIds.bankingEditDeposit);
+      _canDeleteDeposit =
+          permissionProvider.hasPermission(PermissionIds.bankingDeleteDeposit);
     });
 
     _loadDashboard();
@@ -70,20 +78,31 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
       final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
       final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
 
-      final response = await _apiService.getFinancialDashboard(
-        startDate: startDateStr,
-        endDate: endDateStr,
-        efdId: _selectedEfdId,
-      );
+      // Load dashboard and EFD analysis in parallel
+      final results = await Future.wait([
+        _apiService.getFinancialDashboard(
+          startDate: startDateStr,
+          endDate: endDateStr,
+          efdId: _selectedEfdId,
+        ),
+        _apiService.getEfdAnalysis(
+          startDate: startDateStr,
+          endDate: endDateStr,
+        ),
+      ]);
 
-      if (response.isSuccess && response.data != null) {
+      final dashboardResponse = results[0] as ApiResponse<FinancialDashboard>;
+      final efdAnalysisResponse = results[1] as ApiResponse<List<EfdAnalysisItem>>;
+
+      if (dashboardResponse.isSuccess && dashboardResponse.data != null) {
         setState(() {
-          _dashboard = response.data;
+          _dashboard = dashboardResponse.data;
+          _efdAnalysis = efdAnalysisResponse.data;
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = response.message ?? 'Failed to load dashboard';
+          _errorMessage = dashboardResponse.message ?? 'Failed to load dashboard';
           _isLoading = false;
         });
       }
@@ -1005,7 +1024,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
   Widget _buildEfdAnalysisTab(bool isDark) {
     final dashboard = _dashboard!;
-    final efds = dashboard.efds;
+    final efdAnalysis = _efdAnalysis ?? [];
 
     return RefreshIndicator(
       onRefresh: _loadDashboard,
@@ -1016,21 +1035,78 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // EFD Overview
+            // Header
             Text(
-              'EFD Analysis (${efds.length} EFDs)',
+              'EFD Analysis (${efdAnalysis.length} EFDs)',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: isDark ? AppColors.darkText : Colors.black87,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            if (efds.isEmpty)
+            if (efdAnalysis.isEmpty)
               _buildEmptyEfds(isDark)
             else
-              ...efds.map((efd) => _buildEfdCard(efd, isDark)),
+              // EFD Analysis Table
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkCard : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Table Header
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              'EFD Name',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 4,
+                            child: Text(
+                              'Amount / Deposited',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Table Rows - using new EFD Analysis data from API
+                    ...efdAnalysis.map((efd) => _buildEfdAnalysisRow(efd, isDark)),
+                  ],
+                ),
+              ),
 
             const SizedBox(height: 24),
 
@@ -1052,73 +1128,231 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
     );
   }
 
-  Widget _buildEfdCard(Efd efd, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: const Color(0xFF8B5CF6).withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.point_of_sale,
-            color: Color(0xFF8B5CF6),
-            size: 24,
-          ),
-        ),
-        title: Text(
-          efd.name,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-            color: isDark ? AppColors.darkText : Colors.black87,
-          ),
-        ),
-        subtitle: Text(
-          'ID: ${efd.id}',
-          style: TextStyle(
-            fontSize: 12,
-            color: isDark ? AppColors.darkTextLight : Colors.grey[600],
-          ),
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(
-            'Active',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+  Widget _buildEfdAnalysisRow(EfdAnalysisItem efd, bool isDark) {
+    final totalAmount = efd.totalAmount;
+    final depositedAmount = efd.depositedAmount;
+    final remainingAmount = efd.remainingAmount;
+    final beneficiaryCount = efd.beneficiaryCount;
+    final progress = efd.progressPercentage;
+    final isComplete = efd.isComplete;
+
+    // Status badge color based on status from API
+    Color statusColor;
+    if (efd.status == 'Completed') {
+      statusColor = const Color(0xFF10B981); // Green
+    } else if (efd.status == 'In Progress') {
+      statusColor = const Color(0xFFF97316); // Orange
+    } else {
+      statusColor = Colors.grey; // Not Started
+    }
+
+    return InkWell(
+      onTap: () {
+        // Filter dashboard by this EFD
+        setState(() {
+          _selectedEfdId = efd.efdId;
+          _currentIndex = 0; // Go back to home
+        });
+        _loadDashboard();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+              width: 0.5,
             ),
           ),
         ),
-        onTap: () {
-          // Filter dashboard by this EFD
-          setState(() {
-            _selectedEfdId = efd.id;
-            _currentIndex = 0; // Go back to home
-          });
-          _loadDashboard();
-        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: EFD Name and Status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    efd.efdName.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkText : Colors.black87,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    efd.status,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Row 2: Financial Details
+            Row(
+              children: [
+                // Total Amount
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark ? AppColors.darkTextLight : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _currencyFormat.format(totalAmount),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.darkText : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Deposited
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Deposited',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark ? AppColors.darkTextLight : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _currencyFormat.format(depositedAmount),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Remaining
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Remaining',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark ? AppColors.darkTextLight : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _currencyFormat.format(remainingAmount),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: remainingAmount > 0 ? const Color(0xFFEF4444) : (isDark ? AppColors.darkText : Colors.black87),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Row 3: Progress bar and Beneficiaries
+            Row(
+              children: [
+                // Progress bar
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Progress',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isDark ? AppColors.darkTextLight : Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            '${progress.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.darkText : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: (progress / 100).clamp(0.0, 1.0),
+                          backgroundColor: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isComplete
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFF3B82F6),
+                          ),
+                          minHeight: 8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Beneficiaries count
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Beneficiaries',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? AppColors.darkTextLight : Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      beneficiaryCount.toString(),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkText : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1950,9 +2184,270 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
               isDark,
               highlight: deposit.referenceNumber != deposit.lerumaReference,
             ),
+          // Action Buttons (Edit/Delete)
+          if (_canEditDeposit || _canDeleteDeposit) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_canEditDeposit)
+                  ElevatedButton.icon(
+                    onPressed: () => _showEditDepositDialog(deposit),
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Edit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF59E0B),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                if (_canEditDeposit && _canDeleteDeposit)
+                  const SizedBox(width: 8),
+                if (_canDeleteDeposit)
+                  ElevatedButton.icon(
+                    onPressed: () => _showDeleteDepositConfirmation(deposit),
+                    icon: const Icon(Icons.delete, size: 16),
+                    label: const Text('Delete'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Show edit deposit dialog
+  Future<void> _showEditDepositDialog(FinancialDeposit deposit) async {
+    final themeProvider = context.read<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+
+    // TODO: Implement full edit dialog with form fields
+    // For now, show a placeholder dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+        title: Text(
+          'Edit Deposit',
+          style: TextStyle(
+            color: isDark ? AppColors.darkText : Colors.black87,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Beneficiary: ${deposit.beneficiaryName}',
+              style: TextStyle(
+                color: isDark ? AppColors.darkText : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Amount: ${_currencyFormat.format(deposit.amount)} TZS',
+              style: TextStyle(
+                color: isDark ? AppColors.darkText : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Reference: ${deposit.referenceNumber}',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextLight : Colors.grey[600],
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Edit functionality coming soon.',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextLight : Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show delete deposit confirmation dialog
+  Future<void> _showDeleteDepositConfirmation(FinancialDeposit deposit) async {
+    final themeProvider = context.read<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber, color: Color(0xFFEF4444)),
+            const SizedBox(width: 8),
+            Text(
+              'Delete Deposit',
+              style: TextStyle(
+                color: isDark ? AppColors.darkText : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete this deposit?',
+              style: TextStyle(
+                color: isDark ? AppColors.darkText : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    deposit.beneficiaryName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkText : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_currencyFormat.format(deposit.amount)} TZS',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ref: ${deposit.referenceNumber}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextLight : Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                color: const Color(0xFFEF4444),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextLight : Colors.grey,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteDeposit(deposit);
+    }
+  }
+
+  /// Delete a deposit
+  Future<void> _deleteDeposit(FinancialDeposit deposit) async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final response = await _apiService.deleteDeposit(deposit.id);
+
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+
+      if (response.isSuccess) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Deposit deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Reload dashboard
+          _loadDashboard();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Failed to delete deposit'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Hide loading if still showing
+      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildDetailRow(String label, String value, bool isDark,

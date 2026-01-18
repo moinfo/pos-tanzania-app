@@ -3401,6 +3401,38 @@ class ApiService {
     }
   }
 
+  /// Get EFD Analysis data (Financial Banking - Leruma)
+  /// Uses the same calculation as web for consistent data
+  Future<ApiResponse<List<EfdAnalysisItem>>> getEfdAnalysis({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+
+      if (startDate != null) {
+        queryParams['start_date'] = startDate;
+      }
+      if (endDate != null) {
+        queryParams['end_date'] = endDate;
+      }
+
+      final uri = Uri.parse('$baseUrlSync/banking/efd_analysis')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<List<EfdAnalysisItem>>(
+        response,
+        (data) {
+          final efdList = data['efd_analysis'] as List? ?? [];
+          return efdList.map((e) => EfdAnalysisItem.fromJson(e)).toList();
+        },
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ==================== PROFIT SUBMIT API ====================
 
   /// Get Profit Submissions list

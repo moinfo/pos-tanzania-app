@@ -308,3 +308,48 @@ class CreateDepositRequest {
     };
   }
 }
+
+/// EFD Analysis item - matches web's EFD Analysis table data
+class EfdAnalysisItem {
+  final int efdId;
+  final String efdName;
+  final double totalAmount;
+  final double depositedAmount;
+  final double remainingAmount;
+  final double progressPercentage;
+  final int beneficiaryCount;
+  final String status;
+  final String statusClass;
+
+  EfdAnalysisItem({
+    required this.efdId,
+    required this.efdName,
+    required this.totalAmount,
+    required this.depositedAmount,
+    required this.remainingAmount,
+    required this.progressPercentage,
+    required this.beneficiaryCount,
+    required this.status,
+    required this.statusClass,
+  });
+
+  factory EfdAnalysisItem.fromJson(Map<String, dynamic> json) {
+    return EfdAnalysisItem(
+      efdId: json['efd_id'] ?? 0,
+      efdName: json['efd_name'] ?? '',
+      totalAmount: (json['total_amount'] ?? 0).toDouble(),
+      depositedAmount: (json['deposited_amount'] ?? 0).toDouble(),
+      remainingAmount: (json['remaining_amount'] ?? 0).toDouble(),
+      progressPercentage: (json['progress_percentage'] ?? 0).toDouble(),
+      beneficiaryCount: json['beneficiary_count'] ?? 0,
+      status: json['status'] ?? 'Not Started',
+      statusClass: json['status_class'] ?? 'default',
+    );
+  }
+
+  /// Check if deposit is complete
+  bool get isComplete => status == 'Completed';
+
+  /// Check if deposit is in progress
+  bool get isInProgress => status == 'In Progress';
+}
