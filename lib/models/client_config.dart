@@ -38,6 +38,9 @@ class ClientFeatures {
   // Landing page stock display (Come & Save only)
   final bool hasLandingStockDisplay; // Show stock quantities and validate orders on landing page
 
+  // Financial Banking Dashboard (Leruma only)
+  final bool hasFinancialBanking; // Enable EFD/beneficiary financial analysis dashboard
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -64,6 +67,7 @@ class ClientFeatures {
     this.hasTRA = false, // Default: disabled - only Leruma uses this
     this.hasLocationBasedPricing = false, // Default: disabled - only Come & Save uses this
     this.hasLandingStockDisplay = false, // Default: disabled - only Come & Save uses this
+    this.hasFinancialBanking = false, // Default: disabled - only Leruma uses this
   });
 }
 

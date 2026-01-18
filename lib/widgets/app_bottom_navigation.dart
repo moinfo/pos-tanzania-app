@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import '../utils/constants.dart';
 import '../screens/main_navigation.dart';
 import '../providers/permission_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
+import 'curved_bottom_navigation.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -93,12 +95,14 @@ class AppBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final permissionProvider = Provider.of<PermissionProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
 
     // Get navigation items (matches MainNavigation structure)
     final allNavItems = _buildNavItems();
 
     // Filter items based on permissions
-    final availableItems = <BottomNavigationBarItem>[];
+    final availableItems = <CurvedNavItem>[];
     final Map<int, int> indexMapping = {}; // Maps display index to original index
 
     for (int i = 0; i < allNavItems.length; i++) {
@@ -110,8 +114,8 @@ class AppBottomNavigation extends StatelessWidget {
           permissionProvider.hasModulePermission(permission)) {
         indexMapping[availableItems.length] = i;
         availableItems.add(
-          BottomNavigationBarItem(
-            icon: Icon(item['icon'] as IconData),
+          CurvedNavItem(
+            icon: item['icon'] as IconData,
             label: item['label'] as String,
           ),
         );
@@ -134,7 +138,7 @@ class AppBottomNavigation extends StatelessWidget {
       }
     }
 
-    return BottomNavigationBar(
+    return CurvedBottomNavigation(
       currentIndex: displayIndex >= 0 && displayIndex < availableItems.length ? displayIndex : 0,
       onTap: (displayIndex) {
         // Map display index back to original index
@@ -142,10 +146,8 @@ class AppBottomNavigation extends StatelessWidget {
         _handleTap(context, originalIndex);
       },
       selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.textLight,
-      type: BottomNavigationBarType.fixed,
-      selectedFontSize: 12,
-      unselectedFontSize: 11,
+      unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
       items: availableItems,
     );
   }

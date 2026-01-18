@@ -10,6 +10,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/curved_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
 
 class FinancialBankingScreen extends StatefulWidget {
@@ -236,16 +237,14 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: CurvedBottomNavigation(
         currentIndex: _currentIndex.clamp(0, navItems.length - 1),
         onTap: (index) => setState(() => _currentIndex = index),
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textLight,
-        type: BottomNavigationBarType.fixed,
-        selectedFontSize: 12,
-        unselectedFontSize: 11,
-        items: navItems.map((item) => BottomNavigationBarItem(
-          icon: Icon(item.icon),
+        unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
+        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+        items: navItems.map((item) => CurvedNavItem(
+          icon: item.icon,
           label: item.label,
         )).toList(),
       ),

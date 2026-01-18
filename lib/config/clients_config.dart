@@ -106,6 +106,7 @@ class ClientsConfig {
         hasNfcCard: true,
         hasOfflineMode: false,
         hasTRA: true, // TRA tax reporting module enabled
+        hasFinancialBanking: true, // Financial banking dashboard enabled
       ),
     ),
   ];

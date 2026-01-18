@@ -224,6 +224,69 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     });
   }
 
+  /// Build curved AppBar with rounded bottom corners
+  Widget _buildCurvedAppBar(bool isDark, ThemeProvider themeProvider) {
+    final appBarColor = isDark ? AppColors.darkSurface : AppColors.primary;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: appBarColor,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(25),
+          bottomRight: Radius.circular(25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: 56,
+          child: Row(
+            children: [
+              // Menu button
+              Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu, color: Colors.white, size: 26),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  tooltip: 'Menu',
+                ),
+              ),
+              // Title
+              const Expanded(
+                child: Text(
+                  AppConstants.appName,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              // Dark mode toggle
+              IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode : Icons.dark_mode,
+                  color: Colors.white,
+                  size: 26,
+                ),
+                onPressed: () => themeProvider.toggleTheme(),
+                tooltip: isDark ? 'Light Mode' : 'Dark Mode',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Build drawer avatar with profile picture (Leruma feature) or default icon
   Widget _buildDrawerAvatar(dynamic user, bool isDark) {
     final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
@@ -376,36 +439,11 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       _selectedIndex = 0;
     }
 
-    return SafeArea(
-      bottom: false, // Don't add safe area padding at the bottom
-      child: Scaffold(
-        extendBody: true, // Allow body to extend behind bottom nav
-        appBar: AppBar(
-        title: const Text(AppConstants.appName),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
-        // Move drawer toggle to leading (left side)
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-            tooltip: 'Menu',
-          ),
-        ),
-        actions: [
-          // Dark mode toggle button (right side)
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode : Icons.dark_mode,
-            ),
-            onPressed: () {
-              themeProvider.toggleTheme();
-            },
-            tooltip: isDark ? 'Light Mode' : 'Dark Mode',
-          ),
-        ],
+    return Scaffold(
+      extendBody: true, // Allow body to extend behind bottom nav
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: _buildCurvedAppBar(isDark, themeProvider),
       ),
       drawer: Drawer(
         child: ListView(
@@ -620,20 +658,22 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ),
               ),
             // 6. Banking - requires cash_submit_banking permission
-            PermissionWrapper(
-              permissionId: PermissionIds.cashSubmitBanking,
-              child: ListTile(
-                leading: const Icon(Icons.account_balance, color: AppColors.primary),
-                title: const Text('Banking'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BankingListScreen()),
-                  );
-                },
+            // Hidden for leruma clients (they use Financial Banking instead)
+            if (!(ApiService.currentClient?.features.hasFinancialBanking ?? false))
+              PermissionWrapper(
+                permissionId: PermissionIds.cashSubmitBanking,
+                child: ListTile(
+                  leading: const Icon(Icons.account_balance, color: AppColors.primary),
+                  title: const Text('Banking'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BankingListScreen()),
+                    );
+                  },
+                ),
               ),
-            ),
             // 6.5 Financial Banking - Leruma only (uses 'banking' permission from web)
             if (ApiService.currentClient?.features.hasFinancialBanking ?? false)
               PermissionWrapper(
@@ -886,7 +926,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               child: _buildCurvedBottomNav(availableScreens, isDark),
             )
           : null,
-      ),
     );
   }
 
@@ -981,7 +1020,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     final screenWidth = constraints.maxWidth;
                     final itemWidth = screenWidth / screens.length;
                     final itemCount = screens.length;
-                    final centerSlot = (itemCount - 1) / 2.0;
 
                     // Build items with animated positions (circular reorder)
                     return Stack(
@@ -1163,3 +1201,4 @@ class _CurvedNavPainter extends CustomPainter {
            oldDelegate.borderColor != borderColor;
   }
 }
+

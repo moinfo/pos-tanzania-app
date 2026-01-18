@@ -6,6 +6,7 @@ import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../services/tra_service.dart';
+import '../../widgets/curved_bottom_navigation.dart';
 import 'tra_dashboard_screen.dart';
 import 'tra_sales_screen.dart';
 import 'tra_purchases_screen.dart';
@@ -137,21 +138,18 @@ class _TRAMainScreenState extends State<TRAMainScreen> {
               children: tabs.map((tab) => tab.screen).toList(),
             ),
       bottomNavigationBar: tabs.length > 1
-          ? BottomNavigationBar(
+          ? CurvedBottomNavigation(
               currentIndex: _selectedIndex,
               onTap: (index) {
                 setState(() {
                   _selectedIndex = index;
                 });
               },
-              type: BottomNavigationBarType.fixed,
               backgroundColor: isDark ? AppColors.darkCard : Colors.white,
               selectedItemColor: AppColors.primary,
-              unselectedItemColor: isDark ? Colors.white54 : Colors.grey,
-              selectedFontSize: 12,
-              unselectedFontSize: 11,
-              items: tabs.map((tab) => BottomNavigationBarItem(
-                icon: Icon(tab.icon),
+              unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
+              items: tabs.map((tab) => CurvedNavItem(
+                icon: tab.icon,
                 label: tab.label,
               )).toList(),
             )
