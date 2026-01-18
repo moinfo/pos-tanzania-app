@@ -908,6 +908,7 @@ class _MainNavigationState extends State<MainNavigation> {
               size: const Size(double.infinity, 80),
               painter: _CurvedNavPainter(
                 color: isDark ? AppColors.darkCard : Colors.white,
+                borderColor: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
               ),
             ),
           ),
@@ -1006,8 +1007,9 @@ class _MainNavigationState extends State<MainNavigation> {
 // Custom painter for curved navigation bar with notch at top
 class _CurvedNavPainter extends CustomPainter {
   final Color color;
+  final Color borderColor;
 
-  _CurvedNavPainter({required this.color});
+  _CurvedNavPainter({required this.color, required this.borderColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1015,10 +1017,15 @@ class _CurvedNavPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
     final path = Path();
     final centerX = size.width / 2;
-    final curveRadius = 35.0;
-    final curveDepth = 20.0;
+    const curveRadius = 35.0;
+    const curveDepth = 20.0;
 
     // Start from bottom left
     path.moveTo(0, size.height);
@@ -1051,7 +1058,33 @@ class _CurvedNavPainter extends CustomPainter {
     // Close path
     path.close();
 
+    // Draw fill
     canvas.drawPath(path, paint);
+
+    // Draw border along the top edge only
+    final borderPath = Path();
+    borderPath.moveTo(0, curveDepth);
+    borderPath.lineTo(centerX - curveRadius - 10, curveDepth);
+    borderPath.quadraticBezierTo(
+      centerX - curveRadius,
+      curveDepth,
+      centerX - curveRadius + 5,
+      curveDepth + 15,
+    );
+    borderPath.arcToPoint(
+      Offset(centerX + curveRadius - 5, curveDepth + 15),
+      radius: const Radius.circular(30),
+      clockwise: false,
+    );
+    borderPath.quadraticBezierTo(
+      centerX + curveRadius,
+      curveDepth,
+      centerX + curveRadius + 10,
+      curveDepth,
+    );
+    borderPath.lineTo(size.width, curveDepth);
+
+    canvas.drawPath(borderPath, borderPaint);
   }
 
   @override
