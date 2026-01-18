@@ -47,14 +47,32 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _MainNavigationState extends State<MainNavigation> with TickerProviderStateMixin {
   late int _selectedIndex;
+  late AnimationController _rotationController;
+  late Animation<double> _rotationAnimation;
+  double _currentRotationOffset = 0.0; // Offset to rotate items (in item units)
+  int _totalNavItems = 0; // Will be set on first build to trigger sync
+  bool _initialPositionSet = false; // Track if initial position has been set
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _rotationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
+    );
     _checkAuthStatus();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -117,7 +135,7 @@ class _MainNavigationState extends State<MainNavigation> {
       },
       {
         'screen': SalesScreen(key: ValueKey('sales_$userId')),
-        'icon': Icons.point_of_sale,
+        'icon': Icons.shopping_cart,
         'label': 'Sales',
         'permission': PermissionIds.sales, // module: sales
       },
@@ -179,8 +197,30 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _onItemTapped(int index) {
+    // Calculate rotation offset to bring selected item to center
+    // Center index is (totalItems - 1) / 2
+    // Offset = centerIndex - selectedIndex (how much to shift)
+    final centerIndex = (_totalNavItems - 1) / 2.0;
+    final newOffset = centerIndex - index;
+
+    _animateRotationTo(newOffset);
+
     setState(() {
       _selectedIndex = index;
+    });
+  }
+
+  void _animateRotationTo(double targetOffset) {
+    _rotationAnimation = Tween<double>(
+      begin: _currentRotationOffset,
+      end: targetOffset,
+    ).animate(CurvedAnimation(
+      parent: _rotationController,
+      curve: Curves.easeInOut,
+    ));
+
+    _rotationController.forward(from: 0).then((_) {
+      _currentRotationOffset = targetOffset;
     });
   }
 
@@ -840,8 +880,6 @@ class _MainNavigationState extends State<MainNavigation> {
       body: availableScreens.isNotEmpty
           ? availableScreens[_selectedIndex]['screen'] as Widget
           : const Center(child: Text('No access to any screens')),
-      floatingActionButton: _buildSalesFab(availableScreens, permissionProvider),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: availableScreens.length > 1
           ? MediaQuery(
               data: MediaQuery.of(context).removePadding(removeBottom: true),
@@ -893,123 +931,152 @@ class _MainNavigationState extends State<MainNavigation> {
       );
     }
 
-    return SizedBox(
-      height: 80,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
-        children: [
-          // Custom curved background
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: CustomPaint(
-              size: const Size(double.infinity, 80),
-              painter: _CurvedNavPainter(
-                color: isDark ? AppColors.darkCard : Colors.white,
-                borderColor: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+    // Update total nav items count and sync initial rotation offset
+    final itemCount = screens.length;
+    _totalNavItems = itemCount;
+
+    // Set initial position on first build
+    if (!_initialPositionSet && itemCount > 0) {
+      _initialPositionSet = true;
+      final centerIndex = (_totalNavItems - 1) / 2.0;
+      _currentRotationOffset = centerIndex - _selectedIndex;
+    }
+
+    return AnimatedBuilder(
+      animation: _rotationController,
+      builder: (context, child) {
+        // Use animation value when animating, otherwise use current offset
+        final rotationOffset = _rotationController.isAnimating
+            ? _rotationAnimation.value
+            : _currentRotationOffset;
+
+        return SizedBox(
+          height: 80,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            clipBehavior: Clip.none,
+            children: [
+              // Custom curved background - ALWAYS at center (0.5)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: CustomPaint(
+                  size: const Size(double.infinity, 80),
+                  painter: _CurvedNavPainter(
+                    color: isDark ? AppColors.darkCard : Colors.white,
+                    borderColor: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                    curvePosition: 0.5, // Always center
+                  ),
+                ),
               ),
-            ),
+              // Navigation items - all visible, circular reorder so selected is at center
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 60,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final screenWidth = constraints.maxWidth;
+                    final itemWidth = screenWidth / screens.length;
+                    final itemCount = screens.length;
+                    final centerSlot = (itemCount - 1) / 2.0;
+
+                    // Build items with animated positions (circular reorder)
+                    return Stack(
+                      children: screens.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+
+                        // Calculate which visual slot this item should be in
+                        // offset tells us how much to shift each item's display position
+                        double displayPosition = index + rotationOffset;
+
+                        // Wrap around to keep all items in valid slots (0 to itemCount-1)
+                        while (displayPosition < 0) displayPosition += itemCount;
+                        while (displayPosition >= itemCount) displayPosition -= itemCount;
+
+                        final xPos = displayPosition * itemWidth;
+
+                        return Positioned(
+                          left: xPos,
+                          top: 0,
+                          bottom: 0,
+                          width: itemWidth,
+                          child: _buildNavItem(
+                            item['icon'] as IconData,
+                            item['label'] as String,
+                            index,
+                            isDark,
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          // Navigation items
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 60,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // Left side items
-                ...leftItems.map((item) => _buildNavItem(
-                  item['icon'] as IconData,
-                  item['label'] as String,
-                  item['originalIndex'] as int,
-                  isDark,
-                )),
-                // Center space for FAB
-                const SizedBox(width: 70),
-                // Right side items
-                ...rightItems.map((item) => _buildNavItem(
-                  item['icon'] as IconData,
-                  item['label'] as String,
-                  item['originalIndex'] as int,
-                  isDark,
-                )),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildNavItem(IconData icon, String label, int index, bool isDark) {
     final isSelected = _selectedIndex == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () => _onItemTapped(index),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppColors.primary : AppColors.textLight,
-              size: 24,
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: isSelected ? AppColors.primary : AppColors.textLight,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+    return InkWell(
+      onTap: () => _onItemTapped(index),
+      child: Center(
+        child: isSelected
+            // Selected: larger icon only, no label, moved up into curve
+            ? Transform.translate(
+                offset: const Offset(0, -8),
+                child: Icon(
+                  icon,
+                  color: AppColors.primary,
+                  size: 38,
+                ),
+              )
+            // Unselected: smaller icon with label
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    color: AppColors.textLight,
+                    size: 22,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textLight,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  /// Build Sales FAB if user has permission - circular design for notched bar
-  Widget? _buildSalesFab(List<Map<String, dynamic>> screens, PermissionProvider permissionProvider) {
-    // Find Sales screen index
-    int salesIndex = -1;
-    for (int i = 0; i < screens.length; i++) {
-      if (screens[i]['label'] == 'Sales') {
-        salesIndex = i;
-        break;
-      }
-    }
-
-    if (salesIndex == -1) return null;
-
-    return Transform.translate(
-      offset: const Offset(0, 30),
-      child: SizedBox(
-        width: 50,
-        height: 50,
-        child: FloatingActionButton(
-          onPressed: () => _onItemTapped(salesIndex),
-          backgroundColor: AppColors.primary,
-          elevation: 4,
-          child: const Icon(Icons.shopping_cart, color: Colors.white, size: 24),
-        ),
-      ),
-    );
-  }
 }
 
-// Custom painter for curved navigation bar with notch at top
+// Custom painter for curved navigation bar with animated notch position
 class _CurvedNavPainter extends CustomPainter {
   final Color color;
   final Color borderColor;
+  final double curvePosition; // 0.0 = left edge, 1.0 = right edge
 
-  _CurvedNavPainter({required this.color, required this.borderColor});
+  _CurvedNavPainter({
+    required this.color,
+    required this.borderColor,
+    this.curvePosition = 0.5,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1023,7 +1090,9 @@ class _CurvedNavPainter extends CustomPainter {
       ..strokeWidth = 1.0;
 
     final path = Path();
-    final centerX = size.width / 2;
+    // Calculate curve center based on position
+    // curvePosition is already the exact ratio (0.0 to 1.0) of where the item center is
+    final curveX = size.width * curvePosition;
     const curveRadius = 35.0;
     const curveDepth = 20.0;
 
@@ -1032,23 +1101,23 @@ class _CurvedNavPainter extends CustomPainter {
     // Line to top left
     path.lineTo(0, curveDepth);
     // Line to before curve
-    path.lineTo(centerX - curveRadius - 10, curveDepth);
-    // Curve down and around the FAB area
+    path.lineTo(curveX - curveRadius - 10, curveDepth);
+    // Curve down and around the selected item
     path.quadraticBezierTo(
-      centerX - curveRadius,
+      curveX - curveRadius,
       curveDepth,
-      centerX - curveRadius + 5,
+      curveX - curveRadius + 5,
       curveDepth + 15,
     );
     path.arcToPoint(
-      Offset(centerX + curveRadius - 5, curveDepth + 15),
+      Offset(curveX + curveRadius - 5, curveDepth + 15),
       radius: const Radius.circular(30),
       clockwise: false,
     );
     path.quadraticBezierTo(
-      centerX + curveRadius,
+      curveX + curveRadius,
       curveDepth,
-      centerX + curveRadius + 10,
+      curveX + curveRadius + 10,
       curveDepth,
     );
     // Line to top right
@@ -1064,22 +1133,22 @@ class _CurvedNavPainter extends CustomPainter {
     // Draw border along the top edge only
     final borderPath = Path();
     borderPath.moveTo(0, curveDepth);
-    borderPath.lineTo(centerX - curveRadius - 10, curveDepth);
+    borderPath.lineTo(curveX - curveRadius - 10, curveDepth);
     borderPath.quadraticBezierTo(
-      centerX - curveRadius,
+      curveX - curveRadius,
       curveDepth,
-      centerX - curveRadius + 5,
+      curveX - curveRadius + 5,
       curveDepth + 15,
     );
     borderPath.arcToPoint(
-      Offset(centerX + curveRadius - 5, curveDepth + 15),
+      Offset(curveX + curveRadius - 5, curveDepth + 15),
       radius: const Radius.circular(30),
       clockwise: false,
     );
     borderPath.quadraticBezierTo(
-      centerX + curveRadius,
+      curveX + curveRadius,
       curveDepth,
-      centerX + curveRadius + 10,
+      curveX + curveRadius + 10,
       curveDepth,
     );
     borderPath.lineTo(size.width, curveDepth);
@@ -1088,5 +1157,9 @@ class _CurvedNavPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CurvedNavPainter oldDelegate) {
+    return oldDelegate.curvePosition != curvePosition ||
+           oldDelegate.color != color ||
+           oldDelegate.borderColor != borderColor;
+  }
 }
