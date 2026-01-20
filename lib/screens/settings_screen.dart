@@ -548,7 +548,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Moinfotech Company Limited',
+                  'Moinfotech',
                   style: TextStyle(
                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                     fontSize: 11,

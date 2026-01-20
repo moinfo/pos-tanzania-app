@@ -289,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Mobile App',
+                  'Making technology work for you',
                   style: TextStyle(
                     fontSize: 16,
                     color: isDark ? AppColors.darkTextLight : Colors.white70,
@@ -603,7 +603,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Moinfotech Company Limited',
+                      'Moinfotech',
                       style: TextStyle(
                         color: isDark ? AppColors.darkText : Colors.white,
                         fontSize: 14,
