@@ -345,10 +345,11 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
 
     // All Sales - requires cash_submit_all_sales
     // Calculate All Sales = Cash + Credit + LIPA NAMBA (all payment types)
-    // For Leruma, exclude LIPA NAMBA from calculation
+    // For Leruma and SADA, exclude LIPA NAMBA from calculation
+    final isSada = currentClient?.id == 'sada';
     final allSales = (_summaryData!['cash_sales'] ?? 0) +
                      (_summaryData!['customer_credit'] ?? 0) +
-                     (isLeruma ? 0 : (_summaryData!['lipa_namba'] ?? 0));
+                     ((isLeruma || isSada) ? 0 : (_summaryData!['lipa_namba'] ?? 0));
     addRowIfPermitted(
       PermissionIds.cashSubmitAllSales,
       _buildSummaryRow('All Sales', allSales, highlight: true, isDark: isDark),
@@ -361,8 +362,8 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     );
 
     // LIPA NAMBA - requires cash_submit_cash_sales (same permission as cash sales)
-    // Hidden for Leruma client
-    if (ApiService.currentClient?.id != 'leruma') {
+    // Hidden for Leruma and SADA clients
+    if (!isLeruma && !isSada) {
       addRowIfPermitted(
         PermissionIds.cashSubmitCashSales,
         _buildSummaryRow('LIPA NAMBA', _summaryData!['lipa_namba'] ?? 0, isDark: isDark),

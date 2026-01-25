@@ -1672,7 +1672,8 @@ class _SalesScreenState extends State<SalesScreen> {
                           ),
                         ],
                       ),
-                      padding: const EdgeInsets.all(12),
+                      // Extra bottom padding to account for curved navigation bar
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -3077,8 +3078,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
               items: [
                 const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
                 const DropdownMenuItem(value: 'Credit Card', child: Text('Credit Card')),
-                // LIPA NAMBA - hidden for Leruma
-                if (ApiService.currentClient?.id != 'leruma')
+                // LIPA NAMBA - hidden for Leruma and SADA
+                if (ApiService.currentClient?.id != 'leruma' && ApiService.currentClient?.id != 'sada')
                   const DropdownMenuItem(value: 'LIPA NAMBA', child: Text('LIPA NAMBA')),
                 // NFC Card payment - requires hasNfcCard feature, hidden for Leruma
                 if (ApiService.currentClient?.id != 'leruma' && hasNfcCard && hasNfcPaymentPermission && (_nfcCardBalance != null || widget.customer != null))
