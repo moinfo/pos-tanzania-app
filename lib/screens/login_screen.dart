@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/auth_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
@@ -32,6 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isBiometricAvailable = false;
   bool _isBiometricEnabled = false;
   String _biometricType = 'Biometric';
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -52,6 +54,15 @@ class _LoginScreenState extends State<LoginScreen> {
     await ApiService.getCurrentClient();
     await _checkBiometricAvailability();
     await _checkIfBiometricEnabled();
+    await _loadAppVersion();
+  }
+
+  /// Load app version from package info
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = 'Version ${packageInfo.version}+${packageInfo.buildNumber}';
+    });
   }
 
   /// Check if device supports biometric authentication
@@ -613,7 +624,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Version 1.0.0',
+                      _appVersion,
                       style: TextStyle(
                         color: isDark ? AppColors.darkTextLight : Colors.white70,
                         fontSize: 11,
