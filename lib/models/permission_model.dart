@@ -402,4 +402,11 @@ class PermissionIds {
   static const String traViewExpensesReports = 'tra_view_expenses_reports';
   static const String traViewSalesReports = 'tra_view_sales_reports';
   static const String traViewPurchasesReports = 'tra_view_purchases_reports';
+
+  // Shops permissions (under customers module, SADA only)
+  static const String customersShops = 'customers_shops';
+  static const String customersShopsView = 'customers_shops_view';
+  static const String customersShopsAdd = 'customers_shops_add';
+  static const String customersShopsEdit = 'customers_shops_edit';
+  static const String customersShopsDelete = 'customers_shops_delete';
 }

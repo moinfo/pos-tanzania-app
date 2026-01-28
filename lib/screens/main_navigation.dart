@@ -37,6 +37,7 @@ import 'nfc_card_lookup_screen.dart';
 import 'credits_screen.dart';
 import 'suppliers_credits_screen.dart';
 import 'tra/tra_main_screen.dart';
+import 'shops_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -114,6 +115,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
+    final hasShops = ApiService.currentClient?.features.hasShops ?? false;
 
     // Check if user has a stock location assigned
     final hasStockLocation = locationProvider.selectedLocation != null ||
@@ -182,6 +184,16 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         'icon': Icons.assignment,
         'label': 'Contracts',
         'permission': PermissionIds.contracts, // module: contracts
+      });
+    }
+
+    // Add Shops for SADA client (shop registration with GPS)
+    if (hasShops) {
+      configs.add({
+        'screen': ShopsScreen(key: ValueKey('shops_$userId')),
+        'icon': Icons.store,
+        'label': 'Shops',
+        'permission': PermissionIds.customersShops, // customers_shops permission
       });
     }
 
@@ -515,6 +527,22 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     },
                   ),
                 ),
+                // Shops (SADA only)
+                if (ApiService.currentClient?.features.hasShops ?? false)
+                  PermissionWrapper(
+                    permissionId: PermissionIds.customersShops,
+                    child: ListTile(
+                      leading: const Icon(Icons.store, color: AppColors.primary),
+                      title: const Text('Shops'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ShopsScreen()),
+                        );
+                      },
+                    ),
+                  ),
               ],
             ),
             // 2. Items - requires items permission

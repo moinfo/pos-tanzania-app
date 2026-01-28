@@ -53,5 +53,9 @@
 	<string>We need access to your photo library to select profit slip documents</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>We need access to save scanned profit slip documents to your photo library</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to register shop GPS coordinates for accurate shop mapping</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We need your location to register shop GPS coordinates for accurate shop mapping</string>
 </dict>
 </plist>

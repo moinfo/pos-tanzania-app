@@ -54,7 +54,7 @@ class ClientsConfig {
 
   // Base URLs
   static const String localBaseUrl = 'http://$LOCAL_HOST:$LOCAL_PORT/api';
-  static const String prodBaseUrl = 'https://moinfotech.co.tz/api';
+  static const String prodBaseUrl = 'https://kiwangwa.co.tz/api';
 
   // ============================================
   // CLIENT DEFINITIONS
@@ -66,10 +66,11 @@ class ClientsConfig {
       name: 'dev-sada',
       displayName: 'SADA',
       devApiUrl: localBaseUrl,
-      prodApiUrl: 'https://moinfotech.co.tz/api',
+      prodApiUrl: 'https://kiwangwa.co.tz/api',
       features: const ClientFeatures(
         hasContracts: true,
         hasOfflineMode: false,
+        hasShops: true, // Shop registration with GPS coordinates
       ),
     ),
     // Come & Save

@@ -41,6 +41,9 @@ class ClientFeatures {
   // Financial Banking Dashboard (Leruma only)
   final bool hasFinancialBanking; // Enable EFD/beneficiary financial analysis dashboard
 
+  // Shop Registration with GPS (SADA only)
+  final bool hasShops; // Enable shop registration with GPS coordinates
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -68,6 +71,7 @@ class ClientFeatures {
     this.hasLocationBasedPricing = false, // Default: disabled - only Come & Save uses this
     this.hasLandingStockDisplay = false, // Default: disabled - only Come & Save uses this
     this.hasFinancialBanking = false, // Default: disabled - only Leruma uses this
+    this.hasShops = false, // Default: disabled - only SADA uses this
   });
 }
 

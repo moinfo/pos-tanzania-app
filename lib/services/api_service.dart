@@ -38,6 +38,7 @@ import '../models/one_time_discount.dart';
 import '../models/item_quantity_offer.dart';
 import '../models/customer_card.dart';
 import '../models/nfc_wallet.dart';
+import '../models/shop.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -6079,6 +6080,172 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error getting settings: $e');
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ============ SHOPS ENDPOINTS (SADA only) ============
+
+  /// Get all shops with optional filters
+  Future<ApiResponse<List<Shop>>> getShops({
+    int? customerId,
+    String? search,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final queryParams = {
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+        if (customerId != null) 'customer_id': customerId.toString(),
+        if (search != null) 'search': search,
+      };
+
+      final uri = Uri.parse('$baseUrlSync/shops').replace(
+        queryParameters: queryParams,
+      );
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final shops = (data['shops'] as List)
+            .map((item) => Shop.fromJson(item))
+            .toList();
+
+        return ApiResponse.success(
+          data: shops,
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch shops',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get single shop by ID
+  Future<ApiResponse<Shop>> getShop(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/shops/show/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Shop>(
+        response,
+        (data) => Shop.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get shops by customer
+  Future<ApiResponse<List<Shop>>> getShopsByCustomer(int customerId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/shops/by_customer/$customerId'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final shops = (data['shops'] as List)
+            .map((item) => Shop.fromJson(item))
+            .toList();
+
+        return ApiResponse.success(
+          data: shops,
+          message: jsonResponse['message'],
+        );
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch customer shops',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Create shop with GPS coordinates
+  Future<ApiResponse<Shop>> createShop(ShopFormData formData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/shops/create'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Shop>(
+        response,
+        (data) => Shop.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update shop
+  Future<ApiResponse<Shop>> updateShop(int id, ShopFormData formData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/shops/update/$id'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Shop>(
+        response,
+        (data) => Shop.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete shop
+  Future<ApiResponse<void>> deleteShop(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/shops/delete/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get service history for a shop
+  Future<ApiResponse<List<ServiceHistory>>> getServiceHistory(int shopId, {int limit = 20, int offset = 0}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/shops/service_history/$shopId?limit=$limit&offset=$offset'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<List<ServiceHistory>>(
+        response,
+        (data) {
+          final salesList = data['sales'] as List<dynamic>;
+          return salesList
+              .map((item) => ServiceHistory.fromJson(item as Map<String, dynamic>))
+              .toList();
+        },
+      );
+    } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }

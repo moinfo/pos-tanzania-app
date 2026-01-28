@@ -10,7 +10,7 @@
 
     <!-- Production domains (HTTPS only) -->
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">moinfotech.co.tz</domain>
+        <domain includeSubdomains="true">kiwangwa.co.tz</domain>
         <domain includeSubdomains="true">comeandsave.co.tz</domain>
         <domain includeSubdomains="true">leruma.co.tz</domain>
         <trust-anchors>
