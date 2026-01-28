@@ -13,6 +13,8 @@ import 'bank_basis_screen.dart';
 import 'wakala_screen.dart';
 import 'wakala_report_screen.dart';
 import 'wakala_expenses_screen.dart';
+import 'commission_screen.dart';
+import 'capital_screen.dart';
 
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
@@ -54,7 +56,7 @@ class TransactionsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Customer deposits, withdrawals, cash & bank basis, wakala',
+                  'Deposits, withdrawals, cash & bank basis, wakala, capital & commission',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
                       ),
@@ -208,6 +210,53 @@ class TransactionsScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => const WakalaReportScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+
+                // Capital & Commission Section
+                if (permissionProvider.hasPermission(PermissionIds.transactionsCommission) ||
+                    permissionProvider.hasPermission(PermissionIds.transactionsCapital)) ...[
+                  const SizedBox(height: 12),
+                  _buildSectionHeader(context, 'Capital & Commission', isDark),
+                  const SizedBox(height: 12),
+
+                  // Commission Card
+                  if (permissionProvider.hasPermission(PermissionIds.transactionsCommission)) ...[
+                    _buildTransactionCard(
+                      context,
+                      icon: Icons.percent,
+                      title: 'Commission',
+                      subtitle: 'Track commission from wakala & bank',
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CommissionScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Capital Card
+                  if (permissionProvider.hasPermission(PermissionIds.transactionsCapital)) ...[
+                    _buildTransactionCard(
+                      context,
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: 'Capital',
+                      subtitle: 'Manage capital entries and investments',
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CapitalScreen(),
                           ),
                         );
                       },

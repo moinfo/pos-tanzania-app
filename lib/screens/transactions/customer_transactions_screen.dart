@@ -264,6 +264,10 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     final amountController = TextEditingController();
     final descriptionController = TextEditingController();
     DateTime selectedDate = DateTime.now();
+    final canChangeDate = Provider.of<PermissionProvider>(context, listen: false)
+        .hasPermission(isDeposit
+            ? PermissionIds.transactionsDepositDate
+            : PermissionIds.transactionsWithdrawDate);
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
@@ -296,20 +300,23 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                 ListTile(
                   title: const Text('Date'),
                   subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: dialogContext,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) {
-                      setDialogState(() {
-                        selectedDate = picked;
-                      });
-                    }
-                  },
+                  trailing: canChangeDate ? const Icon(Icons.calendar_today) : null,
+                  enabled: canChangeDate,
+                  onTap: canChangeDate
+                      ? () async {
+                          final picked = await showDatePicker(
+                            context: dialogContext,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedDate = picked;
+                            });
+                          }
+                        }
+                      : null,
                 ),
               ],
             ),
@@ -383,6 +390,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     final amountController = TextEditingController(text: deposit.amount.toString());
     final descriptionController = TextEditingController(text: deposit.description);
     DateTime selectedDate = DateFormat('yyyy-MM-dd').parse(deposit.date);
+    final canChangeDate = Provider.of<PermissionProvider>(context, listen: false)
+        .hasPermission(PermissionIds.transactionsDepositDate);
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
@@ -413,20 +422,23 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                 ListTile(
                   title: const Text('Date'),
                   subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: dialogContext,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) {
-                      setDialogState(() {
-                        selectedDate = picked;
-                      });
-                    }
-                  },
+                  trailing: canChangeDate ? const Icon(Icons.calendar_today) : null,
+                  enabled: canChangeDate,
+                  onTap: canChangeDate
+                      ? () async {
+                          final picked = await showDatePicker(
+                            context: dialogContext,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedDate = picked;
+                            });
+                          }
+                        }
+                      : null,
                 ),
               ],
             ),
@@ -531,6 +543,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     final amountController = TextEditingController(text: withdrawal.amount.toString());
     final descriptionController = TextEditingController(text: withdrawal.description);
     DateTime selectedDate = DateFormat('yyyy-MM-dd').parse(withdrawal.date);
+    final canChangeDate = Provider.of<PermissionProvider>(context, listen: false)
+        .hasPermission(PermissionIds.transactionsWithdrawDate);
 
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
@@ -561,20 +575,23 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                 ListTile(
                   title: const Text('Date'),
                   subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: dialogContext,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) {
-                      setDialogState(() {
-                        selectedDate = picked;
-                      });
-                    }
-                  },
+                  trailing: canChangeDate ? const Icon(Icons.calendar_today) : null,
+                  enabled: canChangeDate,
+                  onTap: canChangeDate
+                      ? () async {
+                          final picked = await showDatePicker(
+                            context: dialogContext,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedDate = picked;
+                            });
+                          }
+                        }
+                      : null,
                 ),
               ],
             ),
@@ -696,24 +713,26 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.date_range),
-            onPressed: () async {
-              final picked = await showDateRangePicker(
-                context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-                initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
-              );
-              if (picked != null) {
-                setState(() {
-                  _startDate = picked.start;
-                  _endDate = picked.end;
-                });
-                _loadTransactions();
-              }
-            },
-          ),
+          if ((_tabController.index == 0 && permissionProvider.hasPermission(PermissionIds.transactionsDepositDateRange)) ||
+              (_tabController.index == 1 && permissionProvider.hasPermission(PermissionIds.transactionsWithdrawDateRange)))
+            IconButton(
+              icon: const Icon(Icons.date_range),
+              onPressed: () async {
+                final picked = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+                );
+                if (picked != null) {
+                  setState(() {
+                    _startDate = picked.start;
+                    _endDate = picked.end;
+                  });
+                  _loadTransactions();
+                }
+              },
+            ),
         ],
       ),
       body: Container(

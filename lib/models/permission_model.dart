@@ -291,6 +291,10 @@ class PermissionIds {
   static const String transactionsWithdrawAdd = 'transactions_withdraw_add';
   static const String transactionsWithdrawEdit = 'transactions_withdraw_edit';
   static const String transactionsWithdrawDelete = 'transactions_withdraw_delete';
+  static const String transactionsDepositDateRange = 'transactions_deposit_date_range';
+  static const String transactionsDepositDate = 'transactions_deposit_date';
+  static const String transactionsWithdrawDateRange = 'transactions_withdraw_date_range';
+  static const String transactionsWithdrawDate = 'transactions_withdraw_date';
 
   // Wakala
   static const String transactionsWakala = 'transactions_wakala';
@@ -306,6 +310,18 @@ class PermissionIds {
   static const String transactionsWakalaExpensesAdd = 'transactions_wakala_expenses_add';
   static const String transactionsWakalaExpensesEdit = 'transactions_wakala_expenses_edit';
   static const String transactionsWakalaExpensesDelete = 'transactions_wakala_expenses_delete';
+
+  // Commission
+  static const String transactionsCommission = 'transactions_commission';
+  static const String transactionsCommissionAdd = 'transactions_commission_add';
+  static const String transactionsCommissionEdit = 'transactions_commission_edit';
+  static const String transactionsCommissionDelete = 'transactions_commission_delete';
+
+  // Capital
+  static const String transactionsCapital = 'transactions_capital';
+  static const String transactionsCapitalAdd = 'transactions_capital_add';
+  static const String transactionsCapitalEdit = 'transactions_capital_edit';
+  static const String transactionsCapitalDelete = 'transactions_capital_delete';
 
   // Reports sub-permissions
   static const String reportsCustomers = 'reports_customers';

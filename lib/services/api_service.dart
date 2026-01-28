@@ -4622,6 +4622,174 @@ class ApiService {
     }
   }
 
+  // ==================== COMMISSION API ====================
+
+  /// Get commissions list
+  Future<ApiResponse<CommissionResponse>> getCommissions({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/commissions')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<CommissionResponse>(
+        response,
+        (data) => CommissionResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add commission
+  Future<ApiResponse<Map<String, dynamic>>> addCommission(
+    CommissionFormData formData,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_commission'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update commission
+  Future<ApiResponse<Map<String, dynamic>>> updateCommission(
+    int id,
+    CommissionFormData formData,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_commission/$id'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete commission
+  Future<ApiResponse<Map<String, dynamic>>> deleteCommission(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_commission/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ==================== CAPITAL API ====================
+
+  /// Get capital entries
+  Future<ApiResponse<CapitalResponse>> getCapitalEntries({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/capital')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<CapitalResponse>(
+        response,
+        (data) => CapitalResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add capital entry
+  Future<ApiResponse<Map<String, dynamic>>> addCapital(
+    CapitalFormData formData,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/add_capital'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update capital entry
+  Future<ApiResponse<Map<String, dynamic>>> updateCapital(
+    int id,
+    CapitalFormData formData,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/update_capital/$id'),
+        headers: await _getHeaders(),
+        body: json.encode(formData.toJson()),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete capital entry
+  Future<ApiResponse<Map<String, dynamic>>> deleteCapital(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transactions/delete_capital/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ==================== REPORTS API ====================
 
   /// Get report data (generic method for all report types)

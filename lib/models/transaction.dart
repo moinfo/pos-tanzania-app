@@ -566,6 +566,8 @@ class WakalaReport {
   final double openingBalance;
   final double closingBalance;
   final double netTotal;
+  final double capital;
+  final double commission;
   final double actualCapital;
   final double calculatedCapital;
   final double gainLoss;
@@ -585,6 +587,8 @@ class WakalaReport {
     required this.openingBalance,
     required this.closingBalance,
     required this.netTotal,
+    required this.capital,
+    required this.commission,
     required this.actualCapital,
     required this.calculatedCapital,
     required this.gainLoss,
@@ -606,7 +610,9 @@ class WakalaReport {
       openingBalance: _toDouble(json['opening_balance']),
       closingBalance: _toDouble(json['closing_balance']),
       netTotal: _toDouble(json['net_total']),
-      actualCapital: _toDouble(json['actual_capital'] ?? json['capital']),
+      capital: _toDouble(json['capital']),
+      commission: _toDouble(json['commission']),
+      actualCapital: _toDouble(json['actual_capital']),
       calculatedCapital: _toDouble(json['calculated_capital']),
       gainLoss: _toDouble(json['gain_loss']),
       creditors: CreditorDebtorSection.fromJson(json['creditors'] ?? {}),
@@ -692,6 +698,175 @@ class WakalaExpenseFormData {
   final String date;
 
   WakalaExpenseFormData({
+    required this.amount,
+    this.description = '',
+    required this.date,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'amount': amount,
+      'description': description,
+      'date': date,
+    };
+  }
+}
+
+// ============================================
+// COMMISSION MODELS
+// ============================================
+
+class Commission {
+  final int id;
+  final String sourceType;
+  final int sourceId;
+  final String sourceName;
+  final double amount;
+  final String date;
+  final String description;
+
+  Commission({
+    required this.id,
+    required this.sourceType,
+    required this.sourceId,
+    required this.sourceName,
+    required this.amount,
+    required this.date,
+    required this.description,
+  });
+
+  factory Commission.fromJson(Map<String, dynamic> json) {
+    return Commission(
+      id: json['id'] ?? 0,
+      sourceType: json['source_type'] ?? '',
+      sourceId: json['source_id'] ?? 0,
+      sourceName: json['source_name'] ?? '',
+      amount: (json['amount'] ?? 0).toDouble(),
+      date: json['date'] ?? '',
+      description: json['description'] ?? '',
+    );
+  }
+}
+
+class CommissionResponse {
+  final String startDate;
+  final String endDate;
+  final List<Commission> commissions;
+  final double total;
+
+  CommissionResponse({
+    required this.startDate,
+    required this.endDate,
+    required this.commissions,
+    required this.total,
+  });
+
+  factory CommissionResponse.fromJson(Map<String, dynamic> json) {
+    var list = (json['commissions'] as List? ?? [])
+        .map((e) => Commission.fromJson(e))
+        .toList();
+
+    return CommissionResponse(
+      startDate: json['start_date'] ?? '',
+      endDate: json['end_date'] ?? '',
+      commissions: list,
+      total: (json['total'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class CommissionFormData {
+  final String sourceType;
+  final int sourceId;
+  final double amount;
+  final String description;
+  final String date;
+
+  CommissionFormData({
+    required this.sourceType,
+    required this.sourceId,
+    required this.amount,
+    this.description = '',
+    required this.date,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'source_type': sourceType,
+      'source_id': sourceId,
+      'amount': amount,
+      'description': description,
+      'date': date,
+    };
+  }
+}
+
+// ============================================
+// CAPITAL MODELS
+// ============================================
+
+class CapitalEntry {
+  final int id;
+  final double amount;
+  final String date;
+  final String description;
+
+  CapitalEntry({
+    required this.id,
+    required this.amount,
+    required this.date,
+    required this.description,
+  });
+
+  factory CapitalEntry.fromJson(Map<String, dynamic> json) {
+    return CapitalEntry(
+      id: json['id'] ?? 0,
+      amount: (json['amount'] ?? 0).toDouble(),
+      date: json['date'] ?? '',
+      description: json['description'] ?? '',
+    );
+  }
+}
+
+class CapitalResponse {
+  final String startDate;
+  final String endDate;
+  final List<CapitalEntry> entries;
+  final double totalCapital;
+  final double totalCommission;
+  final double actualCapital;
+
+  CapitalResponse({
+    required this.startDate,
+    required this.endDate,
+    required this.entries,
+    required this.totalCapital,
+    required this.totalCommission,
+    required this.actualCapital,
+  });
+
+  factory CapitalResponse.fromJson(Map<String, dynamic> json) {
+    var list = (json['entries'] as List? ?? [])
+        .map((e) => CapitalEntry.fromJson(e))
+        .toList();
+
+    return CapitalResponse(
+      startDate: json['start_date'] ?? '',
+      endDate: json['end_date'] ?? '',
+      entries: list,
+      totalCapital: (json['total_capital'] ?? 0).toDouble(),
+      totalCommission: (json['total_commission'] ?? 0).toDouble(),
+      actualCapital: (json['actual_capital'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class CapitalFormData {
+  final double amount;
+  final String description;
+  final String date;
+
+  CapitalFormData({
     required this.amount,
     this.description = '',
     required this.date,

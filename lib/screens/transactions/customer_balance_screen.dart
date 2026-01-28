@@ -7,6 +7,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import 'customer_statement_screen.dart';
 
 class CustomerBalanceScreen extends StatefulWidget {
   const CustomerBalanceScreen({super.key});
@@ -388,6 +389,35 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+
+              // Statement Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CustomerStatementScreen(
+                          customerId: customer.customerId,
+                          customerName: customer.customerName,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.receipt_long, size: 16),
+                  label: const Text('Statement'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
               ),
             ],
           ),
