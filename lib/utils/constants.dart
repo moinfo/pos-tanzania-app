@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Logo colors - Red and Dark Gray (used in both themes)
-  static const Color primary = Color(0xFFE63946);        // Logo red
-  static const Color secondary = Color(0xFF2B2D42);      // Logo dark gray/black
+  // Logo colors - Blue and Dark Gray (Moinfotech branding)
+  static const Color primary = Color(0xFF1565C0);        // Logo blue
+  static const Color secondary = Color(0xFF2B2D42);      // Dark gray/black
 
   // Supporting colors derived from logo colors
-  static const Color primaryLight = Color(0xFFFF6B77);   // Lighter red
-  static const Color primaryDark = Color(0xFFB82833);    // Darker red
-  static const Color secondaryLight = Color(0xFF464A5E);  // Lighter dark gray
+  static const Color primaryLight = Color(0xFF42A5F5);   // Lighter blue
+  static const Color primaryDark = Color(0xFF0D47A1);    // Darker blue
+  static const Color secondaryLight = Color(0xFF464A5E);
 
   // Status colors - proper semantic colors for better UI
   static const Color success = Color(0xFF10B981);        // Emerald green

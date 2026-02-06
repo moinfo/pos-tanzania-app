@@ -271,17 +271,31 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   tooltip: 'Menu',
                 ),
               ),
-              // Title
-              const Expanded(
-                child: Text(
-                  AppConstants.appName,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
+              // Logo + Title
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (ApiService.currentClient?.logoUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Image.asset(
+                          ApiService.currentClient!.logoUrl!,
+                          height: 32,
+                          width: 32,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    Text(
+                      ApiService.currentClient?.displayName ?? AppConstants.appName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               // Dark mode toggle

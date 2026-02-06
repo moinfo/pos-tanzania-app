@@ -64,9 +64,10 @@ class ClientsConfig {
     ClientConfig(
       id: 'sada',
       name: 'dev-sada',
-      displayName: 'SADA',
+      displayName: 'Moinfotech',
       devApiUrl: localBaseUrl,
       prodApiUrl: 'https://kiwangwa.co.tz/api',
+      logoUrl: 'assets/images/sada-logo.png',
       features: const ClientFeatures(
         hasContracts: true,
         hasOfflineMode: false,
