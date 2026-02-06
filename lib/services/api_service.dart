@@ -13,6 +13,7 @@ import '../models/banking.dart';
 import '../models/financial_banking.dart';
 import '../models/profit_submit.dart';
 import '../models/contract.dart';
+import '../models/discount_request.dart';
 import '../models/expense.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
@@ -6413,6 +6414,209 @@ class ApiService {
               .toList();
         },
       );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ==================== CUSTOMER DISCOUNT REQUESTS API (SADA only) ====================
+
+  /// Get list of discount requests
+  Future<ApiResponse<DiscountRequestListResponse>> getDiscountRequests({
+    String? status,
+    int? customerId,
+    String? search,
+    int limit = 25,
+    int offset = 0,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      };
+      if (status != null) queryParams['status'] = status;
+      if (customerId != null) queryParams['customer_id'] = customerId.toString();
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+
+      final uri = Uri.parse('$baseUrlSync/discount_requests').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<DiscountRequestListResponse>(
+        response,
+        (data) => DiscountRequestListResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get single discount request
+  Future<ApiResponse<DiscountRequest>> getDiscountRequest(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/discount_requests/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<DiscountRequest>(
+        response,
+        (data) => DiscountRequest.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get pending count for badge
+  Future<ApiResponse<int>> getDiscountRequestsPendingCount() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/discount_requests/pending_count'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<int>(
+        response,
+        (data) => data['pending_count'] is int
+            ? data['pending_count']
+            : int.tryParse(data['pending_count']?.toString() ?? '') ?? 0,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get item prices for discount validation
+  Future<ApiResponse<ItemPricesResponse>> getItemPrices(int itemId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/discount_requests/item_prices/$itemId'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<ItemPricesResponse>(
+        response,
+        (data) => ItemPricesResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Check if customer has approved discount for an item
+  Future<ApiResponse<CheckApprovedDiscountResponse>> checkApprovedDiscount({
+    required int customerId,
+    required int itemId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/discount_requests/check_approved').replace(
+        queryParameters: {
+          'customer_id': customerId.toString(),
+          'item_id': itemId.toString(),
+        },
+      );
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<CheckApprovedDiscountResponse>(
+        response,
+        (data) => CheckApprovedDiscountResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Create a new discount request
+  Future<ApiResponse<void>> createDiscountRequest({
+    required int customerId,
+    required int itemId,
+    required double quantity,
+    required double discount,
+    int discountType = 1,
+    String? notes,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/discount_requests/create'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'customer_id': customerId,
+          'item_id': itemId,
+          'quantity': quantity,
+          'discount': discount,
+          'discount_type': discountType,
+          if (notes != null) 'notes': notes,
+        }),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update a pending discount request
+  Future<ApiResponse<void>> updateDiscountRequest({
+    required int id,
+    required double quantity,
+    required double discount,
+    String? notes,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/discount_requests/update/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'quantity': quantity,
+          'discount': discount,
+          if (notes != null) 'notes': notes,
+        }),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Approve a discount request
+  Future<ApiResponse<void>> approveDiscountRequest(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/discount_requests/approve/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Reject a discount request
+  Future<ApiResponse<void>> rejectDiscountRequest(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/discount_requests/reject/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete a discount request
+  Future<ApiResponse<void>> deleteDiscountRequest(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrlSync/discount_requests/delete/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }

@@ -38,6 +38,7 @@ import 'credits_screen.dart';
 import 'suppliers_credits_screen.dart';
 import 'tra/tra_main_screen.dart';
 import 'shops_screen.dart';
+import 'discount_requests_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -116,6 +117,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     final isLeruma = ApiService.currentClient?.id == 'leruma';
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
     final hasShops = ApiService.currentClient?.features.hasShops ?? false;
+    final hasDiscountRequests = ApiService.currentClient?.features.hasDiscountRequests ?? false;
 
     // Check if user has a stock location assigned
     final hasStockLocation = locationProvider.selectedLocation != null ||
@@ -545,6 +547,22 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   ),
               ],
             ),
+            // Discount Requests (SADA only)
+            if (ApiService.currentClient?.features.hasDiscountRequests ?? false)
+              PermissionWrapper(
+                permissionId: PermissionIds.customerDiscountRequests,
+                child: ListTile(
+                  leading: const Icon(Icons.discount, color: AppColors.primary),
+                  title: const Text('Discount Requests'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DiscountRequestsScreen()),
+                    );
+                  },
+                ),
+              ),
             // 2. Items - requires items permission
             PermissionWrapper(
               permissionId: PermissionIds.items,

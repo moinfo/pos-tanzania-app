@@ -181,13 +181,21 @@ class SaleItem {
   }
 
   // For creating a new sale item request
+  // Note: Backend API multiplies FIXED discount by quantity, so send per-unit value
   Map<String, dynamic> toCreateJson() {
+    // For FIXED discount (type=1), cart stores total (per_unit * qty),
+    // but backend expects per-unit and handles multiplication
+    double discountToSend = discount;
+    if (discountType == 1 && discount > 0 && quantity > 0) {
+      discountToSend = discount / quantity;
+    }
+
     return {
       'item_id': itemId,
       'quantity': quantity,
       'cost_price': costPrice,
       'unit_price': unitPrice,
-      if (discount > 0) 'discount': discount,
+      if (discount > 0) 'discount': discountToSend,
       if (discount > 0) 'discount_type': discountType, // 0=percent, 1=fixed
       if (description != null) 'description': description,
       if (serialNumber != null) 'serial_number': serialNumber,

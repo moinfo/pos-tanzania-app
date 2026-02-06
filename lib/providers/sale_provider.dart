@@ -4,6 +4,7 @@ import '../models/item.dart';
 import '../models/customer.dart';
 import '../models/one_time_discount.dart';
 import '../models/item_quantity_offer.dart';
+import '../models/discount_request.dart';
 import '../services/api_service.dart';
 import '../providers/offline_provider.dart';
 
@@ -193,6 +194,63 @@ class SaleProvider with ChangeNotifier {
     return appliedOffers;
   }
 
+  // Approved discount requests tracking (itemId -> CheckApprovedDiscountResponse)
+  final Map<int, CheckApprovedDiscountResponse> _approvedDiscountRequests = {};
+
+  // Get approved discount request for an item
+  CheckApprovedDiscountResponse? getApprovedDiscountRequest(int itemId) {
+    return _approvedDiscountRequests[itemId];
+  }
+
+  // Check if item has an approved discount request applied
+  bool hasApprovedDiscountRequest(int itemId) {
+    final request = _approvedDiscountRequests[itemId];
+    if (request == null || !request.hasApproved) return false;
+
+    final cartItem = _cartItems.firstWhere(
+      (item) => item.itemId == itemId,
+      orElse: () => SaleItem(
+        itemId: itemId, itemName: '', line: 0, quantity: 0, costPrice: 0, unitPrice: 0,
+      ),
+    );
+
+    // Discount is applied when quantity matches and discount is set
+    return request.quantity != null && cartItem.quantity == request.quantity! && cartItem.discount > 0;
+  }
+
+  // Check if item has pending approved discount (available but not yet applied)
+  // This is no longer used since discount auto-applies with forced quantity
+  bool hasPendingApprovedDiscount(int itemId) {
+    return false; // Discount always auto-applies now
+  }
+
+  // Check if an item's quantity is locked by an approved discount
+  bool isQuantityLockedByApprovedDiscount(int itemId) {
+    final request = _approvedDiscountRequests[itemId];
+    if (request == null || !request.hasApproved) return false;
+    final cartItem = _cartItems.firstWhere(
+      (item) => item.itemId == itemId,
+      orElse: () => SaleItem(
+        itemId: itemId, itemName: '', line: 0, quantity: 0, costPrice: 0, unitPrice: 0,
+      ),
+    );
+    // Locked when discount is applied (quantity matches approved quantity)
+    return request.quantity != null && cartItem.quantity == request.quantity! && cartItem.discount > 0;
+  }
+
+  // Get all applied approved discount request IDs (for marking as used)
+  List<int> getAppliedDiscountRequestIds() {
+    final List<int> ids = [];
+    for (var entry in _approvedDiscountRequests.entries) {
+      final itemId = entry.key;
+      final request = entry.value;
+      if (request.hasApproved && request.requestId != null && hasApprovedDiscountRequest(itemId)) {
+        ids.add(request.requestId!);
+      }
+    }
+    return ids;
+  }
+
   // Add item to cart
   void addItem(Item item, {double quantity = 1, int? locationId}) async {
     // Use provided locationId or fall back to stored location or default
@@ -233,6 +291,8 @@ class SaleProvider with ChangeNotifier {
     // Check for one-time discounts if customer is selected
     if (_selectedCustomer != null) {
       await checkAndApplyOneTimeDiscount(item.itemId);
+      // Check for approved discount requests (SADA feature)
+      await checkAndApplyApprovedDiscount(item.itemId);
     }
   }
 
@@ -251,6 +311,11 @@ class SaleProvider with ChangeNotifier {
       } else {
         final itemId = _cartItems[index].itemId;
         final oldItem = _cartItems[index];
+
+        // Prevent quantity change if locked by approved discount
+        if (isQuantityLockedByApprovedDiscount(itemId)) {
+          return;
+        }
 
         // Preserve discount: recalculate total discount based on new quantity
         // Discount is stored as total (discount per item × quantity)
@@ -273,6 +338,7 @@ class SaleProvider with ChangeNotifier {
         // Check for one-time discounts if customer is selected
         if (_selectedCustomer != null) {
           await checkAndApplyOneTimeDiscount(itemId);
+          await checkAndApplyApprovedDiscount(itemId);
         }
       }
     }
@@ -302,9 +368,10 @@ class SaleProvider with ChangeNotifier {
     if (index >= 0 && index < _cartItems.length) {
       final itemId = _cartItems[index].itemId;
       _cartItems.removeAt(index);
-      // Remove associated one-time discount and quantity offer
+      // Remove associated one-time discount, quantity offer, and approved discount request
       _oneTimeDiscounts.remove(itemId);
       _quantityOffers.remove(itemId);
+      _approvedDiscountRequests.remove(itemId);
       // Update line numbers
       for (int i = 0; i < _cartItems.length; i++) {
         _cartItems[i] = _cartItems[i].copyWith(line: i + 1);
@@ -320,6 +387,7 @@ class SaleProvider with ChangeNotifier {
     _payments.clear();
     _oneTimeDiscounts.clear();
     _quantityOffers.clear();
+    _approvedDiscountRequests.clear();
     notifyListeners();
   }
 
@@ -400,6 +468,80 @@ class SaleProvider with ChangeNotifier {
 
     for (var item in _cartItems) {
       await checkAndApplyOneTimeDiscount(item.itemId, date: date);
+    }
+  }
+
+  // Check and apply approved discount request for an item
+  Future<bool> checkAndApplyApprovedDiscount(int itemId) async {
+    // Must have customer selected and feature enabled
+    if (_selectedCustomer == null) return false;
+
+    // Check if discount requests feature is enabled for this client
+    final hasFeature = ApiService.currentClient?.features.hasDiscountRequests ?? false;
+    if (!hasFeature) return false;
+
+    try {
+      final response = await _apiService.checkApprovedDiscount(
+        customerId: _selectedCustomer!.personId,
+        itemId: itemId,
+      );
+
+      if (response.isSuccess && response.data != null && response.data!.hasApproved) {
+        final approved = response.data!;
+        _approvedDiscountRequests[itemId] = approved;
+
+        debugPrint('ApprovedDiscount: itemId=$itemId, approved qty=${approved.quantity}, discount=${approved.discount}, requestId=${approved.requestId}');
+
+        // Find the item in cart
+        final index = _cartItems.indexWhere((item) => item.itemId == itemId);
+        if (index >= 0) {
+          final item = _cartItems[index];
+
+          // Apply discount and lock quantity to approved amount
+          if (approved.quantity != null && approved.quantity! > 0) {
+            // Set quantity to exactly the approved quantity and apply discount
+            final approvedQty = approved.quantity!;
+            final totalDiscount = (approved.discount ?? 0) * approvedQty;
+            debugPrint('ApprovedDiscount: Setting cart qty=$approvedQty, totalDiscount=$totalDiscount (was qty=${item.quantity})');
+            _cartItems[index] = item.copyWith(
+              quantity: approvedQty,
+              discount: totalDiscount,
+              discountType: 1, // Fixed
+            );
+            notifyListeners();
+            return true;
+          } else {
+            // Quantity not met - clear discount if previously applied
+            if (item.discount > 0 && _approvedDiscountRequests.containsKey(itemId)) {
+              _cartItems[index] = item.copyWith(
+                discount: 0.0,
+                discountType: 1,
+              );
+              notifyListeners();
+            }
+            return false;
+          }
+        }
+      } else {
+        // No approved discount - remove tracking if existed
+        _approvedDiscountRequests.remove(itemId);
+      }
+      return false;
+    } catch (e) {
+      debugPrint('ApprovedDiscount: Error - $e');
+      return false;
+    }
+  }
+
+  // Check for approved discount requests for all items in cart
+  Future<void> checkAllApprovedDiscounts() async {
+    if (_selectedCustomer == null) return;
+
+    final hasFeature = ApiService.currentClient?.features.hasDiscountRequests ?? false;
+    if (!hasFeature) return;
+
+    for (var item in _cartItems) {
+      await checkAndApplyApprovedDiscount(item.itemId);
     }
   }
 
@@ -734,6 +876,7 @@ class SaleProvider with ChangeNotifier {
           'item_location': item.stockLocationId ?? _stockLocation,
           'serialnumber': item.serialNumber,
           'one_time_discount_id': _oneTimeDiscounts[item.itemId]?.discountId,
+          'approved_request_id': _approvedDiscountRequests[item.itemId]?.requestId,
           'quantity_offer_id': item.quantityOfferId,
           'quantity_offer_free': item.quantityOfferFree ? 1 : 0,
           'parent_line': item.parentLine,

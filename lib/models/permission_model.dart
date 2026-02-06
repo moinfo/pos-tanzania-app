@@ -419,6 +419,14 @@ class PermissionIds {
   static const String traViewSalesReports = 'tra_view_sales_reports';
   static const String traViewPurchasesReports = 'tra_view_purchases_reports';
 
+  // Customer Discount Requests permissions (SADA only)
+  static const String customerDiscountRequests = 'customer_discount_requests';
+  static const String customerDiscountRequestsAdd = 'customer_discount_requests_add';
+  static const String customerDiscountRequestsEdit = 'customer_discount_requests_edit';
+  static const String customerDiscountRequestsDelete = 'customer_discount_requests_delete';
+  static const String customerDiscountRequestsApprove = 'customer_discount_requests_approve';
+  static const String customerDiscountRequestsReject = 'customer_discount_requests_reject';
+
   // Shops permissions (under customers module, SADA only)
   static const String customersShops = 'customers_shops';
   static const String customersShopsView = 'customers_shops_view';

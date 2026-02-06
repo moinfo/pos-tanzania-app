@@ -44,6 +44,9 @@ class ClientFeatures {
   // Shop Registration with GPS (SADA only)
   final bool hasShops; // Enable shop registration with GPS coordinates
 
+  // Customer Discount Requests (SADA only)
+  final bool hasDiscountRequests; // Enable customer discount request workflow
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -72,6 +75,7 @@ class ClientFeatures {
     this.hasLandingStockDisplay = false, // Default: disabled - only Come & Save uses this
     this.hasFinancialBanking = false, // Default: disabled - only Leruma uses this
     this.hasShops = false, // Default: disabled - only SADA uses this
+    this.hasDiscountRequests = false, // Default: disabled - only SADA uses this
   });
 }
 

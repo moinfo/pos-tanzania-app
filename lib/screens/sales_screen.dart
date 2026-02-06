@@ -1372,6 +1372,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                   final hasOffer = saleProvider.hasQuantityOffer(item.itemId);
                                   final hasOneTimeDiscount = saleProvider.hasOneTimeDiscount(item.itemId);
                                   final hasPendingOTC = saleProvider.hasPendingOneTimeDiscount(item.itemId);
+                                  final hasApprovedDiscount = saleProvider.hasApprovedDiscountRequest(item.itemId);
+                                  final hasPendingApproved = saleProvider.hasPendingApprovedDiscount(item.itemId);
 
                                   return Container(
                                     margin: const EdgeInsets.only(bottom: 6),
@@ -1380,7 +1382,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                       color: isDark ? AppColors.darkCard : Colors.white,
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: hasOneTimeDiscount || (hasOffer && saleProvider.getQuantityOffer(item.itemId)!.calculateReward(item.quantity) > 0)
+                                        color: hasOneTimeDiscount || hasApprovedDiscount || (hasOffer && saleProvider.getQuantityOffer(item.itemId)!.calculateReward(item.quantity) > 0)
                                             ? AppColors.success.withValues(alpha: 0.5)
                                             : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                                       ),
@@ -1401,15 +1403,19 @@ class _SalesScreenState extends State<SalesScreen> {
                                               ),
                                             ),
                                             InkWell(
-                                              onTap: () => saleProvider.decrementQuantity(idx),
+                                              onTap: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                                                  ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity is locked by approved discount request'), backgroundColor: AppColors.warning))
+                                                  : () => saleProvider.decrementQuantity(idx),
                                               child: Container(
                                                 padding: const EdgeInsets.all(4),
-                                                decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                                                child: Icon(Icons.remove, size: 16, color: AppColors.error),
+                                                decoration: BoxDecoration(color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                                                child: Icon(Icons.remove, size: 16, color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey : AppColors.error),
                                               ),
                                             ),
                                             InkWell(
-                                              onTap: () {
+                                              onTap: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                                                  ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity is locked by approved discount request'), backgroundColor: AppColors.warning))
+                                                  : () {
                                                 final controller = TextEditingController(text: item.quantity.toStringAsFixed(0));
                                                 showDialog(
                                                   context: context,
@@ -1428,13 +1434,26 @@ class _SalesScreenState extends State<SalesScreen> {
                                                 constraints: const BoxConstraints(minWidth: 40),
                                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                                                decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, borderRadius: BorderRadius.circular(4), border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300)),
-                                                child: Text(item.quantity.toStringAsFixed(0), textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                                                decoration: BoxDecoration(
+                                                  color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.blue.withValues(alpha: 0.08) : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.blue.shade300 : (isDark ? Colors.grey.shade600 : Colors.grey.shade300)),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    if (saleProvider.isQuantityLockedByApprovedDiscount(item.itemId))
+                                                      Padding(padding: const EdgeInsets.only(right: 3), child: Icon(Icons.lock, size: 10, color: Colors.blue.shade400)),
+                                                    Text(item.quantity.toStringAsFixed(0), textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                             InkWell(
-                                              onTap: () => saleProvider.incrementQuantity(idx),
-                                              child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Icon(Icons.add, size: 16, color: AppColors.success)),
+                                              onTap: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                                                  ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity is locked by approved discount request'), backgroundColor: AppColors.warning))
+                                                  : () => saleProvider.incrementQuantity(idx),
+                                              child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey.withValues(alpha: 0.1) : AppColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Icon(Icons.add, size: 16, color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey : AppColors.success)),
                                             ),
                                             const SizedBox(width: 8),
                                             SizedBox(width: 60, child: Text('${_currencyFormat.format(item.calculateTotal())}', textAlign: TextAlign.right, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87))),
@@ -1442,7 +1461,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                           ],
                                         ),
                                         // Row 2: Discount + Offer badges
-                                        if (discountLimit > 0 || hasOffer || hasOneTimeDiscount || hasPendingOTC)
+                                        if (discountLimit > 0 || hasOffer || hasOneTimeDiscount || hasPendingOTC || hasApprovedDiscount || hasPendingApproved)
                                           Padding(
                                             padding: const EdgeInsets.only(top: 6),
                                             child: Wrap(
@@ -1474,6 +1493,13 @@ class _SalesScreenState extends State<SalesScreen> {
                                                   Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer, size: 12, color: AppColors.success), const SizedBox(width: 4), Text('OTC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success))])),
                                                 if (hasPendingOTC && !hasOneTimeDiscount)
                                                   Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer_outlined, size: 12, color: AppColors.warning), const SizedBox(width: 4), Text('OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning))])),
+                                                if (hasApprovedDiscount)
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified, size: 12, color: Colors.blue), const SizedBox(width: 4), Text('Approved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.blue))])),
+                                                if (hasPendingApproved && !hasApprovedDiscount)
+                                                  Builder(builder: (context) {
+                                                    final req = saleProvider.getApprovedDiscountRequest(item.itemId);
+                                                    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_outlined, size: 12, color: Colors.blue.shade300), const SizedBox(width: 4), Text('Approved: ${req?.quantity?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.blue.shade300))]));
+                                                  }),
                                                 if (hasOffer)
                                                   Builder(builder: (context) {
                                                     final offer = saleProvider.getQuantityOffer(item.itemId)!;
@@ -2185,6 +2211,66 @@ class _CartScreenState extends State<CartScreen> {
                                           ),
                                         ),
                                       ],
+                                      // Show "Approved Discount Applied" badge
+                                      if (saleProvider.hasApprovedDiscountRequest(item.itemId)) ...[
+                                        const SizedBox(height: 2),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(
+                                              color: Colors.blue.withOpacity(0.3),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.verified, size: 12, color: Colors.blue),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Approved Discount Applied',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.blue,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      // Show "Approved Discount Available" when quantity not met
+                                      if (saleProvider.hasPendingApprovedDiscount(item.itemId)) ...[
+                                        const SizedBox(height: 2),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withOpacity(0.05),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(
+                                              color: Colors.blue.withOpacity(0.2),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.verified_outlined, size: 12, color: Colors.blue.shade300),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Approved Discount (needs ${saleProvider.getApprovedDiscountRequest(item.itemId)?.quantity?.toStringAsFixed(0) ?? "?"} qty)',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.blue.shade300,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                       if (saleProvider.hasQuantityOffer(item.itemId)) ...[
                                         const SizedBox(height: 4),
                                         Builder(
@@ -2269,11 +2355,17 @@ class _CartScreenState extends State<CartScreen> {
                                 Row(
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.remove_circle_outline),
-                                      onPressed: () => saleProvider.decrementQuantity(index),
+                                      icon: Icon(Icons.remove_circle_outline,
+                                        color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey.shade400 : null,
+                                      ),
+                                      onPressed: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                                          ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity is locked by approved discount request'), backgroundColor: AppColors.warning))
+                                          : () => saleProvider.decrementQuantity(index),
                                     ),
                                     InkWell(
-                                      onTap: () {
+                                      onTap: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                                          ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity is locked by approved discount request'), backgroundColor: AppColors.warning))
+                                          : () {
                                         // Show dialog to edit quantity
                                         showDialog(
                                           context: context,
@@ -2371,28 +2463,46 @@ class _CartScreenState extends State<CartScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           border: Border.all(
-                                            color: isDark
-                                                ? AppColors.darkTextLight.withOpacity(0.3)
-                                                : Colors.grey.shade300,
+                                            color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                                                ? Colors.blue.shade300
+                                                : (isDark
+                                                    ? AppColors.darkTextLight.withOpacity(0.3)
+                                                    : Colors.grey.shade300),
                                           ),
                                           borderRadius: BorderRadius.circular(4),
-                                          color: isDark
-                                              ? AppColors.darkBackground
-                                              : Colors.grey.shade50,
+                                          color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                                              ? Colors.blue.withOpacity(0.08)
+                                              : (isDark
+                                                  ? AppColors.darkBackground
+                                                  : Colors.grey.shade50),
                                         ),
-                                        child: Text(
-                                          '${item.quantity.toStringAsFixed(0)}',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark ? AppColors.darkText : AppColors.text,
-                                          ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (saleProvider.isQuantityLockedByApprovedDiscount(item.itemId))
+                                              Padding(
+                                                padding: const EdgeInsets.only(right: 4),
+                                                child: Icon(Icons.lock, size: 14, color: Colors.blue.shade400),
+                                              ),
+                                            Text(
+                                              '${item.quantity.toStringAsFixed(0)}',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark ? AppColors.darkText : AppColors.text,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.add_circle_outline),
-                                      onPressed: () {
+                                      icon: Icon(Icons.add_circle_outline,
+                                        color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey.shade400 : null,
+                                      ),
+                                      onPressed: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                                          ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity is locked by approved discount request'), backgroundColor: AppColors.warning))
+                                          : () {
                                         // Check if client is Leruma (allows exceeding stock)
                                         final isLerumaClient = ApiService.currentClient?.id == 'leruma';
 

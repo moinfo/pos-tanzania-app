@@ -393,14 +393,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
         ],
       ),
-      floatingActionButton: _expenses.isNotEmpty
-          ? PermissionFAB(
-              permissionId: PermissionIds.expensesAdd,
-              onPressed: _showAddExpenseDialog,
-              tooltip: 'Add Expense',
-              child: const Icon(Icons.add, color: Colors.white),
-            )
-          : null,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 70),
+        child: PermissionFAB(
+          permissionId: PermissionIds.expensesAdd,
+          onPressed: _showAddExpenseDialog,
+          tooltip: 'Add Expense',
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+      ),
       // Bottom navigation is now handled by MainNavigation
     );
   }

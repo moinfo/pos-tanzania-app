@@ -71,6 +71,7 @@ class ClientsConfig {
         hasContracts: true,
         hasOfflineMode: false,
         hasShops: true, // Shop registration with GPS coordinates
+        hasDiscountRequests: true, // Customer discount request workflow
       ),
     ),
     // Come & Save
