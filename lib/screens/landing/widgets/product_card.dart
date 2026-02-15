@@ -106,7 +106,7 @@ class _ProductCardState extends State<ProductCard> {
                       color: LandingColors.primaryRed.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.card_giftcard,
                       size: 18,
                       color: LandingColors.primaryRed,

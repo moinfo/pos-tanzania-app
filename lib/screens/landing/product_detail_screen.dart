@@ -354,7 +354,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   child: Text(
                     _product.category,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: LandingColors.primaryRed,
                       fontWeight: FontWeight.w600,
                       fontSize: 11,
@@ -390,7 +390,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             children: [
               Text(
                 'TZS ${_formatPrice(_product.retailPrice)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: LandingColors.primaryRed,

@@ -36,6 +36,7 @@ class ClientsConfig {
     'sada': 'sada',
     'comeAndSave': 'come_and_save',
     'leruma': 'leruma',
+    'kariakooShops': 'kariakoo_shops',
   };
 
   // ============================================
@@ -89,6 +90,29 @@ class ClientsConfig {
         hasLandingPage: true, // Public shop landing page enabled
         hasLocationBasedPricing: true, // Different prices per stock location
         hasLandingStockDisplay: true, // Show stock and validate orders on landing page
+      ),
+    ),
+    // Kariakoo Shops
+    ClientConfig(
+      id: 'kariakoo_shops',
+      name: 'dev-kariakoo',
+      displayName: 'Kariakoo Shops',
+      devApiUrl: localBaseUrl,
+      prodApiUrl: 'https://kariakooshops.co.tz/api',
+      logoUrl: 'assets/images/kariakoo-logo.png',
+      branding: const ClientBranding(
+        primaryColor: 0xFF1B8C30,      // Kariakoo green
+        primaryDarkColor: 0xFF0A6B1A,  // Dark green
+        appTitle: 'Kariakoo Shops',
+        tagline: 'Your Marketplace Destination',
+      ),
+      features: const ClientFeatures(
+        hasContracts: false,
+        hasNfcCard: true,
+        hasOfflineMode: false,
+        hasLandingPage: true,
+        hasLocationBasedPricing: true,
+        hasLandingStockDisplay: true,
       ),
     ),
     // Leruma
@@ -174,6 +198,8 @@ class ClientsConfig {
         return 'Come & Save';
       case 'leruma':
         return 'Leruma';
+      case 'kariakooShops':
+        return 'Kariakoo Shops';
       default:
         return getDefaultClient().displayName;
     }

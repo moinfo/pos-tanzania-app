@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
+import 'landing_screen.dart' show LandingColors;
 
 /// Order history screen - lookup orders by phone number (used as tab)
 class OrderHistoryScreen extends StatefulWidget {
@@ -73,7 +74,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
 
     // Show loading while initializing saved phone
     if (!_isInitialized) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFE31E24)));
+      return Center(child: CircularProgressIndicator(color: LandingColors.primaryRed));
     }
 
     return Column(
@@ -86,7 +87,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
           child: Consumer<LandingProvider>(
             builder: (context, provider, _) {
               if (provider.isLoadingOrders) {
-                return const Center(child: CircularProgressIndicator(color: Color(0xFFE31E24)));
+                return Center(child: CircularProgressIndicator(color: LandingColors.primaryRed));
               }
 
               if (!_hasSearched) {
@@ -168,7 +169,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                 onPressed: _searchOrders,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  backgroundColor: const Color(0xFFE31E24),
+                  backgroundColor: LandingColors.primaryRed,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),

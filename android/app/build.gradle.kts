@@ -56,6 +56,11 @@ android {
             applicationId = "co.tz.leruma.pos"
             resValue("string", "app_name", "Leruma POS")
         }
+        create("kariakooShops") {
+            dimension = "client"
+            applicationId = "co.tz.kariakooshops.pos"
+            resValue("string", "app_name", "Kariakoo Shops")
+        }
     }
 
     signingConfigs {

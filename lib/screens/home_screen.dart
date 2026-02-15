@@ -75,13 +75,13 @@ class _HomeScreenState extends State<HomeScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: isDark
                 ? ColorScheme.dark(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: AppColors.darkSurface,
                     onSurface: AppColors.darkText,
                   )
                 : ColorScheme.light(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: Colors.white,
                     onSurface: AppColors.text,
@@ -451,11 +451,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? AppColors.primary.withOpacity(0.15)
-                          : AppColors.primary.withOpacity(0.1),
+                          ? AppColors.brandPrimary.withOpacity(0.15)
+                          : AppColors.brandPrimary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: AppColors.primary.withOpacity(isDark ? 0.3 : 0.2),
+                        color: AppColors.brandPrimary.withOpacity(isDark ? 0.3 : 0.2),
                         width: 1,
                       ),
                     ),
@@ -464,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Icon(
                           Icons.calendar_today,
                           size: 16,
-                          color: AppColors.primary,
+                          color: AppColors.brandPrimary,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -502,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Icon(
                               Icons.store,
-                              color: isDark ? AppColors.primary : AppColors.primary,
+                              color: isDark ? AppColors.brandPrimary : AppColors.brandPrimary,
                               size: 20,
                             ),
                             const SizedBox(width: 12),
@@ -633,7 +633,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   title: 'Profit',
                                   amount: _profit,
                                   icon: Icons.trending_up,
-                                  color: AppColors.primary,
+                                  color: AppColors.brandPrimary,
                                   isDark: isDark,
                                 ),
                               ),
@@ -723,7 +723,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   title: 'Profit',
                                   amount: _profit,
                                   icon: Icons.trending_up,
-                                  color: AppColors.primary,
+                                  color: AppColors.brandPrimary,
                                   isDark: isDark,
                                 ),
                               ),
@@ -807,7 +807,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: 'Total SIMs',
                 amount: data.sims.total,
                 icon: Icons.sim_card,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
                 isDark: isDark,
               ),
             ),
@@ -1221,7 +1221,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildMyCommissionLevelCard(
             level: 'III',
             data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_iii'] as Map<String, dynamic>?,
-            color: AppColors.primary,
+            color: AppColors.brandPrimary,
             isDark: isDark,
           ),
         ] else
@@ -1412,13 +1412,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final baseColor = percentage >= 100
         ? AppColors.success
         : percentage >= 50
-            ? AppColors.primary
+            ? AppColors.brandPrimary
             : AppColors.warning;
 
     // Muted colors for dark mode
     final iconColor = isDark
-        ? HSLColor.fromColor(AppColors.primary).withSaturation(0.5).withLightness(0.55).toColor()
-        : AppColors.primary;
+        ? HSLColor.fromColor(AppColors.brandPrimary).withSaturation(0.5).withLightness(0.55).toColor()
+        : AppColors.brandPrimary;
     final progressColor = isDark
         ? HSLColor.fromColor(baseColor).withSaturation(0.6).withLightness(0.45).toColor()
         : baseColor;
@@ -1440,11 +1440,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? HSLColor.fromColor(AppColors.primary).withSaturation(0.4).withLightness(0.2).toColor()
-                      : AppColors.primary.withOpacity(0.1),
+                      ? HSLColor.fromColor(AppColors.brandPrimary).withSaturation(0.4).withLightness(0.2).toColor()
+                      : AppColors.brandPrimary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: isDark
-                      ? Border.all(color: AppColors.primary.withOpacity(0.2), width: 1)
+                      ? Border.all(color: AppColors.brandPrimary.withOpacity(0.2), width: 1)
                       : null,
                 ),
                 child: Icon(icon, size: 18, color: iconColor),
@@ -2425,7 +2425,7 @@ class _HomeScreenState extends State<HomeScreen> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
+              color: AppColors.brandPrimary.withOpacity(0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -2713,15 +2713,15 @@ class _HomeScreenState extends State<HomeScreen> {
         shape: BoxShape.circle,
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.8),
-            AppColors.primary,
+            AppColors.brandPrimary.withOpacity(0.8),
+            AppColors.brandPrimary,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.brandPrimary.withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

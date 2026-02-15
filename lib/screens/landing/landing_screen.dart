@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
 import '../../models/public_product.dart';
 import '../../services/screen_protection_service.dart';
+import '../../services/api_service.dart';
 import '../login_screen.dart';
 import 'widgets/product_card.dart';
 import 'widgets/product_skeleton.dart';
@@ -10,9 +11,22 @@ import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'order_history_screen.dart';
 
-/// Brand colors from Come N' Save logo
+/// Brand colors - adapts to current client
 class LandingColors {
-  static const Color primaryRed = Color(0xFFE31E24);
+  static Color get primaryRed {
+    final branding = ApiService.currentClient?.branding;
+    if (branding != null && branding.primaryColor != 0xFF1565C0) {
+      return Color(branding.primaryColor);
+    }
+    return const Color(0xFFE31E24); // Default: Come N' Save red
+  }
+  static Color get primaryLight {
+    final branding = ApiService.currentClient?.branding;
+    if (branding != null && branding.primaryColor != 0xFF1565C0) {
+      return Color(branding.primaryColor).withOpacity(0.8);
+    }
+    return const Color(0xFFFF4D4D); // Default: lighter red
+  }
   static const Color black = Color(0xFF000000);
   static const Color white = Color(0xFFFFFFFF);
   static const Color lightGrey = Color(0xFFF5F5F5);
@@ -64,7 +78,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 secondary: LandingColors.primaryRed,
                 surface: cardColor,
               )
-            : const ColorScheme.light(
+            : ColorScheme.light(
                 primary: LandingColors.primaryRed,
                 secondary: LandingColors.black,
                 surface: LandingColors.white,
@@ -105,19 +119,23 @@ class _LandingScreenState extends State<LandingScreen> {
   PreferredSizeWidget _buildAppBar() {
     final iconColor = _isDarkMode ? LandingColors.white : LandingColors.black;
 
+    final client = ApiService.currentClient;
+    final logoPath = client?.logoUrl ?? 'assets/images/come_and_save_logo.png';
+    final title = client?.branding.appTitle ?? 'COME N\' SAVE';
+
     return AppBar(
       titleSpacing: 8,
       title: Row(
         children: [
           Image.asset(
-            'assets/images/come_and_save_logo.png',
+            logoPath,
             height: 36,
             fit: BoxFit.contain,
           ),
-          const Expanded(
+          Expanded(
             child: Center(
               child: Text(
-                'COME N\' SAVE',
+                title.toUpperCase(),
                 style: TextStyle(
                   color: LandingColors.primaryRed,
                   fontWeight: FontWeight.bold,
@@ -254,10 +272,10 @@ class _LandingScreenState extends State<LandingScreen> {
         ),
         decoration: isSelected
             ? BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [
-                    Color(0xFFE31E24),
-                    Color(0xFFFF4D4D),
+                    LandingColors.primaryRed,
+                    LandingColors.primaryLight,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -265,7 +283,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFE31E24).withValues(alpha: 0.4),
+                    color: LandingColors.primaryRed.withValues(alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -300,15 +318,15 @@ class _LandingScreenState extends State<LandingScreen> {
                             ? const LinearGradient(
                                 colors: [Colors.white, Color(0xFFF0F0F0)],
                               )
-                            : const LinearGradient(
-                                colors: [Color(0xFFE31E24), Color(0xFFFF4D4D)],
+                            : LinearGradient(
+                                colors: [LandingColors.primaryRed, LandingColors.primaryLight],
                               ),
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
                             color: isSelected
                                 ? Colors.black.withValues(alpha: 0.2)
-                                : const Color(0xFFE31E24).withValues(alpha: 0.4),
+                                : LandingColors.primaryRed.withValues(alpha: 0.4),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -318,7 +336,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       child: Text(
                         badge > 99 ? '99+' : '$badge',
                         style: TextStyle(
-                          color: isSelected ? const Color(0xFFE31E24) : Colors.white,
+                          color: isSelected ? LandingColors.primaryRed : Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -659,9 +677,9 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
         if (!provider.isLoadingProducts || provider.products.isEmpty) {
           return const SliverToBoxAdapter(child: SizedBox.shrink());
         }
-        return const SliverToBoxAdapter(
+        return SliverToBoxAdapter(
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Center(child: CircularProgressIndicator(color: LandingColors.primaryRed)),
           ),
         );

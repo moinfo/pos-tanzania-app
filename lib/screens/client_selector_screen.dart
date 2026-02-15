@@ -127,13 +127,13 @@ class _ClientSelectorScreenState extends State<ClientSelectorScreen> {
                         _searchQuery = value;
                       });
                     },
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.blue.shade900),
                     decoration: InputDecoration(
                       hintText: 'Search clients...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      hintStyle: TextStyle(color: Colors.blue.shade800.withOpacity(0.5)),
                       prefixIcon: Icon(
                         Icons.search,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.blue.shade800.withOpacity(0.7),
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
@@ -171,24 +171,24 @@ class _ClientSelectorScreenState extends State<ClientSelectorScreen> {
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? Colors.green.withOpacity(0.3)
-                                  : Colors.white.withOpacity(0.1),
+                                  : Colors.blue.shade800.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isSelected
                                     ? Colors.green
-                                    : Colors.white.withOpacity(0.3),
+                                    : Colors.blue.shade700.withOpacity(0.4),
                                 width: 2,
                               ),
                             ),
                             child: Icon(
                               isSelected ? Icons.check_circle : Icons.store,
-                              color: isSelected ? Colors.green : Colors.white70,
+                              color: isSelected ? Colors.green : Colors.blue.shade800,
                             ),
                           ),
                           title: Text(
                             client.displayName,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: Colors.blue.shade900,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -196,13 +196,13 @@ class _ClientSelectorScreenState extends State<ClientSelectorScreen> {
                           subtitle: Text(
                             client.name,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
+                              color: Colors.blue.shade800.withOpacity(0.6),
                               fontSize: 12,
                             ),
                           ),
                           trailing: Icon(
                             Icons.arrow_forward_ios,
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.blue.shade800.withOpacity(0.5),
                             size: 16,
                           ),
                           onTap: () => _selectClient(client),

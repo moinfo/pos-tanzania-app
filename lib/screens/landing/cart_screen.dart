@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
+import 'landing_screen.dart' show LandingColors;
 
 /// Shopping cart screen (used as tab)
 class CartScreen extends StatefulWidget {
@@ -436,7 +437,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                 onPressed: () => _showCheckoutDialog(provider),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: const Color(0xFFE31E24),
+                  backgroundColor: LandingColors.primaryRed,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),

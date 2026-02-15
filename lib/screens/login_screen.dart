@@ -254,9 +254,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode;
+    final client = ApiService.currentClient;
+    final branding = client?.branding;
+    final brandPrimary = branding != null ? Color(branding.primaryColor) : AppColors.primary;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.primary,
+      backgroundColor: isDark ? AppColors.darkBackground : brandPrimary,
       body: SafeArea(
         child: Stack(
           children: [
@@ -283,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   child: Image.asset(
-                    'logo.png',
+                    client?.logoUrl ?? 'logo.png',
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -291,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // App Title
                 Text(
-                  AppConstants.appName,
+                  branding?.appTitle ?? AppConstants.appName,
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -300,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Making technology work for you',
+                  branding?.tagline ?? 'Making technology work for you',
                   style: TextStyle(
                     fontSize: 16,
                     color: isDark ? AppColors.darkTextLight : Colors.white70,
@@ -452,11 +455,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                     : _handleLogin,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: isDark
-                                      ? AppColors.primary
+                                      ? brandPrimary
                                       : Colors.white,
                                   foregroundColor: isDark
                                       ? Colors.white
-                                      : AppColors.primary,
+                                      : brandPrimary,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,
                                   ),
@@ -472,7 +475,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         child: CircularProgressIndicator(
                                           color: isDark
                                               ? Colors.white
-                                              : AppColors.primary,
+                                              : brandPrimary,
                                           strokeWidth: 2,
                                         ),
                                       )

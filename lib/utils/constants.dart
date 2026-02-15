@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class AppColors {
   // Logo colors - Blue and Dark Gray (Moinfotech branding)
@@ -8,6 +9,24 @@ class AppColors {
   // Supporting colors derived from logo colors
   static const Color primaryLight = Color(0xFF42A5F5);   // Lighter blue
   static const Color primaryDark = Color(0xFF0D47A1);    // Darker blue
+
+  /// Client-aware primary color. Returns the client's brand color if set,
+  /// otherwise falls back to the default blue.
+  static Color get brandPrimary {
+    final branding = ApiService.currentClient?.branding;
+    if (branding != null && branding.primaryColor != 0xFF1565C0) {
+      return Color(branding.primaryColor);
+    }
+    return primary;
+  }
+
+  static Color get brandPrimaryDark {
+    final branding = ApiService.currentClient?.branding;
+    if (branding != null && branding.primaryDarkColor != 0xFF0D47A1) {
+      return Color(branding.primaryDarkColor);
+    }
+    return primaryDark;
+  }
   static const Color secondaryLight = Color(0xFF464A5E);
 
   // Status colors - proper semantic colors for better UI

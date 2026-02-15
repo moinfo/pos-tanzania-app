@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="green1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22A838"/>
+      <stop offset="100%" style="stop-color:#0A6B1A"/>
+    </linearGradient>
+    <linearGradient id="blue1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1952B8"/>
+      <stop offset="100%" style="stop-color:#0D3B8F"/>
+    </linearGradient>
+    <linearGradient id="red1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#C41E2A"/>
+      <stop offset="100%" style="stop-color:#E8232D"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="180" fill="url(#green1)"/>
+
+  <!-- Subtle inner border -->
+  <rect x="30" y="30" width="964" height="964" rx="155" fill="none" stroke="white" stroke-width="3" opacity="0.2"/>
+
+  <!-- Shopping bag -->
+  <g transform="translate(512, 340)">
+    <rect x="-130" y="-110" width="260" height="270" rx="28" fill="url(#blue1)" stroke="white" stroke-width="6"/>
+    <!-- Bag handle -->
+    <path d="M-58,-110 Q-58,-175 0,-175 Q58,-175 58,-110" fill="none" stroke="white" stroke-width="12" stroke-linecap="round"/>
+    <!-- K letter -->
+    <text x="0" y="85" text-anchor="middle" font-family="'Arial Black', Impact, sans-serif" font-weight="900" font-size="190" fill="white">K</text>
+  </g>
+
+  <!-- KARIAKOO text -->
+  <text x="512" y="660" text-anchor="middle" font-family="'Arial Black', Impact, sans-serif" font-weight="900" font-size="100" fill="white" letter-spacing="6">
+    KARIAKOO
+  </text>
+
+  <!-- Red underline -->
+  <rect x="160" y="685" width="704" height="10" rx="5" fill="url(#red1)"/>
+
+  <!-- SHOPS text -->
+  <text x="512" y="770" text-anchor="middle" font-family="'Arial Black', Impact, sans-serif" font-weight="900" font-size="80" fill="#FFD700" letter-spacing="20">
+    SHOPS
+  </text>
+
+  <!-- Small tagline -->
+  <text x="512" y="830" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="32" fill="white" opacity="0.8" letter-spacing="4">
+    Your Marketplace Destination
+  </text>
+</svg>

@@ -238,24 +238,13 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     });
   }
 
-  /// Build curved AppBar with rounded bottom corners
+  /// Build flat AppBar
   Widget _buildCurvedAppBar(bool isDark, ThemeProvider themeProvider) {
-    final appBarColor = isDark ? AppColors.darkSurface : AppColors.primary;
+    final appBarColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Container(
       decoration: BoxDecoration(
         color: appBarColor,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(25),
-          bottomRight: Radius.circular(25),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: SafeArea(
         bottom: false,
@@ -356,7 +345,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               return Icon(
                 Icons.person,
                 size: 40,
-                color: isDark ? AppColors.darkText : AppColors.primary,
+                color: isDark ? AppColors.darkText : AppColors.brandPrimary,
               );
             },
           ),
@@ -371,7 +360,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       child: Icon(
         Icons.person,
         size: 40,
-        color: isDark ? AppColors.darkText : AppColors.primary,
+        color: isDark ? AppColors.darkText : AppColors.brandPrimary,
       ),
     );
   }
@@ -470,7 +459,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     return Scaffold(
       extendBody: true, // Allow body to extend behind bottom nav
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
+        preferredSize: const Size.fromHeight(56),
         child: _buildCurvedAppBar(isDark, themeProvider),
       ),
       drawer: Drawer(
@@ -479,7 +468,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.primary,
+                color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -509,7 +498,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ),
             // 1. Customers Menu
             ExpansionTile(
-              leading: const Icon(Icons.people, color: AppColors.primary),
+              leading: Icon(Icons.people, color: AppColors.brandPrimary),
               title: const Text('Customers'),
               childrenPadding: const EdgeInsets.only(left: 16),
               children: [
@@ -517,7 +506,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.customers,
                   child: ListTile(
-                    leading: const Icon(Icons.people_outline, color: AppColors.primary),
+                    leading: Icon(Icons.people_outline, color: AppColors.brandPrimary),
                     title: const Text('Customers List'),
                     onTap: () {
                       Navigator.pop(context);
@@ -548,7 +537,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   PermissionWrapper(
                     permissionId: PermissionIds.customersShops,
                     child: ListTile(
-                      leading: const Icon(Icons.store, color: AppColors.primary),
+                      leading: Icon(Icons.store, color: AppColors.brandPrimary),
                       title: const Text('Shops'),
                       onTap: () {
                         Navigator.pop(context);
@@ -566,7 +555,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.customerDiscountRequests,
                 child: ListTile(
-                  leading: const Icon(Icons.discount, color: AppColors.primary),
+                  leading: Icon(Icons.discount, color: AppColors.brandPrimary),
                   title: const Text('Discount Requests'),
                   onTap: () {
                     Navigator.pop(context);
@@ -581,7 +570,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.items,
               child: ListTile(
-                leading: const Icon(Icons.inventory_2, color: AppColors.primary),
+                leading: Icon(Icons.inventory_2, color: AppColors.brandPrimary),
                 title: const Text('Items'),
                 onTap: () {
                   Navigator.pop(context);
@@ -594,7 +583,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ),
             // 3. Sales Menu
             ExpansionTile(
-              leading: const Icon(Icons.point_of_sale, color: AppColors.primary),
+              leading: Icon(Icons.point_of_sale, color: AppColors.brandPrimary),
               title: const Text('Sales'),
               childrenPadding: const EdgeInsets.only(left: 16),
               children: [
@@ -602,7 +591,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
                   child: ListTile(
-                    leading: const Icon(Icons.add_shopping_cart, color: AppColors.primary),
+                    leading: Icon(Icons.add_shopping_cart, color: AppColors.brandPrimary),
                     title: const Text('New Sales'),
                     onTap: () {
                       Navigator.pop(context);
@@ -620,7 +609,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
                   child: ListTile(
-                    leading: const Icon(Icons.history, color: AppColors.primary),
+                    leading: Icon(Icons.history, color: AppColors.brandPrimary),
                     title: const Text('Sales History'),
                     onTap: () {
                       Navigator.pop(context);
@@ -650,7 +639,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ),
             // 4. Suppliers Menu
             ExpansionTile(
-              leading: const Icon(Icons.local_shipping, color: AppColors.primary),
+              leading: Icon(Icons.local_shipping, color: AppColors.brandPrimary),
               title: const Text('Suppliers'),
               childrenPadding: const EdgeInsets.only(left: 16),
               children: [
@@ -658,7 +647,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.suppliers,
                   child: ListTile(
-                    leading: const Icon(Icons.local_shipping_outlined, color: AppColors.primary),
+                    leading: Icon(Icons.local_shipping_outlined, color: AppColors.brandPrimary),
                     title: const Text('Suppliers List'),
                     onTap: () {
                       Navigator.pop(context);
@@ -690,7 +679,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.receivings,
               child: ListTile(
-                leading: const Icon(Icons.inventory, color: AppColors.primary),
+                leading: Icon(Icons.inventory, color: AppColors.brandPrimary),
                 title: const Text('Receivings'),
                 onTap: () {
                   Navigator.pop(context);
@@ -706,7 +695,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
                 child: ListTile(
-                  leading: const Icon(Icons.attach_money, color: AppColors.primary),
+                  leading: Icon(Icons.attach_money, color: AppColors.brandPrimary),
                   title: const Text('Cash Submit'),
                   onTap: () {
                     Navigator.pop(context);
@@ -723,7 +712,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmitBanking,
                 child: ListTile(
-                  leading: const Icon(Icons.account_balance, color: AppColors.primary),
+                  leading: Icon(Icons.account_balance, color: AppColors.brandPrimary),
                   title: const Text('Banking'),
                   onTap: () {
                     Navigator.pop(context);
@@ -739,7 +728,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.banking,
                 child: ListTile(
-                  leading: const Icon(Icons.analytics, color: AppColors.primary),
+                  leading: Icon(Icons.analytics, color: AppColors.brandPrimary),
                   title: const Text('Financial Banking'),
                   onTap: () {
                     Navigator.pop(context);
@@ -755,7 +744,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.tra,
                 child: ListTile(
-                  leading: const Icon(Icons.receipt_long, color: AppColors.primary),
+                  leading: Icon(Icons.receipt_long, color: AppColors.brandPrimary),
                   title: const Text('Trade'),
                   onTap: () {
                     Navigator.pop(context);
@@ -769,7 +758,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // 8. NFC Menu - requires hasNfcCard feature
             if (ApiService.currentClient?.features.hasNfcCard ?? false)
               ExpansionTile(
-                leading: const Icon(Icons.nfc, color: AppColors.primary),
+                leading: Icon(Icons.nfc, color: AppColors.brandPrimary),
                 title: const Text('NFC'),
                 childrenPadding: const EdgeInsets.only(left: 16),
                 children: [
@@ -777,7 +766,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
                     child: ListTile(
-                      leading: const Icon(Icons.credit_card, color: AppColors.primary),
+                      leading: Icon(Icons.credit_card, color: AppColors.brandPrimary),
                       title: const Text('NFC Cards'),
                       onTap: () {
                         Navigator.pop(context);
@@ -792,7 +781,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcConfirmationsView,
                     child: ListTile(
-                      leading: const Icon(Icons.verified, color: AppColors.primary),
+                      leading: Icon(Icons.verified, color: AppColors.brandPrimary),
                       title: const Text('NFC Confirmations'),
                       onTap: () {
                         Navigator.pop(context);
@@ -807,7 +796,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
                     child: ListTile(
-                      leading: const Icon(Icons.contactless, color: AppColors.primary),
+                      leading: Icon(Icons.contactless, color: AppColors.brandPrimary),
                       title: const Text('NFC Card Lookup'),
                       onTap: () {
                         Navigator.pop(context);
@@ -825,7 +814,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmitSellerReport,
                 child: ListTile(
-                  leading: const Icon(Icons.person_outline, color: AppColors.primary),
+                  leading: Icon(Icons.person_outline, color: AppColors.brandPrimary),
                   title: const Text('Seller Report'),
                   onTap: () {
                     Navigator.pop(context);
@@ -841,7 +830,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.office,
                 child: ListTile(
-                  leading: const Icon(Icons.analytics, color: AppColors.primary),
+                  leading: Icon(Icons.analytics, color: AppColors.brandPrimary),
                   title: const Text('Financial Position'),
                   onTap: () {
                     Navigator.pop(context);
@@ -858,7 +847,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitZReport,
               child: ListTile(
-                leading: const Icon(Icons.description, color: AppColors.primary),
+                leading: Icon(Icons.description, color: AppColors.brandPrimary),
                 title: const Text('Z Reports'),
                 onTap: () {
                   Navigator.pop(context);
@@ -873,7 +862,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitProfitSubmitted,
               child: ListTile(
-                leading: const Icon(Icons.trending_up, color: AppColors.primary),
+                leading: Icon(Icons.trending_up, color: AppColors.brandPrimary),
                 title: const Text('Profit Submit'),
                 onTap: () {
                   Navigator.pop(context);
@@ -888,7 +877,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.stockTracking,
               child: ListTile(
-                leading: const Icon(Icons.track_changes, color: AppColors.primary),
+                leading: Icon(Icons.track_changes, color: AppColors.brandPrimary),
                 title: const Text('Stock Tracking'),
                 onTap: () {
                   Navigator.pop(context);
@@ -903,7 +892,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactions,
               child: ListTile(
-                leading: const Icon(Icons.swap_horiz, color: AppColors.primary),
+                leading: Icon(Icons.swap_horiz, color: AppColors.brandPrimary),
                 title: const Text('Transactions'),
                 onTap: () {
                   Navigator.pop(context);
@@ -918,7 +907,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.contracts,
               child: ListTile(
-                leading: const Icon(Icons.assignment, color: AppColors.primary),
+                leading: Icon(Icons.assignment, color: AppColors.brandPrimary),
                 title: const Text('Contracts'),
                 onTap: () {
                   Navigator.pop(context);
@@ -931,7 +920,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.settings, color: AppColors.primary),
+              leading: Icon(Icons.settings, color: AppColors.brandPrimary),
               title: const Text('Settings'),
               onTap: () {
                 Navigator.pop(context);
@@ -1016,7 +1005,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       return BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedItemColor: AppColors.primary,
+        selectedItemColor: AppColors.brandPrimary,
         unselectedItemColor: AppColors.textLight,
         type: BottomNavigationBarType.fixed,
         selectedFontSize: 12,
@@ -1132,7 +1121,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 offset: const Offset(0, -8),
                 child: Icon(
                   icon,
-                  color: AppColors.primary,
+                  color: AppColors.brandPrimary,
                   size: 38,
                 ),
               )

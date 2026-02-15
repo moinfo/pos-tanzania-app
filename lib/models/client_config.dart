@@ -79,6 +79,20 @@ class ClientFeatures {
   });
 }
 
+class ClientBranding {
+  final int primaryColor;      // Hex color e.g. 0xFF1565C0
+  final int primaryDarkColor;  // Darker variant
+  final String appTitle;       // Displayed on login screen
+  final String tagline;        // Subtitle on login screen
+
+  const ClientBranding({
+    this.primaryColor = 0xFF1565C0,      // Default: Moinfotech blue
+    this.primaryDarkColor = 0xFF0D47A1,
+    this.appTitle = 'POS Tanzania',
+    this.tagline = 'Making technology work for you',
+  });
+}
+
 class ClientConfig {
   final String id;
   final String name;
@@ -88,6 +102,7 @@ class ClientConfig {
   final String? logoUrl;
   final bool isActive;
   final ClientFeatures features;
+  final ClientBranding branding;
 
   ClientConfig({
     required this.id,
@@ -97,7 +112,8 @@ class ClientConfig {
     required this.prodApiUrl,
     this.logoUrl,
     this.isActive = true,
-    this.features = const ClientFeatures(), // Default: all features enabled
+    this.features = const ClientFeatures(),
+    this.branding = const ClientBranding(),
   });
 
   Map<String, dynamic> toJson() {
