@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/sale_provider.dart';
@@ -3279,6 +3280,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
   List<Customer> _filteredCustomers = [];
   bool _isLoading = false;
   bool _nfcAvailable = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -3396,6 +3398,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -3473,6 +3476,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
   }
 
   void _filterCustomers(String query) {
+    // Immediate local filter for responsiveness
     setState(() {
       if (query.isEmpty) {
         _filteredCustomers = _customers;
@@ -3485,6 +3489,37 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
             .toList();
       }
     });
+
+    // Debounced server-side search for customers beyond initial 100
+    _debounce?.cancel();
+    if (query.length >= 2) {
+      _debounce = Timer(const Duration(milliseconds: 400), () {
+        _searchCustomersFromApi(query);
+      });
+    }
+  }
+
+  Future<void> _searchCustomersFromApi(String query) async {
+    final connectivityProvider = context.read<ConnectivityProvider>();
+    if (!connectivityProvider.isOnline) return;
+
+    final response = await _apiService.getCustomers(
+      search: query,
+      limit: 50,
+    );
+
+    if (response.isSuccess && response.data != null && mounted) {
+      final apiResults = response.data!;
+      // Merge with local results, avoiding duplicates
+      final existingIds = _filteredCustomers.map((c) => c.personId).toSet();
+      final newCustomers = apiResults.where((c) => !existingIds.contains(c.personId)).toList();
+
+      if (newCustomers.isNotEmpty) {
+        setState(() {
+          _filteredCustomers = [..._filteredCustomers, ...newCustomers];
+        });
+      }
+    }
   }
 
   @override
