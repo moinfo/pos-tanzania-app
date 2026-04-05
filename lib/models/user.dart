@@ -11,6 +11,7 @@ class User {
   final String? profilePicture; // Profile picture URL (Leruma feature)
   final int? locationId; // User's assigned stock location (Leruma feature)
   final String? locationName; // User's assigned stock location name
+  final int? tenantId; // Tenant ID for multi-tenant backends (mopos)
 
   User({
     this.id,
@@ -25,6 +26,7 @@ class User {
     this.profilePicture,
     this.locationId,
     this.locationName,
+    this.tenantId,
   });
 
   String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
@@ -41,6 +43,13 @@ class User {
       locationId = locId is int ? locId : int.tryParse(locId.toString());
     }
 
+    // Parse tenant_id safely (comes at top level from backend)
+    int? tenantId;
+    final tid = json['tenant_id'];
+    if (tid != null) {
+      tenantId = tid is int ? tid : int.tryParse(tid.toString());
+    }
+
     return User(
       id: userData['id']?.toString(),
       username: userData['username'] ?? '',
@@ -54,6 +63,7 @@ class User {
       profilePicture: userData['profile_picture'],
       locationId: locationId,
       locationName: userData['location_name'],
+      tenantId: tenantId,
     );
   }
 
@@ -71,6 +81,7 @@ class User {
       'profile_picture': profilePicture,
       'location_id': locationId,
       'location_name': locationName,
+      'tenant_id': tenantId,
     };
   }
 }

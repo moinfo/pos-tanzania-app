@@ -61,6 +61,11 @@ android {
             applicationId = "co.tz.kariakooshops.pos"
             resValue("string", "app_name", "Kariakoo Shops")
         }
+        create("mopos") {
+            dimension = "client"
+            applicationId = "co.tz.mopos.pos"
+            resValue("string", "app_name", "Mopos")
+        }
     }
 
     signingConfigs {

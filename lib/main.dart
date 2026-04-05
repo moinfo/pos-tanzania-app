@@ -18,7 +18,11 @@ import 'services/api_service.dart';
 import 'config/clients_config.dart';
 import 'utils/constants.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Initialize currentClient before any providers are created so that
+  // getToken()'s client-ID check works correctly on app restart.
+  await ApiService.getCurrentClient();
   runApp(const MyApp());
 }
 

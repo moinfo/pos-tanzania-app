@@ -166,13 +166,18 @@ class ApiService {
     return _token;
   }
 
-  // Save token with client ID
-  Future<void> saveToken(String token) async {
+  // Save token with client ID (and tenant_id for multi-tenant clients)
+  Future<void> saveToken(String token, {int? tenantId}) async {
     final clientId = currentClient?.id ?? 'sada';
 
     _token = token;
     await _storage.write(key: 'auth_token', value: token);
     await _storage.write(key: 'auth_token_client_id', value: clientId);
+
+    if (tenantId != null) {
+      await _storage.write(key: 'auth_tenant_id', value: tenantId.toString());
+      print('💾 Saved tenant_id: $tenantId for client: $clientId');
+    }
 
     print('💾 Saved token for client: $clientId');
   }
@@ -182,14 +187,24 @@ class ApiService {
     _token = null;
     await _storage.delete(key: 'auth_token');
     await _storage.delete(key: 'auth_token_client_id');
+    await _storage.delete(key: 'auth_tenant_id');
   }
 
-  // Get headers with authentication
+  // Get headers with authentication (and X-Tenant-ID for multi-tenant clients)
   Future<Map<String, String>> _getHeaders({bool includeAuth = true}) async {
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
+
+    // Always inject X-Tenant-ID for multi-tenant clients when available,
+    // regardless of auth (backend needs it even on some unauthenticated calls).
+    if (currentClient?.features.hasMultiTenant == true) {
+      final tenantId = await _storage.read(key: 'auth_tenant_id');
+      if (tenantId != null) {
+        headers['X-Tenant-ID'] = tenantId;
+      }
+    }
 
     if (includeAuth) {
       final token = await getToken();
@@ -204,10 +219,20 @@ class ApiService {
   // Get headers for multipart requests
   Future<Map<String, String>> _getMultipartHeaders() async {
     final token = await getToken();
-    return {
+    final headers = <String, String>{
       'Accept': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+
+    // Inject X-Tenant-ID for multi-tenant clients (e.g. mopos)
+    if (currentClient?.features.hasMultiTenant == true) {
+      final tenantId = await _storage.read(key: 'auth_tenant_id');
+      if (tenantId != null) {
+        headers['X-Tenant-ID'] = tenantId;
+      }
+    }
+
+    return headers;
   }
 
   /// Handle unauthorized access - clear token to trigger logout
@@ -289,9 +314,20 @@ class ApiService {
         (data) => User.fromJson(data),
       );
 
-      // Save token if login successful
+      // Save token if login successful.
+      // Extract tenant_id directly from raw response body — more reliable than
+      // going through User.fromJson which may lose numeric types.
       if (result.isSuccess && result.data?.token != null) {
-        await saveToken(result.data!.token!);
+        int? tenantId;
+        try {
+          final raw = json.decode(response.body);
+          final tid = raw['data']?['tenant_id'];
+          if (tid != null) {
+            tenantId = tid is int ? tid : (tid is double ? tid.toInt() : int.tryParse(tid.toString()));
+          }
+        } catch (_) {}
+
+        await saveToken(result.data!.token!, tenantId: tenantId);
       }
 
       return result;
@@ -1705,8 +1741,6 @@ class ApiService {
     String? endDate,
   }) async {
     try {
-      final token = await getToken();
-
       // Build query parameters
       final Map<String, String> queryParams = {};
       if (startDate != null) queryParams['start_date'] = startDate;
@@ -1717,10 +1751,7 @@ class ApiService {
 
       final response = await http.get(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await _getHeaders(),
       );
 
       return _handleResponse<SupplierStatement>(
@@ -1737,13 +1768,9 @@ class ApiService {
     SupplierPaymentFormData formData,
   ) async {
     try {
-      final token = await getToken();
       final response = await http.post(
         Uri.parse('$baseUrlSync/supplier_credits/add_payment'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await _getHeaders(),
         body: jsonEncode(formData.toJson()),
       );
 
@@ -1761,13 +1788,9 @@ class ApiService {
     int supplierId,
   ) async {
     try {
-      final token = await getToken();
       final response = await http.get(
         Uri.parse('$baseUrlSync/supplier_credits/balance/$supplierId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await _getHeaders(),
       );
 
       return _handleResponse<Map<String, dynamic>>(
@@ -1785,13 +1808,9 @@ class ApiService {
     Map<String, dynamic> paymentData,
   ) async {
     try {
-      final token = await getToken();
       final response = await http.post(
         Uri.parse('$baseUrlSync/supplier_credits/update_payment/$paymentId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await _getHeaders(),
         body: json.encode(paymentData),
       );
 
@@ -1807,13 +1826,9 @@ class ApiService {
   /// Delete supplier payment
   Future<ApiResponse<Map<String, dynamic>>> deleteSupplierPayment(int paymentId) async {
     try {
-      final token = await getToken();
       final response = await http.post(
         Uri.parse('$baseUrlSync/supplier_credits/delete_payment/$paymentId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: await _getHeaders(),
       );
 
       return _handleResponse<Map<String, dynamic>>(

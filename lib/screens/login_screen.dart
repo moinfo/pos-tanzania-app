@@ -541,7 +541,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
 
                 // Browse Shop Button (only for clients with landing page enabled)
-                if (ClientsConfig.getDefaultClient().features.hasLandingPage)
+                if (ApiService.currentClient?.features.hasLandingPage ?? ClientsConfig.getDefaultClient().features.hasLandingPage)
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.of(context).pushReplacement(

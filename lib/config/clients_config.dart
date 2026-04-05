@@ -37,6 +37,7 @@ class ClientsConfig {
     'comeAndSave': 'come_and_save',
     'leruma': 'leruma',
     'kariakooShops': 'kariakoo_shops',
+    'mopos': 'mopos',
   };
 
   // ============================================
@@ -74,6 +75,22 @@ class ClientsConfig {
         hasOfflineMode: false,
         hasShops: true, // Shop registration with GPS coordinates
         hasDiscountRequests: true, // Customer discount request workflow
+      ),
+    ),
+    // MOPOS
+    ClientConfig(
+      id: 'mopos',
+      name: 'dev-mopos',
+      displayName: 'Mopos',
+      devApiUrl: localBaseUrl,
+      prodApiUrl: 'https://mopos.co.tz/api',
+      logoUrl: 'assets/images/sada-logo.png',
+      features: const ClientFeatures(
+        hasContracts: true,
+        hasOfflineMode: false,
+        hasShops: true,
+        hasDiscountRequests: true,
+        hasMultiTenant: true,
       ),
     ),
     // Come & Save
@@ -200,6 +217,8 @@ class ClientsConfig {
         return 'Leruma';
       case 'kariakooShops':
         return 'Kariakoo Shops';
+      case 'mopos':
+        return 'Mopos';
       default:
         return getDefaultClient().displayName;
     }

@@ -47,6 +47,9 @@ class ClientFeatures {
   // Customer Discount Requests (SADA only)
   final bool hasDiscountRequests; // Enable customer discount request workflow
 
+  // Multi-tenant support — sends X-Tenant-ID header on every API request
+  final bool hasMultiTenant;
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -76,6 +79,7 @@ class ClientFeatures {
     this.hasFinancialBanking = false, // Default: disabled - only Leruma uses this
     this.hasShops = false, // Default: disabled - only SADA uses this
     this.hasDiscountRequests = false, // Default: disabled - only SADA uses this
+    this.hasMultiTenant = false, // Default: disabled - enable for multi-tenant backends
   });
 }
 
