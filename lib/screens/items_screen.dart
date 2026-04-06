@@ -528,6 +528,11 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   bool _showOnLanding = false;
   int _stockType = 0;
 
+  // Child item picker state
+  String? _childId;          // item_id of selected child (retail PC)
+  String _childName = '';    // display name
+  List<Item> _childItems = [];
+
   // Image picker state (landing clients only)
   final ImagePicker _imagePicker = ImagePicker();
   File? _mainImage;
@@ -586,6 +591,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     _isSerialized = widget.item?.isSerialized ?? false;
     _showOnLanding = widget.item?.showOnLanding ?? false;
     _stockType = widget.item?.stockType ?? 0;
+    _childId = widget.item?.child;
     _itemType = widget.item?.itemType ?? 0;
     _taxCategoryId = widget.item?.taxCategoryId;
     _supplierId = widget.item?.supplierId;
@@ -618,11 +624,19 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   }
 
   Future<void> _loadStockLocations() async {
-    final response = await _apiService.getAllowedStockLocations(moduleId: 'items');
-    if (response.isSuccess && mounted) {
-      setState(() {
-        _stockLocations = response.data ?? [];
-        // Initialize quantity controllers for each location
+    final results = await Future.wait([
+      _apiService.getAllowedStockLocations(moduleId: 'items'),
+      _apiService.getItems(limit: 500),
+    ]);
+
+    if (!mounted) return;
+
+    final locResponse  = results[0] as ApiResponse<List<StockLocation>>;
+    final itemResponse = results[1] as ApiResponse<List<Item>>;
+
+    setState(() {
+      if (locResponse.isSuccess) {
+        _stockLocations = locResponse.data ?? [];
         for (var location in _stockLocations) {
           double quantity = 0;
           if (widget.item?.quantityByLocation != null) {
@@ -632,8 +646,18 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             text: quantity.toString(),
           );
         }
-      });
-    }
+      }
+
+      if (itemResponse.isSuccess) {
+        _childItems = itemResponse.data ?? [];
+        // Resolve display name for pre-existing child
+        if (_childId != null) {
+          final match = _childItems.where(
+              (i) => i.itemId.toString() == _childId).firstOrNull;
+          if (match != null) _childName = match.name;
+        }
+      }
+    });
   }
 
   // Image picker methods (used only for landing-page clients)
@@ -667,6 +691,25 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     if (images.isNotEmpty) {
       setState(() => _portfolioImages.addAll(images.map((img) => File(img.path))));
     }
+  }
+
+  void _openChildPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ChildItemSearchSheet(
+        items: _childItems,
+        selectedId: _childId,
+        onSelected: (item) {
+          setState(() {
+            _childId   = item.itemId.toString();
+            _childName = item.name;
+          });
+        },
+        onClear: () => setState(() { _childId = null; _childName = ''; }),
+      ),
+    );
   }
 
   void _removeMainImage()              => setState(() => _mainImage = null);
@@ -787,6 +830,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       packName: _packNameController.text.trim(),
       arrange: int.tryParse(_arrangeController.text) ?? 0,
       discountLimit: defaultDiscountLimit,
+      child: _childId,
       dormant: _dormant,
       quantityByLocation: quantityByLocation,
       locationPrices: locationPrices,
@@ -1076,6 +1120,34 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             ),
             keyboardType: TextInputType.number,
           ),
+          const SizedBox(height: 16),
+          // Child Item (retail/PC linked to this wholesale/CTN item)
+          GestureDetector(
+            onTap: () => _openChildPicker(),
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Child Item (Retail / PC)',
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.search_rounded),
+              ),
+              child: Text(
+                _childName.isNotEmpty ? _childName : 'None',
+                style: TextStyle(
+                  color: _childName.isNotEmpty ? null : Colors.grey,
+                ),
+              ),
+            ),
+          ),
+          if (_childId != null) ...[
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => setState(() { _childId = null; _childName = ''; }),
+                child: const Text('Clear child', style: TextStyle(color: Colors.red, fontSize: 12)),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           // Reorder Level
           TextFormField(
@@ -1481,6 +1553,167 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             label: Text(existingPortfolioImages.isEmpty && _portfolioImages.isEmpty ? 'Select Portfolio Images' : 'Add More'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Child item searchable picker ───────────────────────────────────────────
+
+class _ChildItemSearchSheet extends StatefulWidget {
+  final List<Item> items;
+  final String? selectedId;
+  final ValueChanged<Item> onSelected;
+  final VoidCallback onClear;
+
+  const _ChildItemSearchSheet({
+    required this.items,
+    required this.selectedId,
+    required this.onSelected,
+    required this.onClear,
+  });
+
+  @override
+  State<_ChildItemSearchSheet> createState() => _ChildItemSearchSheetState();
+}
+
+class _ChildItemSearchSheetState extends State<_ChildItemSearchSheet> {
+  final _searchController = TextEditingController();
+  List<Item> _filtered = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.items;
+    _searchController.addListener(() {
+      final q = _searchController.text.trim().toLowerCase();
+      setState(() {
+        _filtered = q.isEmpty
+            ? widget.items
+            : widget.items
+                .where((i) => i.name.toLowerCase().contains(q))
+                .toList();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scrollController) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 8),
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select Child Item',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search items…',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded),
+                              onPressed: _searchController.clear,
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // "None" option to clear
+            ListTile(
+              leading: const Icon(Icons.block_rounded, color: Colors.grey),
+              title: const Text('None', style: TextStyle(color: Colors.grey)),
+              onTap: () {
+                Navigator.pop(context);
+                widget.onClear();
+              },
+            ),
+            const Divider(height: 1),
+            _filtered.isEmpty
+                ? const Expanded(
+                    child: Center(child: Text('No items found',
+                        style: TextStyle(color: Colors.grey))))
+                : Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      itemCount: _filtered.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                      itemBuilder: (_, i) {
+                        final item = _filtered[i];
+                        final isSelected =
+                            item.itemId.toString() == widget.selectedId;
+                        return ListTile(
+                          title: Text(
+                            item.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? AppColors.brandPrimary
+                                  : null,
+                            ),
+                          ),
+                          subtitle: item.category.isNotEmpty
+                              ? Text(item.category,
+                                  style: const TextStyle(fontSize: 12))
+                              : null,
+                          trailing: isSelected
+                              ? Icon(Icons.check_rounded,
+                                  color: AppColors.brandPrimary)
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            widget.onSelected(item);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+          ],
+        ),
       ),
     );
   }
