@@ -38,6 +38,7 @@ import 'credits_screen.dart';
 import 'suppliers_credits_screen.dart';
 import 'tra/tra_main_screen.dart';
 import 'shops_screen.dart';
+import 'transfer_screen.dart';
 import 'discount_requests_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -884,6 +885,21 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const StockTrackingScreen()),
+                  );
+                },
+              ),
+            ),
+            // Transfer - requires credits permission (same as web Transfer controller)
+            PermissionWrapper(
+              permissionId: PermissionIds.credits,
+              child: ListTile(
+                leading: Icon(Icons.swap_horiz_rounded, color: AppColors.brandPrimary),
+                title: const Text('Transfer'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TransferScreen()),
                   );
                 },
               ),
