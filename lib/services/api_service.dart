@@ -397,10 +397,20 @@ class ApiService {
   Future<ApiResponse<List<Map<String, dynamic>>>> getTransfers({
     int limit = 50,
     int offset = 0,
+    DateTime? dateFrom,
+    DateTime? dateTo,
   }) async {
     try {
+      final params = {
+        'limit': '$limit',
+        'offset': '$offset',
+        if (dateFrom != null)
+          'date_from': '${dateFrom.year}-${dateFrom.month.toString().padLeft(2, '0')}-${dateFrom.day.toString().padLeft(2, '0')}',
+        if (dateTo != null)
+          'date_to': '${dateTo.year}-${dateTo.month.toString().padLeft(2, '0')}-${dateTo.day.toString().padLeft(2, '0')}',
+      };
       final response = await http.get(
-        Uri.parse('$baseUrlSync/transfers?limit=$limit&offset=$offset'),
+        Uri.parse('$baseUrlSync/transfers').replace(queryParameters: params),
         headers: await _getHeaders(),
       ).timeout(const Duration(seconds: 15));
       return _handleResponse<List<Map<String, dynamic>>>(

@@ -20,9 +20,16 @@ class _TransferScreenState extends State<TransferScreen> {
   String? _error;
   List<Map<String, dynamic>> _transfers = [];
 
+  // Default to today
+  late DateTime _dateFrom;
+  late DateTime _dateTo;
+
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    _dateFrom = DateTime(now.year, now.month, now.day);
+    _dateTo   = DateTime(now.year, now.month, now.day);
     _load();
   }
 
@@ -32,7 +39,10 @@ class _TransferScreenState extends State<TransferScreen> {
       _error = null;
     });
 
-    final result = await _apiService.getTransfers();
+    final result = await _apiService.getTransfers(
+      dateFrom: _dateFrom,
+      dateTo: _dateTo,
+    );
     if (!mounted) return;
 
     if (result.isSuccess) {
@@ -47,6 +57,57 @@ class _TransferScreenState extends State<TransferScreen> {
       });
     }
   }
+
+  Future<void> _pickDateRange(bool isDark) async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      initialDateRange: DateTimeRange(start: _dateFrom, end: _dateTo),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: ColorScheme.light(
+            primary: AppColors.brandPrimary,
+            onPrimary: Colors.white,
+            surface: isDark ? AppColors.darkCard : Colors.white,
+            onSurface: isDark ? AppColors.darkText : AppColors.text,
+          ),
+          dialogBackgroundColor: isDark ? AppColors.darkCard : Colors.white,
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _dateFrom = picked.start;
+        _dateTo   = picked.end;
+      });
+      _load();
+    }
+  }
+
+  String _formatDateRange() {
+    final now = DateTime.now();
+    final isToday = _dateFrom.year == now.year &&
+        _dateFrom.month == now.month &&
+        _dateFrom.day == now.day &&
+        _dateTo.year == now.year &&
+        _dateTo.month == now.month &&
+        _dateTo.day == now.day;
+    if (isToday) return 'Today';
+    if (_dateFrom == _dateTo ||
+        (_dateFrom.year == _dateTo.year &&
+            _dateFrom.month == _dateTo.month &&
+            _dateFrom.day == _dateTo.day)) {
+      return '${_dateFrom.day} ${_monthName(_dateFrom.month)}';
+    }
+    return '${_dateFrom.day} ${_monthName(_dateFrom.month)} – ${_dateTo.day} ${_monthName(_dateTo.month)}';
+  }
+
+  String _monthName(int m) => const [
+        '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ][m];
 
   @override
   Widget build(BuildContext context) {
@@ -93,21 +154,74 @@ class _TransferScreenState extends State<TransferScreen> {
         label: const Text('New Transfer',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _buildError()
-              : _transfers.isEmpty
-                  ? _buildEmpty(isDark)
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                        itemCount: _transfers.length,
-                        itemBuilder: (_, i) =>
-                            _buildTransferCard(_transfers[i], isDark),
-                      ),
+      body: Column(
+        children: [
+          // Date range filter bar
+          Container(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => _pickDateRange(isDark),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.brandPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: AppColors.brandPrimary.withOpacity(0.3)),
                     ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.calendar_today_rounded,
+                            size: 14, color: AppColors.brandPrimary),
+                        const SizedBox(width: 6),
+                        Text(
+                          _formatDateRange(),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.brandPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_drop_down_rounded,
+                            size: 18, color: AppColors.brandPrimary),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(
+              height: 1,
+              color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+          // List
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? _buildError()
+                    : _transfers.isEmpty
+                        ? _buildEmpty(isDark)
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView.builder(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                              itemCount: _transfers.length,
+                              itemBuilder: (_, i) =>
+                                  _buildTransferCard(_transfers[i], isDark),
+                            ),
+                          ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -356,46 +356,64 @@ class _CreateTransferScreenState extends State<CreateTransferScreen> {
   }
 
   Widget _buildItemPicker(bool isDark) {
+    final selectedName = _selectedItem?['name'] as String? ?? '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _label('Item (Wholesale / CTN)', isDark),
         const SizedBox(height: 6),
-        Container(
-          decoration: _dropdownDecoration(isDark),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<Map<String, dynamic>>(
-              value: _selectedItem,
-              isExpanded: true,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-              dropdownColor: isDark ? AppColors.darkCard : Colors.white,
-              style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? AppColors.darkText : AppColors.text),
-              hint: Text('Select item',
-                  style: TextStyle(
-                      color: isDark
-                          ? AppColors.darkTextLight
-                          : AppColors.textLight)),
-              items: _items
-                  .map((item) => DropdownMenuItem(
-                        value: item,
-                        child: Text(item['name'] as String? ?? ''),
-                      ))
-                  .toList(),
-              onChanged: (item) {
-                setState(() {
-                  _selectedItem = item;
-                  _inventory = null;
-                  _qtyController.clear();
-                });
-                _loadInventory();
-              },
+        GestureDetector(
+          onTap: () => _openItemSearch(isDark),
+          child: Container(
+            decoration: _dropdownDecoration(isDark),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedName.isNotEmpty ? selectedName : 'Select item',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: selectedName.isNotEmpty
+                          ? (isDark ? AppColors.darkText : AppColors.text)
+                          : (isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight),
+                    ),
+                  ),
+                ),
+                Icon(Icons.search_rounded,
+                    size: 20,
+                    color: isDark
+                        ? AppColors.darkTextLight
+                        : AppColors.textLight),
+              ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  void _openItemSearch(bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ItemSearchSheet(
+        items: _items,
+        selectedItem: _selectedItem,
+        isDark: isDark,
+        onSelected: (item) {
+          setState(() {
+            _selectedItem = item;
+            _inventory = null;
+            _qtyController.clear();
+          });
+          _loadInventory();
+        },
+      ),
     );
   }
 
@@ -721,4 +739,203 @@ class _CreateTransferScreenState extends State<CreateTransferScreen> {
 
   String _fmtQty(double v) =>
       v % 1 == 0 ? v.toInt().toString() : v.toString();
+}
+
+// ─── Searchable item picker bottom sheet ────────────────────────────────────
+
+class _ItemSearchSheet extends StatefulWidget {
+  final List<Map<String, dynamic>> items;
+  final Map<String, dynamic>? selectedItem;
+  final bool isDark;
+  final ValueChanged<Map<String, dynamic>> onSelected;
+
+  const _ItemSearchSheet({
+    required this.items,
+    required this.selectedItem,
+    required this.isDark,
+    required this.onSelected,
+  });
+
+  @override
+  State<_ItemSearchSheet> createState() => _ItemSearchSheetState();
+}
+
+class _ItemSearchSheetState extends State<_ItemSearchSheet> {
+  final _searchController = TextEditingController();
+  List<Map<String, dynamic>> _filtered = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.items;
+    _searchController.addListener(_onSearch);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearch() {
+    final q = _searchController.text.trim().toLowerCase();
+    setState(() {
+      _filtered = q.isEmpty
+          ? widget.items
+          : widget.items
+              .where((i) =>
+                  (i['name'] as String? ?? '').toLowerCase().contains(q))
+              .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = widget.isDark ? AppColors.darkCard : Colors.white;
+    final divider =
+        widget.isDark ? AppColors.darkDivider : AppColors.lightDivider;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Drag handle
+            Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 8),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Title + search
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Select Item',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: widget.isDark
+                          ? AppColors.darkText
+                          : AppColors.text,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search items…',
+                      hintStyle: TextStyle(
+                          color: widget.isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight),
+                      prefixIcon: Icon(Icons.search_rounded,
+                          color: widget.isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear_rounded,
+                                  color: widget.isDark
+                                      ? AppColors.darkTextLight
+                                      : AppColors.textLight),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: widget.isDark
+                          ? AppColors.darkBackground
+                          : AppColors.lightBackground,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                    ),
+                    style: TextStyle(
+                        color: widget.isDark
+                            ? AppColors.darkText
+                            : AppColors.text),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: divider),
+            // Results count
+            if (_filtered.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'No items found',
+                    style: TextStyle(
+                        color: widget.isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  controller: scrollController,
+                  itemCount: _filtered.length,
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: divider),
+                  itemBuilder: (_, i) {
+                    final item = _filtered[i];
+                    final name = item['name'] as String? ?? '';
+                    final isSelected = item['item_id'] ==
+                        widget.selectedItem?['item_id'];
+
+                    return ListTile(
+                      title: Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          color: isSelected
+                              ? AppColors.brandPrimary
+                              : (widget.isDark
+                                  ? AppColors.darkText
+                                  : AppColors.text),
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(Icons.check_rounded,
+                              color: AppColors.brandPrimary, size: 20)
+                          : null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        widget.onSelected(item);
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
