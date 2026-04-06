@@ -392,6 +392,88 @@ class ApiService {
     }
   }
 
+  // ─── Transfer API ───────────────────────────────────────────────────────
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> getTransfers({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transfers?limit=$limit&offset=$offset'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+      return _handleResponse<List<Map<String, dynamic>>>(
+        response,
+        (data) => (data['transfers'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            [],
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> getTransferItems() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transfers/items'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+      return _handleResponse<List<Map<String, dynamic>>>(
+        response,
+        (data) => (data['items'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            [],
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getTransferInventory(
+      int itemId, int stockId) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$baseUrlSync/transfers/inventory?item_id=$itemId&stock_id=$stockId'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> createTransfer({
+    required int itemId,
+    required int stockId,
+    required double quantity,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transfers/create'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'item_id': itemId,
+          'stock_id': stockId,
+          'quantity': quantity,
+        }),
+      ).timeout(const Duration(seconds: 20));
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ─── Subscription API ───────────────────────────────────────────────────
+
   /// Initiate a subscription payment via Pesapal.
   /// Returns { redirect_url, merchant_reference, amount, package_name }
   Future<ApiResponse<Map<String, dynamic>>> initiateSubscriptionPayment(
