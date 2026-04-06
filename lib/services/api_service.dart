@@ -365,6 +365,26 @@ class ApiService {
     }
   }
 
+  /// Get available subscription packages (for renew/upgrade screen)
+  Future<ApiResponse<List<Map<String, dynamic>>>> getSubscriptionPackages() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/auth/packages'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+
+      return _handleResponse<List<Map<String, dynamic>>>(
+        response,
+        (data) => (data['packages'] as List<dynamic>?)
+                ?.map((e) => e as Map<String, dynamic>)
+                .toList() ??
+            [],
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Get user permissions
   Future<Map<String, dynamic>> getUserPermissions() async {
     try {

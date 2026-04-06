@@ -11,6 +11,7 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
+import 'subscription_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1142,16 +1143,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: statusColor.withOpacity(0.4), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: statusColor.withOpacity(0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                SubscriptionScreen(currentSubscription: _subscriptionInfo),
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: statusColor.withOpacity(0.4), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -1222,6 +1231,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
