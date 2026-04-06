@@ -365,20 +365,27 @@ class ApiService {
     }
   }
 
-  /// Get available subscription packages (for renew/upgrade screen)
-  Future<ApiResponse<List<Map<String, dynamic>>>> getSubscriptionPackages() async {
+  /// Get available subscription packages and add-ons (for renew/upgrade screen).
+  /// Returns a map with keys 'packages' (core plans) and 'addons' (optional modules).
+  Future<ApiResponse<Map<String, dynamic>>> getSubscriptionPackages() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/auth/packages'),
         headers: await _getHeaders(),
       ).timeout(const Duration(seconds: 15));
 
-      return _handleResponse<List<Map<String, dynamic>>>(
+      return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => (data['packages'] as List<dynamic>?)
-                ?.map((e) => e as Map<String, dynamic>)
-                .toList() ??
-            [],
+        (data) => {
+          'packages': (data['packages'] as List<dynamic>?)
+                  ?.map((e) => e as Map<String, dynamic>)
+                  .toList() ??
+              [],
+          'addons': (data['addons'] as List<dynamic>?)
+                  ?.map((e) => e as Map<String, dynamic>)
+                  .toList() ??
+              [],
+        },
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');

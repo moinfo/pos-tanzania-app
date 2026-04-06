@@ -20,6 +20,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isLoading = true;
   String? _error;
   List<Map<String, dynamic>> _packages = [];
+  List<Map<String, dynamic>> _addons = [];
 
   // Tier ordering used to determine if a package is an upgrade/downgrade
   static const _tierOrder = ['Basic', 'Standard', 'Premium'];
@@ -41,7 +42,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     if (result.isSuccess && result.data != null) {
       setState(() {
-        _packages = result.data!;
+        _packages = (result.data!['packages'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            [];
+        _addons = (result.data!['addons'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            [];
         _isLoading = false;
       });
     } else {
@@ -130,19 +136,45 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             _buildCurrentPlanCard(isDark),
             const SizedBox(height: 24),
           ],
-          Text(
-            'Available Plans',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkText : AppColors.text,
-            ),
-          ),
+          _sectionHeader('Available Plans', isDark),
           const SizedBox(height: 12),
           ..._packages.map((pkg) => _buildPackageCard(pkg, isDark)),
-          const SizedBox(height: 16),
+          if (_addons.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _sectionHeader('Add-on Modules', isDark),
+            const SizedBox(height: 4),
+            _buildAddonsNote(isDark),
+            const SizedBox(height: 12),
+            ..._addons.map((addon) => _buildAddonCard(addon, isDark)),
+          ],
+          const SizedBox(height: 8),
           _buildContactNote(isDark),
         ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, bool isDark) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: isDark ? AppColors.darkText : AppColors.text,
+      ),
+    );
+  }
+
+  Widget _buildAddonsNote(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        'Add features to any existing plan — subscribe to each module independently.',
+        style: TextStyle(
+          fontSize: 12,
+          color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+          height: 1.4,
+        ),
       ),
     );
   }
@@ -524,6 +556,196 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAddonCard(Map<String, dynamic> addon, bool isDark) {
+    final name = addon['name'] as String? ?? '';
+    final price = (addon['price'] as num?)?.toDouble() ?? 0;
+    final durationDays = addon['duration_days'] as int? ?? 30;
+    final features = (addon['features'] as List<dynamic>?)
+            ?.map((f) => f as String)
+            .toList() ??
+        [];
+    final isActive = addon['is_active'] as bool? ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: isActive
+              ? Border.all(color: AppColors.success, width: 2)
+              : Border.all(
+                  color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                  width: 1,
+                ),
+          boxShadow: [
+            BoxShadow(
+              color: (isActive ? AppColors.success : Colors.black)
+                  .withOpacity(isActive ? 0.10 : 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.darkText : AppColors.text,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (isActive)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.success,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'Active',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'Recommended',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'TZS ${_formatPrice(price)}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.success,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Text(
+                          '/ ${durationDays}d',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextLight
+                                : AppColors.textLight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      _infoChip(Icons.people_outline, 'Unlimited users', isDark),
+                      const SizedBox(width: 8),
+                      _infoChip(Icons.store_outlined, 'Unlimited locations', isDark),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Features
+            if (features.isNotEmpty) ...[
+              const Divider(height: 24, indent: 16, endIndent: 16),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                child: Column(
+                  children: features
+                      .map((f) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check_circle_rounded,
+                                    size: 16, color: AppColors.success),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    f,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isDark
+                                          ? AppColors.darkText
+                                          : AppColors.text,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
+            // CTA
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isActive
+                      ? () => _showContactDialog(name, price, true)
+                      : () => _showContactDialog(name, price, false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isActive ? AppColors.brandPrimary : AppColors.success,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    isActive ? 'Renew $name' : 'Upgrade to $name',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
