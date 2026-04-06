@@ -527,6 +527,12 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   bool _isSerialized = false;
   bool _showOnLanding = false;
   int _stockType = 0;
+
+  // Image picker state (landing clients only)
+  final ImagePicker _imagePicker = ImagePicker();
+  File? _mainImage;
+  List<File> _galleryImages = [];
+  List<File> _portfolioImages = [];
   int _itemType = 0;
   int? _taxCategoryId;
   int? _supplierId;
@@ -535,16 +541,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   List<StockLocation> _stockLocations = [];
   Map<int, TextEditingController> _quantityControllers = {};
 
-  // Image picker state
-  final ImagePicker _imagePicker = ImagePicker();
-  File? _mainImage;
-  List<File> _galleryImages = [];
-  List<File> _portfolioImages = [];
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
 
     _nameController = TextEditingController(text: widget.item?.name);
     _categoryController = TextEditingController(text: widget.item?.category);
@@ -636,7 +636,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     }
   }
 
-  // Image picker methods
+  // Image picker methods (used only for landing-page clients)
   Future<void> _pickMainImage() async {
     final XFile? image = await _imagePicker.pickImage(
       source: ImageSource.gallery,
@@ -644,9 +644,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       maxHeight: 1280,
       imageQuality: 85,
     );
-    if (image != null) {
-      setState(() => _mainImage = File(image.path));
-    }
+    if (image != null) setState(() => _mainImage = File(image.path));
   }
 
   Future<void> _pickGalleryImages() async {
@@ -656,9 +654,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       imageQuality: 85,
     );
     if (images.isNotEmpty) {
-      setState(() {
-        _galleryImages.addAll(images.map((img) => File(img.path)));
-      });
+      setState(() => _galleryImages.addAll(images.map((img) => File(img.path))));
     }
   }
 
@@ -669,23 +665,13 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       imageQuality: 85,
     );
     if (images.isNotEmpty) {
-      setState(() {
-        _portfolioImages.addAll(images.map((img) => File(img.path)));
-      });
+      setState(() => _portfolioImages.addAll(images.map((img) => File(img.path))));
     }
   }
 
-  void _removeMainImage() {
-    setState(() => _mainImage = null);
-  }
-
-  void _removeGalleryImage(int index) {
-    setState(() => _galleryImages.removeAt(index));
-  }
-
-  void _removePortfolioImage(int index) {
-    setState(() => _portfolioImages.removeAt(index));
-  }
+  void _removeMainImage()              => setState(() => _mainImage = null);
+  void _removeGalleryImage(int index)  => setState(() => _galleryImages.removeAt(index));
+  void _removePortfolioImage(int index)=> setState(() => _portfolioImages.removeAt(index));
 
   /// Validate profit margin to ensure no loss
   /// Returns error message if validation fails, null if valid
@@ -806,10 +792,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       locationPrices: locationPrices,
     );
 
-    // Check if any images are selected - use multipart upload if so
-    final hasImages = _mainImage != null ||
-        _galleryImages.isNotEmpty ||
-        _portfolioImages.isNotEmpty;
+    // Use multipart image upload only for clients with landing page
+    final hasLanding = ApiService.currentClient?.features.hasLandingPage ?? false;
+    final hasImages = hasLanding &&
+        (_mainImage != null || _galleryImages.isNotEmpty || _portfolioImages.isNotEmpty);
 
     final response = hasImages
         ? (widget.item == null
@@ -855,6 +841,13 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     final permissionProvider = context.watch<PermissionProvider>();
     final canSeeCostPrice = permissionProvider.hasPermission(PermissionIds.itemsCostPrice);
     final canSeeQuantity = permissionProvider.hasPermission(PermissionIds.itemsQuantity);
+    final hasLanding = ApiService.currentClient?.features.hasLandingPage ?? false;
+
+    // Rebuild tab controller if tab count changes (shouldn't happen at runtime, but safe)
+    if (_tabController.length != (hasLanding ? 3 : 2)) {
+      _tabController.dispose();
+      _tabController = TabController(length: hasLanding ? 3 : 2, vsync: this);
+    }
 
     return Dialog(
       child: Container(
@@ -874,10 +867,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             TabBar(
               controller: _tabController,
               labelColor: AppColors.primary,
-              tabs: const [
-                Tab(text: 'Basic Info'),
-                Tab(text: 'Details'),
-                Tab(text: 'Images'),
+              tabs: [
+                const Tab(text: 'Basic Info'),
+                const Tab(text: 'Details'),
+                if (hasLanding) const Tab(text: 'Images'),
               ],
             ),
             // Tab Views
@@ -887,9 +880,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildBasicInfoTab(canSeeCostPrice),
+                    _buildBasicInfoTab(canSeeCostPrice, hasLanding),
                     _buildAdditionalDetailsTab(canSeeQuantity),
-                    _buildImagesTab(),
+                    if (hasLanding) _buildImagesTab(),
                   ],
                 ),
               ),
@@ -931,7 +924,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     );
   }
 
-  Widget _buildBasicInfoTab(bool canSeeCostPrice) {
+  Widget _buildBasicInfoTab(bool canSeeCostPrice, bool hasLanding) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -1026,14 +1019,15 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             ),
             keyboardType: TextInputType.number,
           ),
-          const SizedBox(height: 8),
-          // Show on Landing
-          SwitchListTile(
-            title: const Text('Show on Landing Page'),
-            subtitle: const Text('Display this item on the public landing page'),
-            value: _showOnLanding,
-            onChanged: (value) => setState(() => _showOnLanding = value),
-          ),
+          if (hasLanding) ...[
+            const SizedBox(height: 8),
+            SwitchListTile(
+              title: const Text('Show on Landing Page'),
+              subtitle: const Text('Display this item on the public landing page'),
+              value: _showOnLanding,
+              onChanged: (value) => setState(() => _showOnLanding = value),
+            ),
+          ],
         ],
       ),
     );
