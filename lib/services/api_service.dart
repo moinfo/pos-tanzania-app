@@ -392,6 +392,45 @@ class ApiService {
     }
   }
 
+  /// Initiate a subscription payment via Pesapal.
+  /// Returns { redirect_url, merchant_reference, amount, package_name }
+  Future<ApiResponse<Map<String, dynamic>>> initiateSubscriptionPayment(
+      int packageId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/subscription/initiate'),
+        headers: await _getHeaders(),
+        body: json.encode({'package_id': packageId}),
+      ).timeout(const Duration(seconds: 20));
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Poll payment status by merchant reference.
+  /// Returns { status: 'pending'|'completed'|'failed', subscription?: {...} }
+  Future<ApiResponse<Map<String, dynamic>>> checkPaymentStatus(
+      String merchantRef) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/subscription/status?ref=${Uri.encodeComponent(merchantRef)}'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Get user permissions
   Future<Map<String, dynamic>> getUserPermissions() async {
     try {

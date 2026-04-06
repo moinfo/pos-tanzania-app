@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
@@ -295,6 +297,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildPackageCard(Map<String, dynamic> pkg, bool isDark) {
+    final pkgId = pkg['id'] as int? ?? 0;
     final name = pkg['name'] as String? ?? '';
     final price = (pkg['price'] as num?)?.toDouble() ?? 0;
     final durationDays = pkg['duration_days'] as int? ?? 30;
@@ -510,7 +513,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => _showContactDialog(name, price, isCurrent),
+                  onPressed: () => _startPayment(pkgId, name),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isCurrent || isUpgrade
                         ? ctaColor
@@ -560,6 +563,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildAddonCard(Map<String, dynamic> addon, bool isDark) {
+    final addonId = addon['id'] as int? ?? 0;
     final name = addon['name'] as String? ?? '';
     final price = (addon['price'] as num?)?.toDouble() ?? 0;
     final durationDays = addon['duration_days'] as int? ?? 30;
@@ -722,9 +726,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: isActive
-                      ? () => _showContactDialog(name, price, true)
-                      : () => _showContactDialog(name, price, false),
+                  onPressed: () => _startPayment(addonId, name),
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
                         isActive ? AppColors.brandPrimary : AppColors.success,
@@ -776,71 +778,83 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  void _showContactDialog(String packageName, double price, bool isRenew) {
-    final isDark =
-        context.read<ThemeProvider>().isDarkMode;
+  /// Initiates Pesapal payment for a package and opens the payment URL in browser.
+  Future<void> _startPayment(int packageId, String packageName) async {
+    final isDark = context.read<ThemeProvider>().isDarkMode;
+
+    // Show loading
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          isRenew ? 'Renew Plan' : 'Request Upgrade',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkText : AppColors.text,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isRenew
-                  ? 'To renew your $packageName plan, please contact Mopos support with your business name.'
-                  : 'To upgrade to the $packageName plan (TZS ${_formatPrice(price)}/month), please contact Mopos support.',
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: isDark ? AppColors.darkText : AppColors.text,
-              ),
+      barrierDismissible: false,
+      builder: (_) => const _LoadingDialog(),
+    );
+
+    final result = await _apiService.initiateSubscriptionPayment(packageId);
+
+    if (!mounted) return;
+    Navigator.pop(context); // dismiss loading
+
+    if (!result.isSuccess || result.data == null) {
+      _showErrorSnack(result.message ?? 'Failed to initiate payment');
+      return;
+    }
+
+    final redirectUrl = result.data!['redirect_url'] as String?;
+    final merchantRef = result.data!['merchant_reference'] as String?;
+
+    if (redirectUrl == null || merchantRef == null) {
+      _showErrorSnack('Invalid response from payment gateway');
+      return;
+    }
+
+    // Open Pesapal payment page in system browser
+    final uri = Uri.parse(redirectUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      _showErrorSnack('Could not open payment page');
+      return;
+    }
+
+    // Show polling bottom sheet so user can confirm when done
+    if (!mounted) return;
+    _showPollingSheet(merchantRef, packageName, isDark);
+  }
+
+  void _showPollingSheet(String merchantRef, String packageName, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _PaymentPollingSheet(
+        merchantRef: merchantRef,
+        packageName: packageName,
+        apiService: _apiService,
+        onCompleted: () {
+          Navigator.pop(context); // close sheet
+          _loadPackages();        // refresh packages (active status)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$packageName subscription activated!'),
+              backgroundColor: AppColors.success,
             ),
-            const SizedBox(height: 16),
-            _contactRow(Icons.language, 'mopos.co.tz', isDark),
-            const SizedBox(height: 6),
-            _contactRow(Icons.email_outlined, 'support@mopos.co.tz', isDark),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Close',
-                style: TextStyle(
-                    color: isDark
-                        ? AppColors.darkTextLight
-                        : AppColors.textLight)),
-          ),
-        ],
+          );
+        },
+        onFailed: () {
+          Navigator.pop(context);
+          _showErrorSnack('Payment failed. Please try again.');
+        },
       ),
     );
   }
 
-  Widget _contactRow(IconData icon, String text, bool isDark) {
-    return Row(
-      children: [
-        Icon(icon,
-            size: 16,
-            color: isDark ? AppColors.darkTextLight : AppColors.textLight),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 13,
-            color: AppColors.info,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+  void _showErrorSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
   }
 
@@ -851,3 +865,170 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         );
   }
 }
+
+// ─── Helper widgets ──────────────────────────────────────────────────────────
+
+class _LoadingDialog extends StatelessWidget {
+  const _LoadingDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet that polls the backend until payment is confirmed or failed.
+class _PaymentPollingSheet extends StatefulWidget {
+  final String merchantRef;
+  final String packageName;
+  final ApiService apiService;
+  final VoidCallback onCompleted;
+  final VoidCallback onFailed;
+
+  const _PaymentPollingSheet({
+    required this.merchantRef,
+    required this.packageName,
+    required this.apiService,
+    required this.onCompleted,
+    required this.onFailed,
+  });
+
+  @override
+  State<_PaymentPollingSheet> createState() => _PaymentPollingSheetState();
+}
+
+class _PaymentPollingSheetState extends State<_PaymentPollingSheet> {
+  Timer? _timer;
+  int _attempts = 0;
+  static const _maxAttempts = 36; // 3 min at 5s intervals
+  String _statusMessage = 'Waiting for payment confirmation...';
+
+  @override
+  void initState() {
+    super.initState();
+    // Start polling after 5 seconds (give user time to complete payment)
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _poll());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _poll() async {
+    _attempts++;
+
+    if (_attempts > _maxAttempts) {
+      _timer?.cancel();
+      if (mounted) {
+        setState(() => _statusMessage = 'Taking longer than expected. Tap "Check Now" to retry.');
+      }
+      return;
+    }
+
+    final result = await widget.apiService.checkPaymentStatus(widget.merchantRef);
+    if (!mounted) return;
+
+    if (result.isSuccess && result.data != null) {
+      final status = result.data!['status'] as String?;
+      if (status == 'completed') {
+        _timer?.cancel();
+        widget.onCompleted();
+      } else if (status == 'failed') {
+        _timer?.cancel();
+        widget.onFailed();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const CircularProgressIndicator(color: AppColors.success),
+          const SizedBox(height: 20),
+          Text(
+            'Complete Payment in Browser',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.darkText : AppColors.text,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _statusMessage,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    _timer?.cancel();
+                    widget.onFailed();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    _attempts = 0;
+                    setState(() => _statusMessage = 'Checking payment status...');
+                    _poll();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Check Now'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
