@@ -348,6 +348,23 @@ class ApiService {
     }
   }
 
+  /// Get subscription info for the current tenant (mopos / multi-tenant clients)
+  Future<ApiResponse<Map<String, dynamic>>> getSubscriptionInfo() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/auth/subscription'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => (data['subscription'] as Map<String, dynamic>?) ?? {},
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Get user permissions
   Future<Map<String, dynamic>> getUserPermissions() async {
     try {

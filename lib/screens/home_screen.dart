@@ -52,6 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
   // Transactions Dashboard data (Come & Save)
   WakalaReport? _transactionsDashboardData;
 
+  // Subscription info (multi-tenant clients only, e.g. mopos)
+  Map<String, dynamic>? _subscriptionInfo;
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +137,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Load dashboard based on client type
       final hasCommissionDashboard = currentClient?.features.hasCommissionDashboard ?? false;
+
+      // Load subscription info in parallel for multi-tenant clients
+      if (currentClient?.features.hasMultiTenant == true) {
+        _apiService.getSubscriptionInfo().then((result) {
+          if (mounted && result.isSuccess) {
+            setState(() => _subscriptionInfo = result.data?.isNotEmpty == true ? result.data : null);
+          }
+        });
+      }
 
       if (hasCommissionDashboard) {
         await _loadLerumaDashboard();
@@ -432,6 +444,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 24),
+
+            // Subscription banner (only for multi-tenant clients like mopos)
+            if (ApiService.currentClient?.features.hasMultiTenant == true &&
+                _subscriptionInfo != null)
+              _buildSubscriptionBanner(isDark),
 
             // Dashboard Title and Date Selector
             Row(
@@ -1087,6 +1104,124 @@ class _HomeScreenState extends State<HomeScreen> {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+
+  /// Subscription banner for multi-tenant clients (mopos)
+  Widget _buildSubscriptionBanner(bool isDark) {
+    final sub = _subscriptionInfo!;
+    final packageName = sub['package_name'] as String? ?? 'Unknown';
+    final daysRemaining = sub['days_remaining'] as int? ?? 0;
+    final isExpired = sub['is_expired'] as bool? ?? false;
+    final isExpiringSoon = sub['is_expiring_soon'] as bool? ?? false;
+    final expiresAt = sub['expires_at'] as String? ?? '';
+
+    // Color coding: red = expired/≤3d, orange = ≤7d, green = healthy
+    final Color statusColor;
+    final IconData statusIcon;
+    final String statusLabel;
+
+    if (isExpired) {
+      statusColor = AppColors.error;
+      statusIcon = Icons.warning_rounded;
+      statusLabel = 'Expired';
+    } else if (daysRemaining <= 3) {
+      statusColor = AppColors.error;
+      statusIcon = Icons.warning_rounded;
+      statusLabel = '$daysRemaining day${daysRemaining == 1 ? '' : 's'} left';
+    } else if (isExpiringSoon) {
+      statusColor = Colors.orange;
+      statusIcon = Icons.schedule_rounded;
+      statusLabel = '$daysRemaining days left';
+    } else {
+      statusColor = AppColors.success;
+      statusIcon = Icons.verified_rounded;
+      statusLabel = '$daysRemaining days left';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: statusColor.withOpacity(0.4), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: statusColor.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(statusIcon, color: statusColor, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        packageName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.darkText : AppColors.text,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Plan',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isExpired
+                        ? 'Expired on ${expiresAt.substring(0, 10)}'
+                        : 'Expires ${expiresAt.substring(0, 10)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                statusLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: statusColor,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
