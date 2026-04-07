@@ -91,6 +91,7 @@ class ClientsConfig {
         hasShops: true,
         hasDiscountRequests: true,
         hasMultiTenant: true,
+        hasRegistration: true,
       ),
     ),
     // Come & Save

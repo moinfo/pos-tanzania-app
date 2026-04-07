@@ -348,6 +348,91 @@ class ApiService {
     }
   }
 
+  /// Fetch subscription plans publicly (no auth) — for the registration screen.
+  Future<ApiResponse<List<Map<String, dynamic>>>> getPublicPlans() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/auth/plans'),
+        headers: await _getHeaders(includeAuth: false),
+      ).timeout(const Duration(seconds: 15));
+
+      return _handleResponse<List<Map<String, dynamic>>>(
+        response,
+        (data) => (data['packages'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            [],
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Register a new business/tenant (Mopos self-service sign-up).
+  /// Returns redirect_url + merchant_reference to open Pesapal payment.
+  Future<ApiResponse<Map<String, dynamic>>> registerTenant({
+    required String businessName,
+    required String ownerName,
+    required String phone,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+    required int packageId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/auth/register'),
+        headers: await _getHeaders(includeAuth: false),
+        body: json.encode({
+          'business_name': businessName,
+          'owner_name': ownerName,
+          'phone': phone,
+          'email': email,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+          'package_id': packageId,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => {
+          'registration_id': data['registration_id'],
+          'merchant_reference': data['merchant_reference'],
+          'redirect_url': data['redirect_url'],
+          'username': data['username'],
+          'amount': data['amount'],
+          'package_name': data['package_name'],
+        },
+      );
+    } on SocketException {
+      return ApiResponse.error(message: 'Network error: Unable to connect to server.');
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Poll registration payment status (no auth required).
+  /// Returns status: pending | completed | failed, plus username on completion.
+  Future<ApiResponse<Map<String, dynamic>>> checkRegistrationStatus(String merchantRef) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/auth/register_status?ref=${Uri.encodeComponent(merchantRef)}'),
+        headers: await _getHeaders(includeAuth: false),
+      ).timeout(const Duration(seconds: 15));
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => {
+          'status': data['status'],
+          'username': data['username'],
+          if (data['tenant_id'] != null) 'tenant_id': data['tenant_id'],
+        },
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Get subscription info for the current tenant (mopos / multi-tenant clients)
   Future<ApiResponse<Map<String, dynamic>>> getSubscriptionInfo() async {
     try {

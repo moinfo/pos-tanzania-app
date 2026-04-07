@@ -15,6 +15,7 @@ import '../config/clients_config.dart';
 import 'main_navigation.dart';
 import 'client_selector_screen.dart';
 import 'landing/landing_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -489,6 +490,30 @@ class _LoginScreenState extends State<LoginScreen> {
                               );
                             },
                           ),
+
+                          // Create Account (only for clients with self-service registration)
+                          if (ApiService.currentClient?.features.hasRegistration ?? false) ...[
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const RegisterScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                "Don't have an account? Create one",
+                                style: TextStyle(
+                                  color: isDark ? AppColors.darkTextLight : Colors.white,
+                                  fontSize: 14,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: isDark ? AppColors.darkTextLight : Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
 
                           // Biometric Login Button (if enabled)
                           if (_isBiometricAvailable && _isBiometricEnabled) ...[

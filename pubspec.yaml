@@ -100,7 +100,7 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "sada-logo.png"
+  image_path: "assets/images/sada-logo.png"
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "sada-logo.png"
+  adaptive_icon_foreground: "assets/images/sada-logo.png"
   remove_alpha_ios: true

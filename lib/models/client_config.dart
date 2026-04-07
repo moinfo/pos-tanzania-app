@@ -50,6 +50,9 @@ class ClientFeatures {
   // Multi-tenant support — sends X-Tenant-ID header on every API request
   final bool hasMultiTenant;
 
+  // Self-service registration — lets new businesses sign up and pick a plan in-app
+  final bool hasRegistration;
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -80,6 +83,7 @@ class ClientFeatures {
     this.hasShops = false, // Default: disabled - only SADA uses this
     this.hasDiscountRequests = false, // Default: disabled - only SADA uses this
     this.hasMultiTenant = false, // Default: disabled - enable for multi-tenant backends
+    this.hasRegistration = false, // Default: disabled - only Mopos allows self-service sign-up
   });
 }
 

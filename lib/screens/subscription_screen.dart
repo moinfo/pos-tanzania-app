@@ -10,7 +10,15 @@ class SubscriptionScreen extends StatefulWidget {
   /// Current subscription info fetched from the dashboard (may be null).
   final Map<String, dynamic>? currentSubscription;
 
-  const SubscriptionScreen({super.key, this.currentSubscription});
+  /// Optional callback fired after a successful payment — used by the
+  /// post-registration flow to redirect the user to the login screen.
+  final VoidCallback? onPaymentCompleted;
+
+  const SubscriptionScreen({
+    super.key,
+    this.currentSubscription,
+    this.onPaymentCompleted,
+  });
 
   @override
   State<SubscriptionScreen> createState() => _SubscriptionScreenState();
@@ -836,13 +844,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         apiService: _apiService,
         onCompleted: () {
           Navigator.pop(context); // close sheet
-          _loadPackages();        // refresh packages (active status)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$packageName subscription activated!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          if (widget.onPaymentCompleted != null) {
+            widget.onPaymentCompleted!();
+          } else {
+            _loadPackages(); // refresh packages (active status)
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$packageName subscription activated!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
         },
         onFailed: () {
           Navigator.pop(context);

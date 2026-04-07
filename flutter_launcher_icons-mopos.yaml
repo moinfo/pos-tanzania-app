@@ -1,9 +1,10 @@
-# Flutter Launcher Icons configuration for SADA flavor
+# Flutter Launcher Icons configuration for Mopos flavor
 flutter_launcher_icons:
-  android: true
+  android: "ic_launcher"
   ios: true
   image_path: "assets/images/sada-logo.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/sada-logo.png"
   remove_alpha_ios: true
   min_sdk_android: 21
+  flavor: mopos
