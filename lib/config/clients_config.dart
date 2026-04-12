@@ -92,6 +92,7 @@ class ClientsConfig {
         hasDiscountRequests: true,
         hasMultiTenant: true,
         hasRegistration: true,
+        hasItemCategories: true,
       ),
     ),
     // Come & Save

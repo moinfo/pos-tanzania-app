@@ -442,6 +442,8 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
   final _agencyNameController = TextEditingController();
   final _accountNumberController = TextEditingController();
   final _taxIdController = TextEditingController();
+  final _creditLimitController = TextEditingController();
+  final _oneTimeCreditLimitController = TextEditingController();
 
   String? _selectedGender;
   int? _selectedSupervisorId;
@@ -478,6 +480,8 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
     _agencyNameController.dispose();
     _accountNumberController.dispose();
     _taxIdController.dispose();
+    _creditLimitController.dispose();
+    _oneTimeCreditLimitController.dispose();
     super.dispose();
   }
 
@@ -500,6 +504,8 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
     _selectedGender = supplier.gender;
     _selectedSupervisorId = supplier.supervisorId;
     _selectedCategory = supplier.category;
+    _creditLimitController.text = supplier.creditLimit > 0 ? supplier.creditLimit.toString() : '';
+    _oneTimeCreditLimitController.text = supplier.oneTimeCreditLimit > 0 ? supplier.oneTimeCreditLimit.toString() : '';
   }
 
   Future<void> _loadSupervisors() async {
@@ -539,6 +545,8 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
       'tax_id': _taxIdController.text,
       'category': _selectedCategory,
       'supervisor_id': _selectedSupervisorId,
+      'credit_limit': double.tryParse(_creditLimitController.text) ?? 0,
+      'one_time_credit_limit': double.tryParse(_oneTimeCreditLimitController.text) ?? 0,
     };
 
     final response = widget.supplier == null
@@ -775,7 +783,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           DropdownButtonFormField<int>(
             value: _selectedSupervisorId,
             decoration: InputDecoration(
-              labelText: 'Supervisor',
+              labelText: 'Supervisor Name *',
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -794,6 +802,32 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
                 _selectedSupervisorId = value;
               });
             },
+            validator: (value) {
+              if (value == null) return 'Supervisor is required';
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _creditLimitController,
+            decoration: InputDecoration(
+              labelText: 'Credit Limit',
+              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _oneTimeCreditLimitController,
+            decoration: InputDecoration(
+              labelText: 'One Time Credit Limit',
+              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
         ],
       ),
@@ -827,12 +861,18 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _phoneController,
             decoration: InputDecoration(
-              labelText: 'Phone Number',
+              labelText: 'Phone Number *',
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
             ),
             keyboardType: TextInputType.phone,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Phone number is required';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 16),
           TextFormField(

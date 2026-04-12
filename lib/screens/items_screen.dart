@@ -15,6 +15,7 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
+import 'item_categories_screen.dart';
 
 class ItemsScreen extends StatefulWidget {
   const ItemsScreen({super.key});
@@ -153,6 +154,38 @@ class _ItemsScreenState extends State<ItemsScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
+          // Categories menu (mopos only, needs items_categories permission)
+          if (ApiService.currentClient?.features.hasItemCategories ?? false)
+            Consumer<PermissionProvider>(
+              builder: (context, permissionProvider, _) {
+                if (!permissionProvider.hasPermission(PermissionIds.itemsCategories)) {
+                  return const SizedBox.shrink();
+                }
+                return PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onSelected: (value) {
+                    if (value == 'categories') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ItemCategoriesScreen(),
+                        ),
+                      );
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'categories',
+                      child: Row(children: [
+                        Icon(Icons.category, size: 20),
+                        SizedBox(width: 8),
+                        Text('Categories'),
+                      ]),
+                    ),
+                  ],
+                );
+              },
+            ),
           // Location selector - show if user has locations
           if (locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
             Center(
@@ -529,6 +562,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   bool _showOnLanding = false;
   int _stockType = 0;
 
+  // Item category dropdown state (mopos only)
+  List<Map<String, dynamic>> _itemCategories = [];
+  String? _selectedCategoryName;
+
   // Child item picker state
   String? _childId;          // item_id of selected child (retail PC)
   String _childName = '';    // display name
@@ -597,6 +634,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     _taxCategoryId = widget.item?.taxCategoryId;
     _supplierId = widget.item?.supplierId;
     _dormant = widget.item?.dormant ?? 'ACTIVE';
+    _selectedCategoryName = widget.item?.category.isNotEmpty == true ? widget.item?.category : null;
 
     _loadStockLocations();
   }
@@ -625,10 +663,16 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   }
 
   Future<void> _loadStockLocations() async {
-    final results = await Future.wait([
+    final hasItemCategories =
+        ApiService.currentClient?.features.hasItemCategories ?? false;
+
+    final futures = [
       _apiService.getAllowedStockLocations(moduleId: 'items'),
       _apiService.getItems(limit: 500),
-    ]);
+      if (hasItemCategories) _apiService.getItemCategories(),
+    ];
+
+    final results = await Future.wait(futures);
 
     if (!mounted) return;
 
@@ -656,6 +700,19 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           final match = _childItems.where(
               (i) => i.itemId.toString() == _childId).firstOrNull;
           if (match != null) _childName = match.name;
+        }
+      }
+
+      if (hasItemCategories && results.length > 2) {
+        final catResponse =
+            results[2] as ApiResponse<List<Map<String, dynamic>>>;
+        if (catResponse.isSuccess) {
+          _itemCategories = catResponse.data ?? [];
+          // Validate that the pre-existing category still exists in the list
+          if (_selectedCategoryName != null &&
+              !_itemCategories.any((c) => c['name'] == _selectedCategoryName)) {
+            _selectedCategoryName = null;
+          }
         }
       }
     });
@@ -808,9 +865,14 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       defaultDiscountLimit = widget.item!.defaultDiscountLimit ?? widget.item!.discountLimit;
     }
 
+    final hasItemCategories =
+        ApiService.currentClient?.features.hasItemCategories ?? false;
+
     final formData = ItemFormData(
       name: _nameController.text.trim(),
-      category: _categoryController.text.trim(),
+      category: hasItemCategories
+          ? (_selectedCategoryName ?? '')
+          : _categoryController.text.trim(),
       description: _descriptionController.text.trim(),
       itemNumber: _itemNumberController.text.trim().isEmpty
           ? null
@@ -996,13 +1058,36 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             ),
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _categoryController,
-            decoration: const InputDecoration(
-              labelText: 'Category',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          Builder(builder: (context) {
+            final hasItemCategories =
+                ApiService.currentClient?.features.hasItemCategories ?? false;
+
+            if (hasItemCategories) {
+              return DropdownButtonFormField<String>(
+                value: _selectedCategoryName,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                ),
+                items: _itemCategories
+                    .map((cat) => DropdownMenuItem<String>(
+                          value: cat['name'] as String,
+                          child: Text(cat['name'] as String),
+                        ))
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedCategoryName = value),
+              );
+            }
+
+            return TextFormField(
+              controller: _categoryController,
+              decoration: const InputDecoration(
+                labelText: 'Category',
+                border: OutlineInputBorder(),
+              ),
+            );
+          }),
           const SizedBox(height: 16),
           TextFormField(
             controller: _descriptionController,

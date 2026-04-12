@@ -22,6 +22,8 @@ class Supplier {
   final double credit;
   final double debit;
   final double balance;
+  final double creditLimit;
+  final double oneTimeCreditLimit;
 
   Supplier({
     required this.supplierId,
@@ -47,6 +49,8 @@ class Supplier {
     required this.credit,
     required this.debit,
     required this.balance,
+    this.creditLimit = 0,
+    this.oneTimeCreditLimit = 0,
   });
 
   factory Supplier.fromJson(Map<String, dynamic> json) {
@@ -74,6 +78,8 @@ class Supplier {
       credit: (json['credit'] ?? 0).toDouble(),
       debit: (json['debit'] ?? 0).toDouble(),
       balance: (json['balance'] ?? 0).toDouble(),
+      creditLimit: (json['credit_limit'] ?? 0).toDouble(),
+      oneTimeCreditLimit: (json['one_time_credit_limit'] ?? 0).toDouble(),
     );
   }
 
@@ -102,6 +108,8 @@ class Supplier {
       'credit': credit,
       'debit': debit,
       'balance': balance,
+      'credit_limit': creditLimit,
+      'one_time_credit_limit': oneTimeCreditLimit,
     };
   }
 }

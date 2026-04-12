@@ -53,6 +53,9 @@ class ClientFeatures {
   // Self-service registration — lets new businesses sign up and pick a plan in-app
   final bool hasRegistration;
 
+  // Item category dropdown — fetch categories from API instead of free-text input
+  final bool hasItemCategories;
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -84,6 +87,7 @@ class ClientFeatures {
     this.hasDiscountRequests = false, // Default: disabled - only SADA uses this
     this.hasMultiTenant = false, // Default: disabled - enable for multi-tenant backends
     this.hasRegistration = false, // Default: disabled - only Mopos allows self-service sign-up
+    this.hasItemCategories = false, // Default: disabled - dropdown category picker from API
   });
 }
 

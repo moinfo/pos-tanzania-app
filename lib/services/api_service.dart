@@ -1530,6 +1530,89 @@ class ApiService {
     }
   }
 
+  /// Get item categories from API (mopos only)
+  Future<ApiResponse<List<Map<String, dynamic>>>> getItemCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/items/categories'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final categories = List<Map<String, dynamic>>.from(
+          jsonResponse['data']['categories'] ?? [],
+        );
+        return ApiResponse.success(data: categories, message: jsonResponse['message']);
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch categories',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Create item category
+  Future<ApiResponse<Map<String, dynamic>>> createItemCategory(String name) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/items/categories/create'),
+        headers: await _getHeaders(),
+        body: json.encode({'name': name}),
+      );
+      final jsonResponse = json.decode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(
+            data: Map<String, dynamic>.from(jsonResponse['data']),
+            message: jsonResponse['message']);
+      }
+      return ApiResponse.error(message: jsonResponse['message'] ?? 'Failed to create category');
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update item category
+  Future<ApiResponse<Map<String, dynamic>>> updateItemCategory(int id, String name) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/items/categories/update/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({'name': name}),
+      );
+      final jsonResponse = json.decode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(
+            data: Map<String, dynamic>.from(jsonResponse['data']),
+            message: jsonResponse['message']);
+      }
+      return ApiResponse.error(message: jsonResponse['message'] ?? 'Failed to update category');
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete item category
+  Future<ApiResponse<void>> deleteItemCategory(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/items/categories/delete/$id'),
+        headers: await _getHeaders(),
+      );
+      final jsonResponse = json.decode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(message: jsonResponse['message']);
+      }
+      return ApiResponse.error(message: jsonResponse['message'] ?? 'Failed to delete category');
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Get single item
   Future<ApiResponse<Item>> getItem(int id) async {
     try {
