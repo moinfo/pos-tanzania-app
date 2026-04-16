@@ -1139,6 +1139,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   icon,
                   color: AppColors.brandPrimary,
                   size: 38,
+
                 ),
               )
             // Unselected: smaller icon with label
