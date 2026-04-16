@@ -11,6 +11,9 @@ class ClientsConfig {
 //    # SADA
 //     flutter build apk --flavor sada --dart-define=FLAVOR=sada --release --android-skip-build-dependency-validation
 //
+//     # Saichi
+//     flutter build apk --flavor saichi --dart-define=FLAVOR=saichi --release --android-skip-build-dependency-validation
+//
 //     # Come & Save
 //     flutter build apk --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release --android-skip-build-dependency-validation
 //
@@ -37,6 +40,7 @@ class ClientsConfig {
     'comeAndSave': 'come_and_save',
     'leruma': 'leruma',
     'kariakooShops': 'kariakoo_shops',
+    'saichi': 'saichi',
   };
 
   // ============================================
@@ -44,7 +48,7 @@ class ClientsConfig {
   // ============================================
   // Only used if FLAVOR is not set (legacy builds)
   // Set this to the client ID you want to build for in PRODUCTION
-  static const String PRODUCTION_CLIENT_ID = 'come_and_save';
+  static const String PRODUCTION_CLIENT_ID = 'saichi';
 
   // ============================================
   // NETWORK CONFIGURATION
@@ -105,6 +109,29 @@ class ClientsConfig {
         primaryDarkColor: 0xFF0A6B1A,  // Dark green
         appTitle: 'Kariakoo Shops',
         tagline: 'Your Marketplace Destination',
+      ),
+      features: const ClientFeatures(
+        hasContracts: false,
+        hasNfcCard: true,
+        hasOfflineMode: false,
+        hasLandingPage: true,
+        hasLocationBasedPricing: true,
+        hasLandingStockDisplay: true,
+      ),
+    ),
+    // Saichi
+    ClientConfig(
+      id: 'saichi',
+      name: 'dev-saichi',
+      displayName: 'SCL',
+      devApiUrl: localBaseUrl,
+      prodApiUrl: 'https://saichi.co.tz/api',
+      logoUrl: 'assets/images/scl_logo.png',
+      branding: const ClientBranding(
+        primaryColor: 0xFF1E90D4,
+        primaryDarkColor: 0xFF1270A8,
+        appTitle: 'SCL',
+        tagline: 'Smart Commerce & Logistics',
       ),
       features: const ClientFeatures(
         hasContracts: false,
@@ -200,6 +227,8 @@ class ClientsConfig {
         return 'Leruma';
       case 'kariakooShops':
         return 'Kariakoo Shops';
+      case 'saichi':
+        return 'Saichi';
       default:
         return getDefaultClient().displayName;
     }

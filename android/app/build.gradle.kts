@@ -61,6 +61,11 @@ android {
             applicationId = "co.tz.kariakooshops.pos"
             resValue("string", "app_name", "Kariakoo Shops")
         }
+        create("saichi") {
+            dimension = "client"
+            applicationId = "co.tz.saichi.pos"
+            resValue("string", "app_name", "Saichi POS")
+        }
     }
 
     signingConfigs {

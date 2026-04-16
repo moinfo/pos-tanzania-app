@@ -79,7 +79,13 @@ class ApiService {
 
     if (clientId != null) {
       currentClient = ClientsConfig.getClientById(clientId);
-      print('✅ Loaded client: ${currentClient?.displayName} (${currentClient?.id})');
+      if (currentClient != null) {
+        print('✅ Loaded client: ${currentClient?.displayName} (${currentClient?.id})');
+      } else {
+        print('⚠️ Saved client "$clientId" not found, falling back to default');
+        currentClient = ClientsConfig.getDefaultClient();
+        await prefs.remove('selected_client_id');
+      }
     } else {
       currentClient = ClientsConfig.getDefaultClient();
       print('⚠️ No saved client, using default: ${currentClient?.displayName}');
