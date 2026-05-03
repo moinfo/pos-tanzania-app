@@ -103,6 +103,7 @@ class TodaySummary {
   final double transportCostCash;
   final double transportCostCC;
   final double bank;
+  final double borrowedMoney;
   final double cashSubmitted;
   final double profitSubmitted;
   final double cashAmount;
@@ -124,6 +125,7 @@ class TodaySummary {
     required this.transportCostCash,
     required this.transportCostCC,
     required this.bank,
+    required this.borrowedMoney,
     required this.cashSubmitted,
     required this.profitSubmitted,
     required this.cashAmount,
@@ -147,6 +149,7 @@ class TodaySummary {
       transportCostCash: _toDouble(json['transport_cost_cash']),
       transportCostCC: _toDouble(json['transport_cost_cc']),
       bank: _toDouble(json['bank']),
+      borrowedMoney: _toDouble(json['borrowed_money']),
       cashSubmitted: _toDouble(json['cash_submitted']),
       profitSubmitted: _toDouble(json['profit_submitted']),
       cashAmount: _toDouble(json['cash_amount']),

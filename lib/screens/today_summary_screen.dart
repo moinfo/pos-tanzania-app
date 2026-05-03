@@ -458,6 +458,12 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
       _buildSummaryRow('Banking Amount', _summaryData!['banking_amount'], highlight: true, isDark: isDark),
     );
 
+    // Borrowed Money - requires cash_submit_borrowed_money (SADA only)
+    addRowIfPermitted(
+      PermissionIds.cashSubmitBorrowedMoney,
+      _buildSummaryRow('Borrowed Money', _summaryData!['borrowed_money'], isDark: isDark),
+    );
+
     // Cash Amount - requires cash_submit_cash_amount
     addRowIfPermitted(
       PermissionIds.cashSubmitCashAmount,
