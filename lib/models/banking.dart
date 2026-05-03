@@ -6,6 +6,7 @@ class BankingListItem {
   final String date;
   final String bankName;
   final String depositor;
+  final String branch;
   final int supervisorId;
   final String supervisorName;
   final int? stockLocationId;
@@ -19,6 +20,7 @@ class BankingListItem {
     required this.date,
     required this.bankName,
     required this.depositor,
+    this.branch = 'KIWANGWA',
     required this.supervisorId,
     required this.supervisorName,
     this.stockLocationId,
@@ -38,6 +40,7 @@ class BankingListItem {
       date: json['date']?.toString() ?? '',
       bankName: json['bank_name']?.toString() ?? '',
       depositor: json['depositor']?.toString() ?? '',
+      branch: json['branch']?.toString() ?? 'KIWANGWA',
       supervisorId: json['supervisor_id'] is String
           ? int.parse(json['supervisor_id'])
           : json['supervisor_id'] as int,
@@ -59,6 +62,7 @@ class BankingCreate {
   final String date;
   final String bankName;
   final String depositor;
+  final String branch;
   final int supervisorId;
   final int? stockLocationId;
   final String? picFile; // Base64 encoded file or file path
@@ -68,6 +72,7 @@ class BankingCreate {
     required this.date,
     required this.bankName,
     required this.depositor,
+    this.branch = 'KIWANGWA',
     required this.supervisorId,
     this.stockLocationId,
     this.picFile,
@@ -79,6 +84,7 @@ class BankingCreate {
       'date': date,
       'bank_name': bankName,
       'depositor': depositor,
+      'branch': branch,
       'supervisor_id': supervisorId,
       if (stockLocationId != null) 'stock_location_id': stockLocationId,
       if (picFile != null) 'pic_file': picFile,
@@ -94,4 +100,10 @@ class TanzaniaBanks {
     'NBC',
     'Others',
   ];
+}
+
+// Branch options (SADA only)
+class SadaBranches {
+  static const List<String> branches = ['KIWANGWA', 'LOLIONDO'];
+  static const String defaultBranch = 'KIWANGWA';
 }

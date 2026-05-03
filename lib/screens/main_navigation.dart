@@ -39,6 +39,7 @@ import 'suppliers_credits_screen.dart';
 import 'tra/tra_main_screen.dart';
 import 'shops_screen.dart';
 import 'discount_requests_screen.dart';
+import 'borrowed_money/borrowed_money_list_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -735,6 +736,22 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const FinancialBankingScreen()),
+                    );
+                  },
+                ),
+              ),
+            // 6.6 Borrowed Money - SADA only
+            if (ApiService.currentClient?.features.hasBorrowedMoney ?? false)
+              PermissionWrapper(
+                permissionId: PermissionIds.borrowedMoney,
+                child: ListTile(
+                  leading: Icon(Icons.account_balance_wallet, color: AppColors.brandPrimary),
+                  title: const Text('Borrowed Money'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BorrowedMoneyListScreen()),
                     );
                   },
                 ),

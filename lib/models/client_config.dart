@@ -47,6 +47,12 @@ class ClientFeatures {
   // Customer Discount Requests (SADA only)
   final bool hasDiscountRequests; // Enable customer discount request workflow
 
+  // Branch selection on banking (SADA only)
+  final bool hasBranchSelection; // Show branch dropdown (KIWANGWA / LOLIONDO) on banking form
+
+  // Borrowed Money tracking (SADA only)
+  final bool hasBorrowedMoney; // Enable borrowed money CRUD screen
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -76,6 +82,8 @@ class ClientFeatures {
     this.hasFinancialBanking = false, // Default: disabled - only Leruma uses this
     this.hasShops = false, // Default: disabled - only SADA uses this
     this.hasDiscountRequests = false, // Default: disabled - only SADA uses this
+    this.hasBranchSelection = false, // Default: disabled - only SADA uses this
+    this.hasBorrowedMoney = false, // Default: disabled - only SADA uses this
   });
 }
 

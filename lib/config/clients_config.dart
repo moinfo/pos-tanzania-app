@@ -78,6 +78,8 @@ class ClientsConfig {
         hasOfflineMode: false,
         hasShops: true, // Shop registration with GPS coordinates
         hasDiscountRequests: true, // Customer discount request workflow
+        hasBranchSelection: true, // Branch dropdown (KIWANGWA / LOLIONDO) on banking
+        hasBorrowedMoney: true, // Borrowed money CRUD tracking
       ),
     ),
     // Come & Save

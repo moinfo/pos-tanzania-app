@@ -40,6 +40,7 @@ import '../models/item_quantity_offer.dart';
 import '../models/customer_card.dart';
 import '../models/nfc_wallet.dart';
 import '../models/shop.dart';
+import '../models/borrowed_money.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -6623,6 +6624,82 @@ class ApiService {
       );
 
       return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ─── Borrowed Money (SADA only) ───────────────────────────────────────────
+
+  /// Get list of borrowed money records
+  Future<ApiResponse<List<BorrowedMoneyItem>>> getBorrowedMoneyList({
+    String? startDate,
+    String? endDate,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      };
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final uri = Uri.parse('$baseUrlSync/borrowed_money')
+          .replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<List<BorrowedMoneyItem>>(
+        response,
+        (data) {
+          final records = data['records'] as List;
+          return records.map((j) => BorrowedMoneyItem.fromJson(j as Map<String, dynamic>)).toList();
+        },
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Create a borrowed money record
+  Future<ApiResponse<Map<String, dynamic>>> createBorrowedMoney(
+      BorrowedMoneyCreate record) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/borrowed_money/create'),
+        headers: await _getHeaders(),
+        body: json.encode(record.toJson()),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update a borrowed money record
+  Future<ApiResponse<Map<String, dynamic>>> updateBorrowedMoney(
+      int id, BorrowedMoneyCreate record) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrlSync/borrowed_money/update/$id'),
+        headers: await _getHeaders(),
+        body: json.encode(record.toJson()),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete a borrowed money record
+  Future<ApiResponse<Map<String, dynamic>>> deleteBorrowedMoney(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrlSync/borrowed_money/delete/$id'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }

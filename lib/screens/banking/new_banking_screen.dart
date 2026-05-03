@@ -34,6 +34,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
   final TextEditingController _dateController = TextEditingController();
 
   String _selectedBank = 'CRDB';
+  String _selectedBranch = SadaBranches.defaultBranch;
   String? _selectedSupervisorId;
   List<Supervisor> _supervisors = [];
   bool _isLoading = false;
@@ -56,6 +57,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
       _amountController.text = widget.banking!.amount.toString();
       _depositorController.text = widget.banking!.depositor;
       _selectedBank = widget.banking!.bankName;
+      _selectedBranch = widget.banking!.branch;
       _selectedDate = DateTime.parse(widget.banking!.date);
       _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
     }
@@ -398,6 +400,8 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
             Text('Amount: ${_formatCurrency(double.parse(_amountController.text))}'),
             Text('Depositor: ${_depositorController.text}'),
             Text('Date: ${_dateController.text}'),
+            if (ApiService.currentClient?.features.hasBranchSelection == true)
+              Text('Branch: $_selectedBranch'),
           ],
         ),
         actions: [
@@ -432,6 +436,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
         date: _dateController.text,
         bankName: _selectedBank,
         depositor: _depositorController.text,
+        branch: _selectedBranch,
         supervisorId: int.parse(_selectedSupervisorId!),
         stockLocationId: selectedLocationId,
         picFile: encodedFile,
@@ -566,6 +571,36 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Branch (SADA only)
+                    if (ApiService.currentClient?.features.hasBranchSelection == true) ...[
+                      DropdownButtonFormField<String>(
+                        value: _selectedBranch,
+                        dropdownColor: isDark ? AppColors.darkCard : Colors.white,
+                        style: TextStyle(color: isDark ? Colors.white : AppColors.text),
+                        decoration: InputDecoration(
+                          labelText: 'Branch',
+                          labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
+                          prefixIcon: Icon(Icons.store, color: isDark ? Colors.white70 : null),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                          ),
+                          filled: true,
+                          fillColor: isDark ? AppColors.darkSurface : Colors.grey.shade50,
+                        ),
+                        items: SadaBranches.branches.map((branch) {
+                          return DropdownMenuItem(value: branch, child: Text(branch));
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) setState(() => _selectedBranch = value);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Amount
                     TextFormField(
