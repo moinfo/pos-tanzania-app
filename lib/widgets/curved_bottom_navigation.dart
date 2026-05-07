@@ -108,7 +108,9 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
             ? _rotationAnimation.value
             : _currentRotationOffset;
 
-        return SizedBox(
+        return SafeArea(
+          top: false,
+          child: SizedBox(
           height: 80,
           child: Stack(
             alignment: Alignment.bottomCenter,
@@ -176,7 +178,7 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
               ),
             ],
           ),
-        );
+        ));
       },
     );
   }

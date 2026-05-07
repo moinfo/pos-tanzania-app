@@ -228,7 +228,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                         onRefresh: _loadSummary,
                         child: SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -452,16 +452,32 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     );
     rows.add(const Divider(height: 1));
 
-    // Banking Amount - requires cash_submit_banking_amount
+    // Banking Amount split by branch - requires cash_submit_banking_amount
     addRowIfPermitted(
       PermissionIds.cashSubmitBankingAmount,
-      _buildSummaryRow('Banking Amount', _summaryData!['banking_amount'], highlight: true, isDark: isDark),
+      _buildSummaryRow('Banking Amount KIWANGWA', _summaryData!['banking_kiwangwa'] ?? _summaryData!['banking_amount'], highlight: true, isDark: isDark),
+    );
+    addRowIfPermitted(
+      PermissionIds.cashSubmitBankingAmount,
+      _buildSummaryRow('Banking Amount LOLIONDO', _summaryData!['banking_loliondo'] ?? 0, highlight: true, isDark: isDark),
     );
 
     // Borrowed Money - requires cash_submit_borrowed_money (SADA only)
     addRowIfPermitted(
       PermissionIds.cashSubmitBorrowedMoney,
       _buildSummaryRow('Borrowed Money', _summaryData!['borrowed_money'], isDark: isDark),
+    );
+
+    // Balance Borrowed Money - cumulative borrowed minus LOLIONDO repayments (SADA only)
+    addRowIfPermitted(
+      PermissionIds.cashSubmitBorrowedMoney,
+      _buildSummaryRow(
+        'Balance Borrowed',
+        _summaryData!['balance_borrowed'] ?? 0,
+        highlight: true,
+        color: ((_summaryData!['balance_borrowed'] ?? 0) as num) > 0 ? AppColors.warning : null,
+        isDark: isDark,
+      ),
     );
 
     // Cash Amount - requires cash_submit_cash_amount
@@ -521,6 +537,26 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
         isDark: isDark,
       ),
     );
+
+    // Damage - requires cash_submit_damage (SADA only)
+    if (isSada) {
+      addRowIfPermitted(
+        PermissionIds.cashSubmitDamage,
+        _buildSummaryRow('Damage', _summaryData!['damage'] ?? 0, isDark: isDark),
+      );
+
+      // Difference between Banking Amount and Supplier Bank
+      addRowIfPermitted(
+        PermissionIds.cashSubmitDebitSupplierBank,
+        _buildSummaryRow(
+          'Diff Bank & Supplier Bank',
+          _summaryData!['bank_supplier_diff'] ?? 0,
+          highlight: true,
+          color: ((_summaryData!['bank_supplier_diff'] ?? 0) as num) == 0 ? AppColors.success : AppColors.error,
+          isDark: isDark,
+        ),
+      );
+    }
 
     // Leruma-specific fields
     if (isLeruma) {

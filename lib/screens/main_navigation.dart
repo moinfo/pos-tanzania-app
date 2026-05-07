@@ -458,7 +458,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     }
 
     return Scaffold(
-      extendBody: true, // Allow body to extend behind bottom nav
+      extendBody: false,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56),
         child: _buildCurvedAppBar(isDark, themeProvider),

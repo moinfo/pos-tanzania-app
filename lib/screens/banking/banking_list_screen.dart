@@ -1035,47 +1035,97 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  // Supervisor
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? AppColors.darkBackground.withOpacity(0.5)
-                                          : Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.supervisor_account,
-                                              size: 14,
-                                              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'Supervisor',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                                                fontWeight: FontWeight.w500,
+                                  // Supervisor + Branch
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? AppColors.darkBackground.withOpacity(0.5)
+                                                : Colors.grey.shade50,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.supervisor_account,
+                                                    size: 14,
+                                                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Supervisor',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          banking.supervisorName,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark ? AppColors.darkText : AppColors.text,
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                banking.supervisorName,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isDark ? AppColors.darkText : AppColors.text,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? AppColors.darkBackground.withOpacity(0.5)
+                                                : Colors.grey.shade50,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.location_city,
+                                                    size: 14,
+                                                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Branch',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                banking.branch,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isDark ? AppColors.darkText : AppColors.text,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
