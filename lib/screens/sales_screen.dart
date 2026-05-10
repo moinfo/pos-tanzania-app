@@ -206,8 +206,7 @@ class _SalesScreenState extends State<SalesScreen> {
       return;
     }
 
-    // Check if client is Leruma (allows selling out of stock)
-    final isLerumaClient = ApiService.currentClient?.id == 'leruma';
+    final isLerumaClient = ApiService.currentClient?.features.hasOutOfStockSelling ?? false;
 
     // Get stock quantity for selected location
     double currentStock = 0;
@@ -839,12 +838,14 @@ class _SalesScreenState extends State<SalesScreen> {
       return;
     }
 
-    // Check if NFC confirmation is required for credit sales
+    // Check if NFC confirmation is required for credit or cash sales
     final customer = saleProvider.selectedCustomer;
     if (customer != null && customer.nfcConfirmRequired) {
-      // Check if there's a credit payment
       final hasCreditPayment = saleProvider.payments.any(
         (p) => p.paymentType.toLowerCase().contains('credit'),
+      );
+      final hasCashPayment = saleProvider.payments.any(
+        (p) => p.paymentType == 'Cash',
       );
 
       // Skip NFC confirmation if paying with NFC Card (card already used for payment)
@@ -852,7 +853,7 @@ class _SalesScreenState extends State<SalesScreen> {
         (p) => p.paymentType == 'NFC Card',
       );
 
-      if (hasCreditPayment && !hasNfcCardPayment) {
+      if ((hasCreditPayment || hasCashPayment) && !hasNfcCardPayment) {
         // Get customer's NFC card
         final cardsResponse = await _apiService.getCustomerCards(customer.personId);
         if (!cardsResponse.isSuccess || cardsResponse.data == null || cardsResponse.data!.isEmpty) {
@@ -868,17 +869,22 @@ class _SalesScreenState extends State<SalesScreen> {
         }
 
         final card = cardsResponse.data!.first;
-        final creditAmount = saleProvider.payments
-            .where((p) => p.paymentType.toLowerCase().contains('credit'))
+        final confirmAmount = saleProvider.payments
+            .where((p) => p.paymentType.toLowerCase().contains('credit') || p.paymentType == 'Cash')
             .fold<double>(0, (sum, p) => sum + p.amount);
+
+        final confirmTitle = hasCreditPayment ? 'Confirm Credit Sale' : 'Confirm Cash Sale';
+        final confirmSubtitle = hasCreditPayment
+            ? 'Customer must scan NFC card to confirm credit purchase of TZS ${_currencyFormat.format(confirmAmount)}'
+            : 'Customer must scan NFC card to confirm cash payment of TZS ${_currencyFormat.format(confirmAmount)}';
 
         // Show NFC confirmation dialog
         final scanResult = await showDialog<NfcScanResult>(
           context: context,
           barrierDismissible: false,
           builder: (context) => NfcScanDialog(
-            title: 'Confirm Credit Sale',
-            subtitle: 'Customer must scan NFC card to confirm credit purchase of TZS ${_currencyFormat.format(creditAmount)}',
+            title: confirmTitle,
+            subtitle: confirmSubtitle,
             expectedCardUid: card.cardUid,
             lookupCustomer: false,
           ),
@@ -887,11 +893,24 @@ class _SalesScreenState extends State<SalesScreen> {
         // Dialog returns null if cancelled, or result when correct card scanned
         if (scanResult == null || !mounted) return;
 
-        // Record the confirmation
-        await _apiService.confirmCreditSaleWithNfc(
-          cardUid: card.cardUid,
-          amount: creditAmount,
-        );
+        // Log the confirmation in the backend
+        if (hasCreditPayment) {
+          final creditAmount = saleProvider.payments
+              .where((p) => p.paymentType.toLowerCase().contains('credit'))
+              .fold<double>(0, (sum, p) => sum + p.amount);
+          await _apiService.confirmCreditSaleWithNfc(
+            cardUid: card.cardUid,
+            amount: creditAmount,
+          );
+        } else if (hasCashPayment) {
+          final cashAmount = saleProvider.payments
+              .where((p) => p.paymentType == 'Cash')
+              .fold<double>(0, (sum, p) => sum + p.amount);
+          await _apiService.confirmCashSaleWithNfc(
+            cardUid: card.cardUid,
+            amount: cashAmount,
+          );
+        }
       }
     }
 
@@ -1211,7 +1230,7 @@ class _SalesScreenState extends State<SalesScreen> {
                           ),
                         ),
                       // Sheet button - Leruma only
-                      if (ApiService.currentClient?.id == 'leruma') ...[
+                      if (ApiService.currentClient?.features.hasSaleSheetButton ?? false) ...[
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () => _navigateToSheet(1),
@@ -1312,7 +1331,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   ),
                 ),
                 // Inline Cart Section - Leruma only (above search)
-                if (ApiService.currentClient?.id == 'leruma')
+                if (ApiService.currentClient?.features.hasInlineCartPreview ?? false)
                   Consumer<SaleProvider>(
                     builder: (context, saleProvider, child) {
                       if (!saleProvider.hasItems) {
@@ -1686,7 +1705,7 @@ class _SalesScreenState extends State<SalesScreen> {
                       return const SizedBox.shrink();
                     }
 
-                    final isLeruma = ApiService.currentClient?.id == 'leruma';
+                    final isLeruma = ApiService.currentClient?.features.hasInlineCartPreview ?? false;
 
                     return Container(
                       decoration: BoxDecoration(
@@ -2429,8 +2448,7 @@ class _CartScreenState extends State<CartScreen> {
                                                       return;
                                                     }
 
-                                                    // Check if client is Leruma (allows exceeding stock)
-                                                    final isLerumaClient = ApiService.currentClient?.id == 'leruma';
+                                                    final isLerumaClient = ApiService.currentClient?.features.hasOutOfStockSelling ?? false;
 
                                                     // Validate against available stock (only for non-Leruma clients)
                                                     if (!isLerumaClient && item.availableStock != null && newQuantity > item.availableStock!) {
@@ -2504,8 +2522,7 @@ class _CartScreenState extends State<CartScreen> {
                                       onPressed: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
                                           ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity is locked by approved discount request'), backgroundColor: AppColors.warning))
                                           : () {
-                                        // Check if client is Leruma (allows exceeding stock)
-                                        final isLerumaClient = ApiService.currentClient?.id == 'leruma';
+                                        final isLerumaClient = ApiService.currentClient?.features.hasOutOfStockSelling ?? false;
 
                                         // Check if incrementing would exceed available stock (only for non-Leruma clients)
                                         if (!isLerumaClient &&

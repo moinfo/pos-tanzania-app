@@ -147,6 +147,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
                   items: const [
                     DropdownMenuItem(value: null, child: Text('All Types')),
                     DropdownMenuItem(value: 'credit_sale', child: Text('Credit Sales')),
+                    DropdownMenuItem(value: 'cash_sale', child: Text('Cash Sales')),
                     DropdownMenuItem(value: 'payment', child: Text('Payments')),
                     DropdownMenuItem(value: 'deposit', child: Text('Deposits')),
                     DropdownMenuItem(value: 'withdrawal', child: Text('Withdrawals')),
@@ -314,6 +315,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
   ) {
     final typeColors = {
       'credit_sale': Colors.orange,
+      'cash_sale': Colors.teal,
       'payment': Colors.green,
       'deposit': Colors.blue,
       'withdrawal': Colors.red,
@@ -321,6 +323,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
 
     final typeIcons = {
       'credit_sale': Icons.credit_card,
+      'cash_sale': Icons.payments,
       'payment': Icons.payment,
       'deposit': Icons.arrow_downward,
       'withdrawal': Icons.arrow_upward,
