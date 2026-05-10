@@ -1240,6 +1240,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
         const SizedBox(height: 24),
 
+        // Team Commission Overview (location-wide, all 3 levels)
+        if (_commissionData != null) ...[
+          Text(
+            'Team Commission',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.darkText : AppColors.text,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildCommissionLevelCard(
+            level: 'I',
+            data: (_commissionData!['level_i'] as Map<String, dynamic>?),
+            color: AppColors.success,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 12),
+          _buildCommissionLevelCard(
+            level: 'II',
+            data: (_commissionData!['level_ii'] as Map<String, dynamic>?),
+            color: AppColors.warning,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 12),
+          _buildCommissionLevelCard(
+            level: 'III',
+            data: (_commissionData!['level_iii'] as Map<String, dynamic>?),
+            color: AppColors.brandPrimary,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 24),
+        ],
+
         // Quick Stats
         if (_quickStats != null) ...[
           Text(
@@ -1274,9 +1308,27 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          // Z-Report status
+          _buildZReportStatus(_quickStats!['zreport_status'] as String? ?? 'pending', isDark),
         ],
 
         const SizedBox(height: 24),
+
+        // Sales Summary (today + period breakdown)
+        if (_salesSummary != null) ...[
+          Text(
+            'Sales Summary',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.darkText : AppColors.text,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildSalesSummaryCard(_salesSummary!, isDark),
+          const SizedBox(height: 24),
+        ],
 
         // Recent Activity
         if (_recentActivity.isNotEmpty) ...[
@@ -1299,6 +1351,168 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildZReportStatus(String status, bool isDark) {
+    final isSubmitted = status == 'submitted';
+    final color = isSubmitted ? AppColors.success : AppColors.warning;
+    return GlassmorphicCard(
+      isDark: isDark,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(isDark ? 0.2 : 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isSubmitted ? Icons.check_circle : Icons.pending,
+              color: color,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Z-Report',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                  ),
+                ),
+                Text(
+                  isSubmitted ? 'Submitted today' : 'Not submitted yet',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.darkText : AppColors.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(isDark ? 0.25 : 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Text(
+              isSubmitted ? 'DONE' : 'PENDING',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSalesSummaryCard(Map<String, dynamic> summary, bool isDark) {
+    final today = summary['today'] as Map<String, dynamic>? ?? {};
+    final period = summary['period'] as Map<String, dynamic>? ?? {};
+
+    final cashSales   = (today['cash_sales'] ?? 0).toDouble();
+    final creditSales = (today['credit_sales'] ?? 0).toDouble();
+    final expenses    = (today['expenses'] ?? 0).toDouble();
+    final todayTotal  = (today['total_sales'] ?? 0).toDouble();
+    final periodTotal = (period['total_sales'] ?? 0).toDouble();
+    final periodProfit = (period['profit'] ?? 0).toDouble();
+
+    return GlassmorphicCard(
+      isDark: isDark,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Today header
+          Text(
+            'Today',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildSummaryTile('Cash', cashSales, Colors.green, isDark)),
+              Expanded(child: _buildSummaryTile('Credit', creditSales, Colors.orange, isDark)),
+              Expanded(child: _buildSummaryTile('Expenses', expenses, AppColors.error, isDark)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                'Total: ',
+                style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextLight : AppColors.textLight),
+              ),
+              Text(
+                _formatCompact(todayTotal),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkText : AppColors.text,
+                ),
+              ),
+            ],
+          ),
+          Divider(color: isDark ? AppColors.darkDivider : AppColors.lightDivider, height: 24),
+          // Period header
+          Text(
+            'This Period',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildSummaryTile('Sales', periodTotal, AppColors.brandPrimary, isDark)),
+              Expanded(child: _buildSummaryTile('Profit', periodProfit, AppColors.success, isDark)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryTile(String label, double value, Color color, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _formatCompact(value),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: isDark ? color.withOpacity(0.85) : color,
+          ),
+        ),
       ],
     );
   }
