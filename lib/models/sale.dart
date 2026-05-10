@@ -401,3 +401,102 @@ class SuspendedSale {
     );
   }
 }
+
+class ReturnableItem {
+  final int line;
+  final int itemId;
+  final String name;
+  final double quantity;       // original qty sold
+  final double alreadyReturned;
+  final double remainingQty;   // max returnable
+  final double price;
+  final double discount;
+  final int discountType;
+  final double lineTotal;
+  final bool quantityOfferFree;
+
+  const ReturnableItem({
+    required this.line,
+    required this.itemId,
+    required this.name,
+    required this.quantity,
+    required this.alreadyReturned,
+    required this.remainingQty,
+    required this.price,
+    required this.discount,
+    required this.discountType,
+    required this.lineTotal,
+    required this.quantityOfferFree,
+  });
+
+  factory ReturnableItem.fromJson(Map<String, dynamic> json) {
+    return ReturnableItem(
+      line: json['line'] as int,
+      itemId: json['item_id'] as int,
+      name: json['name'] as String,
+      quantity: (json['quantity'] as num).toDouble(),
+      alreadyReturned: (json['already_returned'] as num).toDouble(),
+      remainingQty: (json['remaining_qty'] as num).toDouble(),
+      price: (json['price'] as num).toDouble(),
+      discount: (json['discount'] as num).toDouble(),
+      discountType: json['discount_type'] as int,
+      lineTotal: (json['line_total'] as num).toDouble(),
+      quantityOfferFree: json['quantity_offer_free'] == true,
+    );
+  }
+}
+
+class ReturnModalData {
+  final int saleId;
+  final String customerName;
+  final bool hasAnyReturn;
+  final List<ReturnableItem> items;
+  final List<String> paymentTypes;
+
+  const ReturnModalData({
+    required this.saleId,
+    required this.customerName,
+    required this.hasAnyReturn,
+    required this.items,
+    required this.paymentTypes,
+  });
+
+  factory ReturnModalData.fromJson(Map<String, dynamic> json) {
+    return ReturnModalData(
+      saleId: json['sale_id'] as int,
+      customerName: json['customer_name'] as String,
+      hasAnyReturn: json['has_any_return'] == true,
+      items: (json['items'] as List)
+          .map((i) => ReturnableItem.fromJson(i as Map<String, dynamic>))
+          .toList(),
+      paymentTypes: (json['payment_types'] as List).cast<String>(),
+    );
+  }
+}
+
+class ReturnResult {
+  final int returnSaleId;
+  final int originalSaleId;
+  final double refundTotal;
+  final List<Map<String, dynamic>> refundPayments;
+  final int itemsReturned;
+
+  const ReturnResult({
+    required this.returnSaleId,
+    required this.originalSaleId,
+    required this.refundTotal,
+    required this.refundPayments,
+    required this.itemsReturned,
+  });
+
+  factory ReturnResult.fromJson(Map<String, dynamic> json) {
+    return ReturnResult(
+      returnSaleId: json['return_sale_id'] as int,
+      originalSaleId: json['original_sale_id'] as int,
+      refundTotal: (json['refund_total'] as num).toDouble(),
+      refundPayments: (json['refund_payments'] as List)
+          .cast<Map<String, dynamic>>(),
+      itemsReturned: json['items_returned'] as int,
+    );
+  }
+}

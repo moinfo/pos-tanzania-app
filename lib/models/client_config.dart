@@ -53,6 +53,11 @@ class ClientFeatures {
   // Borrowed Money tracking (SADA only)
   final bool hasBorrowedMoney; // Enable borrowed money CRUD screen
 
+  // Sales screen behaviour (Leruma only)
+  final bool hasOutOfStockSelling; // Allow adding items with zero/negative stock to cart
+  final bool hasSaleSheetButton; // Show the "Sheet" button in the sales screen top bar
+  final bool hasInlineCartPreview; // Show a compact cart preview above the item search grid
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -84,6 +89,9 @@ class ClientFeatures {
     this.hasDiscountRequests = false, // Default: disabled - only SADA uses this
     this.hasBranchSelection = false, // Default: disabled - only SADA uses this
     this.hasBorrowedMoney = false, // Default: disabled - only SADA uses this
+    this.hasOutOfStockSelling = false, // Default: disabled - only Leruma uses this
+    this.hasSaleSheetButton = false, // Default: disabled - only Leruma uses this
+    this.hasInlineCartPreview = false, // Default: disabled - only Leruma uses this
   });
 }
 

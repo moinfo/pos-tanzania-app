@@ -9,6 +9,7 @@ import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import 'package:intl/intl.dart';
+import 'return_sale_screen.dart';
 
 class SalesHistoryScreen extends StatefulWidget {
   const SalesHistoryScreen({super.key});
@@ -722,6 +723,21 @@ class SaleDetailsSheet extends StatelessWidget {
                           tooltip: 'Share Receipt',
                           onPressed: () => _shareReceipt(context, sale),
                         ),
+                        // Return items button
+                        if (sale.saleId != null && sale.saleType == 0)
+                          IconButton(
+                            icon: Icon(Icons.assignment_return, color: AppColors.primary),
+                            tooltip: 'Return Items',
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ReturnSaleScreen(saleId: sale.saleId!),
+                                ),
+                              );
+                            },
+                          ),
                         IconButton(
                           icon: Icon(Icons.close, color: isDark ? AppColors.darkText : AppColors.text),
                           onPressed: () => Navigator.pop(context),

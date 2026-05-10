@@ -6048,6 +6048,46 @@ class ApiService {
     }
   }
 
+  /// Confirm cash sale with NFC card (logs confirmation in backend)
+  Future<ApiResponse<NfcConfirmationResult>> confirmCashSaleWithNfc({
+    required String cardUid,
+    required double amount,
+    int? saleId,
+    int? locationId,
+  }) async {
+    try {
+      debugPrint('✅ Confirming cash sale $amount with card: $cardUid');
+
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/nfc_wallet/confirm_cash'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'card_uid': cardUid,
+          'amount': amount,
+          'sale_id': saleId,
+          'location_id': locationId,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        var rawData = jsonResponse['data'];
+
+        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
+          return ApiResponse.success(
+            data: NfcConfirmationResult.fromJson(rawData['data']),
+            message: rawData['message'] ?? 'Cash sale confirmed',
+          );
+        }
+        return ApiResponse.error(message: jsonResponse['message'] ?? 'Failed to confirm cash sale');
+      }
+      return ApiResponse.error(message: 'Server error: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('❌ Error confirming cash: $e');
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Confirm payment with NFC card
   Future<ApiResponse<NfcConfirmationResult>> confirmPaymentWithNfc({
     required String cardUid,
@@ -6700,6 +6740,46 @@ class ApiService {
         headers: await _getHeaders(),
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Fetch returnable items for a completed sale
+  Future<ApiResponse<ReturnModalData>> getReturnModalData(int saleId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/sales/$saleId/return_modal'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<ReturnModalData>(
+        response,
+        (data) => ReturnModalData.fromJson(data as Map<String, dynamic>),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Process a return: lines is { line_number: qty_to_return }
+  Future<ApiResponse<ReturnResult>> processReturn({
+    required int saleId,
+    required Map<int, int> lines,
+  }) async {
+    try {
+      final body = json.encode({
+        'sale_id': saleId,
+        'lines': lines.map((k, v) => MapEntry(k.toString(), v)),
+      });
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/sales/process_return'),
+        headers: await _getHeaders(),
+        body: body,
+      );
+      return _handleResponse<ReturnResult>(
+        response,
+        (data) => ReturnResult.fromJson(data as Map<String, dynamic>),
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }

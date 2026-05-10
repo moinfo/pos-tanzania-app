@@ -161,8 +161,11 @@ class ClientsConfig {
         hasReceivingCreditCardOnly: true,
         hasNfcCard: true,
         hasOfflineMode: false,
-        hasTRA: true, // TRA tax reporting module enabled
-        hasFinancialBanking: true, // Financial banking dashboard enabled
+        hasTRA: true,
+        hasFinancialBanking: true,
+        hasOutOfStockSelling: true, // Leruma sells on credit, stock checked server-side
+        hasSaleSheetButton: true, // Suspended sheet button in sales top bar
+        hasInlineCartPreview: true, // Compact cart preview above item grid
       ),
     ),
   ];
