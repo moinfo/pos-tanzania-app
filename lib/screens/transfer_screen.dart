@@ -383,7 +383,9 @@ class _TransferScreenState extends State<TransferScreen> {
       Map<String, dynamic>? item, String unit, bool isDark,
       {required bool isSource}) {
     if (item == null) return const SizedBox.shrink();
-    final name = item['item_name'] as String? ?? '';
+    // Backend list responses use 'item_name'; create responses use 'name'.
+    // Accept either so the label never renders blank.
+    final name = (item['item_name'] ?? item['name']) as String? ?? '';
     final qty = (item['quantity'] as num?)?.toDouble() ?? 0;
     final color = isSource ? AppColors.error : AppColors.success;
 

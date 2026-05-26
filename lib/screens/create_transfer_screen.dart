@@ -138,7 +138,8 @@ class _CreateTransferScreenState extends State<CreateTransferScreen> {
       final recvId = data['receiving_id'];
       final srcQty = (data['source']?['quantity'] as num?)?.toDouble() ?? qty;
       final destQty = (data['destination']?['quantity'] as num?)?.toDouble() ?? 0;
-      final destName = data['destination']?['name'] ?? '';
+      // create response uses 'name'; tolerate 'item_name' too (list-style).
+      final destName = (data['destination']?['name'] ?? data['destination']?['item_name']) ?? '';
 
       _showSuccessDialog(recvId, srcQty, destQty, destName);
     } else {
