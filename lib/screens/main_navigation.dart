@@ -26,6 +26,7 @@ import 'financial_banking/financial_banking_screen.dart';
 import 'profit_submit/profit_submit_list_screen.dart';
 import 'transactions/transactions_screen.dart';
 import 'reports/reports_screen.dart';
+import 'business_intelligence_screen.dart';
 import 'stock_tracking/stock_tracking_screen.dart';
 import 'positions/positions_screen.dart';
 import 'seller_report_screen.dart';
@@ -915,6 +916,21 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const TransactionsScreen()),
+                  );
+                },
+              ),
+            ),
+            // Business Intelligence - requires 'bi' permission (same as web /bi)
+            PermissionWrapper(
+              permissionId: PermissionIds.bi,
+              child: ListTile(
+                leading: Icon(Icons.analytics_rounded, color: AppColors.brandPrimary),
+                title: const Text('Business Intelligence'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BusinessIntelligenceScreen()),
                   );
                 },
               ),

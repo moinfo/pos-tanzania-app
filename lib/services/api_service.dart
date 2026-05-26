@@ -608,6 +608,93 @@ class ApiService {
     }
   }
 
+  // ─── Business Intelligence API ────────────────────────────────────────────
+
+  /// Internal helper for the BI report endpoints under /reports/bi/*.
+  /// Returns the raw `data` object ({ rows, summary, filters, ... }).
+  Future<ApiResponse<Map<String, dynamic>>> _getBiReport(
+    String path,
+    Map<String, String> params,
+  ) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/reports/bi/$path')
+          .replace(queryParameters: params.isNotEmpty ? params : null);
+      final response = await http
+          .get(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 30));
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// BI: top-performing items (revenue/quantity/profit/margin).
+  Future<ApiResponse<Map<String, dynamic>>> getBiTopItems({
+    required String startDate,
+    required String endDate,
+    String sortBy = 'revenue',
+    int limit = 15,
+    int? locationId,
+  }) {
+    final params = {
+      'start_date': startDate,
+      'end_date': endDate,
+      'sort_by': sortBy,
+      'limit': '$limit',
+      if (locationId != null) 'location_id': '$locationId',
+    };
+    return _getBiReport('top_items', params);
+  }
+
+  /// BI: this period vs. the previous equal-length period.
+  Future<ApiResponse<Map<String, dynamic>>> getBiPeriodComparison({
+    required String startDate,
+    required String endDate,
+    int limit = 10,
+    int? locationId,
+  }) {
+    final params = {
+      'start_date': startDate,
+      'end_date': endDate,
+      'limit': '$limit',
+      if (locationId != null) 'location_id': '$locationId',
+    };
+    return _getBiReport('period_comparison', params);
+  }
+
+  /// BI: items in stock not sold in [days] days.
+  Future<ApiResponse<Map<String, dynamic>>> getBiSlowMoving({
+    int days = 30,
+    int limit = 50,
+    int? locationId,
+  }) {
+    final params = {
+      'days': '$days',
+      'limit': '$limit',
+      if (locationId != null) 'location_id': '$locationId',
+    };
+    return _getBiReport('slow_moving', params);
+  }
+
+  /// BI: fast-selling, low-stock items with a suggested reorder quantity.
+  Future<ApiResponse<Map<String, dynamic>>> getBiStockSuggestions({
+    required String startDate,
+    required String endDate,
+    int limit = 50,
+    int? locationId,
+  }) {
+    final params = {
+      'start_date': startDate,
+      'end_date': endDate,
+      'limit': '$limit',
+      if (locationId != null) 'location_id': '$locationId',
+    };
+    return _getBiReport('stock_suggestions', params);
+  }
+
   /// Get user permissions
   Future<Map<String, dynamic>> getUserPermissions() async {
     try {

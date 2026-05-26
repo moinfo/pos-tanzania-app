@@ -87,6 +87,7 @@ class PermissionIds {
   static const String customers = 'customers';
   static const String suppliers = 'suppliers';
   static const String reports = 'reports';
+  static const String bi = 'bi';
   static const String employees = 'employees';
   static const String giftcards = 'giftcards';
   static const String messages = 'messages';
