@@ -51,7 +51,7 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> with TickerProviderStateMixin {
+class _MainNavigationState extends State<MainNavigation> with TickerProviderStateMixin, WidgetsBindingObserver {
   late int _selectedIndex;
   late AnimationController _rotationController;
   late Animation<double> _rotationAnimation;
@@ -62,6 +62,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedIndex = widget.initialIndex;
     _rotationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -75,8 +76,30 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _rotationController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh permissions whenever the app returns to the foreground, so a
+    // grant revoked while the app was backgrounded takes effect immediately
+    // (the menu rebuilds and the user loses the screens they no longer have).
+    if (state == AppLifecycleState.resumed) {
+      _refreshPermissions();
+    }
+  }
+
+  /// Pull the latest permissions from the server if authenticated.
+  /// PermissionWrapper listens to PermissionProvider, so a successful refresh
+  /// rebuilds the drawer/menu automatically — no manual invalidation needed.
+  void _refreshPermissions() {
+    if (!mounted) return;
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.isAuthenticated) {
+      context.read<PermissionProvider>().fetchPermissions();
+    }
   }
 
   @override
@@ -97,7 +120,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     }
   }
 
-  /// Periodic check for auth token validity
+  /// Periodic check for auth token validity + permission freshness
   Future<void> _checkAuthStatus() async {
     // Check every 30 seconds if token still exists
     while (mounted) {
@@ -105,6 +128,11 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       if (mounted) {
         final authProvider = context.read<AuthProvider>();
         await authProvider.checkTokenValidity();
+        // Re-pull permissions on the same cadence so a revoked grant takes
+        // effect within ~30s even if the app stays in the foreground.
+        if (mounted && authProvider.isAuthenticated) {
+          await context.read<PermissionProvider>().fetchPermissions();
+        }
       }
     }
   }
@@ -460,6 +488,11 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
     return Scaffold(
       extendBody: true, // Allow body to extend behind bottom nav
+      // Refresh permissions the moment the menu is opened, so the entries the
+      // user sees always reflect the latest server-side grants.
+      onDrawerChanged: (isOpened) {
+        if (isOpened) _refreshPermissions();
+      },
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56),
         child: _buildCurvedAppBar(isDark, themeProvider),
@@ -498,8 +531,15 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ],
               ),
             ),
-            // 1. Customers Menu
-            ExpansionTile(
+            // 1. Customers Menu — hide the whole group when the user has none
+            // of its child permissions (the ExpansionTile itself isn't gated).
+            PermissionWrapper(
+              anyPermissions: const [
+                PermissionIds.customers,
+                PermissionIds.credits,
+                PermissionIds.customersShops,
+              ],
+              child: ExpansionTile(
               leading: Icon(Icons.people, color: AppColors.brandPrimary),
               title: const Text('Customers'),
               childrenPadding: const EdgeInsets.only(left: 16),
@@ -552,6 +592,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   ),
               ],
             ),
+            ),
             // Discount Requests (SADA only)
             if (ApiService.currentClient?.features.hasDiscountRequests ?? false)
               PermissionWrapper(
@@ -583,8 +624,13 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 },
               ),
             ),
-            // 3. Sales Menu
-            ExpansionTile(
+            // 3. Sales Menu — hidden entirely when the user has no sales access.
+            PermissionWrapper(
+              anyPermissions: const [
+                PermissionIds.sales,
+                PermissionIds.salesSuspended,
+              ],
+              child: ExpansionTile(
               leading: Icon(Icons.point_of_sale, color: AppColors.brandPrimary),
               title: const Text('Sales'),
               childrenPadding: const EdgeInsets.only(left: 16),
@@ -639,8 +685,14 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ),
               ],
             ),
-            // 4. Suppliers Menu
-            ExpansionTile(
+            ),
+            // 4. Suppliers Menu — hidden when the user has no supplier access.
+            PermissionWrapper(
+              anyPermissions: const [
+                PermissionIds.suppliers,
+                PermissionIds.credits,
+              ],
+              child: ExpansionTile(
               leading: Icon(Icons.local_shipping, color: AppColors.brandPrimary),
               title: const Text('Suppliers'),
               childrenPadding: const EdgeInsets.only(left: 16),
@@ -676,6 +728,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   ),
                 ),
               ],
+            ),
             ),
             // 4. Receivings - requires receivings permission
             PermissionWrapper(

@@ -64,6 +64,11 @@ class PermissionProvider with ChangeNotifier {
 
   /// Fetch permissions from API
   Future<void> fetchPermissions() async {
+    // Dedupe overlapping refreshes: app-resume, drawer-open and the 30s loop
+    // can all fire near-simultaneously. A request already in flight returns the
+    // same data, so skip rather than race last-writer-wins on _permissions.
+    if (_isLoading) return;
+
     _isLoading = true;
     _error = null;
     notifyListeners();

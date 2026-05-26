@@ -57,14 +57,15 @@ class AuthProvider with ChangeNotifier {
         _user = result.data;
         _isAuthenticated = true;
 
-        // Load permissions from local storage or fetch
+        // Load cached permissions first for instant UI, then ALWAYS refresh
+        // from the server. The cache is only a fast-render fallback — if we
+        // skipped the fetch whenever a cache existed, server-side permission
+        // changes (tightened subscription, revoked grants) would never reach
+        // an already-logged-in user until they manually logged out.
+        // fetchPermissions falls back to the cached list if the refresh fails.
         if (_permissionProvider != null) {
           await _permissionProvider!.loadPermissionsFromLocal();
-
-          // If no permissions in local storage, fetch from API
-          if (_permissionProvider!.permissions.isEmpty) {
-            await _permissionProvider!.fetchPermissions();
-          }
+          await _permissionProvider!.fetchPermissions();
         }
 
         notifyListeners();
