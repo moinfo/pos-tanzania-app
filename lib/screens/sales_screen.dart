@@ -722,18 +722,8 @@ class _SalesScreenState extends State<SalesScreen> {
   Future<void> _addPayment() async {
     final saleProvider = context.read<SaleProvider>();
 
-    // Validate customer is selected
-    if (saleProvider.selectedCustomer == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a customer before adding payment'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
-      // Open customer selection dialog
-      _selectCustomer();
-      return;
-    }
+    // Walk-in allowed: no customer required to add a (cash/card) payment.
+    // Credit payments are gated below, after the payment type is known.
 
     // Validate cart
     final validationError = saleProvider.validateCart();
@@ -768,6 +758,20 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (payment == null) return;
 
+    // Credit (on-account) payments must be tied to a customer so the debt
+    // can be tracked. Cash/card/other payments are allowed for walk-ins.
+    if (payment.paymentType.toLowerCase().contains('credit') &&
+        saleProvider.selectedCustomer == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Select a customer for credit payments'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      _selectCustomer();
+      return;
+    }
+
     // Validate payment doesn't exceed amount due
     if (payment.amount > amountDue) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -796,11 +800,14 @@ class _SalesScreenState extends State<SalesScreen> {
   Future<void> _completeSale() async {
     final saleProvider = context.read<SaleProvider>();
 
-    // Validate customer is selected
-    if (saleProvider.selectedCustomer == null) {
+    // Walk-in allowed: a customer is required only for credit (on-account) sales.
+    final hasCreditPayment = saleProvider.payments.any(
+      (p) => p.paymentType.toLowerCase().contains('credit'),
+    );
+    if (hasCreditPayment && saleProvider.selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a customer before checkout'),
+          content: Text('Select a customer for credit sales'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -1523,102 +1530,69 @@ class _SalesScreenState extends State<SalesScreen> {
                     },
                   ),
 
-                // Search bar - disabled if no customer selected
+                // Search bar - always enabled. Walk-in sales are allowed; a
+                // customer is enforced only for credit payments at checkout.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                  child: Consumer<SaleProvider>(
-                    builder: (context, saleProvider, child) {
-                      final hasCustomer = saleProvider.selectedCustomer != null;
-
-                      return GestureDetector(
-                        onTap: !hasCustomer ? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Please select a customer first'),
-                              backgroundColor: AppColors.warning,
-                              behavior: SnackBarBehavior.floating,
-                              action: SnackBarAction(
-                                label: 'SELECT',
-                                textColor: Colors.white,
-                                onPressed: _selectCustomer,
-                              ),
-                            ),
-                          );
-                        } : null,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: hasCustomer
-                                ? (isDark ? AppColors.darkCard : Colors.white)
-                                : (isDark ? AppColors.darkCard.withValues(alpha: 0.5) : Colors.grey.shade100),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: hasCustomer
-                                  ? AppColors.primary
-                                  : AppColors.warning,
-                              width: 1.5,
-                            ),
-                            boxShadow: hasCustomer ? [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.15),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ] : null,
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            enabled: hasCustomer,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: isDark ? Colors.white : Colors.black87,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: hasCustomer ? 'Search items by name or barcode...' : 'Select customer first',
-                              hintStyle: TextStyle(
-                                fontSize: 15,
-                                color: hasCustomer
-                                    ? (isDark ? Colors.grey.shade400 : Colors.grey.shade500)
-                                    : AppColors.warning,
-                              ),
-                              prefixIcon: Container(
-                                padding: const EdgeInsets.all(12),
-                                child: Icon(
-                                  hasCustomer ? Icons.search_rounded : Icons.person_add_outlined,
-                                  size: 24,
-                                  color: hasCustomer ? AppColors.primary : AppColors.warning,
-                                ),
-                              ),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: Icon(Icons.clear_rounded, color: isDark ? Colors.grey.shade300 : Colors.grey.shade600),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _filterItems('');
-                                      },
-                                    )
-                                  : hasCustomer
-                                      ? Container(
-                                          padding: const EdgeInsets.only(right: 8),
-                                          child: Icon(
-                                            Icons.qr_code_scanner_rounded,
-                                            size: 22,
-                                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
-                                          ),
-                                        )
-                                      : null,
-                              filled: true,
-                              fillColor: Colors.transparent,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              disabledBorder: InputBorder.none,
-                            ),
-                            onChanged: _filterItems,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCard : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.primary, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Search items by name or barcode...',
+                        hintStyle: TextStyle(
+                          fontSize: 15,
+                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                        ),
+                        prefixIcon: Container(
+                          padding: const EdgeInsets.all(12),
+                          child: const Icon(
+                            Icons.search_rounded,
+                            size: 24,
+                            color: AppColors.primary,
                           ),
                         ),
-                      );
-                    },
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear_rounded, color: isDark ? Colors.grey.shade300 : Colors.grey.shade600),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _filterItems('');
+                                },
+                              )
+                            : Container(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: Icon(
+                                  Icons.qr_code_scanner_rounded,
+                                  size: 22,
+                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                                ),
+                              ),
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                      ),
+                      onChanged: _filterItems,
+                    ),
                   ),
                 ),
 
