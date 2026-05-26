@@ -130,7 +130,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _downloadLatestApk() async {
     // The APK is served from the web root — same host as the API, minus '/api'.
     final base = ApiService.baseUrlSync.replaceAll(RegExp(r'/api/?$'), '');
-    final uri = Uri.parse('$base/app-mopos-release.apk');
+    // arm64-v8a covers virtually all modern Android devices; the landing page
+    // offers the 32-bit (armeabi-v7a) build for older phones.
+    final uri = Uri.parse('$base/app-arm64-v8a-mopos-release.apk');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
