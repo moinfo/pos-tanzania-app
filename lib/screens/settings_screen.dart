@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
@@ -126,6 +127,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// Build settings avatar with profile picture (Leruma feature) or default icon
+  Future<void> _downloadLatestApk() async {
+    // The APK is served from the web root — same host as the API, minus '/api'.
+    final base = ApiService.baseUrlSync.replaceAll(RegExp(r'/api/?$'), '');
+    final uri = Uri.parse('$base/app-mopos-release.apk');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the download link')),
+      );
+    }
+  }
+
   Widget _buildSettingsAvatar(dynamic user, bool isDark) {
     final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
     final profilePicture = user?.profilePicture;
@@ -472,6 +486,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontSize: 13,
                       ),
                     ),
+                  ),
+                // Download the latest MoPOS app (universal APK) — mopos client only
+                if (ApiService.currentClient?.id == 'mopos')
+                  ListTile(
+                    leading: const Icon(Icons.system_update,
+                        color: AppColors.primary, size: 28),
+                    title: Text(
+                      'Download Latest Version',
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkText : AppColors.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Get the newest MoPOS app',
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                        fontSize: 13,
+                      ),
+                    ),
+                    trailing:
+                        const Icon(Icons.download_rounded, color: AppColors.primary),
+                    onTap: _downloadLatestApk,
                   ),
                 const Divider(height: 1),
                 // Logout Button
