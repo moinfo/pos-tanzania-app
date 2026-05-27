@@ -228,7 +228,10 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                         onRefresh: _loadSummary,
                         child: SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(16),
+                          // Extra bottom padding so the last cards clear the
+                          // 80px curved bottom nav (Scaffold uses extendBody:
+                          // true, so the body draws behind it).
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [

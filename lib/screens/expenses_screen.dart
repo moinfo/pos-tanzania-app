@@ -381,7 +381,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         ),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.all(16.0),
+                        // Extra bottom padding so the last expense clears the
+                        // 80px curved bottom nav (Scaffold uses extendBody: true).
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                         itemCount: _expenses.length,
                         itemBuilder: (context, index) {
                           final expense = _expenses[index];
