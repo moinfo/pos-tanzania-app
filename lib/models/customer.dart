@@ -37,6 +37,13 @@ class Customer {
   // NFC settings
   final bool nfcConfirmRequired;
   final bool nfcPaymentEnabled;
+  final bool nfcConfirmRequiredCash;
+
+  // Credit Card settings
+  final bool allowCreditCardRestricted;
+  final List<int> creditCardItems;
+  final List<int> ccBlacklistItems;
+  final List<int> ccExceptionItems;
 
   Customer({
     required this.personId,
@@ -72,6 +79,11 @@ class Customer {
     this.supervisor,
     this.nfcConfirmRequired = false,
     this.nfcPaymentEnabled = false,
+    this.nfcConfirmRequiredCash = false,
+    this.allowCreditCardRestricted = false,
+    this.creditCardItems = const [],
+    this.ccBlacklistItems = const [],
+    this.ccExceptionItems = const [],
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) {
@@ -98,6 +110,18 @@ class Customer {
       if (value is int) return value == 1;
       if (value is String) return value == '1' || value.toLowerCase() == 'true' || value.toLowerCase() == 'active';
       return defaultValue;
+    }
+
+    // Helper to parse a list of ints from a dynamic list (string/int elements)
+    List<int> parseIntList(dynamic value) {
+      if (value == null) return [];
+      if (value is List) {
+        return value
+            .where((e) => e != null)
+            .map((e) => parseIntValue(e))
+            .toList();
+      }
+      return [];
     }
 
     return Customer(
@@ -136,6 +160,11 @@ class Customer {
           : null,
       nfcConfirmRequired: parseBoolValue(json['nfc_confirm_required']),
       nfcPaymentEnabled: parseBoolValue(json['nfc_payment_enabled']),
+      nfcConfirmRequiredCash: parseBoolValue(json['nfc_confirm_required_cash']),
+      allowCreditCardRestricted: parseBoolValue(json['allow_credit_card_restricted']),
+      creditCardItems: parseIntList(json['credit_card_items']),
+      ccBlacklistItems: parseIntList(json['cc_blacklist_items']),
+      ccExceptionItems: parseIntList(json['cc_exception_items']),
     );
   }
 
@@ -172,6 +201,11 @@ class Customer {
       'balance': balance,
       'nfc_confirm_required': nfcConfirmRequired,
       'nfc_payment_enabled': nfcPaymentEnabled,
+      'nfc_confirm_required_cash': nfcConfirmRequiredCash,
+      'allow_credit_card_restricted': allowCreditCardRestricted,
+      'credit_card_items': creditCardItems,
+      'cc_blacklist_items': ccBlacklistItems,
+      'cc_exception_items': ccExceptionItems,
       if (supervisor != null) 'supervisor': supervisor!.toJson(),
     };
   }
@@ -212,6 +246,11 @@ class CustomerFormData {
   // NFC settings
   final bool? nfcConfirmRequired;
   final bool? nfcPaymentEnabled;
+  // Credit Card settings
+  final bool? allowCreditCardRestricted;
+  final List<int>? creditCardItems;
+  final List<int>? ccBlacklistItems;
+  final List<int>? ccExceptionItems;
 
   CustomerFormData({
     required this.firstName,
@@ -243,6 +282,10 @@ class CustomerFormData {
     this.supervisorId,
     this.nfcConfirmRequired,
     this.nfcPaymentEnabled,
+    this.allowCreditCardRestricted,
+    this.creditCardItems,
+    this.ccBlacklistItems,
+    this.ccExceptionItems,
   });
 
   Map<String, dynamic> toJson() {
@@ -276,6 +319,11 @@ class CustomerFormData {
       if (supervisorId != null) 'supervisor_id': int.tryParse(supervisorId!),
       if (nfcConfirmRequired != null) 'nfc_confirm_required': nfcConfirmRequired,
       if (nfcPaymentEnabled != null) 'nfc_payment_enabled': nfcPaymentEnabled,
+      if (allowCreditCardRestricted != null)
+        'allow_credit_card_restricted': allowCreditCardRestricted! ? 1 : 0,
+      if (creditCardItems != null) 'credit_card_items': creditCardItems,
+      if (ccBlacklistItems != null) 'cc_blacklist_items': ccBlacklistItems,
+      if (ccExceptionItems != null) 'cc_exception_items': ccExceptionItems,
     };
   }
 }

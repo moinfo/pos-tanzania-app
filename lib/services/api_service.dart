@@ -6230,11 +6230,48 @@ class ApiService {
     }
   }
 
+  /// Check credit-card item restrictions for a customer against a set of items
+  Future<ApiResponse<Map<String, dynamic>>> checkCcRestrictions({
+    required int customerId,
+    required List<int> itemIds,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('\$baseUrlSync/sales/cc_check'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'customer_id': customerId,
+          'item_ids': itemIds,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] ?? jsonResponse;
+        return ApiResponse.success(
+          data: {
+            'allowed': data['allowed'] ?? true,
+            'restricted': data['restricted'] ?? [],
+          },
+          message: jsonResponse['message'] ?? 'CC check complete',
+        );
+      }
+
+      final jsonResponse = json.decode(response.body);
+      return ApiResponse.error(
+        message: jsonResponse['message'] ?? 'Failed to check CC restrictions',
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Error checking CC restrictions: \$e');
+    }
+  }
+
   /// Update customer NFC settings
   Future<ApiResponse<void>> updateCustomerNfcSettings({
     required int customerId,
     bool? nfcConfirmRequired,
     bool? nfcPaymentEnabled,
+    bool? nfcConfirmRequiredCash,
   }) async {
     try {
       debugPrint('⚙️ Updating NFC settings for customer: $customerId');
@@ -6246,6 +6283,7 @@ class ApiService {
           'customer_id': customerId,
           if (nfcConfirmRequired != null) 'nfc_confirm_required': nfcConfirmRequired,
           if (nfcPaymentEnabled != null) 'nfc_payment_enabled': nfcPaymentEnabled,
+          if (nfcConfirmRequiredCash != null) 'nfc_confirm_required_cash': nfcConfirmRequiredCash,
         }),
       );
 

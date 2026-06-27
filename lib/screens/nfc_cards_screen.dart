@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -936,6 +937,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
   Future<void> _showCardSettings(CustomerCard card) async {
     bool nfcConfirmRequired = card.nfcConfirmRequired;
     bool nfcPaymentEnabled = card.nfcPaymentEnabled;
+    bool nfcConfirmRequiredCash = card.nfcConfirmRequiredCash;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -950,6 +952,13 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                 subtitle: const Text('Customer must scan card for credit sales and payments'),
                 value: nfcConfirmRequired,
                 onChanged: (value) => setDialogState(() => nfcConfirmRequired = value),
+              ),
+              const Divider(),
+              SwitchListTile(
+                title: const Text('Require Confirmation for Cash'),
+                subtitle: const Text('Customer must scan card for cash sales'),
+                value: nfcConfirmRequiredCash,
+                onChanged: (value) => setDialogState(() => nfcConfirmRequiredCash = value),
               ),
               const Divider(),
               SwitchListTile(
@@ -981,6 +990,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
       customerId: card.customerId,
       nfcConfirmRequired: nfcConfirmRequired,
       nfcPaymentEnabled: nfcPaymentEnabled,
+      nfcConfirmRequiredCash: nfcConfirmRequiredCash,
     );
 
     if (mounted) {
@@ -1275,48 +1285,51 @@ class _CustomerPickerDialogState extends State<_CustomerPickerDialog> {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
 
-  List<Customer> _customers = [];
   List<Customer> _filteredCustomers = [];
   bool _isLoading = true;
+  Timer? _debounce;
+  int _searchSeq = 0; // guards against out-of-order responses
 
   @override
   void initState() {
     super.initState();
-    _loadCustomers();
+    _searchCustomers('');
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCustomers() async {
-    final response = await _apiService.getCustomers(limit: 100);
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        if (response.isSuccess && response.data != null) {
-          _customers = response.data!;
-          _filteredCustomers = _customers;
-        }
-      });
-    }
+  // Debounce keystrokes: only hit the API ~350ms after the user stops typing.
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      _searchCustomers(query.trim());
+    });
   }
 
-  void _filterCustomers(String query) {
+  // Server-side search so ALL customers are reachable, not just the first page.
+  // (The backend Customers::index matches name/phone/account/company via LIKE.)
+  Future<void> _searchCustomers(String query) async {
+    final int seq = ++_searchSeq;
+
+    setState(() => _isLoading = true);
+
+    final response = await _apiService.getCustomers(
+      search: query.isEmpty ? null : query,
+      limit: 100,
+    );
+
+    // Ignore stale responses from earlier keystrokes.
+    if (!mounted || seq != _searchSeq) return;
+
     setState(() {
-      if (query.isEmpty) {
-        _filteredCustomers = _customers;
-      } else {
-        _filteredCustomers = _customers
-            .where((customer) =>
-                customer.firstName.toLowerCase().contains(query.toLowerCase()) ||
-                customer.lastName.toLowerCase().contains(query.toLowerCase()) ||
-                customer.phoneNumber.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-      }
+      _isLoading = false;
+      _filteredCustomers =
+          (response.isSuccess && response.data != null) ? response.data! : [];
     });
   }
 
@@ -1358,7 +1371,7 @@ class _CustomerPickerDialogState extends State<_CustomerPickerDialog> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onChanged: _filterCustomers,
+              onChanged: _onSearchChanged,
             ),
             const SizedBox(height: 16),
 

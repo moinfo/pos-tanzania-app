@@ -107,6 +107,7 @@ class Item {
   final double? tax2Percent;
   final double wholesalePrice;
   final bool showOnLanding;
+  final bool noCreditCard;
 
   // Location-specific pricing fields (Come & Save feature)
   final double? defaultCostPrice; // Item's default cost price (before location override)
@@ -155,6 +156,7 @@ class Item {
     this.tax2Percent,
     this.wholesalePrice = 0,
     this.showOnLanding = false,
+    this.noCreditCard = false,
     this.defaultCostPrice,
     this.defaultUnitPrice,
     this.defaultDiscountLimit,
@@ -279,6 +281,7 @@ class Item {
       tax2Percent: json['tax_2_percent'] != null ? double.tryParse(json['tax_2_percent'].toString()) : null,
       wholesalePrice: (json['wholesale_price'] ?? 0).toDouble(),
       showOnLanding: json['show_on_landing'] == 1 || json['show_on_landing'] == true || json['show_on_landing'] == '1',
+      noCreditCard: json['no_credit_card'] == true || json['no_credit_card'] == 1 || json['no_credit_card'] == '1',
       // Location-specific pricing fields (Come & Save feature)
       defaultCostPrice: json['default_cost_price'] != null ? double.tryParse(json['default_cost_price'].toString()) : null,
       defaultUnitPrice: json['default_unit_price'] != null ? double.tryParse(json['default_unit_price'].toString()) : null,
@@ -307,6 +310,7 @@ class Item {
       'allow_alt_description': allowAltDescription,
       'is_serialized': isSerialized,
       'show_on_landing': showOnLanding,
+      'no_credit_card': noCreditCard,
       'stock_type': stockType,
       'item_type': itemType,
       'tax_category_id': taxCategoryId,
@@ -360,6 +364,7 @@ class ItemFormData {
   final bool allowAltDescription;
   final bool isSerialized;
   final bool showOnLanding;
+  final bool? noCreditCard;
   final int stockType;
   final int itemType;
   final int? taxCategoryId;
@@ -394,6 +399,7 @@ class ItemFormData {
     this.allowAltDescription = false,
     this.isSerialized = false,
     this.showOnLanding = false,
+    this.noCreditCard,
     this.stockType = 0,
     this.itemType = 0,
     this.taxCategoryId,
@@ -428,6 +434,7 @@ class ItemFormData {
       'allow_alt_description': allowAltDescription ? 1 : 0,
       'is_serialized': isSerialized ? 1 : 0,
       'show_on_landing': showOnLanding ? 1 : 0,
+      'no_credit_card': noCreditCard == true ? 1 : 0,
       'stock_type': stockType,
       'item_type': itemType,
       'tax_category_id': taxCategoryId,

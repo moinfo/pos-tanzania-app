@@ -637,6 +637,16 @@ class SaleProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Remove the selected customer (keeps the cart items).
+  // Also clears customer-scoped discount/offer state so the previous customer's
+  // discounts don't leak onto a subsequently selected customer.
+  void clearCustomer() {
+    _selectedCustomer = null;
+    _oneTimeDiscounts.clear();
+    _approvedDiscountRequests.clear();
+    notifyListeners();
+  }
+
   // Set payment type
   void setPaymentType(String type) {
     _paymentType = type;

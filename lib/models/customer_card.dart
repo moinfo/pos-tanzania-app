@@ -19,6 +19,7 @@ class CustomerCard {
   final double totalSpent;
   final bool nfcConfirmRequired;
   final bool nfcPaymentEnabled;
+  final bool nfcConfirmRequiredCash;
 
   CustomerCard({
     this.id,
@@ -36,6 +37,7 @@ class CustomerCard {
     this.totalSpent = 0.0,
     this.nfcConfirmRequired = false,
     this.nfcPaymentEnabled = false,
+    this.nfcConfirmRequiredCash = false,
   });
 
   factory CustomerCard.fromJson(Map<String, dynamic> json) {
@@ -85,6 +87,7 @@ class CustomerCard {
       totalSpent: parseDouble(json['total_spent']),
       nfcConfirmRequired: parseBool(json['nfc_confirm_required']),
       nfcPaymentEnabled: parseBool(json['nfc_payment_enabled']),
+      nfcConfirmRequiredCash: parseBool(json['nfc_confirm_required_cash']),
     );
   }
 
@@ -124,6 +127,7 @@ class CustomerCard {
     double? totalSpent,
     bool? nfcConfirmRequired,
     bool? nfcPaymentEnabled,
+    bool? nfcConfirmRequiredCash,
   }) {
     return CustomerCard(
       id: id ?? this.id,
@@ -141,6 +145,7 @@ class CustomerCard {
       totalSpent: totalSpent ?? this.totalSpent,
       nfcConfirmRequired: nfcConfirmRequired ?? this.nfcConfirmRequired,
       nfcPaymentEnabled: nfcPaymentEnabled ?? this.nfcPaymentEnabled,
+      nfcConfirmRequiredCash: nfcConfirmRequiredCash ?? this.nfcConfirmRequiredCash,
     );
   }
 

@@ -911,6 +911,242 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
     }
   }
 
+  // ---- Credit Card settings section ----
+
+  // Per-picker UI state (keyed by picker id: 'whitelist'|'blacklist'|'exceptions')
+  final Map<String, TextEditingController> _ccControllers = {};
+  final Map<String, List<Map<String, dynamic>>> _ccSuggestions = {};
+  final Map<String, bool> _ccSearching = {};
+
+  TextEditingController _ccController(String key) {
+    return _ccControllers.putIfAbsent(key, () => TextEditingController());
+  }
+
+  // Normalize a suggest result entry into {id, name}
+  Map<String, dynamic>? _normalizeSuggestEntry(dynamic entry) {
+    if (entry is! Map) return null;
+    final dynamic rawId =
+        entry['value'] ?? entry['item_id'] ?? entry['id'];
+    final dynamic rawName = entry['label'] ?? entry['name'] ?? entry['text'];
+    if (rawId == null) return null;
+    final int? id = int.tryParse(rawId.toString());
+    if (id == null) return null;
+    final String name = (rawName ?? id).toString();
+    return {'id': id, 'name': name};
+  }
+
+  Future<void> _fetchCcSuggestions(String key, String endpoint,
+      String term) async {
+    if (term.trim().isEmpty) {
+      setState(() {
+        _ccSuggestions[key] = [];
+        _ccSearching[key] = false;
+      });
+      return;
+    }
+    setState(() => _ccSearching[key] = true);
+    try {
+      final List<dynamic> raw = endpoint == 'suggest_no_credit_card'
+          ? await _ccApiService.suggestItemsNoCreditCard(term)
+          : await _ccApiService.suggestItems(term);
+      final results = raw
+          .map(_normalizeSuggestEntry)
+          .where((e) => e != null)
+          .cast<Map<String, dynamic>>()
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _ccSuggestions[key] = results;
+        _ccSearching[key] = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _ccSuggestions[key] = [];
+        _ccSearching[key] = false;
+      });
+    }
+  }
+
+  Widget _buildCreditCardSection() {
+    final permissionProvider =
+        Provider.of<PermissionProvider>(context, listen: false);
+    final bool canToggle =
+        permissionProvider.hasPermission('customer_allow_credit_card_restricted');
+    final bool canWhitelist =
+        permissionProvider.hasPermission('customer_edit_cc_whitelist');
+    final bool canBlacklist =
+        permissionProvider.hasPermission('customer_edit_cc_blacklist');
+    final bool canExceptions =
+        permissionProvider.hasPermission('customer_edit_cc_exceptions');
+
+    // Only render the section if at least one control is granted
+    if (!canToggle && !canWhitelist && !canBlacklist && !canExceptions) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        const Divider(),
+        const Text(
+          'Credit Card Settings',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (canToggle)
+          SwitchListTile(
+            title: const Text('Allow CC on All Restricted Items'),
+            subtitle: const Text(
+                'Allow this customer to pay by credit card for all restricted items'),
+            value: _allowCreditCardRestricted,
+            onChanged: (value) {
+              setState(() {
+                _allowCreditCardRestricted = value;
+              });
+            },
+          ),
+        if (canWhitelist)
+          _buildCcItemPicker(
+            pickerKey: 'whitelist',
+            title: 'Credit Card Whitelist',
+            color: Colors.blue,
+            list: _creditCardItems,
+            suggestEndpoint: 'suggest',
+          ),
+        if (canBlacklist)
+          _buildCcItemPicker(
+            pickerKey: 'blacklist',
+            title: 'Credit Card Blacklist',
+            color: Colors.red,
+            list: _ccBlacklistItems,
+            suggestEndpoint: 'suggest',
+          ),
+        if (canExceptions)
+          _buildCcItemPicker(
+            pickerKey: 'exceptions',
+            title: 'Credit Card Exceptions',
+            color: Colors.green,
+            list: _ccExceptionItems,
+            suggestEndpoint: 'suggest_no_credit_card',
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCcItemPicker({
+    required String pickerKey,
+    required String title,
+    required Color color,
+    required List<int> list,
+    required String suggestEndpoint,
+  }) {
+    final controller = _ccController(pickerKey);
+    final suggestions = _ccSuggestions[pickerKey] ?? const [];
+    final bool searching = _ccSearching[pickerKey] ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              isDense: true,
+              border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: searching
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
+              hintText: 'Search items to add...',
+            ),
+            onChanged: (value) =>
+                _fetchCcSuggestions(pickerKey, suggestEndpoint, value),
+          ),
+          if (suggestions.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              constraints: const BoxConstraints(maxHeight: 160),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: suggestions.length,
+                itemBuilder: (context, index) {
+                  final item = suggestions[index];
+                  final int id = item['id'] as int;
+                  final String name = item['name'] as String;
+                  final bool alreadyAdded = list.contains(id);
+                  return ListTile(
+                    dense: true,
+                    title: Text(name),
+                    trailing: alreadyAdded
+                        ? const Icon(Icons.check, color: Colors.grey, size: 18)
+                        : Icon(Icons.add, color: color, size: 18),
+                    onTap: alreadyAdded
+                        ? null
+                        : () {
+                            setState(() {
+                              list.add(id);
+                              _ccItemNames[id] = name;
+                              controller.clear();
+                              _ccSuggestions[pickerKey] = [];
+                            });
+                          },
+                  );
+                },
+              ),
+            ),
+          if (list.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: list.map((id) {
+                  final String label = _ccItemNames[id] ?? 'Item #$id';
+                  return Chip(
+                    label: Text(label),
+                    backgroundColor: color.withOpacity(0.12),
+                    labelStyle: TextStyle(color: color),
+                    deleteIconColor: color,
+                    onDeleted: () {
+                      setState(() {
+                        list.remove(id);
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveCustomer() async {
     if (!_formKey.currentState!.validate()) return;
 

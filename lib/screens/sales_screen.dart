@@ -278,6 +278,11 @@ class _SalesScreenState extends State<SalesScreen> {
         duration: const Duration(seconds: 1),
       ),
     );
+
+    // Clear the search box + results so the next item can be searched immediately.
+    // Mirrors the existing clear-button behaviour at the search field.
+    _searchController.clear();
+    _filterItems('');
   }
 
   Future<void> _selectCustomer() async {
@@ -838,13 +843,15 @@ class _SalesScreenState extends State<SalesScreen> {
       return;
     }
 
-    // Check if NFC confirmation is required for credit or cash sales
+    // Check if NFC confirmation is required for credit or cash sales.
+    // Credit confirmation is gated by nfcConfirmRequired; cash confirmation is a
+    // SEPARATE per-customer toggle (nfcConfirmRequiredCash).
     final customer = saleProvider.selectedCustomer;
-    if (customer != null && customer.nfcConfirmRequired) {
-      final hasCreditPayment = saleProvider.payments.any(
+    if (customer != null && (customer.nfcConfirmRequired || customer.nfcConfirmRequiredCash)) {
+      final hasCreditPayment = customer.nfcConfirmRequired && saleProvider.payments.any(
         (p) => p.paymentType.toLowerCase().contains('credit'),
       );
-      final hasCashPayment = saleProvider.payments.any(
+      final hasCashPayment = customer.nfcConfirmRequiredCash && saleProvider.payments.any(
         (p) => p.paymentType == 'Cash',
       );
 
@@ -959,6 +966,52 @@ class _SalesScreenState extends State<SalesScreen> {
       // Returns null if user cancelled
       if (scanResult == null || !mounted) {
         return; // User cancelled
+      }
+    }
+
+    // Enforce Credit Card item restrictions BEFORE creating the sale.
+    // Early-warning layer; api/Sales::createSale also rejects server-side as a backstop.
+    final hasCreditCardPayment = saleProvider.payments.any(
+      (p) => p.paymentType == 'Credit Card',
+    );
+    if (hasCreditCardPayment && customer != null) {
+      final itemIds = saleProvider.cartItems.map((i) => i.itemId).toList();
+      final ccResponse = await _apiService.checkCcRestrictions(
+        customerId: customer.personId,
+        itemIds: itemIds,
+      );
+      if (!mounted) return;
+
+      // Fail SAFE: if the check could not complete, never silently allow.
+      if (!ccResponse.isSuccess || ccResponse.data == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not verify credit-card eligibility, try again'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      final ccData = ccResponse.data!;
+      final allowed = ccData['allowed'] == true;
+      if (!allowed) {
+        final restricted = (ccData['restricted'] as List?) ?? [];
+        final names = restricted
+            .map((r) => (r as Map)['name']?.toString() ?? '')
+            .where((n) => n.isNotEmpty)
+            .join(', ');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'These items cannot be paid with Credit Card: $names. '
+              'Please use cash for these items.',
+            ),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        return;
       }
     }
 
@@ -1321,6 +1374,15 @@ class _SalesScreenState extends State<SalesScreen> {
                               ],
                             ),
                           ),
+                          // Remove customer button - only when a customer is selected
+                          if (saleProvider.selectedCustomer != null)
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.red.shade400, size: 20),
+                              tooltip: 'Remove customer',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              onPressed: () => saleProvider.clearCustomer(),
+                            ),
                           Icon(
                             Icons.chevron_right,
                             color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
@@ -1641,7 +1703,12 @@ class _SalesScreenState extends State<SalesScreen> {
                   ),
                 ),
 
-                // Search Results only
+                // Search Results only.
+                // Expanded greedily fills the space between the search field and the
+                // action buttons, so the cart-summary / Add Payment + Complete block
+                // is anchored to the bottom of the screen ("floats down"). When there
+                // are results the list scrolls internally; when empty the area is just
+                // blank space above the bottom-anchored buttons.
                 Expanded(
                   child: Consumer<LocationProvider>(
                     builder: (context, locationProvider, child) {
@@ -1718,8 +1785,10 @@ class _SalesScreenState extends State<SalesScreen> {
                           ),
                         ],
                       ),
-                      // Extra bottom padding to account for curved navigation bar
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
+                      // Host Scaffold uses extendBody:false, so the body already sits
+                      // ABOVE the bottom nav bar — no extra bottom padding needed.
+                      // (The old 90px was dead space below the Add Payment/Complete row.)
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [

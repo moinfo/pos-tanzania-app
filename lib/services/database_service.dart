@@ -9,7 +9,7 @@ class DatabaseService {
   static Database? _database;
 
   // Database version - increment when schema changes
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
 
   // Private constructor for singleton
   DatabaseService._();
@@ -113,6 +113,9 @@ class DatabaseService {
         credit_limit REAL DEFAULT 0,
         balance REAL DEFAULT 0,
         bad_debtor INTEGER DEFAULT 0,
+        nfc_confirm_required INTEGER DEFAULT 0,
+        nfc_payment_enabled INTEGER DEFAULT 0,
+        nfc_confirm_required_cash INTEGER DEFAULT 0,
         last_synced_at TEXT,
         FOREIGN KEY (person_id) REFERENCES people(person_id)
       )
@@ -879,10 +882,22 @@ class DatabaseService {
     debugPrint('DatabaseService: Upgrading database from v$oldVersion to v$newVersion');
 
     // Add migration logic here for future versions
-    // Example:
-    // if (oldVersion < 2) {
-    //   await db.execute('ALTER TABLE sales ADD COLUMN new_column TEXT');
-    // }
+    if (oldVersion < 2) {
+      // v2: persist customer NFC confirmation settings in the offline cache so
+      // confirmation enforcement survives offline fallback. Guarded per-column
+      // because a fresh install (created at the current schema) already has them.
+      final existing = await db.rawQuery('PRAGMA table_info(customers)');
+      final cols = existing.map((r) => r['name'] as String).toSet();
+      if (!cols.contains('nfc_confirm_required')) {
+        await db.execute('ALTER TABLE customers ADD COLUMN nfc_confirm_required INTEGER DEFAULT 0');
+      }
+      if (!cols.contains('nfc_payment_enabled')) {
+        await db.execute('ALTER TABLE customers ADD COLUMN nfc_payment_enabled INTEGER DEFAULT 0');
+      }
+      if (!cols.contains('nfc_confirm_required_cash')) {
+        await db.execute('ALTER TABLE customers ADD COLUMN nfc_confirm_required_cash INTEGER DEFAULT 0');
+      }
+    }
   }
 
   /// Delete database (for testing or reset)
@@ -1135,6 +1150,10 @@ class DatabaseService {
         'balance': customer['balance'] ?? 0,
         'dormant': customer['dormant'] ?? 0,
         'bad_debtor': customer['bad_debtor'] ?? 0,
+        // NFC confirmation settings — persist so enforcement survives offline.
+        'nfc_confirm_required': (customer['nfc_confirm_required'] == true || customer['nfc_confirm_required'] == 1) ? 1 : 0,
+        'nfc_payment_enabled': (customer['nfc_payment_enabled'] == true || customer['nfc_payment_enabled'] == 1) ? 1 : 0,
+        'nfc_confirm_required_cash': (customer['nfc_confirm_required_cash'] == true || customer['nfc_confirm_required_cash'] == 1) ? 1 : 0,
         'last_synced_at': now,
       };
       batch.insert('customers', customerData, conflictAlgorithm: ConflictAlgorithm.replace);
