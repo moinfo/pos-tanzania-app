@@ -121,6 +121,29 @@ class ClientsConfig {
         hasLandingStockDisplay: true,
       ),
     ),
+    // ARG Sparkles (mirrors Kariakoo Shops; ARG branding + backend)
+    ClientConfig(
+      id: 'arg',
+      name: 'dev-arg',
+      displayName: 'ARG Sparkles',
+      devApiUrl: localBaseUrl,
+      prodApiUrl: 'https://system.argsparkles.co.tz/api',
+      logoUrl: 'assets/images/arg-logo.png',
+      branding: const ClientBranding(
+        primaryColor: 0xFF7A1FA2,      // ARG grape
+        primaryDarkColor: 0xFF5F1782,  // Dark grape
+        appTitle: 'ARG Sparkles',
+        tagline: 'Clean · Protect · Kill',
+      ),
+      features: const ClientFeatures(
+        hasContracts: false,
+        hasNfcCard: true,
+        hasOfflineMode: false,
+        hasLandingPage: true,
+        hasLocationBasedPricing: true,
+        hasLandingStockDisplay: true,
+      ),
+    ),
     // Saichi
     ClientConfig(
       id: 'saichi',
