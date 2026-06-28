@@ -41,6 +41,7 @@ class ClientsConfig {
     'leruma': 'leruma',
     'kariakooShops': 'kariakoo_shops',
     'saichi': 'saichi',
+    'arg': 'arg',
   };
 
   // ============================================

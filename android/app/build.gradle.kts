@@ -66,6 +66,11 @@ android {
             applicationId = "co.tz.saichi.pos"
             resValue("string", "app_name", "Saichi POS")
         }
+        create("arg") {
+            dimension = "client"
+            applicationId = "co.tz.argsparkles.pos"
+            resValue("string", "app_name", "ARG Sparkles")
+        }
     }
 
     signingConfigs {
