@@ -43,10 +43,13 @@
 
 /* Begin PBXFileReference section */
 		051FC1179D97F1077727774F /* Pods-RunnerTests.debug-leruma.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-leruma.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-leruma.xcconfig"; sourceTree = "<group>"; };
+		073D8C914AD5E8A626425FF3 /* Pods-RunnerTests.debug-arg.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-arg.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-arg.xcconfig"; sourceTree = "<group>"; };
 		0EBEBE3D2F19E6482D2EEFA0 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		1C6A1F50FE026FFB0DD916AC /* Pods-Runner.profile-sada.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile-sada.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile-sada.xcconfig"; sourceTree = "<group>"; };
+		1FC0EFC408AAE8E76089F746 /* Pods-Runner.release-arg.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-arg.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-arg.xcconfig"; sourceTree = "<group>"; };
+		21AA031E4AF1436613E19A96 /* Pods-Runner.profile-arg.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile-arg.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile-arg.xcconfig"; sourceTree = "<group>"; };
 		2C5FC4189B9698A1880AE257 /* Pods-RunnerTests.debug-comeandsave.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-comeandsave.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-comeandsave.xcconfig"; sourceTree = "<group>"; };
 		2DB97CFC6924636EFC44C6E7 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2E209C6C089233502409B08D /* Pods-Runner.release-sada.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-sada.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-sada.xcconfig"; sourceTree = "<group>"; };
@@ -64,6 +67,7 @@
 		6C605B11D155D124E385DEE7 /* Pods-Runner.release-kariakooshops.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-kariakooshops.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-kariakooshops.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		753FEDC4B4E414917EE1B933 /* Pods-RunnerTests.release-arg.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release-arg.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release-arg.xcconfig"; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		7BB64F8BB60F022EB4BF8E20 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		7F312B43731D64580556D296 /* Pods-Runner.debug-leruma.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-leruma.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-leruma.xcconfig"; sourceTree = "<group>"; };
@@ -82,12 +86,14 @@
 		B628867402BF9719BAEE2023 /* Pods-RunnerTests.release-kariakooshops.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release-kariakooshops.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release-kariakooshops.xcconfig"; sourceTree = "<group>"; };
 		B9D9A4A15B85364A40335A4C /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		C91F4960FD3D27967749F7DF /* Pods-Runner.debug-comeandsave.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-comeandsave.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-comeandsave.xcconfig"; sourceTree = "<group>"; };
+		C963825008E49357B82826BF /* Pods-Runner.debug-arg.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-arg.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-arg.xcconfig"; sourceTree = "<group>"; };
 		D01FE45CA5FA1CDAB095FB35 /* Pods-RunnerTests.release-comeandsave.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release-comeandsave.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release-comeandsave.xcconfig"; sourceTree = "<group>"; };
 		D7A358BA2968D5BDB58A3CE9 /* Pods-RunnerTests.debug-kariakooshops.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-kariakooshops.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-kariakooshops.xcconfig"; sourceTree = "<group>"; };
 		DCA0819A55826810FDAC888A /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD289D7BF5489077D7195C68 /* Pods-Runner.debug-kariakooshops.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-kariakooshops.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-kariakooshops.xcconfig"; sourceTree = "<group>"; };
 		EF67F5B8E6076071A0F61855 /* Pods-RunnerTests.profile-kariakooshops.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile-kariakooshops.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile-kariakooshops.xcconfig"; sourceTree = "<group>"; };
 		F45AD10A375F4763A9F20B39 /* Pods-RunnerTests.profile-sada.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile-sada.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile-sada.xcconfig"; sourceTree = "<group>"; };
+		F65D8E98BFADEAEC7E0721A3 /* Pods-RunnerTests.profile-arg.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile-arg.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile-arg.xcconfig"; sourceTree = "<group>"; };
 		F7FAE78037278E391340A18A /* Pods-Runner.profile-comeandsave.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile-comeandsave.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile-comeandsave.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -144,6 +150,12 @@
 				D7A358BA2968D5BDB58A3CE9 /* Pods-RunnerTests.debug-kariakooshops.xcconfig */,
 				B628867402BF9719BAEE2023 /* Pods-RunnerTests.release-kariakooshops.xcconfig */,
 				EF67F5B8E6076071A0F61855 /* Pods-RunnerTests.profile-kariakooshops.xcconfig */,
+				C963825008E49357B82826BF /* Pods-Runner.debug-arg.xcconfig */,
+				1FC0EFC408AAE8E76089F746 /* Pods-Runner.release-arg.xcconfig */,
+				21AA031E4AF1436613E19A96 /* Pods-Runner.profile-arg.xcconfig */,
+				073D8C914AD5E8A626425FF3 /* Pods-RunnerTests.debug-arg.xcconfig */,
+				753FEDC4B4E414917EE1B933 /* Pods-RunnerTests.release-arg.xcconfig */,
+				F65D8E98BFADEAEC7E0721A3 /* Pods-RunnerTests.profile-arg.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
@@ -504,7 +516,7 @@
 		};
 		1CC3806F07DE3BA25D82DFFC /* Debug-arg */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D7A358BA2968D5BDB58A3CE9 /* Pods-RunnerTests.debug-kariakooshops.xcconfig */;
+			baseConfigurationReference = 073D8C914AD5E8A626425FF3 /* Pods-RunnerTests.debug-arg.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -821,7 +833,7 @@
 		};
 		B08D37C2E6BCC825F697495A /* Release-arg */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B628867402BF9719BAEE2023 /* Pods-RunnerTests.release-kariakooshops.xcconfig */;
+			baseConfigurationReference = 753FEDC4B4E414917EE1B933 /* Pods-RunnerTests.release-arg.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -837,7 +849,7 @@
 		};
 		B91A6FF96BC27C3B8A10C057 /* Profile-arg */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = EF67F5B8E6076071A0F61855 /* Pods-RunnerTests.profile-kariakooshops.xcconfig */;
+			baseConfigurationReference = F65D8E98BFADEAEC7E0721A3 /* Pods-RunnerTests.profile-arg.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
