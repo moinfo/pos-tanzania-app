@@ -918,6 +918,13 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
   final Map<String, List<Map<String, dynamic>>> _ccSuggestions = {};
   final Map<String, bool> _ccSearching = {};
 
+  // Selected item IDs per list + shared id -> name cache, and the all-restricted flag.
+  final List<int> _creditCardItems = []; // whitelist
+  final List<int> _ccBlacklistItems = [];
+  final List<int> _ccExceptionItems = [];
+  final Map<int, String> _ccItemNames = {};
+  bool _allowCreditCardRestricted = false;
+
   TextEditingController _ccController(String key) {
     return _ccControllers.putIfAbsent(key, () => TextEditingController());
   }
@@ -947,8 +954,8 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
     setState(() => _ccSearching[key] = true);
     try {
       final List<dynamic> raw = endpoint == 'suggest_no_credit_card'
-          ? await _ccApiService.suggestItemsNoCreditCard(term)
-          : await _ccApiService.suggestItems(term);
+          ? await _apiService.suggestItemsNoCreditCard(term)
+          : await _apiService.suggestItems(term);
       final results = raw
           .map(_normalizeSuggestEntry)
           .where((e) => e != null)

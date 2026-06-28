@@ -469,6 +469,11 @@ class ApiService {
     }
   }
 
+  // Item suggestions for the customer credit-card settings pickers.
+  // TODO: wire to a real item-suggest endpoint; stubbed empty for now.
+  Future<List<dynamic>> suggestItems(String term) async => <dynamic>[];
+  Future<List<dynamic>> suggestItemsNoCreditCard(String term) async => <dynamic>[];
+
   /// Create Z report with file
   Future<ApiResponse<ZReportDetails>> createZReport({
     required double turnover,

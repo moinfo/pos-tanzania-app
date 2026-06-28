@@ -193,13 +193,13 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
                             children: [
                               const SizedBox(height: 4),
                               Text(
-                                'A: ${report.a}',
+                                'Turnover: ${report.turnover}',
                                 style: TextStyle(
                                   color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                 ),
                               ),
                               Text(
-                                'C: ${report.c}',
+                                'Total: ${report.total}',
                                 style: TextStyle(
                                   color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                 ),
@@ -397,9 +397,15 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
 
       final picFile = 'data:$mimeType;base64,$base64String';
 
+      // Minimal a/c -> detailed mapping (TODO: build the full detailed form):
+      // map the two existing inputs to turnover/total, zero the rest.
       final result = await _apiService.createZReport(
-        a: _aController.text.trim(),
-        c: _cController.text.trim(),
+        turnover: double.tryParse(_aController.text.trim()) ?? 0,
+        net: 0,
+        tax: 0,
+        turnoverExSr: 0,
+        total: double.tryParse(_cController.text.trim()) ?? 0,
+        totalCharges: 0,
         date: Formatters.formatDateForApi(_selectedDate),
         picFile: picFile,
       );
