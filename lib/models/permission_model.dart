@@ -340,6 +340,10 @@ class PermissionIds {
   // Stock Tracking sub-permissions (uses items_stock permission)
   static const String stockTracking = 'items_stock';
 
+  // Physical stock count (weekly counts vs system qty, mirrors web /items/physical_stock)
+  static const String itemsPhysicalStock = 'items_physical_stock';
+  static const String itemsPhysicalStockReport = 'items_physical_stock_report';
+
   // Giftcards sub-permissions
   static const String giftcardsAdd = 'giftcards_add';
   static const String giftcardsDelete = 'giftcards_delete';

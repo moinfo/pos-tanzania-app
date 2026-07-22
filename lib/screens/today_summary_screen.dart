@@ -235,65 +235,80 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Date card with glassmorphic design
+                              // Compact date banner — tap anywhere to change day
                               GlassmorphicCard(
                                 isDark: isDark,
-                                child: Container(
-                                  padding: const EdgeInsets.all(20),
-                                  child: Column(
-                                    children: [
-                                      // Calendar icon with gradient
-                                      Container(
-                                        width: 56,
-                                        height: 56,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(12),
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              AppColors.primary.withOpacity(0.8),
-                                              AppColors.primary,
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
+                                padding: EdgeInsets.zero,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(16),
+                                  onTap: _selectDate,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 13),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(11),
+                                            color: AppColors.primary
+                                                .withOpacity(
+                                                    isDark ? 0.25 : 0.1),
                                           ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.primary.withOpacity(0.3),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 4),
+                                          child: Icon(
+                                            Icons.calendar_today,
+                                            size: 20,
+                                            color: isDark
+                                                ? AppColors.primaryLight
+                                                : AppColors.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Summary Date',
+                                              style: TextStyle(
+                                                color: isDark
+                                                    ? AppColors.darkTextLight
+                                                    : AppColors.textLight,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 0.3,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              Formatters.formatDate(
+                                                  _summaryData!['date']),
+                                              style: TextStyle(
+                                                color: isDark
+                                                    ? AppColors.darkText
+                                                    : AppColors.text,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w800,
+                                              ),
                                             ),
                                           ],
                                         ),
-                                        child: const Icon(
-                                          Icons.calendar_today,
-                                          size: 28,
-                                          color: Colors.white,
+                                        const Spacer(),
+                                        Icon(
+                                          Icons.edit_calendar_outlined,
+                                          size: 19,
+                                          color: isDark
+                                              ? AppColors.darkTextLight
+                                              : AppColors.textLight,
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'Summary Date',
-                                        style: TextStyle(
-                                          color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        Formatters.formatDate(_summaryData!['date']),
-                                        style: TextStyle(
-                                          color: isDark ? AppColors.darkText : AppColors.text,
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
 
                               // Summary table with permission-based rows
                               GlassmorphicCard(
@@ -586,67 +601,43 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     final displayValue = isNegative && numValue != 0 ? -numValue.abs() : numValue;
 
     if (highlight) {
-      // Highlighted rows with gradient accent
+      // Section-total rows: flat accent tint + left rail, value in accent.
+      final accent =
+          color ?? (isDark ? AppColors.primaryLight : AppColors.primary);
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: color != null
-                ? [color.withOpacity(0.1), color.withOpacity(0.05)]
-                : isDark
-                    ? [AppColors.primary.withOpacity(0.2), AppColors.primary.withOpacity(0.1)]
-                    : [AppColors.primary.withOpacity(0.1), AppColors.primary.withOpacity(0.05)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: (color ?? AppColors.primary).withOpacity(0.3),
-            width: 1,
-          ),
+          color: accent.withOpacity(isDark ? 0.14 : 0.07),
+          borderRadius: BorderRadius.circular(10),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: color ?? AppColors.primary,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: color ?? (isDark ? AppColors.darkText : AppColors.text),
-                      ),
-                    ),
-                  ),
-                ],
+            Container(
+              width: 3.5,
+              height: 18,
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: (color ?? AppColors.primary).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
+            const SizedBox(width: 11),
+            Expanded(
               child: Text(
-                Formatters.formatCurrency(displayValue),
+                label,
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: color ?? AppColors.primary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.darkText : AppColors.text,
                 ),
+              ),
+            ),
+            Text(
+              Formatters.formatCurrency(displayValue),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: accent,
               ),
             ),
           ],
@@ -654,9 +645,9 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
       );
     }
 
-    // Regular rows
+    // Detail rows: muted label, strong value — statement style.
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -664,9 +655,9 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13.5,
                 fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.darkText : AppColors.text,
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
               ),
             ),
           ),
@@ -674,8 +665,11 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
             Formatters.formatCurrency(displayValue),
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: color ?? (isNegative ? AppColors.error : (isDark ? AppColors.darkText : AppColors.text)),
+              fontWeight: FontWeight.w700,
+              color: color ??
+                  (isNegative
+                      ? AppColors.error
+                      : (isDark ? AppColors.darkText : AppColors.text)),
             ),
           ),
         ],

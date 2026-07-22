@@ -44,7 +44,10 @@ import '../config/clients_config.dart';
 
 class ApiService {
   final _storage = const FlutterSecureStorage();
-  String? _token;
+  // Static so every ApiService instance shares one cached token — providers
+  // hold long-lived instances, and a per-instance cache would keep serving a
+  // logged-out user's token until app restart.
+  static String? _token;
 
   // Make currentClient public so it can be accessed from main_navigation
   static ClientConfig? currentClient;
@@ -177,6 +180,10 @@ class ApiService {
     if (tenantId != null) {
       await _storage.write(key: 'auth_tenant_id', value: tenantId.toString());
       print('💾 Saved tenant_id: $tenantId for client: $clientId');
+    } else {
+      // No tenant in this login response — drop any tenant left over from a
+      // previous session so requests aren't scoped to the wrong tenant.
+      await _storage.delete(key: 'auth_tenant_id');
     }
 
     print('💾 Saved token for client: $clientId');
@@ -235,13 +242,17 @@ class ApiService {
     return headers;
   }
 
-  /// Handle unauthorized access - clear token to trigger logout
+  /// Handle unauthorized access - clear the full session to trigger logout.
+  /// Must clear tenant/client ids too: a leftover auth_tenant_id would make
+  /// the next login tenant-scoped to the previous user's tenant.
   void _handleUnauthorized() {
     // Clear token immediately to prevent further API calls
     _token = null;
     // Delete from storage asynchronously (fire and forget)
     _storage.delete(key: 'auth_token');
-    debugPrint('401 Unauthorized: Token cleared, user will be logged out');
+    _storage.delete(key: 'auth_token_client_id');
+    _storage.delete(key: 'auth_tenant_id');
+    debugPrint('401 Unauthorized: Session cleared, user will be logged out');
   }
 
   // Handle API response
@@ -295,9 +306,15 @@ class ApiService {
     try {
       final loginUrl = '$baseUrlSync/auth/login';
       print('🔐 LOGIN URL: $loginUrl'); // Debug: Show which API URL is being used
+      // Never send X-Tenant-ID on login: the tenant must be determined by the
+      // credentials (backend does a cross-tenant search), not by whichever
+      // tenant the previous user of this device belonged to. A stale header
+      // scopes the login to the old tenant and rejects valid credentials.
+      final loginHeaders = await _getHeaders(includeAuth: false)
+        ..remove('X-Tenant-ID');
       final response = await http.post(
         Uri.parse(loginUrl),
-        headers: await _getHeaders(includeAuth: false),
+        headers: loginHeaders,
         body: json.encode({
           'username': username,
           'password': password,
@@ -472,6 +489,83 @@ class ApiService {
               [],
         },
       );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ─── Physical Stock API ─────────────────────────────────────────────────
+
+  /// Physical stock count page data: items with system qty at the location,
+  /// plus this month's counts grouped by week (1-4).
+  Future<ApiResponse<Map<String, dynamic>>> getPhysicalStock({
+    int? locationId,
+    String? month,
+  }) async {
+    try {
+      final params = <String, String>{
+        if (locationId != null) 'location_id': locationId.toString(),
+        if (month != null) 'month': month,
+      };
+      final uri = Uri.parse('$baseUrlSync/items/physical_stock')
+          .replace(queryParameters: params.isEmpty ? null : params);
+      final response = await http
+          .get(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 30));
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Save physical stock counts for a location/week.
+  /// entries: [{item_id, physical_qty}]
+  Future<ApiResponse<Map<String, dynamic>>> savePhysicalStock({
+    required int locationId,
+    required int weekNumber,
+    required List<Map<String, dynamic>> entries,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/items/physical_stock/save'),
+            headers: await _getHeaders(),
+            body: json.encode({
+              'location_id': locationId,
+              'week_number': weekNumber,
+              'entries': entries,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Physical stock report: latest count per (week, item, location) for the
+  /// month, with surplus/shortage/matched summary.
+  Future<ApiResponse<Map<String, dynamic>>> getPhysicalStockReport({
+    String? month,
+    String? week, // '1'..'4' or null for all
+    int? locationId,
+  }) async {
+    try {
+      final params = <String, String>{
+        if (month != null) 'month': month,
+        if (week != null) 'week': week,
+        if (locationId != null && locationId > 0)
+          'location_id': locationId.toString(),
+      };
+      final uri = Uri.parse('$baseUrlSync/items/physical_stock/report')
+          .replace(queryParameters: params.isEmpty ? null : params);
+      final response = await http
+          .get(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 30));
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -765,18 +859,16 @@ class ApiService {
         Uri.parse('$baseUrlSync/auth/logout'),
         headers: await _getHeaders(),
       );
-
-      // Clear only session data - preserve biometric credentials
-      await clearToken();
-      // Note: We intentionally do NOT clear:
-      // - biometric_enabled
-      // - biometric_username
-      // - biometric_password
-      // These are kept so the user can login with biometrics again
-
       return ApiResponse.success(message: 'Logged out successfully');
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
+    } finally {
+      // Always clear the local session, even if the server call failed
+      // (offline logout must not leave a usable token on the device).
+      // Clear only session data - preserve biometric credentials:
+      // biometric_enabled / biometric_username / biometric_password are
+      // kept so the user can login with biometrics again.
+      await clearToken();
     }
   }
 

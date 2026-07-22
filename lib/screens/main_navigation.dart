@@ -28,6 +28,7 @@ import 'transactions/transactions_screen.dart';
 import 'reports/reports_screen.dart';
 import 'business_intelligence_screen.dart';
 import 'stock_tracking/stock_tracking_screen.dart';
+import 'stock_tracking/physical_stock_screen.dart';
 import 'positions/positions_screen.dart';
 import 'seller_report_screen.dart';
 import 'login_screen.dart';
@@ -939,6 +940,21 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const StockTrackingScreen()),
+                  );
+                },
+              ),
+            ),
+            // Physical Stock Count - requires items_physical_stock permission
+            PermissionWrapper(
+              permissionId: PermissionIds.itemsPhysicalStock,
+              child: ListTile(
+                leading: Icon(Icons.fact_check_outlined, color: AppColors.brandPrimary),
+                title: const Text('Physical Stock'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PhysicalStockScreen()),
                   );
                 },
               ),

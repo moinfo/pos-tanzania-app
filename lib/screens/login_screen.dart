@@ -5,6 +5,8 @@ import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/auth_provider.dart';
 import '../providers/location_provider.dart';
+import '../providers/receiving_provider.dart';
+import '../providers/sale_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/biometric_service.dart';
 import '../services/api_service.dart';
@@ -51,6 +53,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// Initialize screen - check biometric availability and status
   Future<void> _initializeScreen() async {
+    // Every logout path (explicit, 401, startup) lands here, so this is the
+    // choke point to wipe the previous user's in-progress cart state before
+    // the next user logs in — the providers are app-root-scoped and would
+    // otherwise carry it across sessions. Deferred to after the first frame:
+    // the resets call notifyListeners(), which is illegal mid-build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<SaleProvider>().resetForNewSession();
+      context.read<ReceivingProvider>().resetForNewSession();
+    });
     // Load current client to ensure API calls use correct URL
     await ApiService.getCurrentClient();
     await _checkBiometricAvailability();

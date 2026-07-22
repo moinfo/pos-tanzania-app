@@ -391,6 +391,15 @@ class SaleProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Full reset between user sessions. The provider is app-root-scoped, so
+  /// without this a logged-out user's in-progress cart, customer, and stock
+  /// location would be shown to the next user who logs in.
+  void resetForNewSession() {
+    clearCart();
+    _stockLocation = null;
+    _paymentType = 'Cash';
+  }
+
   // Check and apply one-time discount for an item
   Future<bool> checkAndApplyOneTimeDiscount(int itemId, {String? date}) async {
     // Must have customer and stock location

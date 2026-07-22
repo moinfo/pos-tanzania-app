@@ -21,6 +21,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  /// Time-of-day greeting for the welcome card.
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   final _apiService = ApiService();
   bool _isLoading = true;
   String? _error;
@@ -414,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome Back',
+                          _greeting,
                           style: TextStyle(
                             fontSize: 14,
                             color: isDark ? AppColors.darkTextLight : AppColors.textLight,
@@ -669,6 +677,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? AppColors.success
                                       : AppColors.error,
                                   isDark: isDark,
+                                  colorAmount: true,
                                 ),
                               ),
                             ],
@@ -764,6 +773,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ? AppColors.success
                                     : AppColors.error,
                                 isDark: isDark,
+                                colorAmount: true,
                               ),
                             ),
                           ),
@@ -967,7 +977,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Build individual stat card for Transactions Dashboard
+  /// Build individual stat card for Transactions Dashboard.
+  /// Same compact horizontal layout as _buildDashboardCard so every stat
+  /// tile on the home screen shares one visual language.
   Widget _buildTransactionStatCard({
     required String title,
     required double amount,
@@ -975,66 +987,12 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color color,
     required bool isDark,
   }) {
-    return GlassmorphicCard(
+    return _buildDashboardCard(
+      title: title,
+      amount: amount,
+      icon: icon,
+      color: color,
       isDark: isDark,
-      padding: const EdgeInsets.all(14.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon container
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              gradient: LinearGradient(
-                colors: [
-                  color.withOpacity(isDark ? 0.3 : 0.2),
-                  color.withOpacity(isDark ? 0.2 : 0.1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(
-                color: color.withOpacity(isDark ? 0.4 : 0.3),
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: isDark ? color.withOpacity(0.9) : color,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Title
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-
-          // Amount
-          Text(
-            Formatters.formatCurrency(amount),
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkText : AppColors.text,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
     );
   }
 
@@ -1044,67 +1002,61 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required Color color,
     required bool isDark,
+    bool colorAmount = false,
   }) {
     return GlassmorphicCard(
       isDark: isDark,
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: Row(
         children: [
-          // Icon container with gradient
+          // Flat tinted icon square — the tint, not a gradient block,
+          // carries the metric's color identity.
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                colors: [
-                  color.withOpacity(0.8),
-                  color,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+              borderRadius: BorderRadius.circular(11),
+              color: color.withOpacity(isDark ? 0.22 : 0.12),
+            ),
+            child: Icon(icon, size: 21, color: color),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                // Long amounts (e.g. -1,566,349) shrink to fit instead of
+                // truncating to an ellipsis.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    Formatters.formatCurrency(amount),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: colorAmount
+                          ? color
+                          : (isDark ? AppColors.darkText : AppColors.text),
+                    ),
+                    maxLines: 1,
+                  ),
                 ),
               ],
             ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Title
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-
-          // Amount
-          Text(
-            Formatters.formatCurrency(amount),
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkText : AppColors.text,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

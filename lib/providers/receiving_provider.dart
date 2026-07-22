@@ -138,6 +138,13 @@ class ReceivingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Full reset between user sessions (provider is app-root-scoped).
+  void resetForNewSession() {
+    clearCart();
+    _stockLocation = null;
+    _paymentType = 'Cash';
+  }
+
   // Set supplier
   void setSupplier(Supplier? supplier) {
     _selectedSupplier = supplier;

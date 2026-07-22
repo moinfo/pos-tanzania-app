@@ -70,6 +70,21 @@ class ItemLocationPrice {
   }
 }
 
+/// Lightweight reference to a related item (parent/child link).
+class ItemRef {
+  final int itemId;
+  final String name;
+
+  ItemRef({required this.itemId, required this.name});
+
+  factory ItemRef.fromJson(Map<String, dynamic> json) {
+    return ItemRef(
+      itemId: int.tryParse(json['item_id'].toString()) ?? 0,
+      name: json['name']?.toString() ?? '',
+    );
+  }
+}
+
 class Item {
   final int itemId;
   final String name;
@@ -95,6 +110,12 @@ class Item {
   final int discountLimit;
   final String dormant;
   final String? child;
+
+  // Parent/child links (CTN wholesale parent -> PC retail children), resolved
+  // by the API from the item_children junction + legacy `child` column.
+  final List<ItemRef> children; // items this item is a parent of
+  final List<ItemRef> parents; // items this item is a child of
+
   final String variation; // CTN, PC, BUNDLE
   final int? days; // Days since last sale
   final double? mainstore; // Quantity from mainstore (bonge database)
@@ -143,6 +164,8 @@ class Item {
     required this.discountLimit,
     required this.dormant,
     this.child,
+    this.children = const [],
+    this.parents = const [],
     required this.variation,
     this.days,
     this.mainstore,
@@ -162,6 +185,13 @@ class Item {
     this.galleryImages = const [],
     this.portfolioImages = const [],
   });
+
+  /// Parent = has children. Matches web precedence: an item that is both
+  /// (mid-level) shows as Parent there too.
+  bool get isParent => children.isNotEmpty;
+
+  /// Child = has parents and no children of its own.
+  bool get isChild => children.isEmpty && parents.isNotEmpty;
 
   /// Check if this item has a location-specific price override for the current location
   bool get hasLocationPriceOverride {
@@ -267,6 +297,18 @@ class Item {
       discountLimit: parseIntOrZero(json['discount_limit']),
       dormant: json['dormant'] ?? 'ACTIVE',
       child: json['child']?.toString(),
+      children: json['children'] is List
+          ? (json['children'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(ItemRef.fromJson)
+              .toList()
+          : const [],
+      parents: json['parents'] is List
+          ? (json['parents'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(ItemRef.fromJson)
+              .toList()
+          : const [],
       variation: json['variation'] ?? 'CTN',
       days: parseIntOrNull(json['days']),
       mainstore: json['mainstore'] != null ? double.tryParse(json['mainstore'].toString()) : null,

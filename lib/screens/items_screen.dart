@@ -385,92 +385,190 @@ class _ItemsScreenState extends State<ItemsScreen> {
     );
   }
 
+  /// Parent/Child relation badge, mirroring the web items list column:
+  /// blue "Parent" -> its retail (PC) children, green "Child" of its
+  /// wholesale (CTN) parents.
+  Widget _buildParentChildBadge(Item item, bool isDark) {
+    final isParent = item.isParent;
+    final color = isParent ? Colors.blue : Colors.green;
+    final label = isParent ? 'Parent' : 'Child';
+    final refs = isParent ? item.children : item.parents;
+    final names = refs.map((r) => '${r.name} #${r.itemId}').join(', ');
+    final relation = isParent ? '→ $names' : 'of $names';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: color,
+              )),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(relation,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+              )),
+        ),
+      ],
+    );
+  }
+
+  /// Small tinted pill used for category / stock / variation facts.
+  Widget _infoChip(String label, Color color, {IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.13),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 3),
+          ],
+          Text(label,
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildItemCard(Item item, bool isDark) {
     final locationProvider = context.watch<LocationProvider>();
     final selectedLocation = locationProvider.selectedLocation;
     // Check if client has extended item info feature (Leruma only)
     final isLeruma = ApiService.currentClient?.id == 'leruma';
 
-    // Get quantity for selected location
+    // Get quantity for selected location (the location itself is shown in
+    // the app bar selector, so it isn't repeated on every card)
     double displayQuantity = 0;
-    String locationLabel = '...';
-
-    if (selectedLocation != null) {
-      locationLabel = selectedLocation.locationName;
-      if (item.quantityByLocation != null) {
-        displayQuantity = item.quantityByLocation![selectedLocation.locationId] ?? 0;
-      }
-    } else if (locationProvider.isLoading) {
-      locationLabel = 'Loading...';
-    } else if (locationProvider.allowedLocations.isEmpty) {
-      locationLabel = 'No Location';
+    if (selectedLocation != null && item.quantityByLocation != null) {
+      displayQuantity =
+          item.quantityByLocation![selectedLocation.locationId] ?? 0;
     }
+    final outOfStock = displayQuantity <= 0;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: ListTile(
-        title: Text(
-          item.name,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkText : AppColors.text,
-          ),
+        contentPadding: const EdgeInsets.fromLTRB(14, 6, 4, 8),
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                item.name,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.darkText : AppColors.text,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Price is what a seller scans for — the card's right-hand anchor
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  NumberFormat('#,###').format(item.unitPrice),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppColors.primaryLight : AppColors.primary,
+                  ),
+                ),
+                Text(
+                  'TSh',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 4),
-            // Row with Category and Variation (Leruma only)
-            Row(
+            const SizedBox(height: 7),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Expanded(
-                  child: Text('Category: ${item.category}',
-                      style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                _infoChip(
+                  outOfStock
+                      ? 'Out of stock'
+                      : 'Stock ${NumberFormat('#,###.##').format(displayQuantity)}',
+                  outOfStock ? AppColors.error : AppColors.success,
+                  icon: outOfStock
+                      ? Icons.remove_shopping_cart_outlined
+                      : Icons.inventory_2_outlined,
                 ),
+                if (item.category.isNotEmpty)
+                  _infoChip(item.category, Colors.blueGrey),
                 if (isLeruma)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: item.variation == 'CTN' ? Colors.blue.withOpacity(0.2)
-                           : item.variation == 'BUNDLE' ? Colors.orange.withOpacity(0.2)
-                           : Colors.green.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(item.variation,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: item.variation == 'CTN' ? Colors.blue
-                               : item.variation == 'BUNDLE' ? Colors.orange
-                               : Colors.green,
-                        )),
+                  _infoChip(
+                    item.variation,
+                    item.variation == 'CTN'
+                        ? Colors.blue
+                        : item.variation == 'BUNDLE'
+                            ? Colors.orange
+                            : Colors.green,
                   ),
               ],
             ),
-            const SizedBox(height: 4),
-            Text('Price: ${NumberFormat('#,###').format(item.unitPrice)} TSh',
-                style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
-            // Row with Days and Mainstore (Leruma only)
+            // Leruma-only: days since last sale + mainstore quantity
             if (isLeruma) ...[
+              const SizedBox(height: 5),
               Row(
                 children: [
                   Expanded(
                     child: Text('Days: ${item.days ?? '-'}',
                         style: TextStyle(
+                          fontSize: 12,
                           color: (item.days != null && item.days! > 30)
-                              ? Colors.red
-                              : (isDark ? AppColors.darkTextLight : AppColors.textLight),
-                          fontWeight: (item.days != null && item.days! > 30) ? FontWeight.bold : FontWeight.normal,
+                              ? AppColors.error
+                              : (isDark
+                                  ? AppColors.darkTextLight
+                                  : AppColors.textLight),
+                          fontWeight: (item.days != null && item.days! > 30)
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         )),
                   ),
-                  Text('Mainstore: ${item.mainstore != null ? NumberFormat('#,###.##').format(item.mainstore) : '-'}',
-                      style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                  Text(
+                      'Mainstore: ${item.mainstore != null ? NumberFormat('#,###.##').format(item.mainstore) : '-'}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight)),
                 ],
               ),
-              const SizedBox(height: 4),
             ],
-            Text('Stock: ${NumberFormat('#,###.##').format(displayQuantity)} ($locationLabel)',
-                style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)),
+            if (item.isParent || item.isChild) ...[
+              const SizedBox(height: 6),
+              _buildParentChildBadge(item, isDark),
+            ],
           ],
         ),
         trailing: Consumer<PermissionProvider>(

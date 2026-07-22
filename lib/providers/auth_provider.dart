@@ -70,8 +70,13 @@ class AuthProvider with ChangeNotifier {
 
         notifyListeners();
       } else {
-        // Token is invalid, clear it
+        // Token is invalid, clear the whole local session — including the
+        // cached permission set, which is keyed per-client (not per-user) and
+        // would otherwise be served to the next user on an offline fallback.
         await _apiService.clearToken();
+        if (_permissionProvider != null) {
+          await _permissionProvider!.clearPermissions();
+        }
       }
     }
   }
