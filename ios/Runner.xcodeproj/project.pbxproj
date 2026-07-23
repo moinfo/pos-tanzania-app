@@ -2039,6 +2039,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 9740EEB21CF90195004384FC /* Debug.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 25X3LP3BZ6;
 				APP_DISPLAY_NAME = Mopos;
 				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-mopos";
 				CLANG_ENABLE_MODULES = YES;
@@ -2062,6 +2064,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 25X3LP3BZ6;
 				APP_DISPLAY_NAME = Mopos;
 				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-mopos";
 				CLANG_ENABLE_MODULES = YES;
@@ -2084,6 +2088,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 25X3LP3BZ6;
 				APP_DISPLAY_NAME = Mopos;
 				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-mopos";
 				CLANG_ENABLE_MODULES = YES;
