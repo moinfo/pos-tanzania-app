@@ -6,7 +6,11 @@ import 'package:local_auth/local_auth.dart';
 /// Provides secure credential storage and biometric login functionality
 class BiometricService {
   final LocalAuthentication _localAuth = LocalAuthentication();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  // Same recovery behavior as ApiService._storage: reset undecryptable
+  // storage (post-restore Keystore mismatch) instead of failing every read.
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(resetOnError: true),
+  );
 
   // Storage keys for biometric data
   static const String _keyBiometricEnabled = 'biometric_enabled';

@@ -43,7 +43,13 @@ import '../models/shop.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
-  final _storage = const FlutterSecureStorage();
+  // resetOnError: if the Keystore key can no longer decrypt the stored data
+  // (e.g. after a backup restore or OS transfer), wipe and recreate the store
+  // instead of throwing BadPaddingException on every read — the user falls
+  // back to the login screen instead of being stuck on a crash screen.
+  static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(resetOnError: true),
+  );
   // Static so every ApiService instance shares one cached token — providers
   // hold long-lived instances, and a per-instance cache would keep serving a
   // logged-out user's token until app restart.
