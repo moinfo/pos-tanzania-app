@@ -319,6 +319,21 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   ],
                 ),
               ),
+              // Switch business (linked accounts) - multi-tenant clients only
+              if (ApiService.currentClient?.features.hasMultiTenant == true)
+                IconButton(
+                  icon: const Icon(
+                    Icons.swap_horizontal_circle_outlined,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const LinkedAccountsScreen()),
+                  ),
+                  tooltip: 'Switch Business',
+                ),
               // Dark mode toggle
               IconButton(
                 icon: Icon(

@@ -312,12 +312,17 @@ class AuthProvider with ChangeNotifier {
 
       // Same cache resets as login()
       ApiService.clearDashboardCache();
-      if (_locationProvider != null) {
-        await _locationProvider!.clear();
-      }
       if (_permissionProvider != null) {
         await _permissionProvider!.clearPermissions();
         await _permissionProvider!.fetchPermissions();
+      }
+      // Clear AND re-initialize locations for the new tenant — the home
+      // dashboard hides all stat cards until a location is selected, so a
+      // cleared-but-not-reloaded LocationProvider leaves it empty (the
+      // login screen does the same initialize() after a normal login).
+      if (_locationProvider != null) {
+        await _locationProvider!.clear();
+        await _locationProvider!.initialize();
       }
 
       _isLoading = false;
