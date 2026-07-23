@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Moinfotech</string>
+	<string>$(APP_DISPLAY_NAME)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,6 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NFCReaderUsageDescription</key>
+	<string>We use NFC to read customer cards for quick identification and payments</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>We use Face ID to provide secure and convenient login to your account</string>
 	<key>NSCameraUsageDescription</key>
@@ -57,5 +59,7 @@
 	<string>We need your location to register shop GPS coordinates for accurate shop mapping</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location to register shop GPS coordinates for accurate shop mapping</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
