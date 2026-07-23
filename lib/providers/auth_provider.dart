@@ -295,6 +295,42 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Switch to a linked account (other tenant) without a password.
+  /// Performs the same session swap as logout+login: new token/tenant are
+  /// saved by ApiService.switchAccount; here we replace the user and reset
+  /// every per-session cache so nothing leaks between tenants.
+  Future<bool> switchAccount(int personId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final result = await _apiService.switchAccount(personId);
+
+    if (result.isSuccess && result.data != null) {
+      _user = result.data;
+      _isAuthenticated = true;
+
+      // Same cache resets as login()
+      ApiService.clearDashboardCache();
+      if (_locationProvider != null) {
+        await _locationProvider!.clear();
+      }
+      if (_permissionProvider != null) {
+        await _permissionProvider!.clearPermissions();
+        await _permissionProvider!.fetchPermissions();
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
+
+    _error = result.message;
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
   /// Refresh token
   Future<void> refreshToken() async {
     try {

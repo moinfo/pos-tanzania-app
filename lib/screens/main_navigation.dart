@@ -33,6 +33,7 @@ import 'positions/positions_screen.dart';
 import 'seller_report_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
+import 'linked_accounts_screen.dart';
 import 'nfc_cards_screen.dart';
 import 'nfc_confirmations_screen.dart';
 import 'nfc_card_lookup_screen.dart';
@@ -1020,6 +1021,23 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ),
             const Divider(),
+            // Linked accounts / switch business - multi-tenant clients only
+            if (ApiService.currentClient?.features.hasMultiTenant == true)
+              ListTile(
+                leading: Icon(Icons.swap_horizontal_circle_outlined,
+                    color: AppColors.brandPrimary),
+                title: const Text('Switch Business'),
+                subtitle: const Text('Linked accounts',
+                    style: TextStyle(fontSize: 11)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const LinkedAccountsScreen()),
+                  );
+                },
+              ),
             ListTile(
               leading: Icon(Icons.settings, color: AppColors.brandPrimary),
               title: const Text('Settings'),

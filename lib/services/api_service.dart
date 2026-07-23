@@ -500,6 +500,99 @@ class ApiService {
     }
   }
 
+  // ─── Linked Accounts (cross-tenant switching) ───────────────────────────
+
+  /// Link another account (other tenant) to the current session's account.
+  /// Requires the other account's password once; afterwards switchAccount()
+  /// works with no password.
+  Future<ApiResponse<Map<String, dynamic>>> linkAccount(
+      String username, String password) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/auth/link'),
+            headers: await _getHeaders(),
+            body: json.encode({'username': username, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 30));
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Accounts linked to the current one.
+  Future<ApiResponse<List<Map<String, dynamic>>>> getLinkedAccounts() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrlSync/auth/linked'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 30));
+      return _handleResponse<List<Map<String, dynamic>>>(
+        response,
+        (data) => (data['accounts'] as List<dynamic>? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Switch to a linked account: server issues a fresh token for it, which
+  /// replaces the current session (token + tenant), exactly like a login.
+  Future<ApiResponse<User>> switchAccount(int personId) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/auth/switch'),
+            headers: await _getHeaders(),
+            body: json.encode({'person_id': personId}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final result = _handleResponse<User>(
+        response,
+        (data) => User.fromJson(data),
+      );
+
+      if (result.isSuccess && result.data?.token != null) {
+        int? tenantId;
+        try {
+          final raw = json.decode(response.body);
+          final tid = raw['data']?['tenant_id'];
+          if (tid != null) {
+            tenantId = tid is int
+                ? tid
+                : (tid is double ? tid.toInt() : int.tryParse(tid.toString()));
+          }
+        } catch (_) {}
+        await saveToken(result.data!.token!, tenantId: tenantId);
+      }
+
+      return result;
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Remove an account link.
+  Future<ApiResponse<void>> unlinkAccount(int linkId) async {
+    try {
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrlSync/auth/unlink/$linkId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 30));
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ─── Physical Stock API ─────────────────────────────────────────────────
 
   /// Physical stock count page data: items with system qty at the location,
