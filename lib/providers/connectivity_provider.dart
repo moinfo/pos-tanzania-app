@@ -5,7 +5,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 /// Provider to monitor network connectivity status
 class ConnectivityProvider extends ChangeNotifier {
   final Connectivity _connectivity = Connectivity();
-  StreamSubscription<ConnectivityResult>? _subscription;
+  // connectivity_plus v6 reports a LIST of active connections
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   // Current connectivity status
   bool _isOnline = true;
@@ -39,6 +40,8 @@ class ConnectivityProvider extends ChangeNotifier {
         return 'Bluetooth';
       case ConnectivityResult.vpn:
         return 'VPN';
+      case ConnectivityResult.satellite:
+        return 'Satellite';
       case ConnectivityResult.other:
         return 'Other';
       case ConnectivityResult.none:
@@ -82,13 +85,15 @@ class ConnectivityProvider extends ChangeNotifier {
     }
   }
 
-  /// Update connectivity status
-  void _updateConnectivity(ConnectivityResult result) {
+  /// Update connectivity status.
+  /// v6 reports a list; the device is offline only when the list is empty or
+  /// contains just [none]. The displayed type is the first active connection.
+  void _updateConnectivity(List<ConnectivityResult> results) {
     final wasOnline = _isOnline;
 
-    // Determine connection type and online status
-    _connectionType = result;
-    _isOnline = result != ConnectivityResult.none;
+    final active = results.where((r) => r != ConnectivityResult.none).toList();
+    _connectionType = active.isNotEmpty ? active.first : ConnectivityResult.none;
+    _isOnline = active.isNotEmpty;
 
     // Track online/offline transitions
     if (wasOnline && !_isOnline) {

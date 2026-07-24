@@ -45,7 +45,7 @@ class SyncService {
   SyncStatus _status = SyncStatus.idle;
   bool _isSyncing = false;
   Timer? _autoSyncTimer;
-  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   // Callbacks
   Function(SyncStatus status)? onSyncStatusChanged;
@@ -108,8 +108,9 @@ class SyncService {
   }
 
   /// Handle connectivity changes
-  Future<void> _handleConnectivityChange(ConnectivityResult result) async {
-    final hasConnection = result != ConnectivityResult.none;
+  Future<void> _handleConnectivityChange(List<ConnectivityResult> results) async {
+    // connectivity_plus v6: online when any active (non-none) connection exists
+    final hasConnection = results.any((r) => r != ConnectivityResult.none);
 
     debugPrint('SyncService: Connectivity changed - hasConnection: $hasConnection');
 
@@ -144,8 +145,8 @@ class SyncService {
   /// Check if online
   Future<bool> _isOnline() async {
     try {
-      final result = await Connectivity().checkConnectivity();
-      return result != ConnectivityResult.none;
+      final results = await Connectivity().checkConnectivity();
+      return results.any((r) => r != ConnectivityResult.none);
     } catch (e) {
       debugPrint('SyncService: Error checking connectivity - $e');
       return true; // Assume online if check fails
