@@ -5,6 +5,11 @@ import '../providers/permission_provider.dart';
 /// Widget that shows/hides its child based on permission
 class PermissionWrapper extends StatelessWidget {
   final String? permissionId;
+
+  /// Module-level gate: grants access on the module row itself OR any of its
+  /// sub-permissions (e.g. `transactions_wakala` satisfies `transactions`).
+  /// Use this to match how the bottom navigation gates the same screen.
+  final String? moduleId;
   final List<String>? anyPermissions;
   final List<String>? allPermissions;
   final Widget child;
@@ -14,6 +19,7 @@ class PermissionWrapper extends StatelessWidget {
   const PermissionWrapper({
     Key? key,
     this.permissionId,
+    this.moduleId,
     this.anyPermissions,
     this.allPermissions,
     required this.child,
@@ -29,6 +35,9 @@ class PermissionWrapper extends StatelessWidget {
 
     if (permissionId != null) {
       hasAccess = permissionProvider.hasPermission(permissionId!);
+    } else if (moduleId != null) {
+      hasAccess = permissionProvider.hasPermission(moduleId!) ||
+          permissionProvider.hasModulePermission(moduleId!);
     } else if (anyPermissions != null && anyPermissions!.isNotEmpty) {
       hasAccess = permissionProvider.hasAnyPermission(anyPermissions!);
     } else if (allPermissions != null && allPermissions!.isNotEmpty) {

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../models/transaction.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/permission_provider.dart';
+import '../../models/permission_model.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
@@ -71,29 +73,34 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
+    // Reading the report and re-scoping its period are separate grants: without
+    // this the report stays on its default period.
+    final canChangeDateRange = Provider.of<PermissionProvider>(context)
+        .hasPermission(PermissionIds.transactionsWakalaReportDateRange);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Wakala Report'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.date_range),
-            onPressed: () async {
-              final picked = await showDateRangePicker(
-                context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-                initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
-              );
-              if (picked != null) {
-                setState(() {
-                  _startDate = picked.start;
-                  _endDate = picked.end;
-                });
-                _loadReport();
-              }
-            },
-          ),
+          if (canChangeDateRange)
+            IconButton(
+              icon: const Icon(Icons.date_range),
+              onPressed: () async {
+                final picked = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+                );
+                if (picked != null) {
+                  setState(() {
+                    _startDate = picked.start;
+                    _endDate = picked.end;
+                  });
+                  _loadReport();
+                }
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadReport,
@@ -376,9 +383,11 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
             const Divider(height: 24),
             _buildSummaryRow('Calculated Capital', report.calculatedCapital, amountColor),
             const SizedBox(height: 12),
-            _buildSummaryRow('Capital', report.capital, isDark ? Colors.cyanAccent : Colors.blue.shade700),
+            _buildSummaryRow(
+                'Capital', report.capital, isDark ? Colors.cyanAccent : Colors.blue.shade700),
             const SizedBox(height: 12),
-            _buildSummaryRow('Commission', report.commission, isDark ? Colors.amberAccent : Colors.orange.shade700),
+            _buildSummaryRow('Commission', report.commission,
+                isDark ? Colors.amberAccent : Colors.orange.shade700),
             const SizedBox(height: 12),
             _buildSummaryRow('Actual Capital', report.actualCapital, amountColor, isLarge: true),
           ],
@@ -387,10 +396,12 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     );
   }
 
-  Widget _buildCreditorDebtorSection(CreditorDebtorSection section, BuildContext context, {required bool isCreditor}) {
+  Widget _buildCreditorDebtorSection(CreditorDebtorSection section, BuildContext context,
+      {required bool isCreditor}) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    final amountColor = isCreditor ? AppColors.primary : (isDark ? Colors.greenAccent : Colors.green.shade700);
+    final amountColor =
+        isCreditor ? AppColors.primary : (isDark ? Colors.greenAccent : Colors.green.shade700);
 
     return GlassmorphicCard(
       child: Padding(
@@ -433,7 +444,8 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                                 item.description,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
+                                  color:
+                                      isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
                                 ),
                               ),
                             ],
@@ -480,8 +492,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount, Color color,
-      {bool isLarge = false}) {
+  Widget _buildSummaryRow(String label, double amount, Color color, {bool isLarge = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -582,10 +593,12 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
           _buildSkeletonSummaryCard(isDark),
           const SizedBox(height: 16),
           // Detail cards skeleton
-          ...List.generate(4, (index) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildSkeletonDetailCard(isDark),
-          )),
+          ...List.generate(
+              4,
+              (index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildSkeletonDetailCard(isDark),
+                  )),
         ],
       ),
     );

@@ -174,6 +174,11 @@ class _CashBasisScreenState extends State<CashBasisScreen>
       return;
     }
 
+    // Without the date grant the entry is pinned to today, matching how web
+    // renders the date input readonly (views/transactions/footer.php).
+    final canChangeDate = Provider.of<PermissionProvider>(context, listen: false)
+        .hasPermission(PermissionIds.transactionsCashBasisDate);
+
     CashBasisCategory? selectedCategory = _categories.first;
     final amountController = TextEditingController();
     DateTime selectedDate = DateTime.now();
@@ -219,20 +224,23 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                 ListTile(
                   title: const Text('Date'),
                   subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) {
-                      setDialogState(() {
-                        selectedDate = picked;
-                      });
-                    }
-                  },
+                  trailing: canChangeDate ? const Icon(Icons.calendar_today) : null,
+                  enabled: canChangeDate,
+                  onTap: canChangeDate
+                      ? () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedDate = picked;
+                            });
+                          }
+                        }
+                      : null,
                 ),
               ],
             ),
@@ -302,7 +310,10 @@ class _CashBasisScreenState extends State<CashBasisScreen>
           ],
         ),
         actions: [
-          if (_tabController.index == 1)
+          // Filtering the transaction list by an arbitrary range is a separate
+          // grant from viewing it, mirroring web's $can_search_* gate.
+          if (_tabController.index == 1 &&
+              permissionProvider.hasPermission(PermissionIds.transactionsCashBasisDateRange))
             IconButton(
               icon: const Icon(Icons.date_range),
               onPressed: () async {
@@ -568,6 +579,8 @@ class _CashBasisScreenState extends State<CashBasisScreen>
     );
     final amountController = TextEditingController(text: transaction.amount.toString());
     DateTime selectedDate = DateFormat('yyyy-MM-dd').parse(transaction.date);
+    final canChangeDate = Provider.of<PermissionProvider>(context, listen: false)
+        .hasPermission(PermissionIds.transactionsCashBasisDate);
 
     await showDialog(
       context: context,
@@ -610,20 +623,23 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                 ListTile(
                   title: const Text('Date'),
                   subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) {
-                      setDialogState(() {
-                        selectedDate = picked;
-                      });
-                    }
-                  },
+                  trailing: canChangeDate ? const Icon(Icons.calendar_today) : null,
+                  enabled: canChangeDate,
+                  onTap: canChangeDate
+                      ? () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedDate = picked;
+                            });
+                          }
+                        }
+                      : null,
                 ),
               ],
             ),

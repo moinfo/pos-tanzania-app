@@ -8,6 +8,8 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/permission_provider.dart';
+import '../../models/permission_model.dart';
 
 class CommissionScreen extends StatefulWidget {
   const CommissionScreen({super.key});
@@ -176,6 +178,10 @@ class _CommissionScreenState extends State<CommissionScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
+    // Watched, not read, so the screen re-gates itself when permissions refresh.
+    final canChangeDateRange = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.transactionsCommissionDateRange);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
@@ -184,7 +190,8 @@ class _CommissionScreenState extends State<CommissionScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(icon: const Icon(Icons.date_range), onPressed: _selectDateRange, tooltip: 'Filter by date range'),
+          if (canChangeDateRange)
+            IconButton(icon: const Icon(Icons.date_range), onPressed: _selectDateRange, tooltip: 'Filter by date range'),
         ],
       ),
       body: Column(
@@ -215,8 +222,10 @@ class _CommissionScreenState extends State<CommissionScreen> {
                     ),
                   ],
                 ),
+                // Second entry point to the same range picker as the app bar
+                // button, so it needs the same gate.
                 TextButton.icon(
-                  onPressed: _selectDateRange,
+                  onPressed: canChangeDateRange ? _selectDateRange : null,
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
@@ -480,6 +489,12 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // Without this grant the entry is pinned to today, matching how web renders
+    // the date input readonly (views/transactions/footer.php).
+    final canChangeDate = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.transactionsCommissionDate);
+
     return AlertDialog(
       title: Text(_isEditing ? 'Edit Commission' : 'Add Commission'),
       content: Form(
@@ -528,15 +543,17 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
               const SizedBox(height: 16),
               // Date
               InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (picked != null) setState(() => _selectedDate = picked);
-                },
+                onTap: canChangeDate
+                    ? () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (picked != null) setState(() => _selectedDate = picked);
+                      }
+                    : null,
                 child: InputDecorator(
                   decoration: const InputDecoration(labelText: 'Date', border: OutlineInputBorder(), suffixIcon: Icon(Icons.calendar_today)),
                   child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),

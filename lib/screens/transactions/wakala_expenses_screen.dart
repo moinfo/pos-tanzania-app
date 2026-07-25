@@ -8,6 +8,8 @@ import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/permission_provider.dart';
+import '../../models/permission_model.dart';
 
 class WakalaExpensesScreen extends StatefulWidget {
   const WakalaExpensesScreen({super.key});
@@ -170,6 +172,10 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
+    // Watched, not read, so the screen re-gates itself when permissions refresh.
+    final canChangeDateRange = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.transactionsWakalaExpensesDateRange);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
@@ -178,11 +184,12 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.date_range),
-            onPressed: _selectDateRange,
-            tooltip: 'Filter by date range',
-          ),
+          if (canChangeDateRange)
+            IconButton(
+              icon: const Icon(Icons.date_range),
+              onPressed: _selectDateRange,
+              tooltip: 'Filter by date range',
+            ),
         ],
       ),
       body: Column(
@@ -245,8 +252,10 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                     ),
                   ],
                 ),
+                // Second entry point to the same range picker as the app bar
+                // button, so it needs the same gate.
                 TextButton.icon(
-                  onPressed: _selectDateRange,
+                  onPressed: canChangeDateRange ? _selectDateRange : null,
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
@@ -754,6 +763,11 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
+    // Without this grant the expense is pinned to today, matching how web
+    // renders the date input readonly (views/transactions/footer.php).
+    final canChangeDate = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.transactionsWakalaExpensesDate);
 
     // Light mode input decoration
     final lightInputDecoration = InputDecoration(
@@ -912,7 +926,7 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
 
                   // Date
                   InkWell(
-                    onTap: _selectDate,
+                    onTap: canChangeDate ? _selectDate : null,
                     borderRadius: BorderRadius.circular(12),
                     child: InputDecorator(
                       decoration: inputDecoration.copyWith(

@@ -266,6 +266,13 @@ class PermissionIds {
   static const String transactionsDepositsAndWithdraws = 'transactions_deposits_and_withdraws';
   static const String transactionsWakalaReport = 'transactions_wakala_report';
 
+  // Transactions admin. On web this grant does two things (see
+  // views/transactions/header.php:330 and footer.php): it reveals the Settings
+  // menu (Cash Basis Types / Bank Basis Types / SIM Cards) and it decides
+  // whether the Date field on every add/edit form is an editable datepicker or
+  // a readonly input pinned to today. Mobile mirrors both behaviours.
+  static const String transactionsAdmin = 'transactions_admin';
+
   // Cash Basis
   static const String transactionsCashBasis = 'transactions_cash_basis';
   static const String transactionsCashBasisAdd = 'transactions_cash_basis_add';
@@ -274,6 +281,8 @@ class PermissionIds {
   static const String transactionsCashBasisSettingAdd = 'transactions_cash_basis_setting_add';
   static const String transactionsCashBasisSettingEdit = 'transactions_cash_basis_setting_edit';
   static const String transactionsCashBasisSettingDelete = 'transactions_cash_basis_setting_delete';
+  static const String transactionsCashBasisDate = 'transactions_cash_basis_date';
+  static const String transactionsCashBasisDateRange = 'transactions_cash_basis_date_range';
 
   // Bank Basis
   static const String transactionsBankBasis = 'transactions_bank_basis';
@@ -283,6 +292,8 @@ class PermissionIds {
   static const String transactionsBankBasisSettingAdd = 'transactions_bank_basis_setting_add';
   static const String transactionsBankBasisSettingEdit = 'transactions_bank_basis_setting_edit';
   static const String transactionsBankBasisSettingDelete = 'transactions_bank_basis_setting_delete';
+  static const String transactionsBankBasisDate = 'transactions_bank_basis_date';
+  static const String transactionsBankBasisDateRange = 'transactions_bank_basis_date_range';
 
   // Customer Transactions (Deposits & Withdrawals)
   static const String transactionsCustomer = 'transactions_customer';
@@ -292,6 +303,9 @@ class PermissionIds {
   static const String transactionsWithdrawAdd = 'transactions_withdraw_add';
   static const String transactionsWithdrawEdit = 'transactions_withdraw_edit';
   static const String transactionsWithdrawDelete = 'transactions_withdraw_delete';
+  // Finer-grained than web, which controls date editing with the single
+  // transactions_admin grant (views/transactions/footer.php). Registered on the
+  // web side by migration 20260725000001_transactions_missing_permissions.
   static const String transactionsDepositDateRange = 'transactions_deposit_date_range';
   static const String transactionsDepositDate = 'transactions_deposit_date';
   static const String transactionsWithdrawDateRange = 'transactions_withdraw_date_range';
@@ -305,24 +319,56 @@ class PermissionIds {
   static const String transactionsWakalaSettingAdd = 'transactions_wakala_setting_add';
   static const String transactionsWakalaSettingEdit = 'transactions_wakala_setting_edit';
   static const String transactionsWakalaSettingDelete = 'transactions_wakala_setting_delete';
+  static const String transactionsWakalaDate = 'transactions_wakala_date';
+  static const String transactionsWakalaDateRange = 'transactions_wakala_date_range';
+  static const String transactionsWakalaReportDateRange = 'transactions_wakala_report_date_range';
 
-  // Wakala Expenses
+  // Wakala Expenses.
+  // The four base ids below are NOT registered in ospos_permissions — web reuses
+  // the plain wakala grants for expenses (Transactions.php:319/325/335/346 check
+  // transactions_wakala, _add, _edit, _delete). Gate expense screens on the
+  // transactionsWakala* family; only the two date ids here are real.
   static const String transactionsWakalaExpenses = 'transactions_wakala_expenses';
   static const String transactionsWakalaExpensesAdd = 'transactions_wakala_expenses_add';
   static const String transactionsWakalaExpensesEdit = 'transactions_wakala_expenses_edit';
   static const String transactionsWakalaExpensesDelete = 'transactions_wakala_expenses_delete';
+  static const String transactionsWakalaExpensesDate = 'transactions_wakala_expenses_date';
+  static const String transactionsWakalaExpensesDateRange = 'transactions_wakala_expenses_date_range';
 
-  // Commission
+  // Customer balance screen (web: Transactions/customerBalance).
+  static const String transactionsCustomerBalance = 'transactions_customer_balance';
+  static const String transactionsCustomerBalanceDateRange = 'transactions_customer_balance_date_range';
+
+  // General transactions report (web: Transactions/report).
+  static const String transactionsReport = 'transactions_report';
+  static const String transactionsReportDateRange = 'transactions_report_date_range';
+
+  // Commission — permissions registered, API PENDING.
+  // Migration 20260725000001_transactions_missing_permissions registers these in
+  // ospos_permissions and adds them to the e-Wakala package, so the cards can
+  // now render. The endpoints they drive still do not exist:
+  // /api/transactions/commissions, /add_commission, /update_commission and
+  // /delete_commission are absent from api/Transactions.php, so
+  // commission_screen.dart will 404 until the web side ships a commission table
+  // and those four endpoints.
   static const String transactionsCommission = 'transactions_commission';
   static const String transactionsCommissionAdd = 'transactions_commission_add';
   static const String transactionsCommissionEdit = 'transactions_commission_edit';
   static const String transactionsCommissionDelete = 'transactions_commission_delete';
+  static const String transactionsCommissionDate = 'transactions_commission_date';
+  static const String transactionsCommissionDateRange = 'transactions_commission_date_range';
 
-  // Capital
+  // Capital — permissions registered, API PENDING.
+  // Same situation as Commission above. The ospos_capital table does exist and
+  // Transaction.php:568 reads it for the wakala report, but there is no CRUD API
+  // (/api/transactions/capital, /add_capital, /update_capital and
+  // /delete_capital are all missing).
   static const String transactionsCapital = 'transactions_capital';
   static const String transactionsCapitalAdd = 'transactions_capital_add';
   static const String transactionsCapitalEdit = 'transactions_capital_edit';
   static const String transactionsCapitalDelete = 'transactions_capital_delete';
+  static const String transactionsCapitalDate = 'transactions_capital_date';
+  static const String transactionsCapitalDateRange = 'transactions_capital_date_range';
 
   // Reports sub-permissions
   static const String reportsCustomers = 'reports_customers';

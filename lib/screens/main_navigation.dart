@@ -990,9 +990,11 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 },
               ),
             ),
-            // Transactions - requires transactions permission
+            // Transactions - module-level: the `transactions` row itself or any
+            // `transactions_*` sub-permission. Matches the bottom-nav gate so a
+            // user granted only e.g. transactions_wakala sees both entry points.
             PermissionWrapper(
-              permissionId: PermissionIds.transactions,
+              moduleId: PermissionIds.transactions,
               child: ListTile(
                 leading: Icon(Icons.swap_horiz, color: AppColors.brandPrimary),
                 title: const Text('Transactions'),

@@ -63,42 +63,51 @@ class TransactionsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Customer Transactions Section
-                if (permissionProvider.hasPermission(PermissionIds.transactionsDepositsAndWithdraws)) ...[
+                // Customer Transactions Section.
+                // The two cards carry separate grants -- Customer Balances used
+                // to ride along on the deposits grant, so anyone who could post
+                // a deposit could also read every customer's balance.
+                if (permissionProvider.hasPermission(PermissionIds.transactionsDepositsAndWithdraws) ||
+                    permissionProvider.hasPermission(PermissionIds.transactionsCustomerBalance)) ...[
                   _buildSectionHeader(context, 'Customer Transactions', isDark),
                   const SizedBox(height: 12),
-                  _buildTransactionCard(
-                    context,
-                    icon: Icons.account_balance_wallet,
-                    title: 'Deposits & Withdrawals',
-                    subtitle: 'Manage customer deposits and withdrawals',
-                    isDark: isDark,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CustomerTransactionsScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  if (permissionProvider.hasPermission(PermissionIds.transactionsDepositsAndWithdraws)) ...[
+                    _buildTransactionCard(
+                      context,
+                      icon: Icons.account_balance_wallet,
+                      title: 'Deposits & Withdrawals',
+                      subtitle: 'Manage customer deposits and withdrawals',
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CustomerTransactionsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (permissionProvider.hasPermission(PermissionIds.transactionsCustomerBalance)) ...[
+                    _buildTransactionCard(
+                      context,
+                      icon: Icons.people,
+                      title: 'Customer Balances',
+                      subtitle: 'View all customer balance summaries',
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CustomerBalanceScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   const SizedBox(height: 12),
-                  _buildTransactionCard(
-                    context,
-                    icon: Icons.people,
-                    title: 'Customer Balances',
-                    subtitle: 'View all customer balance summaries',
-                    isDark: isDark,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CustomerBalanceScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
                 ],
 
                 // Cash & Bank Management Section
@@ -150,10 +159,13 @@ class TransactionsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                 ],
 
-                // Wakala Section
+                // Wakala Section.
+                // Deliberately not checking transactionsWakalaExpenses here: it
+                // is not a real permission on web, which reuses the plain wakala
+                // grants for expenses. The expenses card below gates on
+                // transactionsWakala for the same reason.
                 if (permissionProvider.hasPermission(PermissionIds.transactionsWakala) ||
-                    permissionProvider.hasPermission(PermissionIds.transactionsWakalaReport) ||
-                    permissionProvider.hasPermission(PermissionIds.transactionsWakalaExpenses)) ...[
+                    permissionProvider.hasPermission(PermissionIds.transactionsWakalaReport)) ...[
                   _buildSectionHeader(context, 'Wakala Management', isDark),
                   const SizedBox(height: 12),
 
