@@ -947,78 +947,98 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
   }
 
   /// Credit Card settings, mirroring the web customer form.
+  ///
+  /// Each item list is hidden unless the employee holds the matching grant. The
+  /// API enforces the same three permissions on write and silently drops a list
+  /// it will not accept, so showing an editable picker to someone without the
+  /// grant would let them make changes that are discarded without any error.
   Widget _buildCreditCardSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Icon(Icons.credit_card, color: Colors.purple[700], size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Credit Card Settings',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple[700],
-                ),
+    return Consumer<PermissionProvider>(
+      builder: (context, permissionProvider, child) {
+        final canEditWhitelist =
+            permissionProvider.hasPermission(PermissionIds.customerEditCcWhitelist);
+        final canEditBlacklist =
+            permissionProvider.hasPermission(PermissionIds.customerEditCcBlacklist);
+        final canEditExceptions =
+            permissionProvider.hasPermission(PermissionIds.customerEditCcExceptions);
+        final showAnyList = canEditWhitelist || canEditBlacklist || canEditExceptions;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.credit_card, color: Colors.purple[700], size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Credit Card Settings',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple[700],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        SwitchListTile(
-          title: const Text('Allow CC on All Restricted Items'),
-          subtitle: const Text(
-              'Allow this customer to buy ALL credit-card-restricted items using Credit Card payment'),
-          value: _allowCreditCardRestricted,
-          onChanged: (value) {
-            setState(() => _allowCreditCardRestricted = value);
-          },
-          contentPadding: EdgeInsets.zero,
-          activeThumbColor: Colors.purple,
-        ),
-        if (!_ccListsLoaded)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 12),
-                Expanded(child: Text('Loading credit card item lists…')),
-              ],
             ),
-          )
-        else ...[
-          _buildCcItemPicker(
-            key: 'whitelist',
-            title: 'Allowed CC Items (Whitelist)',
-            hint: 'Only these items can be sold by CC to this customer',
-            color: Colors.green,
-            selected: _ccWhitelist,
-          ),
-          _buildCcItemPicker(
-            key: 'blacklist',
-            title: 'CC Blocked Items (Blacklist)',
-            hint: 'These items are blocked from CC for this customer',
-            color: Colors.red,
-            selected: _ccBlacklist,
-          ),
-          _buildCcItemPicker(
-            key: 'exceptions',
-            title: 'CC Allowed Restricted (Exceptions)',
-            hint: 'These restricted items ARE allowed by CC for this customer',
-            color: Colors.orange,
-            selected: _ccExceptions,
-          ),
-        ],
-        const Divider(),
-      ],
+            SwitchListTile(
+              title: const Text('Allow CC on All Restricted Items'),
+              subtitle: const Text(
+                  'Allow this customer to buy ALL credit-card-restricted items using Credit Card payment'),
+              value: _allowCreditCardRestricted,
+              onChanged: (value) {
+                setState(() => _allowCreditCardRestricted = value);
+              },
+              contentPadding: EdgeInsets.zero,
+              activeThumbColor: Colors.purple,
+            ),
+            if (showAnyList && !_ccListsLoaded)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(child: Text('Loading credit card item lists…')),
+                  ],
+                ),
+              )
+            else if (showAnyList) ...[
+              if (canEditWhitelist)
+                _buildCcItemPicker(
+                  key: 'whitelist',
+                  title: 'Allowed CC Items (Whitelist)',
+                  hint: 'Only these items can be sold by CC to this customer',
+                  color: Colors.green,
+                  selected: _ccWhitelist,
+                ),
+              if (canEditBlacklist)
+                _buildCcItemPicker(
+                  key: 'blacklist',
+                  title: 'CC Blocked Items (Blacklist)',
+                  hint: 'These items are blocked from CC for this customer',
+                  color: Colors.red,
+                  selected: _ccBlacklist,
+                ),
+              if (canEditExceptions)
+                _buildCcItemPicker(
+                  key: 'exceptions',
+                  title: 'CC Allowed Restricted (Exceptions)',
+                  hint: 'These restricted items ARE allowed by CC for this customer',
+                  color: Colors.orange,
+                  selected: _ccExceptions,
+                ),
+            ],
+            const Divider(),
+          ],
+        );
+      },
     );
   }
 
@@ -1192,6 +1212,15 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
   Future<void> _saveCustomer() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Read grants before any await so the BuildContext is still valid
+    final permissions = context.read<PermissionProvider>();
+    final canEditCcWhitelist =
+        permissions.hasPermission(PermissionIds.customerEditCcWhitelist);
+    final canEditCcBlacklist =
+        permissions.hasPermission(PermissionIds.customerEditCcBlacklist);
+    final canEditCcExceptions =
+        permissions.hasPermission(PermissionIds.customerEditCcExceptions);
+
     setState(() => _isLoading = true);
 
     final formData = CustomerFormData(
@@ -1226,11 +1255,16 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
       nfcConfirmRequiredCash: _nfcConfirmRequiredCash,
       allowBankPayment: _allowBankPayment,
       allowCreditCardRestricted: _allowCreditCardRestricted,
-      // Only send the CC lists once we know the customer's real ones. Sending
-      // them before the per-customer fetch lands would overwrite them with [].
-      creditCardItems: _ccListsLoaded ? _ccWhitelist : null,
-      ccBlacklistItems: _ccListsLoaded ? _ccBlacklist : null,
-      ccExceptionItems: _ccListsLoaded ? _ccExceptions : null,
+      // Only send a CC list when we know the customer's real one (the fetch has
+      // landed) and the employee may edit it. Sending before the fetch would
+      // overwrite the list with []; sending one we cannot edit is pointless
+      // because the API drops it.
+      creditCardItems:
+          _ccListsLoaded && canEditCcWhitelist ? _ccWhitelist : null,
+      ccBlacklistItems:
+          _ccListsLoaded && canEditCcBlacklist ? _ccBlacklist : null,
+      ccExceptionItems:
+          _ccListsLoaded && canEditCcExceptions ? _ccExceptions : null,
     );
 
     final response = widget.customer == null

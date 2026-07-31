@@ -393,6 +393,13 @@ class PermissionIds {
   static const String nfcConfirmationsView = 'nfc_confirmations_view';
   static const String nfcPayment = 'nfc_payment';
 
+  // Customer Credit Card item lists. The API enforces these on write and
+  // silently ignores a list the caller is not granted, so the UI must hide
+  // each picker rather than let an edit be discarded without warning.
+  static const String customerEditCcWhitelist = 'customer_edit_cc_whitelist';
+  static const String customerEditCcBlacklist = 'customer_edit_cc_blacklist';
+  static const String customerEditCcExceptions = 'customer_edit_cc_exceptions';
+
   // TRA (TRADE) module permissions
   static const String tra = 'TRA';
   static const String traDateFilter = 'tra_date_filter';
