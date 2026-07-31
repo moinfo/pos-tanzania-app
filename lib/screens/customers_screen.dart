@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/nfc_service.dart';
 import '../models/customer.dart';
+import '../models/item.dart';
 import '../models/supervisor.dart';
 import '../models/permission_model.dart';
 import '../models/stock_location.dart';
@@ -839,6 +840,31 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
   // NFC settings
   bool _nfcConfirmRequired = false;
   bool _nfcPaymentEnabled = false;
+  bool _nfcConfirmRequiredCash = false;
+  // Payment settings
+  bool _allowBankPayment = false;
+
+  // Credit Card settings
+  bool _allowCreditCardRestricted = false;
+  List<int> _ccWhitelist = [];
+  List<int> _ccBlacklist = [];
+  List<int> _ccExceptions = [];
+
+  /// Item id -> display name, for rendering the selected chips.
+  final Map<int, String> _ccItemNames = {};
+
+  /// The list endpoint does not return the CC item lists -- only GET
+  /// /api/customers/:id does. Until that fetch succeeds the lists we hold are
+  /// not the customer's real ones, so they must not be sent on save or we would
+  /// silently wipe them. The API leaves a list untouched when its key is absent.
+  bool _ccListsLoaded = false;
+
+  final Map<String, TextEditingController> _ccSearchControllers = {};
+  final Map<String, List<Item>> _ccSuggestions = {};
+  final Map<String, bool> _ccSearching = {};
+
+  TextEditingController _ccSearchController(String key) =>
+      _ccSearchControllers.putIfAbsent(key, () => TextEditingController());
 
   @override
   void initState() {
@@ -871,8 +897,14 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
     // NFC settings
     _nfcConfirmRequired = widget.customer?.nfcConfirmRequired ?? false;
     _nfcPaymentEnabled = widget.customer?.nfcPaymentEnabled ?? false;
+    _nfcConfirmRequiredCash = widget.customer?.nfcConfirmRequiredCash ?? false;
+    // Payment settings
+    _allowBankPayment = widget.customer?.allowBankPayment ?? false;
+    // Credit Card settings
+    _allowCreditCardRestricted = widget.customer?.allowCreditCardRestricted ?? false;
 
     _loadSupervisors();
+    _loadCreditCardLists();
   }
 
   @override
@@ -896,6 +928,9 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
     _dueDateDaysController.dispose();
     _badDebtorDaysController.dispose();
     _taxIdController.dispose();
+    for (final controller in _ccSearchControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -911,183 +946,130 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
     }
   }
 
-  // ---- Credit Card settings section ----
-
-  // Per-picker UI state (keyed by picker id: 'whitelist'|'blacklist'|'exceptions')
-  final Map<String, TextEditingController> _ccControllers = {};
-  final Map<String, List<Map<String, dynamic>>> _ccSuggestions = {};
-  final Map<String, bool> _ccSearching = {};
-
-  TextEditingController _ccController(String key) {
-    return _ccControllers.putIfAbsent(key, () => TextEditingController());
-  }
-
-  // Normalize a suggest result entry into {id, name}
-  Map<String, dynamic>? _normalizeSuggestEntry(dynamic entry) {
-    if (entry is! Map) return null;
-    final dynamic rawId =
-        entry['value'] ?? entry['item_id'] ?? entry['id'];
-    final dynamic rawName = entry['label'] ?? entry['name'] ?? entry['text'];
-    if (rawId == null) return null;
-    final int? id = int.tryParse(rawId.toString());
-    if (id == null) return null;
-    final String name = (rawName ?? id).toString();
-    return {'id': id, 'name': name};
-  }
-
-  Future<void> _fetchCcSuggestions(String key, String endpoint,
-      String term) async {
-    if (term.trim().isEmpty) {
-      setState(() {
-        _ccSuggestions[key] = [];
-        _ccSearching[key] = false;
-      });
-      return;
-    }
-    setState(() => _ccSearching[key] = true);
-    try {
-      final List<dynamic> raw = endpoint == 'suggest_no_credit_card'
-          ? await _ccApiService.suggestItemsNoCreditCard(term)
-          : await _ccApiService.suggestItems(term);
-      final results = raw
-          .map(_normalizeSuggestEntry)
-          .where((e) => e != null)
-          .cast<Map<String, dynamic>>()
-          .toList();
-      if (!mounted) return;
-      setState(() {
-        _ccSuggestions[key] = results;
-        _ccSearching[key] = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _ccSuggestions[key] = [];
-        _ccSearching[key] = false;
-      });
-    }
-  }
-
+  /// Credit Card settings, mirroring the web customer form.
   Widget _buildCreditCardSection() {
-    final permissionProvider =
-        Provider.of<PermissionProvider>(context, listen: false);
-    final bool canToggle =
-        permissionProvider.hasPermission('customer_allow_credit_card_restricted');
-    final bool canWhitelist =
-        permissionProvider.hasPermission('customer_edit_cc_whitelist');
-    final bool canBlacklist =
-        permissionProvider.hasPermission('customer_edit_cc_blacklist');
-    final bool canExceptions =
-        permissionProvider.hasPermission('customer_edit_cc_exceptions');
-
-    // Only render the section if at least one control is granted
-    if (!canToggle && !canWhitelist && !canBlacklist && !canExceptions) {
-      return const SizedBox.shrink();
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 8),
-        const Divider(),
-        const Text(
-          'Credit Card Settings',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.credit_card, color: Colors.purple[700], size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Credit Card Settings',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple[700],
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        if (canToggle)
-          SwitchListTile(
-            title: const Text('Allow CC on All Restricted Items'),
-            subtitle: const Text(
-                'Allow this customer to pay by credit card for all restricted items'),
-            value: _allowCreditCardRestricted,
-            onChanged: (value) {
-              setState(() {
-                _allowCreditCardRestricted = value;
-              });
-            },
-          ),
-        if (canWhitelist)
+        SwitchListTile(
+          title: const Text('Allow CC on All Restricted Items'),
+          subtitle: const Text(
+              'Allow this customer to buy ALL credit-card-restricted items using Credit Card payment'),
+          value: _allowCreditCardRestricted,
+          onChanged: (value) {
+            setState(() => _allowCreditCardRestricted = value);
+          },
+          contentPadding: EdgeInsets.zero,
+          activeThumbColor: Colors.purple,
+        ),
+        if (!_ccListsLoaded)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Expanded(child: Text('Loading credit card item lists…')),
+              ],
+            ),
+          )
+        else ...[
           _buildCcItemPicker(
-            pickerKey: 'whitelist',
-            title: 'Credit Card Whitelist',
-            color: Colors.blue,
-            list: _creditCardItems,
-            suggestEndpoint: 'suggest',
-          ),
-        if (canBlacklist)
-          _buildCcItemPicker(
-            pickerKey: 'blacklist',
-            title: 'Credit Card Blacklist',
-            color: Colors.red,
-            list: _ccBlacklistItems,
-            suggestEndpoint: 'suggest',
-          ),
-        if (canExceptions)
-          _buildCcItemPicker(
-            pickerKey: 'exceptions',
-            title: 'Credit Card Exceptions',
+            key: 'whitelist',
+            title: 'Allowed CC Items (Whitelist)',
+            hint: 'Only these items can be sold by CC to this customer',
             color: Colors.green,
-            list: _ccExceptionItems,
-            suggestEndpoint: 'suggest_no_credit_card',
+            selected: _ccWhitelist,
           ),
+          _buildCcItemPicker(
+            key: 'blacklist',
+            title: 'CC Blocked Items (Blacklist)',
+            hint: 'These items are blocked from CC for this customer',
+            color: Colors.red,
+            selected: _ccBlacklist,
+          ),
+          _buildCcItemPicker(
+            key: 'exceptions',
+            title: 'CC Allowed Restricted (Exceptions)',
+            hint: 'These restricted items ARE allowed by CC for this customer',
+            color: Colors.orange,
+            selected: _ccExceptions,
+          ),
+        ],
+        const Divider(),
       ],
     );
   }
 
   Widget _buildCcItemPicker({
-    required String pickerKey,
+    required String key,
     required String title,
+    required String hint,
     required Color color,
-    required List<int> list,
-    required String suggestEndpoint,
+    required List<int> selected,
   }) {
-    final controller = _ccController(pickerKey);
-    final suggestions = _ccSuggestions[pickerKey] ?? const [];
-    final bool searching = _ccSearching[pickerKey] ?? false;
+    final suggestions = _ccSuggestions[key] ?? const <Item>[];
+    final searching = _ccSearching[key] ?? false;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, color: color),
           ),
-          const SizedBox(height: 4),
+          Text(
+            hint,
+            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 6),
           TextField(
-            controller: controller,
+            controller: _ccSearchController(key),
             decoration: InputDecoration(
+              hintText: 'Search and add item…',
               isDense: true,
               border: const OutlineInputBorder(),
-              prefixIcon: const Icon(Icons.search, size: 20),
+              prefixIcon: const Icon(Icons.search, size: 18),
               suffixIcon: searching
                   ? const Padding(
                       padding: EdgeInsets.all(12),
                       child: SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 14,
+                        height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     )
                   : null,
-              hintText: 'Search items to add...',
             ),
-            onChanged: (value) =>
-                _fetchCcSuggestions(pickerKey, suggestEndpoint, value),
+            onChanged: (value) => _searchCcItems(key, value),
           ),
           if (suggestions.isNotEmpty)
             Container(
-              margin: const EdgeInsets.only(top: 4),
               constraints: const BoxConstraints(maxHeight: 160),
+              margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(4),
@@ -1097,47 +1079,32 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
                 itemCount: suggestions.length,
                 itemBuilder: (context, index) {
                   final item = suggestions[index];
-                  final int id = item['id'] as int;
-                  final String name = item['name'] as String;
-                  final bool alreadyAdded = list.contains(id);
                   return ListTile(
                     dense: true,
-                    title: Text(name),
-                    trailing: alreadyAdded
-                        ? const Icon(Icons.check, color: Colors.grey, size: 18)
-                        : Icon(Icons.add, color: color, size: 18),
-                    onTap: alreadyAdded
-                        ? null
-                        : () {
-                            setState(() {
-                              list.add(id);
-                              _ccItemNames[id] = name;
-                              controller.clear();
-                              _ccSuggestions[pickerKey] = [];
-                            });
-                          },
+                    title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: const Icon(Icons.add, size: 18),
+                    onTap: () => _addCcItem(key, selected, item),
                   );
                 },
               ),
             ),
-          if (list.isNotEmpty)
+          if (selected.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Wrap(
                 spacing: 6,
-                runSpacing: 6,
-                children: list.map((id) {
-                  final String label = _ccItemNames[id] ?? 'Item #$id';
+                runSpacing: 4,
+                children: selected.map((id) {
                   return Chip(
-                    label: Text(label),
-                    backgroundColor: color.withOpacity(0.12),
-                    labelStyle: TextStyle(color: color),
+                    label: Text(
+                      _ccItemNames[id] ?? 'Item #$id',
+                      style: TextStyle(fontSize: 11, color: color),
+                    ),
+                    backgroundColor: color.withValues(alpha: 0.1),
+                    side: BorderSide(color: color.withValues(alpha: 0.4)),
+                    onDeleted: () => setState(() => selected.remove(id)),
                     deleteIconColor: color,
-                    onDeleted: () {
-                      setState(() {
-                        list.remove(id);
-                      });
-                    },
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   );
                 }).toList(),
               ),
@@ -1145,6 +1112,81 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         ],
       ),
     );
+  }
+
+  /// Load the customer's Credit Card item lists.
+  ///
+  /// GET /api/customers returns everything except these three lists, so the
+  /// customer handed to this form always has them empty. Only after this
+  /// per-customer fetch succeeds do we hold the real lists and allow saving them.
+  Future<void> _loadCreditCardLists() async {
+    final customer = widget.customer;
+    if (customer == null) {
+      // New customer: nothing to fetch, empty lists are genuinely correct
+      setState(() => _ccListsLoaded = true);
+      return;
+    }
+
+    final response = await _apiService.getCustomer(customer.personId);
+    if (!mounted || !response.isSuccess || response.data == null) {
+      debugPrint('CustomerForm: could not load CC lists - ${response.message}');
+      return;
+    }
+
+    final full = response.data!;
+    setState(() {
+      _ccWhitelist = List<int>.from(full.creditCardItems);
+      _ccBlacklist = List<int>.from(full.ccBlacklistItems);
+      _ccExceptions = List<int>.from(full.ccExceptionItems);
+      _allowCreditCardRestricted = full.allowCreditCardRestricted;
+      _ccListsLoaded = true;
+    });
+
+    await _resolveCcItemNames(
+      {..._ccWhitelist, ..._ccBlacklist, ..._ccExceptions},
+    );
+  }
+
+  /// Fetch display names for selected item ids so chips read as names, not ids.
+  Future<void> _resolveCcItemNames(Set<int> ids) async {
+    for (final id in ids) {
+      if (_ccItemNames.containsKey(id)) continue;
+      final response = await _apiService.getItem(id);
+      if (!mounted) return;
+      if (response.isSuccess && response.data != null) {
+        setState(() => _ccItemNames[id] = response.data!.name);
+      }
+    }
+  }
+
+  Future<void> _searchCcItems(String key, String term) async {
+    if (term.trim().isEmpty) {
+      setState(() {
+        _ccSuggestions[key] = [];
+        _ccSearching[key] = false;
+      });
+      return;
+    }
+
+    setState(() => _ccSearching[key] = true);
+    final response = await _apiService.getItems(search: term.trim(), limit: 20);
+    if (!mounted) return;
+
+    setState(() {
+      _ccSuggestions[key] = response.isSuccess ? (response.data ?? []) : [];
+      _ccSearching[key] = false;
+    });
+  }
+
+  void _addCcItem(String key, List<int> target, Item item) {
+    setState(() {
+      if (!target.contains(item.itemId)) {
+        target.add(item.itemId);
+      }
+      _ccItemNames[item.itemId] = item.name;
+      _ccSuggestions[key] = [];
+      _ccSearchController(key).clear();
+    });
   }
 
   Future<void> _saveCustomer() async {
@@ -1181,6 +1223,14 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
       consent: _registrationConsent,
       nfcConfirmRequired: _nfcConfirmRequired,
       nfcPaymentEnabled: _nfcPaymentEnabled,
+      nfcConfirmRequiredCash: _nfcConfirmRequiredCash,
+      allowBankPayment: _allowBankPayment,
+      allowCreditCardRestricted: _allowCreditCardRestricted,
+      // Only send the CC lists once we know the customer's real ones. Sending
+      // them before the per-customer fetch lands would overwrite them with [].
+      creditCardItems: _ccListsLoaded ? _ccWhitelist : null,
+      ccBlacklistItems: _ccListsLoaded ? _ccBlacklist : null,
+      ccExceptionItems: _ccListsLoaded ? _ccExceptions : null,
     );
 
     final response = widget.customer == null
@@ -1424,6 +1474,18 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
           },
           contentPadding: EdgeInsets.zero,
         ),
+        // Mirrors the web customer form: sits with the credit settings, above
+        // the NFC section, and drives whether "Bank" appears in the register
+        SwitchListTile(
+          title: const Text('Allow Bank Payment'),
+          subtitle: const Text('Show the "Bank" payment type for this customer in the sales register'),
+          value: _allowBankPayment,
+          onChanged: (value) {
+            setState(() => _allowBankPayment = value);
+          },
+          contentPadding: EdgeInsets.zero,
+          activeThumbColor: Colors.blue,
+        ),
         const Divider(),
         // NFC Settings Section - Leruma only, requires nfc_cards_settings permission
         if (ApiService.currentClient?.id == 'leruma')
@@ -1472,11 +1534,22 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
                   contentPadding: EdgeInsets.zero,
                   activeThumbColor: Colors.orange,
                 ),
+                SwitchListTile(
+                  title: const Text('NFC Confirm Required (Cash)'),
+                  subtitle: const Text('Require NFC card scan for cash sales confirmation'),
+                  value: _nfcConfirmRequiredCash,
+                  onChanged: (value) {
+                    setState(() => _nfcConfirmRequiredCash = value);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: Colors.orange,
+                ),
                 const Divider(),
               ],
             );
           },
         ),
+        _buildCreditCardSection(),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _selectedSupervisorId,

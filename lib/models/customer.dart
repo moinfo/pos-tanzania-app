@@ -39,6 +39,10 @@ class Customer {
   final bool nfcPaymentEnabled;
   final bool nfcConfirmRequiredCash;
 
+  // Payment settings
+  /// Show the "Bank" payment type for this customer in the sales register
+  final bool allowBankPayment;
+
   // Credit Card settings
   final bool allowCreditCardRestricted;
   final List<int> creditCardItems;
@@ -80,6 +84,7 @@ class Customer {
     this.nfcConfirmRequired = false,
     this.nfcPaymentEnabled = false,
     this.nfcConfirmRequiredCash = false,
+    this.allowBankPayment = false,
     this.allowCreditCardRestricted = false,
     this.creditCardItems = const [],
     this.ccBlacklistItems = const [],
@@ -161,6 +166,7 @@ class Customer {
       nfcConfirmRequired: parseBoolValue(json['nfc_confirm_required']),
       nfcPaymentEnabled: parseBoolValue(json['nfc_payment_enabled']),
       nfcConfirmRequiredCash: parseBoolValue(json['nfc_confirm_required_cash']),
+      allowBankPayment: parseBoolValue(json['allow_bank_payment']),
       allowCreditCardRestricted: parseBoolValue(json['allow_credit_card_restricted']),
       creditCardItems: parseIntList(json['credit_card_items']),
       ccBlacklistItems: parseIntList(json['cc_blacklist_items']),
@@ -202,6 +208,7 @@ class Customer {
       'nfc_confirm_required': nfcConfirmRequired,
       'nfc_payment_enabled': nfcPaymentEnabled,
       'nfc_confirm_required_cash': nfcConfirmRequiredCash,
+      'allow_bank_payment': allowBankPayment,
       'allow_credit_card_restricted': allowCreditCardRestricted,
       'credit_card_items': creditCardItems,
       'cc_blacklist_items': ccBlacklistItems,
@@ -246,6 +253,9 @@ class CustomerFormData {
   // NFC settings
   final bool? nfcConfirmRequired;
   final bool? nfcPaymentEnabled;
+  final bool? nfcConfirmRequiredCash;
+  // Payment settings
+  final bool? allowBankPayment;
   // Credit Card settings
   final bool? allowCreditCardRestricted;
   final List<int>? creditCardItems;
@@ -282,6 +292,8 @@ class CustomerFormData {
     this.supervisorId,
     this.nfcConfirmRequired,
     this.nfcPaymentEnabled,
+    this.nfcConfirmRequiredCash,
+    this.allowBankPayment,
     this.allowCreditCardRestricted,
     this.creditCardItems,
     this.ccBlacklistItems,
@@ -319,6 +331,9 @@ class CustomerFormData {
       if (supervisorId != null) 'supervisor_id': int.tryParse(supervisorId!),
       if (nfcConfirmRequired != null) 'nfc_confirm_required': nfcConfirmRequired,
       if (nfcPaymentEnabled != null) 'nfc_payment_enabled': nfcPaymentEnabled,
+      if (nfcConfirmRequiredCash != null)
+        'nfc_confirm_required_cash': nfcConfirmRequiredCash,
+      if (allowBankPayment != null) 'allow_bank_payment': allowBankPayment,
       if (allowCreditCardRestricted != null)
         'allow_credit_card_restricted': allowCreditCardRestricted! ? 1 : 0,
       if (creditCardItems != null) 'credit_card_items': creditCardItems,
