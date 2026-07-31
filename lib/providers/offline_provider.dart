@@ -570,7 +570,9 @@ class OfflineProvider extends ChangeNotifier {
     int limit = 50,
   }) async {
     if (_databaseService == null) {
-      debugPrint('OfflineProvider: Database not initialized');
+      // Expected for clients with hasOfflineMode: false -- there is no local
+      // database by design, so this is not an error.
+      debugPrint('OfflineProvider: offline mode not enabled, skipping local items read');
       return [];
     }
 
@@ -594,7 +596,8 @@ class OfflineProvider extends ChangeNotifier {
     int limit = 50,
   }) async {
     if (_databaseService == null) {
-      debugPrint('OfflineProvider: Database not initialized');
+      // Expected for clients with hasOfflineMode: false -- see getOfflineItems.
+      debugPrint('OfflineProvider: offline mode not enabled, skipping local customers read');
       return [];
     }
 
@@ -614,7 +617,9 @@ class OfflineProvider extends ChangeNotifier {
   /// Create a sale offline (saves to local database for later sync)
   Future<int?> createOfflineSale(Map<String, dynamic> sale, List<Map<String, dynamic>> items, List<Map<String, dynamic>> payments) async {
     if (_databaseService == null) {
-      debugPrint('OfflineProvider: Database not initialized');
+      // Unlike the read paths, reaching here means a sale had nowhere to go.
+      // Callers must check isInitialized before routing a sale offline.
+      debugPrint('OfflineProvider: cannot save sale offline - offline mode is not enabled');
       return null;
     }
 

@@ -1098,7 +1098,9 @@ class ApiService {
         queryParameters: queryParams,
       );
 
+      debugPrint('🔗 Customers API URL: $uri');
       final response = await http.get(uri, headers: await _getHeaders());
+      debugPrint('📥 Customers API status: ${response.statusCode}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
@@ -1107,20 +1109,48 @@ class ApiService {
             .map((item) => Customer.fromJson(item))
             .toList();
 
+        debugPrint('✅ Customers parsed: ${customers.length} customers found');
         return ApiResponse.success(
           data: customers,
           message: jsonResponse['message'],
         );
       } else {
-        final jsonResponse = json.decode(response.body);
+        // A CodeIgniter database error renders an HTML page, not JSON. Decoding it
+        // blind used to throw and get reported as "Connection error", which hid
+        // real server faults (e.g. MySQL 1054 unknown column).
+        final message = _extractErrorMessage(
+          response.body,
+          fallback: 'Failed to fetch customers',
+        );
+        debugPrint('⚠️ Customers API error ${response.statusCode}: $message');
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch customers',
+          message: message,
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
+      debugPrint('⚠️ Customers API exception: $e');
       return ApiResponse.error(message: 'Connection error: $e');
     }
+  }
+
+  /// Pull a human-readable message out of an error response body.
+  ///
+  /// Handles the JSON envelope the API normally returns, and degrades safely
+  /// when the server emits an HTML error page instead.
+  String _extractErrorMessage(String body, {required String fallback}) {
+    try {
+      final decoded = json.decode(body);
+      if (decoded is Map && decoded['message'] != null) {
+        return decoded['message'].toString();
+      }
+    } catch (_) {
+      // Not JSON -- fall through to the HTML handling below
+    }
+
+    final text = body.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (text.isEmpty) return fallback;
+    return text.length > 200 ? '${text.substring(0, 200)}…' : text;
   }
 
   /// Get single customer
@@ -3079,6 +3109,7 @@ class ApiService {
     required int offerId,
     required int saleId,
     required int itemId,
+    int? rewardItemId,
     required int locationId,
     int? customerId,
     required double purchasedQuantity,
@@ -3096,6 +3127,9 @@ class ApiService {
           'offer_id': offerId,
           'sale_id': saleId,
           'item_id': itemId,
+          // Only sent when the reward differs; the server treats absent as "same item"
+          if (rewardItemId != null && rewardItemId != itemId)
+            'reward_item_id': rewardItemId,
           'stock_location_id': locationId,
           if (customerId != null) 'customer_id': customerId,
           'purchased_quantity': purchasedQuantity,

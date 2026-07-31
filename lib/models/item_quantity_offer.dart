@@ -18,6 +18,16 @@ class ItemQuantityOffer {
   final int priority;
   final List<OfferTier>? tiers;
 
+  // Reward item. The reward is not always the item that was purchased -- an offer
+  // can hand over a different item entirely (e.g. buy 100 Coca Cola, get 3 Fanta).
+  final int rewardType; // 0=same as purchased, 1=specific item, 2=highest qty in group
+  final int? rewardItemId;
+  final String? rewardItemName;
+  final String? rewardItemNumber;
+  final double? rewardItemCostPrice;
+  final double? rewardItemUnitPrice;
+  final int useItemGroup; // 1=combined-quantity group offer (not supported on mobile yet)
+
   ItemQuantityOffer({
     required this.offerId,
     required this.offerName,
@@ -36,6 +46,13 @@ class ItemQuantityOffer {
     this.description,
     required this.priority,
     this.tiers,
+    this.rewardType = 0,
+    this.rewardItemId,
+    this.rewardItemName,
+    this.rewardItemNumber,
+    this.rewardItemCostPrice,
+    this.rewardItemUnitPrice,
+    this.useItemGroup = 0,
   });
 
   factory ItemQuantityOffer.fromJson(Map<String, dynamic> json) {
@@ -81,7 +98,26 @@ class ItemQuantityOffer {
               .map((item) => OfferTier.fromJson(item as Map<String, dynamic>))
               .toList()
           : null,
+      rewardType: _asInt(json['reward_type']) ?? 0,
+      rewardItemId: _asInt(json['reward_item_id']),
+      rewardItemName: json['reward_item_name']?.toString(),
+      rewardItemNumber: json['reward_item_number']?.toString(),
+      rewardItemCostPrice: _asDouble(json['reward_item_cost_price']),
+      rewardItemUnitPrice: _asDouble(json['reward_item_unit_price']),
+      useItemGroup: _asInt(json['use_item_group']) ?? 0,
     );
+  }
+
+  static int? _asInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
+  }
+
+  static double? _asDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
   }
 
   Map<String, dynamic> toJson() {
@@ -103,8 +139,31 @@ class ItemQuantityOffer {
       if (description != null) 'description': description,
       'priority': priority,
       if (tiers != null) 'tiers': tiers!.map((t) => t.toJson()).toList(),
+      'reward_type': rewardType,
+      if (rewardItemId != null) 'reward_item_id': rewardItemId,
+      if (rewardItemName != null) 'reward_item_name': rewardItemName,
+      if (rewardItemNumber != null) 'reward_item_number': rewardItemNumber,
+      if (rewardItemCostPrice != null) 'reward_item_cost_price': rewardItemCostPrice,
+      if (rewardItemUnitPrice != null) 'reward_item_unit_price': rewardItemUnitPrice,
+      'use_item_group': useItemGroup,
     };
   }
+
+  /// Item that should actually be handed over as the reward.
+  ///
+  /// Mirrors `Item_quantity_offer::determine_reward_item()` on the server for the
+  /// single-item case. Group offers (reward_type 2) are filtered out by the API,
+  /// so they fall back to the purchased item rather than guessing a group member.
+  int resolveRewardItemId(int purchasedItemId) {
+    if (rewardType == 1 && rewardItemId != null && rewardItemId! > 0) {
+      return rewardItemId!;
+    }
+    return purchasedItemId;
+  }
+
+  /// True when the reward is a different item than the one being purchased.
+  bool isCrossItemReward(int purchasedItemId) =>
+      resolveRewardItemId(purchasedItemId) != purchasedItemId;
 
   /// Calculate free quantity for a given purchased quantity (legacy ratio-based)
   double calculateFreeQuantity(double purchasedQty) {

@@ -110,11 +110,15 @@ class _SalesScreenState extends State<SalesScreen> {
         _isLoading = false;
       });
     } else {
-      // If API fails, try offline as fallback
-      final offlineItems = await offlineProvider.getOfflineItems(
-        locationId: selectedLocationId,
-        limit: 100,
-      );
+      // If API fails, try offline as fallback -- but only for clients that have
+      // offline mode enabled. Otherwise there is no local database to read and
+      // the API error should surface directly.
+      final offlineItems = offlineProvider.isInitialized
+          ? await offlineProvider.getOfflineItems(
+              locationId: selectedLocationId,
+              limit: 100,
+            )
+          : const <Map<String, dynamic>>[];
 
       if (offlineItems.isNotEmpty) {
         setState(() {
@@ -178,8 +182,14 @@ class _SalesScreenState extends State<SalesScreen> {
         _filteredItems = response.data!;
       });
     } else {
+      // Fallback to offline search only when this client has offline mode
+      if (!offlineProvider.isInitialized) {
+        debugPrint('⚠️ API search failed and offline mode is disabled for this client');
+        setState(() => _filteredItems = []);
+        return;
+      }
+
       debugPrint('⚠️ API failed, falling back to offline search');
-      // Fallback to offline search if API fails
       final offlineItems = await offlineProvider.getOfflineItems(
         locationId: selectedLocationId,
         search: query,
@@ -238,14 +248,12 @@ class _SalesScreenState extends State<SalesScreen> {
       saleProvider.setStockLocation(selectedLocation.locationId);
     }
 
-    // Get current quantity in cart for this item
-    final existingItemIndex = saleProvider.cartItems.indexWhere(
-      (cartItem) => cartItem.itemId == item.itemId,
-    );
-
-    final currentQuantityInCart = existingItemIndex >= 0
-        ? saleProvider.cartItems[existingItemIndex].quantity
-        : 0;
+    // Get current quantity in cart for this item. Offer reward lines are included
+    // because free units come off the same shelf as paid ones, and summing every
+    // matching line avoids picking just the first one when both kinds are present.
+    final currentQuantityInCart = saleProvider.cartItems
+        .where((cartItem) => cartItem.itemId == item.itemId)
+        .fold<double>(0, (sum, cartItem) => sum + cartItem.quantity);
     final totalQuantityInCart = currentQuantityInCart + 1;
 
     // Only enforce stock limit for non-Leruma clients
@@ -1061,12 +1069,14 @@ class _SalesScreenState extends State<SalesScreen> {
           }
         }
 
-        // Mark one-time discounts as used BEFORE clearing cart
+        // Mark one-time discounts as used BEFORE clearing cart.
+        // Quantity offers are deliberately NOT redeemed here: api/Sales.php already
+        // calls record_redemption() while creating the sale, so calling /redeem as
+        // well would write a second redemption row for the same sale.
         if (response.data?.saleId != null) {
           final saleId = response.data!.saleId!;
           debugPrint('Sale completed: Marking discounts as used for sale_id=$saleId');
           await saleProvider.markDiscountsAsUsed(saleId);
-          await saleProvider.markOffersAsRedeemed(saleId);
         }
 
         // Clear cart
@@ -1450,6 +1460,16 @@ class _SalesScreenState extends State<SalesScreen> {
                                 itemCount: saleProvider.cartItems.length,
                                 itemBuilder: (context, idx) {
                                   final item = saleProvider.cartItems[idx];
+
+                                  // Offer reward lines are read-only
+                                  if (item.quantityOfferFree) {
+                                    return _OfferFreeLineTile(
+                                      item: item,
+                                      isDark: isDark,
+                                      onRemove: () => saleProvider.removeItem(idx),
+                                    );
+                                  }
+
                                   final discountLimit = item.discountLimit ?? 0;
                                   final hasOffer = saleProvider.hasQuantityOffer(item.itemId);
                                   final hasOneTimeDiscount = saleProvider.hasOneTimeDiscount(item.itemId);
@@ -2172,13 +2192,28 @@ class _CartScreenState extends State<CartScreen> {
                   itemCount: saleProvider.cartItems.length,
                   itemBuilder: (context, index) {
                     final item = saleProvider.cartItems[index];
+
+                    // Offer reward lines are read-only
+                    if (item.quantityOfferFree) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _OfferFreeLineTile(
+                          item: item,
+                          isDark: isDark,
+                          onRemove: () => saleProvider.removeItem(index),
+                        ),
+                      );
+                    }
+
                     final discountLimit = item.discountLimit ?? 0;
 
-                    // Initialize discount controller for this item
-                    if (!_discountControllers.containsKey(index)) {
+                    // Initialize discount controller for this item. Keyed by item id,
+                    // not row index: offer reward lines are inserted and removed as
+                    // quantities change, so an index would drift onto another item.
+                    if (!_discountControllers.containsKey(item.itemId)) {
                       // Show discount per item, not total
                       final discountPerItem = item.discount > 0 ? (item.discount / item.quantity) : 0;
-                      _discountControllers[index] = TextEditingController(
+                      _discountControllers[item.itemId] = TextEditingController(
                         text: discountPerItem > 0 ? discountPerItem.toStringAsFixed(0) : '',
                       );
                     }
@@ -2662,7 +2697,7 @@ class _CartScreenState extends State<CartScreen> {
                                   Expanded(
                                     flex: 2,
                                     child: TextField(
-                                      controller: _discountControllers[index],
+                                      controller: _discountControllers[item.itemId],
                                       decoration: InputDecoration(
                                         labelText: 'Discount per item (TSh)',
                                         helperText: 'Limit: ${currencyFormat.format(discountLimit)} TSh',
@@ -2691,7 +2726,7 @@ class _CartScreenState extends State<CartScreen> {
                                               duration: const Duration(seconds: 2),
                                             ),
                                           );
-                                          _discountControllers[index]?.text = discountLimit.toString();
+                                          _discountControllers[item.itemId]?.text = discountLimit.toString();
                                           // Total discount = discount per item × quantity
                                           saleProvider.updateDiscount(index, discountLimit.toDouble() * item.quantity, discountType: 1);
                                         } else {
@@ -3540,8 +3575,10 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
         _isLoading = false;
       });
     } else {
-      // Fallback to offline
-      final offlineCustomers = await offlineProvider.getOfflineCustomers(limit: 100);
+      // Fallback to offline only for clients that have offline mode enabled
+      final offlineCustomers = offlineProvider.isInitialized
+          ? await offlineProvider.getOfflineCustomers(limit: 100)
+          : const <Map<String, dynamic>>[];
 
       if (offlineCustomers.isNotEmpty) {
         setState(() {
@@ -3827,6 +3864,82 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Cart tile for a line the system added as an offer reward.
+///
+/// Reward lines are derived from the paid line's quantity, so they expose no
+/// quantity, price or discount controls -- only a remove action, which declines
+/// the offer. Mirrors the web's zero-priced free line.
+class _OfferFreeLineTile extends StatelessWidget {
+  final SaleItem item;
+  final bool isDark;
+  final VoidCallback onRemove;
+
+  const _OfferFreeLineTile({
+    required this.item,
+    required this.isDark,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: isDark ? 0.12 : 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.card_giftcard, size: 18, color: AppColors.success),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.itemName,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (item.description != null)
+                  Text(
+                    item.description!,
+                    style: TextStyle(fontSize: 10, color: AppColors.success),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${item.quantity.toStringAsFixed(0)} × FREE',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.success,
+            ),
+          ),
+          InkWell(
+            onTap: onRemove,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(Icons.close, size: 16, color: AppColors.error),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -86,16 +86,24 @@ class OneTimeDiscount {
     };
   }
 
+  /// Tolerance for comparing cart quantity against the approved quantity.
+  ///
+  /// Matches the web register, which compares with
+  /// `Math.abs(currentQuantity - discountQuantity) > 0.001`. The server stores
+  /// quantity as DECIMAL(15,3), so an exact `==` on doubles can reject a
+  /// quantity the web would accept.
+  static const double _quantityTolerance = 0.001;
+
   /// Helper to check if discount is valid for a given item quantity
-  /// Discount only applies when quantity EXACTLY matches the required quantity
+  /// Discount only applies when quantity matches the approved quantity
   bool isValidForQuantity(double itemQuantity) {
-    return itemQuantity == quantity;
+    return (itemQuantity - quantity).abs() <= _quantityTolerance;
   }
 
   /// Helper to get the total discount amount for a given quantity
-  /// Only returns discount if quantity exactly matches
+  /// Only returns discount if the quantity matches
   double getTotalDiscountAmount(double itemQuantity) {
-    if (itemQuantity != quantity) {
+    if (!isValidForQuantity(itemQuantity)) {
       return 0;
     }
     return discountAmount * quantity;

@@ -193,13 +193,13 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
                             children: [
                               const SizedBox(height: 4),
                               Text(
-                                'A: ${report.a}',
+                                'Turnover: ${Formatters.formatCurrency(report.turnover)}',
                                 style: TextStyle(
                                   color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                 ),
                               ),
                               Text(
-                                'C: ${report.c}',
+                                'Total: ${Formatters.formatCurrency(report.total)}  •  Tax: ${Formatters.formatCurrency(report.tax)}',
                                 style: TextStyle(
                                   color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                 ),
@@ -278,9 +278,16 @@ class _CreateZReportDialog extends StatefulWidget {
 
 class _CreateZReportDialogState extends State<_CreateZReportDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _aController = TextEditingController();
-  final _cController = TextEditingController();
   final ApiService _apiService = ApiService();
+
+  // One controller per EFD Z-report figure, in the order they appear on the
+  // fiscal printout.
+  final _turnoverController = TextEditingController();
+  final _netController = TextEditingController();
+  final _taxController = TextEditingController();
+  final _turnoverExSrController = TextEditingController();
+  final _totalController = TextEditingController();
+  final _totalChargesController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   File? _selectedFile;
@@ -288,9 +295,25 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
 
   @override
   void dispose() {
-    _aController.dispose();
-    _cController.dispose();
+    _turnoverController.dispose();
+    _netController.dispose();
+    _taxController.dispose();
+    _turnoverExSrController.dispose();
+    _totalController.dispose();
+    _totalChargesController.dispose();
     super.dispose();
+  }
+
+  /// Parses an amount field, tolerating thousands separators typed by cashiers.
+  double _amountOf(TextEditingController controller) =>
+      double.tryParse(controller.text.trim().replaceAll(',', '')) ?? 0;
+
+  String? _validateAmount(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Required';
+    if (double.tryParse(value.trim().replaceAll(',', '')) == null) {
+      return 'Enter a valid amount';
+    }
+    return null;
   }
 
   Future<void> _pickFile() async {
@@ -398,8 +421,12 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
       final picFile = 'data:$mimeType;base64,$base64String';
 
       final result = await _apiService.createZReport(
-        a: _aController.text.trim(),
-        c: _cController.text.trim(),
+        turnover: _amountOf(_turnoverController),
+        net: _amountOf(_netController),
+        tax: _amountOf(_taxController),
+        turnoverExSr: _amountOf(_turnoverExSrController),
+        total: _amountOf(_totalController),
+        totalCharges: _amountOf(_totalChargesController),
         date: Formatters.formatDateForApi(_selectedDate),
         picFile: picFile,
       );
@@ -436,6 +463,18 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
     }
   }
 
+  Widget _buildAmountField(TextEditingController controller, String label) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      validator: _validateAmount,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -447,23 +486,17 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
-                controller: _aController,
-                decoration: const InputDecoration(
-                  labelText: 'Value A',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => v?.isEmpty == true ? 'Required' : null,
-              ),
+              _buildAmountField(_turnoverController, 'Turnover'),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _cController,
-                decoration: const InputDecoration(
-                  labelText: 'Value C',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => v?.isEmpty == true ? 'Required' : null,
-              ),
+              _buildAmountField(_netController, 'Net'),
+              const SizedBox(height: 16),
+              _buildAmountField(_taxController, 'Tax'),
+              const SizedBox(height: 16),
+              _buildAmountField(_turnoverExSrController, 'Turnover excl. SR'),
+              const SizedBox(height: 16),
+              _buildAmountField(_totalController, 'Total'),
+              const SizedBox(height: 16),
+              _buildAmountField(_totalChargesController, 'Total charges'),
               const SizedBox(height: 16),
               ListTile(
                 title: const Text('Date'),
