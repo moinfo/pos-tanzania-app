@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
+import '../models/stock_location.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
 import '../widgets/permission_wrapper.dart';
@@ -261,32 +262,36 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   tooltip: 'Menu',
                 ),
               ),
-              // Logo + Title
+              // Logo + Title. Leruma shows the active stock location here and
+              // makes it the store switcher (design_handoff_sale_screen); the
+              // client name is redundant on a single-client build.
               Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (ApiService.currentClient?.logoUrl != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Image.asset(
-                          ApiService.currentClient!.logoUrl!,
-                          height: 32,
-                          width: 32,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                        ),
+                child: ApiService.currentClient?.id == 'leruma'
+                    ? _buildStoreSwitcher()
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (ApiService.currentClient?.logoUrl != null)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Image.asset(
+                                ApiService.currentClient!.logoUrl!,
+                                height: 32,
+                                width: 32,
+                                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                              ),
+                            ),
+                          Text(
+                            ApiService.currentClient?.displayName ?? AppConstants.appName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
-                    Text(
-                      ApiService.currentClient?.displayName ?? AppConstants.appName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
               ),
               // Dark mode toggle
               IconButton(
@@ -302,6 +307,100 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           ),
         ),
       ),
+    );
+  }
+
+  /// Store name in the app bar, tappable to switch when the seller has more
+  /// than one allowed location.
+  ///
+  /// A seller with a single granted store gets a plain label -- there is nothing
+  /// to switch to, and a chevron would imply otherwise.
+  Widget _buildStoreSwitcher() {
+    return Consumer<LocationProvider>(
+      builder: (context, locationProvider, child) {
+        final selected = locationProvider.selectedLocation;
+        final canSwitch = locationProvider.hasMultipleLocations;
+
+        if (selected == null) {
+          return const Center(
+            child: Text(
+              AppConstants.appName,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          );
+        }
+
+        final label = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                selected.locationName.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+            if (canSwitch)
+              const Padding(
+                padding: EdgeInsets.only(left: 4),
+                child: Icon(Icons.keyboard_arrow_down_rounded,
+                    size: 20, color: Colors.white70),
+              ),
+          ],
+        );
+
+        if (!canSwitch) return Center(child: label);
+
+        return Center(
+          child: PopupMenuButton<StockLocation>(
+            offset: const Offset(0, 40),
+            color: Colors.white,
+            tooltip: 'Switch store',
+            onSelected: (location) => locationProvider.selectLocation(location),
+            itemBuilder: (context) => locationProvider.allowedLocations
+                .map(
+                  (location) => PopupMenuItem<StockLocation>(
+                    value: location,
+                    child: Row(
+                      children: [
+                        Icon(
+                          location.locationId == selected.locationId
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          size: 20,
+                          color: location.locationId == selected.locationId
+                              ? AppColors.primary
+                              : Colors.grey,
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            location.locationName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+            child: label,
+          ),
+        );
+      },
     );
   }
 

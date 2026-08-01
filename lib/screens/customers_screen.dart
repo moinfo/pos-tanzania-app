@@ -273,7 +273,12 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Customers'),
+        titleSpacing: 8,
+        title: const Text(
+          'Customers',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
@@ -281,8 +286,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
           if (isLeruma && locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
             Center(
               child: Container(
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                // Bounded so a long store name cannot squeeze the screen title
+                // down to "Cust..."; the name ellipsises instead.
+                constraints: const BoxConstraints(maxWidth: 170),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
@@ -290,17 +298,25 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 child: PopupMenuButton<StockLocation>(
                   offset: const Offset(0, 40),
                   color: Colors.white,
+                  enabled: locationProvider.hasMultipleLocations,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on, size: 18, color: Colors.white),
-                      const SizedBox(width: 6),
-                      Text(
-                        locationProvider.selectedLocation!.locationName,
-                        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
+                      const Icon(Icons.location_on, size: 16, color: Colors.white),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          locationProvider.selectedLocation!.locationName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
+                      // A seller with a single store has nothing to switch to
+                      if (locationProvider.hasMultipleLocations) ...[
+                        const SizedBox(width: 2),
+                        const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
+                      ],
                     ],
                   ),
                   onSelected: (location) async {
@@ -454,6 +470,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       children: [
                         Text(
                           customer.displayName,
+                          // Without a line limit the name is squeezed to a single
+                          // character per line whenever the row is tight
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -463,23 +483,47 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         if (customer.accountNumber != null && customer.accountNumber!.isNotEmpty)
                           Text(
                             'Account: ${customer.accountNumber}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                             ),
                           ),
+                        // Supervisor sits under the name rather than beside it: as a
+                        // sibling in the row it took its full intrinsic width and left
+                        // the name almost none.
+                        if (customer.supervisor != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.badge_outlined,
+                                    size: 12,
+                                    color: isDark
+                                        ? AppColors.darkTextLight
+                                        : AppColors.textLight),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    customer.supervisor!.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? AppColors.darkTextLight
+                                          : AppColors.textLight,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                  if (customer.supervisor != null)
-                    Chip(
-                      label: Text(
-                        customer.supervisor!.name,
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                      backgroundColor: AppColors.primary.withOpacity(0.1),
-                      padding: EdgeInsets.zero,
-                    ),
                   // NFC Card indicator - Leruma only
                   if (ApiService.currentClient?.id == 'leruma' && _customerNfcCards.containsKey(customer.personId)) ...[
                     const SizedBox(width: 4),

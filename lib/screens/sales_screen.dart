@@ -75,8 +75,36 @@ class _SalesScreenState extends State<SalesScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Stock location the item list was last loaded for.
+  ///
+  /// The redesign has no location bar of its own -- the store switcher lives in
+  /// the app bar now -- so the screen watches for a change and refetches the
+  /// catalogue, which is priced and stocked per location.
+  int? _lastLoadedLocationId;
+
   /// The redesigned Leruma sale screen.
   Widget _buildLerumaSaleScreen() {
+    return Consumer<LocationProvider>(
+      builder: (context, locationProvider, child) {
+        final locationId = locationProvider.selectedLocation?.locationId;
+
+        if (locationId != null && locationId != _lastLoadedLocationId) {
+          _lastLoadedLocationId = locationId;
+          // Defer: we are inside build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            context.read<SaleProvider>().setStockLocation(locationId);
+            _closeSearch();
+            _loadItems();
+          });
+        }
+
+        return _buildLerumaScaffold();
+      },
+    );
+  }
+
+  Widget _buildLerumaScaffold() {
     return Scaffold(
       backgroundColor: SaleColors.pageBackground,
       // The keyboard must not squeeze the footer off screen; the middle region
@@ -858,7 +886,9 @@ class _SalesScreenState extends State<SalesScreen> {
                 const SizedBox(height: 2),
                 Text(
                   isFree
-                      ? '🎁 Free · offer'
+                      // Show how many units are free -- the reward line has no
+                      // quantity pill, so this is the only place it appears
+                      ? '🎁 ${item.quantity.toStringAsFixed(0)} free · offer'
                       : '${item.quantity.toStringAsFixed(0)} × ${_currencyFormat.format(item.unitPrice)} TSh',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -915,11 +945,16 @@ class _SalesScreenState extends State<SalesScreen> {
               ),
             ),
           const SizedBox(width: 10),
-          SizedBox(
-            width: 70,
+          // Min width keeps the column aligned for ordinary amounts, but the
+          // text is allowed to grow: a fixed 70px wrapped "2,300,000" onto two
+          // lines. The name is Expanded, so it yields the space.
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 70),
             child: Text(
               _currencyFormat.format(lineTotal),
               textAlign: TextAlign.right,
+              maxLines: 1,
+              softWrap: false,
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
