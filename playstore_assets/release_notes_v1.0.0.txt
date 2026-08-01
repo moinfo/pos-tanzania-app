@@ -1,0 +1,75 @@
+================================================================================
+LERUMA POS - RELEASE NOTES
+Version 1.0.0 (versionCode 6) - July 2026
+================================================================================
+
+--------------------------------------------------------------------------------
+PRODUCTION / CLOSED TESTING - "What's new" (en-US)
+Character count: 465 / 500
+--------------------------------------------------------------------------------
+
+Welcome to Leruma POS - our first release.
+
+• Sales: fast checkout, sales history, suspended sales, multiple payment methods
+• Stock: real-time tracking across multiple locations
+• Credits: customer and supplier accounts, payments, daily debt reports
+• Reports: Z-reports, sales summaries, profit analysis
+• Banking: cash submission and deposit reconciliation
+• Trade: TRA sales, purchase and tax records
+• NFC card payments
+
+Feedback: info@lerumaenterprises.co.tz
+
+
+--------------------------------------------------------------------------------
+PRODUCTION / CLOSED TESTING - "What's new" (sw - Swahili)
+Character count: 407 / 500
+NOTE: Needs review by a native speaker before publishing.
+--------------------------------------------------------------------------------
+
+Karibu Leruma POS - toleo letu la kwanza.
+
+• Mauzo: malipo ya haraka, historia ya mauzo, mauzo yaliyositishwa
+• Bidhaa: ufuatiliaji wa hisa kwa wakati halisi
+• Mikopo: akaunti za wateja na wasambazaji, malipo, ripoti za madeni
+• Ripoti: Z-report, muhtasari wa mauzo, uchambuzi wa faida
+• Benki: uwasilishaji wa fedha na upatanisho wa amana
+• Biashara: kumbukumbu za TRA
+
+Maoni: info@lerumaenterprises.co.tz
+
+
+--------------------------------------------------------------------------------
+INTERNAL TESTING - release note (technical, for your own team)
+--------------------------------------------------------------------------------
+
+Build 1.0.0 (3) - Leruma flavor - 31 Jul 2026
+
+Smoke test checklist:
+1. Log in and confirm the app connects to https://leruma.co.tz/api
+   (NOT saichi.co.tz - that is the fallback if the FLAVOR define failed)
+2. Confirm the commission dashboard loads on the home screen
+3. Confirm the drawer shows "Financial Banking" and "Trade", and does NOT
+   show "Cash Submit" or plain "Banking"
+4. Confirm sales screen shows the Sheet button and inline cart preview
+5. Confirm NFC card lookup works
+6. General pass on Android 14+ (targetSdk raised 35 -> 36 in this build)
+
+Build config:
+  flutter build appbundle --flavor leruma --dart-define=FLAVOR=leruma --release
+  package      co.tz.leruma.pos
+  versionCode  6
+  versionName  1.0.0
+  minSdk       24 (Android 7.0)
+  targetSdk    36 (Android 16)
+
+
+--------------------------------------------------------------------------------
+NOT USER-FACING (excluded from store notes deliberately)
+--------------------------------------------------------------------------------
+
+- targetSdk raised 35 -> 36 for Play target-API compliance.
+- Removed 236 lines of unreachable work-in-progress code from
+  customers_screen.dart (customer credit-card item restriction picker). The
+  block was never called and did not compile; it broke the release build.
+  Recoverable from commit aeb4fc1.

@@ -32,7 +32,7 @@ android {
         // Base Application ID - will be overridden by flavors
         applicationId = "co.tz.moinfotech.pos"
         minSdk = flutter.minSdkVersion  // Android 5.0 - supports 99%+ of devices
-        targetSdk = 35  // Android 15
+        targetSdk = 36  // Android 16
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
