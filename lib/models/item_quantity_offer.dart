@@ -26,7 +26,12 @@ class ItemQuantityOffer {
   final String? rewardItemNumber;
   final double? rewardItemCostPrice;
   final double? rewardItemUnitPrice;
-  final int useItemGroup; // 1=combined-quantity group offer (not supported on mobile yet)
+  final int useItemGroup; // 1=combined-quantity group offer
+
+  /// Items whose quantities count toward a group offer's threshold.
+  ///
+  /// Only populated by the /groups endpoint. Empty for single-item offers.
+  final List<int> groupItemIds;
 
   ItemQuantityOffer({
     required this.offerId,
@@ -53,6 +58,7 @@ class ItemQuantityOffer {
     this.rewardItemCostPrice,
     this.rewardItemUnitPrice,
     this.useItemGroup = 0,
+    this.groupItemIds = const [],
   });
 
   factory ItemQuantityOffer.fromJson(Map<String, dynamic> json) {
@@ -105,6 +111,11 @@ class ItemQuantityOffer {
       rewardItemCostPrice: _asDouble(json['reward_item_cost_price']),
       rewardItemUnitPrice: _asDouble(json['reward_item_unit_price']),
       useItemGroup: _asInt(json['use_item_group']) ?? 0,
+      groupItemIds: (json['group_item_ids'] as List<dynamic>?)
+              ?.map((id) => _asInt(id) ?? 0)
+              .where((id) => id > 0)
+              .toList() ??
+          const [],
     );
   }
 
@@ -152,8 +163,8 @@ class ItemQuantityOffer {
   /// Item that should actually be handed over as the reward.
   ///
   /// Mirrors `Item_quantity_offer::determine_reward_item()` on the server for the
-  /// single-item case. Group offers (reward_type 2) are filtered out by the API,
-  /// so they fall back to the purchased item rather than guessing a group member.
+  /// single-item case. Group offers use resolveGroupRewardItemId instead,
+  /// because their reward depends on the quantities of every member in the cart.
   int resolveRewardItemId(int purchasedItemId) {
     if (rewardType == 1 && rewardItemId != null && rewardItemId! > 0) {
       return rewardItemId!;
@@ -164,6 +175,39 @@ class ItemQuantityOffer {
   /// True when the reward is a different item than the one being purchased.
   bool isCrossItemReward(int purchasedItemId) =>
       resolveRewardItemId(purchasedItemId) != purchasedItemId;
+
+  /// Combined quantity of every member item, which is what a group offer's
+  /// threshold is measured against.
+  ///
+  /// [quantities] maps item id -> quantity currently in the cart.
+  double combinedQuantity(Map<int, double> quantities) {
+    return groupItemIds.fold<double>(
+      0,
+      (sum, id) => sum + (quantities[id] ?? 0),
+    );
+  }
+
+  /// Reward item for a group offer.
+  ///
+  /// Mirrors `Item_quantity_offer::determine_reward_item()`: reward_type 1 is a
+  /// specific item, while 0 and 2 both resolve to the member with the highest
+  /// quantity in the cart (type 0 delegates to type 2 for group offers).
+  int resolveGroupRewardItemId(Map<int, double> quantities) {
+    if (rewardType == 1 && rewardItemId != null && rewardItemId! > 0) {
+      return rewardItemId!;
+    }
+
+    int best = itemId;
+    double bestQty = -1;
+    for (final id in groupItemIds) {
+      final qty = quantities[id] ?? 0;
+      if (qty > bestQty) {
+        bestQty = qty;
+        best = id;
+      }
+    }
+    return best;
+  }
 
   /// Calculate free quantity for a given purchased quantity (legacy ratio-based)
   double calculateFreeQuantity(double purchasedQty) {

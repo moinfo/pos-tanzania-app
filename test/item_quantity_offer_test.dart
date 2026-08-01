@@ -36,6 +36,7 @@ ItemQuantityOffer buildOffer({
 }
 
 void main() {
+  _groupOfferTests();
   group('resolveRewardItemId', () {
     test('reward_type 0 gives back the purchased item', () {
       final offer = buildOffer(rewardType: 0);
@@ -55,7 +56,7 @@ void main() {
       expect(offer.resolveRewardItemId(10), 10);
     });
 
-    test('reward_type 2 falls back to purchased item (group offers are API-filtered)', () {
+    test('reward_type 2 falls back to purchased item on the single-item path', () {
       final offer = buildOffer(rewardType: 2, rewardItemId: 55, useItemGroup: 1);
       expect(offer.resolveRewardItemId(10), 10);
     });
@@ -153,6 +154,98 @@ void main() {
       expect(offer.rewardItemId, isNull);
       expect(offer.useItemGroup, 0);
       expect(offer.resolveRewardItemId(10), 10);
+    });
+  });
+}
+
+void _groupOfferTests() {
+  ItemQuantityOffer buildGroup({
+    int itemId = 6113,
+    List<int> members = const [6113, 6126, 6127],
+    double purchaseQuantity = 50,
+    double rewardQuantity = 1,
+    int rewardType = 0,
+    int? rewardItemId,
+  }) {
+    return ItemQuantityOffer(
+      offerId: 181,
+      offerName: 'July offa',
+      itemId: itemId,
+      purchaseQuantity: purchaseQuantity,
+      rewardQuantity: rewardQuantity,
+      useTieredRewards: 0,
+      startDate: '2026-08-01',
+      endDate: '2026-08-31',
+      priority: 0,
+      useItemGroup: 1,
+      groupItemIds: members,
+      rewardType: rewardType,
+      rewardItemId: rewardItemId,
+    );
+  }
+
+  group('group offers', () {
+    test('combines quantity across member items only', () {
+      final offer = buildGroup();
+      // 20 BLUE + 20 YELLOW + 10 PINK = 50; the 99 of a non-member is ignored
+      expect(
+        offer.combinedQuantity({6113: 20, 6126: 20, 6127: 10, 999: 99}),
+        50,
+      );
+    });
+
+    test('earns nothing until the combined threshold is met', () {
+      final offer = buildGroup(purchaseQuantity: 50, rewardQuantity: 1);
+      expect(offer.calculateReward(offer.combinedQuantity({6113: 49})), 0);
+      // No single line reaches 50, but together they do
+      expect(
+        offer.calculateReward(offer.combinedQuantity({6113: 30, 6126: 20})),
+        1,
+      );
+    });
+
+    test('reward_type 0 gives the member with the highest quantity', () {
+      final offer = buildGroup(rewardType: 0);
+      expect(
+        offer.resolveGroupRewardItemId({6113: 10, 6126: 35, 6127: 5}),
+        6126,
+      );
+    });
+
+    test('reward_type 2 also gives the highest-quantity member', () {
+      final offer = buildGroup(rewardType: 2);
+      expect(
+        offer.resolveGroupRewardItemId({6113: 5, 6126: 5, 6127: 40}),
+        6127,
+      );
+    });
+
+    test('reward_type 1 gives the configured item regardless of quantities', () {
+      final offer = buildGroup(rewardType: 1, rewardItemId: 4242);
+      expect(
+        offer.resolveGroupRewardItemId({6113: 99, 6126: 1, 6127: 1}),
+        4242,
+      );
+    });
+
+    test('parses group_item_ids from the /groups payload', () {
+      final offer = ItemQuantityOffer.fromJson({
+        'offer_id': 181,
+        'offer_name': 'July offa',
+        'item_id': 6113,
+        'purchase_quantity': 50,
+        'reward_quantity': 1,
+        'use_tiered_rewards': 0,
+        'start_date': '2026-08-01',
+        'end_date': '2026-08-31',
+        'priority': 0,
+        'use_item_group': 1,
+        'group_item_ids': ['6113', 6126, 6127],
+      });
+
+      expect(offer.useItemGroup, 1);
+      expect(offer.groupItemIds, [6113, 6126, 6127]);
+      expect(offer.combinedQuantity({6113: 25, 6126: 25}), 50);
     });
   });
 }

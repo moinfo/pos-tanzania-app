@@ -3206,6 +3206,54 @@ class ApiService {
     }
   }
 
+  /// Get active GROUP offers with their member items.
+  ///
+  /// A group offer's threshold is the combined quantity of several items, so it
+  /// cannot be answered per item by /check. The client fetches them all once and
+  /// evaluates the combined quantity against the cart itself.
+  Future<ApiResponse<ActiveOffersResponse>> getGroupOffers({
+    required int locationId,
+    int? customerId,
+    String? date,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/item_quantity_offers/groups').replace(
+        queryParameters: {
+          'stock_location_id': locationId.toString(),
+          if (customerId != null) 'customer_id': customerId.toString(),
+          if (date != null) 'date': date,
+        },
+      );
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        if (data is Map<String, dynamic>) {
+          return ApiResponse.success(
+            data: ActiveOffersResponse.fromJson(data),
+            message: jsonResponse['message'] ?? 'Success',
+          );
+        }
+        return ApiResponse.success(
+          data: ActiveOffersResponse(offers: [], count: 0),
+          message: jsonResponse['message'] ?? 'Success',
+        );
+      }
+
+      final message = _extractErrorMessage(
+        response.body,
+        fallback: 'Failed to fetch group offers',
+      );
+      debugPrint('⚠️ Group offers API error ${response.statusCode}: $message');
+      return ApiResponse.error(message: message);
+    } catch (e) {
+      debugPrint('⚠️ Group offers API exception: $e');
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Delete suspended sale
   Future<ApiResponse<Map<String, dynamic>>> deleteSuspendedSale(int saleId) async {
     try {
