@@ -45,7 +45,19 @@ import '../config/clients_config.dart';
 
 class ApiService {
   final _storage = const FlutterSecureStorage();
-  String? _token;
+
+  /// Auth token, shared by every ApiService instance.
+  ///
+  /// ApiService is not a singleton and the app constructs ~97 of them (one per
+  /// provider/screen). While this was an instance field, signing in refreshed
+  /// the token on the AuthProvider's instance only -- every other instance kept
+  /// the PREVIOUS user's token cached in memory and carried on sending it. The
+  /// server then answered as that user: an admin's 27 stock locations and an
+  /// admin's dashboard while a seller was signed in.
+  ///
+  /// Making it static means one token for the whole process, so saveToken() and
+  /// clearToken() are seen everywhere immediately.
+  static String? _token;
 
   // Make currentClient public so it can be accessed from main_navigation
   static ClientConfig? currentClient;
