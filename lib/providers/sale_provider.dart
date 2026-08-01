@@ -81,8 +81,11 @@ class SaleProvider with ChangeNotifier {
 
   // Set stock location
   void setStockLocation(int locationId) {
+    final changed = _stockLocation != locationId;
     _stockLocation = locationId;
     notifyListeners();
+    // Group offers are scoped to a location, so refetch when it changes
+    if (changed) loadGroupOffers();
   }
 
   // One-time discounts tracking (itemId -> OneTimeDiscount)
@@ -665,6 +668,75 @@ class SaleProvider with ChangeNotifier {
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Group offers
+  //
+  // A group offer's threshold is the COMBINED quantity of several items, so it
+  // cannot be checked per item the way single-item offers are. The active group
+  // offers are fetched once for the location/customer and then evaluated
+  // locally against the cart, matching Sale_lib on the web.
+  //
+  // Only the badge is computed here. api/Sales.php still creates the free line
+  // and records the redemption when the sale is saved, exactly as it does for
+  // single-item offers.
+  // ---------------------------------------------------------------------
+
+  List<ItemQuantityOffer> _groupOffers = [];
+  List<ItemQuantityOffer> get groupOffers => _groupOffers;
+
+  /// Cart quantities keyed by item id, ignoring reward lines.
+  Map<int, double> get _paidQuantities {
+    final map = <int, double>{};
+    for (final item in _cartItems) {
+      if (item.quantityOfferFree) continue;
+      map[item.itemId] = (map[item.itemId] ?? 0) + item.quantity;
+    }
+    return map;
+  }
+
+  Future<void> loadGroupOffers({String? date}) async {
+    if (_stockLocation == null) return;
+
+    try {
+      final response = await _apiService.getGroupOffers(
+        locationId: _stockLocation!,
+        customerId: _selectedCustomer?.personId,
+        date: date,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        _groupOffers = response.data!.offers;
+        debugPrint('GroupOffers: loaded ${_groupOffers.length}');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('GroupOffers: failed to load - $e');
+    }
+  }
+
+  /// The highest-priority group offer that [itemId] belongs to, or null.
+  ///
+  /// The API returns them ordered by priority, so the first match wins -- the
+  /// same rule the server applies.
+  ItemQuantityOffer? getGroupOfferForItem(int itemId) {
+    for (final offer in _groupOffers) {
+      if (offer.groupItemIds.contains(itemId)) return offer;
+    }
+    return null;
+  }
+
+  /// Combined quantity of [offer]'s member items currently in the cart.
+  double groupOfferCombinedQuantity(ItemQuantityOffer offer) =>
+      offer.combinedQuantity(_paidQuantities);
+
+  /// Free quantity this group offer currently earns, 0 when below threshold.
+  double groupOfferReward(ItemQuantityOffer offer) =>
+      offer.calculateReward(groupOfferCombinedQuantity(offer));
+
+  /// Item the group offer would hand over, given what is in the cart.
+  int groupOfferRewardItemId(ItemQuantityOffer offer) =>
+      offer.resolveGroupRewardItemId(_paidQuantities);
+
   /// Remove every reward line belonging to [offerId].
   void _removeOfferFreeLines(int offerId) {
     _cartItems.removeWhere(
@@ -785,6 +857,8 @@ class SaleProvider with ChangeNotifier {
   void setCustomer(Customer? customer) {
     _selectedCustomer = customer;
     notifyListeners();
+    // Exclusions are per customer, so the eligible group offers can change
+    loadGroupOffers();
   }
 
   // Remove the selected customer (keeps the cart items).

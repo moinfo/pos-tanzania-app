@@ -28,6 +28,9 @@ import 'suspended_summary_screen.dart';
 import 'package:intl/intl.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../services/nfc_service.dart';
+import '../utils/sale_design.dart';
+import '../widgets/sale/keypad_sheet.dart';
+import '../widgets/sale/sale_sheets.dart';
 import '../models/nfc_wallet.dart';
 
 class SalesScreen extends StatefulWidget {
@@ -40,6 +43,7 @@ class SalesScreen extends StatefulWidget {
 class _SalesScreenState extends State<SalesScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   final NumberFormat _currencyFormat = NumberFormat('#,##0', 'en_US');
 
   List<Item> _items = [];
@@ -47,13 +51,1164 @@ class _SalesScreenState extends State<SalesScreen> {
   bool _isLoading = false;
   bool _isProcessing = false;
 
+  /// Whether the inline cart preview shows its item list.
+  ///
+  /// Everything above the results list is fixed height, so on a phone -- and
+  /// especially on Android once the keyboard claims roughly half the screen --
+  /// an expanded cart leaves almost no room for search results. The cart
+  /// collapses to its summary row while searching and restores afterwards; the
+  /// cashier can still expand it mid-search by tapping the header.
+  bool _cartExpanded = true;
+
   @override
   void initState() {
     super.initState();
+    // The suffix icons depend on focus, so rebuild whenever it changes
+    _searchFocusNode.addListener(_onSearchFocusChanged);
     // Defer location initialization until after the build phase
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocation();
     });
+  }
+
+  void _onSearchFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// The redesigned Leruma sale screen.
+  Widget _buildLerumaSaleScreen() {
+    return Scaffold(
+      backgroundColor: SaleColors.pageBackground,
+      // The keyboard must not squeeze the footer off screen; the middle region
+      // scrolls instead.
+      resizeToAvoidBottomInset: true,
+      body: _isLoading
+          ? _buildSkeletonGrid(false)
+          : Consumer<SaleProvider>(
+              builder: (context, saleProvider, child) {
+                return Column(
+                  children: [
+                    // Fixed context block under the app bar
+                    DecoratedBox(
+                      decoration: const BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                              color: Color(0x0F0F172A), offset: Offset(0, 1)),
+                        ],
+                      ),
+                      child: _buildLerumaContextBlock(saleProvider),
+                    ),
+                    // The only scrollable region
+                    Expanded(child: _buildLerumaMainRegion(saleProvider)),
+                    // Fixed totals + actions footer
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: SaleColors.surface,
+                        border: Border(
+                            top: BorderSide(color: SaleColors.borderFooter)),
+                        boxShadow: SaleShadows.footer,
+                      ),
+                      padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+                      child: _buildLerumaTotalsAndActions(saleProvider),
+                    ),
+                  ],
+                );
+              },
+            ),
+    );
+  }
+
+  // ===================================================================
+  // Redesigned sale body (design_handoff_sale_screen)
+  //
+  // Structure per the handoff: a fixed white context block (customer + search)
+  // directly under the app bar, then ONE scrollable region that is either the
+  // cart or the search results, then the fixed totals/actions footer. The old
+  // location + Sheet bar and the inline cart preview above the search are gone
+  // for Leruma -- the cart is the screen.
+  // ===================================================================
+
+  Widget _buildLerumaContextBlock(SaleProvider saleProvider) {
+    final customer = saleProvider.selectedCustomer;
+
+    return Container(
+      color: SaleColors.surface,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          customer == null
+              ? _buildCustomerPrompt()
+              : _buildCustomerRow(customer),
+          const SizedBox(height: 9),
+          _buildLerumaSearchField(saleProvider),
+        ],
+      ),
+    );
+  }
+
+  /// Amber "required" state -- a sale cannot be charged without a customer.
+  Widget _buildCustomerPrompt() {
+    return Material(
+      color: SaleColors.warningFill,
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(11),
+        highlightColor: SaleColors.warningFillPressed,
+        onTap: _selectCustomer,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(color: SaleColors.warningBorder),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.person_add_alt_1_outlined,
+                  size: 20, color: SaleColors.warning),
+              const SizedBox(width: 9),
+              const Expanded(
+                child: Text(
+                  'Select customer to start',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: SaleColors.warningText),
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  size: 18, color: SaleColors.warning),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomerRow(Customer customer) {
+    final name = customer.fullName.trim();
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    return Material(
+      color: SaleColors.blueTint2,
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(11),
+        highlightColor: SaleColors.blueTintPressedRow,
+        onTap: _selectCustomer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: SaleColors.brand,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: SaleColors.textPrimary),
+                    ),
+                    if (customer.phoneNumber.isNotEmpty)
+                      Text(
+                        customer.phoneNumber,
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: SaleColors.textMuted),
+                      ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: SaleColors.surface,
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: const Text(
+                  'Change',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: SaleColors.brand),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLerumaSearchField(SaleProvider saleProvider) {
+    final hasCustomer = saleProvider.selectedCustomer != null;
+    final hasText = _searchController.text.isNotEmpty;
+
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: SaleColors.pageBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: SaleColors.border, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.search_rounded, size: 18, color: SaleColors.textFaint),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              enabled: hasCustomer,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => _searchFocusNode.unfocus(),
+              onTapOutside: (_) => _searchFocusNode.unfocus(),
+              onChanged: _filterItems,
+              style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: SaleColors.textPrimary),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                hintText: hasCustomer
+                    ? 'Search item or scan barcode'
+                    : 'Select customer first',
+                hintStyle: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: hasCustomer
+                      ? SaleColors.textFaint
+                      : SaleColors.warningText,
+                ),
+              ),
+            ),
+          ),
+          if (hasText)
+            InkWell(
+              onTap: _closeSearch,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: SaleColors.border,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.close_rounded,
+                    size: 14, color: Color(0xFF5A6577)),
+              ),
+            )
+          else
+            const Icon(Icons.qr_code_scanner_rounded,
+                size: 20, color: SaleColors.brand),
+        ],
+      ),
+    );
+  }
+
+  /// The single scrollable region: results while searching, otherwise the cart.
+  Widget _buildLerumaMainRegion(SaleProvider saleProvider) {
+    if (_searchController.text.isNotEmpty) {
+      return _buildLerumaResults();
+    }
+    if (!saleProvider.hasItems) {
+      return _buildLerumaEmptyCart();
+    }
+    return _buildLerumaCart(saleProvider);
+  }
+
+  Widget _buildLerumaResults() {
+    if (_filteredItems.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Text(
+          'No item matches that name or barcode',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: SaleColors.textFaint),
+        ),
+      );
+    }
+
+    final locationProvider = context.read<LocationProvider>();
+    final location = locationProvider.selectedLocation;
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
+      itemCount: _filteredItems.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final item = _filteredItems[index];
+        final stock = location != null && item.quantityByLocation != null
+            ? (item.quantityByLocation![location.locationId] ?? 0)
+            : (item.quantity ?? 0);
+
+        return Material(
+          color: SaleColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            highlightColor: SaleColors.blueTint2,
+            // Adding clears the query, returning the seller to the cart
+            onTap: () {
+              _addItemToCart(item);
+              _closeSearch();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: SaleShadows.resultCard,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: SaleColors.textPrimary),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Stock ${stock.toStringAsFixed(0)} · ${location?.locationName ?? ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: SaleColors.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _currencyFormat.format(item.unitPrice),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: SaleColors.brand,
+                      fontFeatures: kTabularFigures,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: SaleColors.brand,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.add_rounded,
+                        size: 18, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLerumaEmptyCart() {
+    // Quick-add chips: the first four catalogue items for this store
+    final quick = _items.take(4).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 56),
+      child: Column(
+        children: [
+          const Icon(Icons.shopping_cart_outlined,
+              size: 46, color: SaleColors.iconFaintAlt),
+          const SizedBox(height: 14),
+          const Text(
+            'Search an item above to\nstart this sale',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: SaleColors.textFaint,
+              height: 1.5,
+            ),
+          ),
+          if (quick.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: quick.map((item) {
+                return Material(
+                  color: SaleColors.surface,
+                  borderRadius: BorderRadius.circular(999),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    highlightColor: SaleColors.blueTint2,
+                    onTap: () => _addItemToCart(item),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 13, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                            color: SaleColors.border, width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: SaleColors.textPrimary),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _currencyFormat.format(item.unitPrice),
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: SaleColors.brand),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLerumaCart(SaleProvider saleProvider) {
+    final items = saleProvider.cartItems;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${items.length} ITEM${items.length == 1 ? '' : 'S'} IN CART',
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                      color: SaleColors.textFaint),
+                ),
+                InkWell(
+                  onTap: saleProvider.clearCart,
+                  child: const Text(
+                    'CLEAR',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: SaleColors.danger),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: SaleColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: SaleShadows.card,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  _buildLerumaCartLine(saleProvider, items[i], i,
+                      isLast: i == items.length - 1),
+              ],
+            ),
+          ),
+          if (saleProvider.hasPayments) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: SaleColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: SaleShadows.resultCard,
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < saleProvider.payments.length; i++)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      decoration: BoxDecoration(
+                        border: i == saleProvider.payments.length - 1
+                            ? null
+                            : const Border(
+                                bottom: BorderSide(color: SaleColors.divider)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: SaleColors.successTint,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.check_rounded,
+                                size: 14, color: SaleColors.success),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              saleProvider.payments[i].paymentType,
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          Text(
+                            _currencyFormat.format(saleProvider.payments[i].amount),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: SaleColors.success,
+                              fontFeatures: kTabularFigures,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded,
+                                size: 14, color: SaleColors.iconFaint),
+                            constraints:
+                                const BoxConstraints(minWidth: 30, minHeight: 30),
+                            padding: EdgeInsets.zero,
+                            onPressed: () => saleProvider.removePayment(i),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Small status pill used under a cart line.
+  Widget _saleBadge({
+    required IconData icon,
+    required String label,
+    required Color color,
+    VoidCallback? onTap,
+    bool outlined = false,
+  }) {
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: outlined ? Border.all(color: color.withValues(alpha: 0.5)) : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap == null) return chip;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: chip,
+    );
+  }
+
+  /// Per-item discount, one-time discount and quantity-offer indicators.
+  ///
+  /// These carry real money rules, so the redesign keeps every one of them --
+  /// only the styling changed.
+  Widget _buildLerumaLineBadges(
+      SaleProvider saleProvider, SaleItem item, int index) {
+    final discountLimit = item.discountLimit ?? 0;
+    final hasOffer = saleProvider.hasQuantityOffer(item.itemId);
+    final hasOtc = saleProvider.hasOneTimeDiscount(item.itemId);
+    final hasPendingOtc = saleProvider.hasPendingOneTimeDiscount(item.itemId);
+    final hasApproved = saleProvider.hasApprovedDiscountRequest(item.itemId);
+    final hasPendingApproved =
+        saleProvider.hasPendingApprovedDiscount(item.itemId);
+    final groupOffer = saleProvider.getGroupOfferForItem(item.itemId);
+
+    final badges = <Widget>[
+      // Per-item discount (tap to edit, capped at the item's discount limit)
+      if (discountLimit > 0)
+        _saleBadge(
+          icon: Icons.discount_outlined,
+          label: item.discount > 0
+              ? '−${_currencyFormat.format(item.discount)}'
+              : 'Disc',
+          color: item.discount > 0 ? SaleColors.warning : SaleColors.textFaint,
+          outlined: item.discount > 0,
+          onTap: () => _openLineDiscountDialog(saleProvider, item, index, discountLimit),
+        ),
+      if (hasOtc)
+        _saleBadge(
+          icon: Icons.local_offer,
+          label: 'OTC',
+          color: SaleColors.success,
+        ),
+      if (hasPendingOtc && !hasOtc)
+        _saleBadge(
+          icon: Icons.local_offer_outlined,
+          label:
+              'OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}',
+          color: SaleColors.warning,
+        ),
+      if (hasApproved)
+        _saleBadge(
+          icon: Icons.verified_outlined,
+          label: 'Approved',
+          color: SaleColors.success,
+        ),
+      if (hasPendingApproved && !hasApproved)
+        _saleBadge(
+          icon: Icons.hourglass_empty_rounded,
+          label: 'Pending',
+          color: SaleColors.warning,
+        ),
+      if (hasOffer)
+        Builder(builder: (context) {
+          final offer = saleProvider.getQuantityOffer(item.itemId)!;
+          final freeQty = offer.calculateReward(item.quantity);
+          final eligible = freeQty > 0;
+          return _saleBadge(
+            icon: eligible ? Icons.card_giftcard : Icons.card_giftcard_outlined,
+            label: eligible
+                ? '+${freeQty.toStringAsFixed(0)} FREE'
+                : 'Buy ${offer.purchaseQuantity.toStringAsFixed(0)}',
+            color: eligible ? SaleColors.success : SaleColors.brand,
+          );
+        }),
+      // Group offer: threshold is the combined quantity of its member items, so
+      // the badge shows progress across the whole group, not just this line.
+      if (groupOffer != null)
+        Builder(builder: (context) {
+          final combined = saleProvider.groupOfferCombinedQuantity(groupOffer);
+          final freeQty = saleProvider.groupOfferReward(groupOffer);
+          final eligible = freeQty > 0;
+          final threshold = groupOffer.useTieredRewards == 1
+              ? (groupOffer.tiers?.isNotEmpty == true
+                  ? groupOffer.tiers!.first.minQuantity
+                  : groupOffer.purchaseQuantity)
+              : groupOffer.purchaseQuantity;
+
+          return _saleBadge(
+            icon: eligible ? Icons.card_giftcard : Icons.groups_outlined,
+            label: eligible
+                ? 'GROUP +${freeQty.toStringAsFixed(0)} FREE'
+                : 'Group ${combined.toStringAsFixed(0)}/${threshold.toStringAsFixed(0)}',
+            color: eligible ? SaleColors.success : SaleColors.brand,
+          );
+        }),
+    ];
+
+    if (badges.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Wrap(spacing: 6, runSpacing: 4, children: badges),
+    );
+  }
+
+  /// Per-item discount editor, capped at the item's discount limit.
+  Future<void> _openLineDiscountDialog(
+    SaleProvider saleProvider,
+    SaleItem item,
+    int index,
+    int discountLimit,
+  ) async {
+    final perItem = item.discount > 0 ? (item.discount / item.quantity) : 0;
+    final controller = TextEditingController(
+        text: perItem > 0 ? perItem.toStringAsFixed(0) : '');
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Text('Discount per item', style: TextStyle(fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Max: ${_currencyFormat.format(discountLimit)} TSh',
+                style: const TextStyle(fontSize: 12, color: SaleColors.warning)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Discount (TSh)',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              var disc = double.tryParse(controller.text) ?? 0;
+              if (disc > discountLimit) disc = discountLimit.toDouble();
+              saleProvider.updateDiscount(index, disc * item.quantity,
+                  discountType: 1);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLerumaCartLine(
+    SaleProvider saleProvider,
+    SaleItem item,
+    int index, {
+    required bool isLast,
+  }) {
+    final isFree = item.quantityOfferFree;
+    final lineTotal = (item.quantity * item.unitPrice) - item.discount;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(bottom: BorderSide(color: SaleColors.divider)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.itemName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: SaleColors.textPrimary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isFree
+                      ? '🎁 Free · offer'
+                      : '${item.quantity.toStringAsFixed(0)} × ${_currencyFormat.format(item.unitPrice)} TSh',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isFree ? SaleColors.success : SaleColors.textMuted),
+                ),
+                if (!isFree) _buildLerumaLineBadges(saleProvider, item, index),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Quantity pill -> keypad sheet. Reward lines are derived, not editable.
+          if (!isFree)
+            Material(
+              color: SaleColors.blueTint3,
+              borderRadius: BorderRadius.circular(11),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(11),
+                highlightColor: SaleColors.blueTintPressedAlt,
+                onTap: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
+                    ? null
+                    : () => _openQuantitySheet(saleProvider, index),
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 11),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(color: SaleColors.blueBorder, width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        constraints: const BoxConstraints(minWidth: 22),
+                        alignment: Alignment.center,
+                        child: Text(
+                          item.quantity.toStringAsFixed(0),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: SaleColors.brand,
+                            fontFeatures: kTabularFigures,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      const Icon(Icons.edit_outlined,
+                          size: 13, color: SaleColors.brand),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 70,
+            child: Text(
+              _currencyFormat.format(lineTotal),
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+                color: SaleColors.textPrimary,
+                fontFeatures: kTabularFigures,
+              ),
+            ),
+          ),
+          // 44x44 target, pulled right so the glyph sits at the card edge
+          Transform.translate(
+            offset: const Offset(10, 0),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded,
+                    size: 13, color: SaleColors.iconFaint),
+                padding: EdgeInsets.zero,
+                onPressed: () => saleProvider.removeItem(index),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===================================================================
+  // Redesigned sale footer + sheets (design_handoff_sale_screen)
+  //
+  // These replace the old two-row button block and the payment dialog for
+  // Leruma. They deliberately reuse _suspendSale/_completeSale so the existing
+  // NFC confirmation, permission and offer/discount bookkeeping still runs.
+  // ===================================================================
+
+  /// Totals block and the Suspend / Charge action row.
+  Widget _buildLerumaTotalsAndActions(SaleProvider saleProvider) {
+    final subtotal = saleProvider.subtotal;
+    final lineDiscounts = saleProvider.totalDiscount;
+    final due = saleProvider.amountDue;
+    final hasCustomer = saleProvider.selectedCustomer != null;
+    final canCharge = hasCustomer && saleProvider.hasItems && !_isProcessing;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Subtotal
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 0, 2, 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Subtotal',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: SaleColors.textFaint)),
+              Text(
+                '${_currencyFormat.format(subtotal)} TSh',
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: SaleColors.textSecondary,
+                  fontFeatures: kTabularFigures,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Line discounts are shown here as a read-only total. There is no
+        // order-level discount in this business: discount is always per item,
+        // set from the line's Disc chip and capped by that item's limit.
+        if (lineDiscounts > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(2, 0, 2, 7),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.discount_outlined,
+                        size: 14, color: SaleColors.warning),
+                    SizedBox(width: 5),
+                    Text(
+                      'Item discounts',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: SaleColors.warning),
+                    ),
+                  ],
+                ),
+                Text(
+                  '− ${_currencyFormat.format(lineDiscounts)}',
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: SaleColors.danger,
+                    fontFeatures: kTabularFigures,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // Balance due
+        Container(
+          padding: const EdgeInsets.fromLTRB(2, 8, 2, 10),
+          decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: SaleColors.border)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                saleProvider.hasPayments ? 'Balance due' : 'Total',
+                style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: SaleColors.textMuted),
+              ),
+              Text(
+                _currencyFormat.format(due < 0 ? 0 : due),
+                style: const TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.6,
+                  color: SaleColors.textPrimary,
+                  fontFeatures: kTabularFigures,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Suspend + Charge
+        Row(
+          children: [
+            PermissionWrapper(
+              permissionId: PermissionIds.salesSuspended,
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: Material(
+                  color: SaleColors.warningFillSoft,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    highlightColor: SaleColors.warningFillPressed,
+                    onTap: _isProcessing ? null : _suspendSale,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: SaleColors.warningBorder, width: 1.5),
+                      ),
+                      child: const Icon(Icons.pause_rounded,
+                          size: 20, color: SaleColors.warning),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: SaleSheetButton(
+                label: saleProvider.isFullyPaid && saleProvider.hasItems
+                    ? 'Complete sale'
+                    : 'Charge ${_currencyFormat.format(due < 0 ? 0 : due)}',
+                icon: Icons.credit_card_rounded,
+                color: SaleColors.brand,
+                pressedColor: SaleColors.brandPressed,
+                shadow: SaleShadows.primaryButton,
+                onTap: canCharge ? () => _onCharge(saleProvider) : null,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Charge: complete straight away when the balance is covered, otherwise
+  /// collect a payment first.
+  Future<void> _onCharge(SaleProvider saleProvider) async {
+    if (saleProvider.selectedCustomer == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Select a customer to start'),
+          backgroundColor: SaleColors.warning,
+        ),
+      );
+      return;
+    }
+
+    if (saleProvider.isFullyPaid) {
+      await _completeSale();
+      return;
+    }
+
+    await _openPaymentSheet(saleProvider);
+  }
+
+  Future<void> _openPaymentSheet(SaleProvider saleProvider) async {
+    // Bank is only offered when this customer is allowed to use it, matching
+    // the web register and the customers.allow_bank_payment flag.
+    final methods = <String>[
+      'Cash',
+      if (saleProvider.selectedCustomer?.allowBankPayment ?? false) 'Bank',
+      'Credit',
+    ];
+
+    await showSaleSheet(context, (_) {
+      return PaymentSheet(
+        amountDue: saleProvider.amountDue,
+        isPartPayment: saleProvider.hasPayments,
+        methods: methods,
+        onConfirm: (method, amount) {
+          saleProvider.addPayment(SalePayment(paymentType: method, amount: amount));
+        },
+      );
+    });
+
+    if (!mounted) return;
+
+    // Covering the balance completes the sale; otherwise the seller stays on the
+    // cart with the remaining balance -- this is how split payments work.
+    if (saleProvider.isFullyPaid && saleProvider.hasItems) {
+      await _completeSale();
+    }
+  }
+
+  Future<void> _openQuantitySheet(SaleProvider saleProvider, int index) async {
+    final item = saleProvider.cartItems[index];
+    await showSaleSheet(context, (_) {
+      return QuantitySheet(
+        itemName: item.itemName,
+        initialQuantity: item.quantity,
+        onChanged: (qty) => saleProvider.updateQuantity(index, qty),
+      );
+    });
+  }
+
+  /// Fully close the item search: drop the query, the results and the keyboard.
+  ///
+  /// Clearing the text alone left stale results on screen, and unfocusing alone
+  /// left the query in place, so both were doing half the job.
+  void _closeSearch() {
+    _searchController.clear();
+    _filterItems('');
+    FocusScope.of(context).unfocus();
+  }
+
+  /// Trailing icons for the item search field.
+  ///
+  /// While the field has focus it offers a dismiss button, because an empty
+  /// focused field otherwise leaves the keyboard up with no way to close it
+  /// short of the system back gesture. Dismissing keeps whatever was typed so
+  /// the results stay on screen.
+  Widget? _buildSearchSuffix(bool isDark, bool hasCustomer) {
+    final hasText = _searchController.text.isNotEmpty;
+    final isFocused = _searchFocusNode.hasFocus;
+    final iconColor = isDark ? Colors.grey.shade300 : Colors.grey.shade600;
+
+    final icons = <Widget>[
+      if (hasText)
+        IconButton(
+          icon: Icon(Icons.clear_rounded, color: iconColor),
+          tooltip: 'Clear search',
+          visualDensity: VisualDensity.compact,
+          onPressed: () {
+            _searchController.clear();
+            _filterItems('');
+          },
+        ),
+      if (!isFocused && !hasText && hasCustomer)
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Icon(
+            Icons.qr_code_scanner_rounded,
+            size: 22,
+            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+          ),
+        ),
+    ];
+
+    if (icons.isEmpty) return null;
+    return Row(mainAxisSize: MainAxisSize.min, children: icons);
   }
 
   Future<void> _initializeLocation() async {
@@ -68,6 +1223,8 @@ class _SalesScreenState extends State<SalesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.removeListener(_onSearchFocusChanged);
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -142,8 +1299,14 @@ class _SalesScreenState extends State<SalesScreen> {
     if (query.isEmpty) {
       setState(() {
         _filteredItems = []; // Don't show items when search is empty
+        _cartExpanded = true; // Search finished: give the cart its space back
       });
       return;
+    }
+
+    // Free up vertical space for results as soon as searching begins
+    if (_cartExpanded) {
+      setState(() => _cartExpanded = false);
     }
 
     final locationProvider = context.read<LocationProvider>();
@@ -1209,6 +2372,13 @@ class _SalesScreenState extends State<SalesScreen> {
     final locationProvider = context.watch<LocationProvider>();
     final isDark = themeProvider.isDarkMode;
 
+    // Leruma runs the redesigned layout from design_handoff_sale_screen: no
+    // location/Sheet toolbar, no inline cart above the search -- the cart IS
+    // the screen. Other clients keep the original tree below.
+    if (ApiService.currentClient?.features.hasInlineCartPreview ?? false) {
+      return _buildLerumaSaleScreen();
+    }
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
       appBar: null,
@@ -1409,9 +2579,17 @@ class _SalesScreenState extends State<SalesScreen> {
                       if (!saleProvider.hasItems) {
                         return const SizedBox.shrink();
                       }
+                      // With no search running, the space below is idle, so let the
+                      // cart claim it and show as many lines as fit instead of
+                      // scrolling inside a 180px box while the screen sits empty.
+                      // While searching it stays small so results keep the room.
+                      final double cartMaxHeight = _cartExpanded
+                          ? MediaQuery.of(context).size.height * 0.42
+                          : 180;
+
                       return Container(
                         margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                        constraints: const BoxConstraints(maxHeight: 180),
+                        constraints: BoxConstraints(maxHeight: cartMaxHeight),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(10),
@@ -1420,39 +2598,56 @@ class _SalesScreenState extends State<SalesScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Cart header
-                            Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.shopping_cart, size: 18, color: AppColors.primary),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Cart (${saleProvider.itemCount})',
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87),
+                            // Cart header -- tapping anywhere on it expands/collapses
+                            // the item list, so the cashier can always reach the
+                            // cart without losing the search results underneath.
+                            InkWell(
+                              onTap: () => setState(() => _cartExpanded = !_cartExpanded),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            _cartExpanded ? Icons.expand_less : Icons.expand_more,
+                                            size: 20,
+                                            color: AppColors.primary,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(Icons.shopping_cart, size: 18, color: AppColors.primary),
+                                          const SizedBox(width: 8),
+                                          Flexible(
+                                            child: Text(
+                                              _cartExpanded
+                                                  ? 'Cart (${saleProvider.itemCount})'
+                                                  : 'Cart (${saleProvider.itemCount}) · tap to view',
+                                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '${_currencyFormat.format(saleProvider.total)} TSh',
-                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      InkWell(
-                                        onTap: () => saleProvider.clearCart(),
-                                        child: Icon(Icons.delete_outline, size: 20, color: AppColors.error),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                    Text(
+                                      '${_currencyFormat.format(saleProvider.total)} TSh',
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    InkWell(
+                                      onTap: () => saleProvider.clearCart(),
+                                      child: Icon(Icons.delete_outline, size: 20, color: AppColors.error),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            // Cart items (scrollable list)
+                            // Cart items (scrollable list) -- hidden while collapsed
+                            if (_cartExpanded)
                             Flexible(
                               child: ListView.builder(
                                 shrinkWrap: true,
@@ -1517,21 +2712,10 @@ class _SalesScreenState extends State<SalesScreen> {
                                             InkWell(
                                               onTap: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
                                                   ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity is locked by approved discount request'), backgroundColor: AppColors.warning))
-                                                  : () {
-                                                final controller = TextEditingController(text: item.quantity.toStringAsFixed(0));
-                                                showDialog(
-                                                  context: context,
-                                                  builder: (ctx) => AlertDialog(
-                                                    backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-                                                    title: Text('Quantity', style: TextStyle(fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
-                                                    content: TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
-                                                    actions: [
-                                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                                                      ElevatedButton(onPressed: () { final qty = double.tryParse(controller.text) ?? item.quantity; if (qty > 0) saleProvider.updateQuantity(idx, qty); Navigator.pop(ctx); }, child: const Text('OK')),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
+                                                  // Redesign: quantity is a keypad bottom sheet with
+                                                  // 1/5/10/25/50 presets, not a text dialog -- sellers
+                                                  // mostly type 10, 25 or 50.
+                                                  : () => _openQuantitySheet(saleProvider, idx),
                                               child: Container(
                                                 constraints: const BoxConstraints(minWidth: 40),
                                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1646,7 +2830,10 @@ class _SalesScreenState extends State<SalesScreen> {
                             ),
                           );
                         } : null,
-                        child: Container(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
                           decoration: BoxDecoration(
                             color: hasCustomer
                                 ? (isDark ? AppColors.darkCard : Colors.white)
@@ -1668,6 +2855,11 @@ class _SalesScreenState extends State<SalesScreen> {
                           ),
                           child: TextField(
                             controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: (_) => _searchFocusNode.unfocus(),
+                            // Tapping anywhere off the field also dismisses the keyboard
+                            onTapOutside: (_) => _searchFocusNode.unfocus(),
                             enabled: hasCustomer,
                             style: TextStyle(
                               fontSize: 16,
@@ -1689,24 +2881,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                   color: hasCustomer ? AppColors.primary : AppColors.warning,
                                 ),
                               ),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: Icon(Icons.clear_rounded, color: isDark ? Colors.grey.shade300 : Colors.grey.shade600),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _filterItems('');
-                                      },
-                                    )
-                                  : hasCustomer
-                                      ? Container(
-                                          padding: const EdgeInsets.only(right: 8),
-                                          child: Icon(
-                                            Icons.qr_code_scanner_rounded,
-                                            size: 22,
-                                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
-                                          ),
-                                        )
-                                      : null,
+                              suffixIcon: _buildSearchSuffix(isDark, hasCustomer),
                               filled: true,
                               fillColor: Colors.transparent,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1717,6 +2892,35 @@ class _SalesScreenState extends State<SalesScreen> {
                             ),
                             onChanged: _filterItems,
                           ),
+                              ),
+                            ),
+                            // Close control lives OUTSIDE the field on purpose: an
+                            // IconButton inside InputDecoration.suffixIcon sits within
+                            // the TextField's own tap target, so the tap re-focuses the
+                            // field and the keyboard reopens the moment unfocus() runs.
+                            if (_searchFocusNode.hasFocus || _searchController.text.isNotEmpty || _filteredItems.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                height: 48,
+                                child: TextButton.icon(
+                                  onPressed: _closeSearch,
+                                  icon: const Icon(Icons.close_rounded, size: 18),
+                                  label: const Text(
+                                    'Close',
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.error,
+                                    backgroundColor: AppColors.error.withValues(alpha: 0.08),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       );
                     },
@@ -1732,6 +2936,43 @@ class _SalesScreenState extends State<SalesScreen> {
                 Expanded(
                   child: Consumer<LocationProvider>(
                     builder: (context, locationProvider, child) {
+                      // Fill the gap between search and the action bar with a hint
+                      // instead of leaving a large blank area
+                      if (_filteredItems.isEmpty) {
+                        final bool searching = _searchController.text.isNotEmpty;
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            // An expanded cart can leave this area short; scale the
+                            // hint down rather than overflowing it
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  searching ? Icons.search_off_rounded : Icons.inventory_2_outlined,
+                                  size: 40,
+                                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade400,
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  searching
+                                      ? 'No items match "${_searchController.text}"'
+                                      : 'Search by item name or barcode to add to the cart',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            ),
+                          ),
+                        );
+                      }
+
                       return ListView.builder(
                         itemCount: _filteredItems.length,
                         itemBuilder: (context, index) {
@@ -1934,134 +3175,155 @@ class _SalesScreenState extends State<SalesScreen> {
                           ],
 
                           if (!isLeruma) const SizedBox(height: 12),
-                          // Action buttons - Compact layout
-                          Column(
-                            children: [
-                              // Row 1: View Cart and Suspend - hide View Cart for Leruma
-                              Row(
-                                children: [
-                                  if (!isLeruma) ...[
-                                    Expanded(
-                                      flex: 3,
-                                      child: SizedBox(
-                                        height: 44,
-                                        child: OutlinedButton.icon(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => const CartScreen(),
-                                              ),
-                                            );
-                                          },
-                                          icon: const Icon(Icons.shopping_cart, size: 18),
-                                          label: const Text(
-                                            'View Cart',
-                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                                          ),
-                                          style: OutlinedButton.styleFrom(
-                                            side: BorderSide(color: AppColors.primary, width: 1.5),
-                                            foregroundColor: AppColors.primary,
-                                          ),
-                                        ),
+                          // Action buttons.
+                          //
+                          // Leruma puts all three on ONE medium-height row: the cart
+                          // summary already sits above the search field, so the old
+                          // two-row block spent ~120px of a phone screen on chrome
+                          // that the results list needs. Other clients keep the
+                          // original two-row layout because they also show View Cart.
+                          Builder(
+                            builder: (context) {
+                              final double buttonHeight = isLeruma ? 44 : 48;
+                              final double labelSize = isLeruma ? 13 : 15;
+                              final double iconSize = isLeruma ? 18 : 20;
+
+                              final Widget suspendButton = PermissionWrapper(
+                                permissionId: PermissionIds.salesSuspended,
+                                child: SizedBox(
+                                  height: buttonHeight,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isProcessing ? null : _suspendSale,
+                                    icon: Icon(Icons.pause_circle_outline, size: isLeruma ? 16 : 18),
+                                    label: Text(
+                                      'Suspend',
+                                      style: TextStyle(
+                                        fontSize: isLeruma ? 12 : 13,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  // Suspend button - requires permission
-                                  Expanded(
-                                    flex: isLeruma ? 1 : 2,
-                                    child: PermissionWrapper(
-                                      permissionId: PermissionIds.salesSuspended,
-                                      child: SizedBox(
-                                        height: 44,
-                                        child: OutlinedButton.icon(
-                                          onPressed: _isProcessing ? null : _suspendSale,
-                                          icon: const Icon(Icons.pause_circle_outline, size: 18),
-                                          label: const Text(
-                                            'Suspend',
-                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                                          ),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: AppColors.warning,
-                                            side: BorderSide(color: AppColors.warning, width: 1.5),
-                                          ),
-                                        ),
-                                      ),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.warning,
+                                      side: BorderSide(color: AppColors.warning, width: 1.5),
+                                      padding: EdgeInsets.symmetric(horizontal: isLeruma ? 4 : 12),
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              // Row 2: Add Payment and Complete Sale
-                              Row(
-                                children: [
-                                  // Add Payment button - disabled when fully paid
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 48,
-                                      child: ElevatedButton.icon(
-                                        onPressed: (_isProcessing || saleProvider.isFullyPaid)
-                                            ? null
-                                            : _addPayment,
-                                        icon: const Icon(Icons.add_card, size: 20),
-                                        label: const Text(
-                                          'Add Payment',
-                                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: saleProvider.isFullyPaid
-                                              ? Colors.grey
-                                              : AppColors.primary,
-                                          foregroundColor: Colors.white,
-                                          elevation: saleProvider.isFullyPaid ? 0 : 2,
-                                        ),
-                                      ),
-                                    ),
+                                ),
+                              );
+
+                              final Widget addPaymentButton = SizedBox(
+                                height: buttonHeight,
+                                child: ElevatedButton.icon(
+                                  onPressed: (_isProcessing || saleProvider.isFullyPaid)
+                                      ? null
+                                      : _addPayment,
+                                  icon: Icon(Icons.add_card, size: iconSize),
+                                  label: Text(
+                                    isLeruma ? 'Payment' : 'Add Payment',
+                                    style: TextStyle(fontSize: labelSize, fontWeight: FontWeight.bold),
                                   ),
-                                  const SizedBox(width: 8),
-                                  // Complete Sale button
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 48,
-                                      child: ElevatedButton.icon(
-                                        onPressed: (_isProcessing || !saleProvider.isFullyPaid)
-                                            ? null
-                                            : _completeSale,
-                                        icon: _isProcessing
-                                            ? const SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: saleProvider.isFullyPaid
+                                        ? Colors.grey
+                                        : AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    elevation: saleProvider.isFullyPaid ? 0 : 2,
+                                    padding: EdgeInsets.symmetric(horizontal: isLeruma ? 4 : 12),
+                                  ),
+                                ),
+                              );
+
+                              final Widget completeButton = SizedBox(
+                                height: buttonHeight,
+                                child: ElevatedButton.icon(
+                                  onPressed: (_isProcessing || !saleProvider.isFullyPaid)
+                                      ? null
+                                      : _completeSale,
+                                  icon: _isProcessing
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Icon(
+                                          saleProvider.isFullyPaid
+                                              ? Icons.check_circle
+                                              : Icons.shopping_cart_checkout,
+                                          size: iconSize,
+                                        ),
+                                  label: Text(
+                                    'Complete',
+                                    style: TextStyle(fontSize: labelSize, fontWeight: FontWeight.bold),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: saleProvider.isFullyPaid
+                                        ? AppColors.success
+                                        : Colors.grey.shade400,
+                                    foregroundColor: Colors.white,
+                                    elevation: saleProvider.isFullyPaid ? 2 : 0,
+                                    disabledBackgroundColor: Colors.grey.shade300,
+                                    disabledForegroundColor: Colors.grey.shade600,
+                                    padding: EdgeInsets.symmetric(horizontal: isLeruma ? 4 : 12),
+                                  ),
+                                ),
+                              );
+
+                              if (isLeruma) {
+                                // Redesigned footer (design_handoff_sale_screen):
+                                // subtotal, an order-discount row, the balance due,
+                                // then Suspend + a single Charge action.
+                                return _buildLerumaTotalsAndActions(saleProvider);
+                              }
+
+                              return Column(
+                                children: [
+                                  // Row 1: View Cart and Suspend
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: SizedBox(
+                                          height: 44,
+                                          child: OutlinedButton.icon(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => const CartScreen(),
                                                 ),
-                                              )
-                                            : Icon(
-                                                saleProvider.isFullyPaid
-                                                    ? Icons.check_circle
-                                                    : Icons.shopping_cart_checkout,
-                                                size: 20,
-                                              ),
-                                        label: const Text(
-                                          'Complete',
-                                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: saleProvider.isFullyPaid
-                                              ? AppColors.success
-                                              : Colors.grey.shade400,
-                                          foregroundColor: Colors.white,
-                                          elevation: saleProvider.isFullyPaid ? 2 : 0,
-                                          disabledBackgroundColor: Colors.grey.shade300,
-                                          disabledForegroundColor: Colors.grey.shade600,
+                                              );
+                                            },
+                                            icon: const Icon(Icons.shopping_cart, size: 18),
+                                            label: const Text(
+                                              'View Cart',
+                                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                            ),
+                                            style: OutlinedButton.styleFrom(
+                                              side: BorderSide(color: AppColors.primary, width: 1.5),
+                                              foregroundColor: AppColors.primary,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                      const SizedBox(width: 8),
+                                      Expanded(flex: 2, child: suspendButton),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Row 2: Add Payment and Complete Sale
+                                  Row(
+                                    children: [
+                                      Expanded(child: addPaymentButton),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: completeButton),
+                                    ],
                                   ),
                                 ],
-                              ),
-                            ],
+                              );
+                            },
                           ),
                         ],
                       ),
