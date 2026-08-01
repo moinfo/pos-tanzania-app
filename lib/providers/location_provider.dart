@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/stock_location.dart';
 import '../services/api_service.dart';
+import 'auth_provider.dart';
 
 class LocationProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -13,6 +14,12 @@ class LocationProvider with ChangeNotifier {
   String? _errorMessage;
   String? _currentModuleId;
 
+  /// Which signed-in user the loaded locations belong to.
+  ///
+  /// Allowed locations are per employee, so holding another user's list in
+  /// memory or in the cache would show a seller stores they have no grant for.
+  String? _loadedForUserId;
+
   // Cache key prefix for offline storage
   static const String _locationsCacheKeyPrefix = 'cached_locations';
 
@@ -22,10 +29,20 @@ class LocationProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get hasMultipleLocations => _allowedLocations.length > 1;
 
-  /// Get client-specific cache key
+  /// Id of the signed-in user, or null when signed out.
+  Future<String?> _activeUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(AuthProvider.activeUserIdKey);
+  }
+
+  /// Cache key, scoped to both client and user.
+  ///
+  /// Without the user in the key, signing in as someone else on the same device
+  /// reuses the previous seller's locations.
   Future<String> _getCacheKey(String moduleId) async {
     final client = await ApiService.getCurrentClient();
-    return '${_locationsCacheKeyPrefix}_${client.id}_$moduleId';
+    final userId = await _activeUserId() ?? 'anon';
+    return '${_locationsCacheKeyPrefix}_${client.id}_${userId}_$moduleId';
   }
 
   /// Cache locations to local storage
@@ -72,10 +89,26 @@ class LocationProvider with ChangeNotifier {
     debugPrint('📍 [LocationProvider] initialize called for module: $requestedModule, userLocationId: $userLocationId');
     debugPrint('📍 [LocationProvider] Current state - locations: ${_allowedLocations.length}, currentModule: $_currentModuleId, selected: ${_selectedLocation?.locationName}');
 
-    // If already loaded for same module, skip
-    if (_allowedLocations.isNotEmpty && _currentModuleId == requestedModule) {
+    final activeUserId = await _activeUserId();
+
+    // Skip only when the loaded list belongs to the SAME module AND the same
+    // user. Without the user check, signing in as another seller reuses the
+    // previous one's locations because the API is never called again.
+    // When no user is recorded (a session that predates this key, or a failed
+    // write) we cannot prove the list belongs to whoever is signed in now, so
+    // refetch rather than risk showing another seller's stores.
+    if (_allowedLocations.isNotEmpty &&
+        _currentModuleId == requestedModule &&
+        activeUserId != null &&
+        _loadedForUserId == activeUserId) {
       debugPrint('📍 [LocationProvider] Already initialized for $requestedModule, skipping');
       return;
+    }
+
+    if (_loadedForUserId != activeUserId) {
+      debugPrint('📍 [LocationProvider] User changed ($_loadedForUserId -> $activeUserId), reloading locations');
+      _allowedLocations = [];
+      _selectedLocation = null;
     }
 
     _isLoading = true;
@@ -88,6 +121,7 @@ class LocationProvider with ChangeNotifier {
       if (response.isSuccess && response.data != null) {
         _allowedLocations = response.data!;
         _currentModuleId = requestedModule;
+        _loadedForUserId = activeUserId;
         _errorMessage = null;
 
         // Cache for offline use
@@ -108,6 +142,14 @@ class LocationProvider with ChangeNotifier {
       } else {
         _errorMessage = 'Unable to load locations. Please connect to internet.';
       }
+    }
+
+    // A selection carried over from another user (or a location whose grant was
+    // revoked) must not survive -- drop it before picking a default.
+    if (_selectedLocation != null &&
+        !_allowedLocations.any((loc) => loc.locationId == _selectedLocation!.locationId)) {
+      debugPrint('📍 [LocationProvider] Selected location ${_selectedLocation!.locationName} is not allowed, clearing');
+      _selectedLocation = null;
     }
 
     // Set selected location
@@ -183,6 +225,7 @@ class LocationProvider with ChangeNotifier {
     _allowedLocations = [];
     _selectedLocation = null;
     _currentModuleId = null;
+    _loadedForUserId = null;
     _errorMessage = null;
 
     // Clear all location-related preferences

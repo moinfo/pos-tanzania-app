@@ -56,6 +56,7 @@ class AuthProvider with ChangeNotifier {
       if (result.isSuccess && result.data != null) {
         _user = result.data;
         _isAuthenticated = true;
+        await _persistActiveUserId();
 
         // Load permissions from local storage or fetch
         if (_permissionProvider != null) {
@@ -116,6 +117,7 @@ class AuthProvider with ChangeNotifier {
         _user = result.data;
         _isAuthenticated = true;
         _error = null;
+        await _persistActiveUserId();
 
         // Cache credentials for offline login (only if offline mode enabled)
         if (client.features.hasOfflineMode) {
@@ -229,6 +231,7 @@ class AuthProvider with ChangeNotifier {
       _user = User.fromJson(userData);
       _isAuthenticated = true;
       _error = null;
+      await _persistActiveUserId();
 
       // Load permissions from local storage
       if (_permissionProvider != null) {
@@ -286,7 +289,24 @@ class AuthProvider with ChangeNotifier {
     _isAuthenticated = false;
     _error = null;
     _isLoading = false;
+    await _persistActiveUserId();
     notifyListeners();
+  }
+
+  /// Record which user is signed in.
+  ///
+  /// Per-user caches (locations, for one) key off this so one seller's data
+  /// cannot be served to the next person who signs in on the same device.
+  static const String activeUserIdKey = 'active_user_id';
+
+  Future<void> _persistActiveUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = _user?.id;
+    if (id == null || id.isEmpty) {
+      await prefs.remove(activeUserIdKey);
+    } else {
+      await prefs.setString(activeUserIdKey, id);
+    }
   }
 
   /// Refresh token
