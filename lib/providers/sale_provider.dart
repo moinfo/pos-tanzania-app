@@ -402,6 +402,7 @@ class SaleProvider with ChangeNotifier {
       }
 
       _renumberLines();
+      _syncGroupOfferLines();
       notifyListeners();
     }
   }
@@ -634,6 +635,7 @@ class SaleProvider with ChangeNotifier {
 
           // Materialise (or update) the free line for this offer
           _syncOfferFreeLine(itemId);
+          _syncGroupOfferLines();
 
           // Notify listeners to update UI
           notifyListeners();
@@ -648,6 +650,8 @@ class SaleProvider with ChangeNotifier {
         _renumberLines();
         notifyListeners();
       }
+      // A group offer may still apply even when this item has no single-item one
+      _syncGroupOfferLines();
       return false;
     } catch (e) {
       debugPrint('Error checking quantity offer: $e');
@@ -707,6 +711,7 @@ class SaleProvider with ChangeNotifier {
       if (response.isSuccess && response.data != null) {
         _groupOffers = response.data!.offers;
         debugPrint('GroupOffers: loaded ${_groupOffers.length}');
+        _syncGroupOfferLines();
         notifyListeners();
       }
     } catch (e) {
@@ -736,6 +741,93 @@ class SaleProvider with ChangeNotifier {
   /// Item the group offer would hand over, given what is in the cart.
   int groupOfferRewardItemId(ItemQuantityOffer offer) =>
       offer.resolveGroupRewardItemId(_paidQuantities);
+
+  /// True when [item] is a reward line produced by a GROUP offer.
+  ///
+  /// Matters at submission time: api/Sales.php regenerates single-item reward
+  /// lines server-side, but has no group-offer handling at all, so group reward
+  /// lines have to be sent or the customer never receives them.
+  bool isGroupOfferLine(SaleItem item) {
+    if (!item.quantityOfferFree || item.quantityOfferId == null) return false;
+    return _groupOffers.any((offer) => offer.offerId == item.quantityOfferId);
+  }
+
+  /// Add, update or remove the reward line for every active group offer.
+  ///
+  /// Mirrors Sale_lib::_check_and_apply_group_offers() on the web, which is what
+  /// puts the free line in the web cart.
+  void _syncGroupOfferLines() {
+    if (_groupOffers.isEmpty) return;
+
+    var changed = false;
+
+    for (final offer in _groupOffers) {
+      final freeQty = groupOfferReward(offer);
+      final existingIndex = _cartItems.indexWhere(
+        (item) => item.quantityOfferFree && item.quantityOfferId == offer.offerId,
+      );
+
+      // Below threshold, or no member of the group is in the cart any more
+      final anyMemberInCart =
+          offer.groupItemIds.any((id) => paidItemFor(id) != null);
+
+      if (freeQty <= 0 || !anyMemberInCart) {
+        if (existingIndex >= 0) {
+          _cartItems.removeAt(existingIndex);
+          changed = true;
+        }
+        continue;
+      }
+
+      final rewardItemId = groupOfferRewardItemId(offer);
+      final source = paidItemFor(rewardItemId) ??
+          offer.groupItemIds
+              .map(paidItemFor)
+              .firstWhere((item) => item != null, orElse: () => null);
+      if (source == null) continue;
+
+      final rewardName = rewardItemId == source.itemId
+          ? source.itemName
+          : (offer.rewardItemName ?? source.itemName);
+
+      if (existingIndex >= 0) {
+        final existing = _cartItems[existingIndex];
+        if (existing.quantity == freeQty && existing.itemId == rewardItemId) {
+          continue;
+        }
+        _cartItems[existingIndex] = existing.copyWith(
+          itemId: rewardItemId,
+          itemName: rewardName,
+          quantity: freeQty,
+        );
+        changed = true;
+      } else {
+        _cartItems.add(SaleItem(
+          itemId: rewardItemId,
+          itemName: rewardName,
+          line: _cartItems.length + 1,
+          quantity: freeQty,
+          costPrice: rewardItemId == source.itemId
+              ? source.costPrice
+              : (offer.rewardItemCostPrice ?? 0),
+          unitPrice: 0, // FREE
+          discount: 0,
+          discountType: 1,
+          description: '🎁 OFFER: ${offer.offerName}'
+              '${offer.offerCode != null && offer.offerCode!.isNotEmpty ? ' (${offer.offerCode})' : ''}',
+          stockLocationId: source.stockLocationId ?? _stockLocation,
+          quantityOfferFree: true,
+          quantityOfferId: offer.offerId,
+        ));
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      _renumberLines();
+      notifyListeners();
+    }
+  }
 
   /// Remove every reward line belonging to [offerId].
   void _removeOfferFreeLines(int offerId) {
@@ -911,11 +1003,14 @@ class SaleProvider with ChangeNotifier {
       subtotal: subtotal,
       taxTotal: 0,
       total: total,
-      // Reward lines are display-only on the client. api/Sales.php regenerates
-      // them server-side (adds the zero-priced line, deducts inventory, writes the
-      // inventory log and records the redemption), so sending ours would create a
-      // duplicate free line and deduct stock twice.
-      items: paidItems,
+      // Single-item reward lines are display-only: api/Sales.php regenerates
+      // them server-side (zero-priced line, inventory deduction, inventory log,
+      // redemption), so sending ours would duplicate the free item and deduct
+      // stock twice. Group offers get NO server-side handling at all, so those
+      // reward lines must be sent or the customer never receives them.
+      items: _cartItems
+          .where((item) => !item.quantityOfferFree || isGroupOfferLine(item))
+          .toList(),
       payments: payments ?? _payments, // Use accumulated payments if not provided
     );
   }
