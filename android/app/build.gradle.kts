@@ -54,7 +54,7 @@ android {
         create("leruma") {
             dimension = "client"
             applicationId = "co.tz.leruma.pos"
-            resValue("string", "app_name", "Leruma POS")
+            resValue("string", "app_name", "Leruma Distribution Center")
         }
         create("kariakooShops") {
             dimension = "client"

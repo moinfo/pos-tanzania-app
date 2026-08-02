@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Leruma launcher icon background. The logo is navy/blue on white, so a
+         white plate keeps it legible under any launcher mask. -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>

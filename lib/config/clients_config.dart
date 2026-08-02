@@ -148,9 +148,14 @@ class ClientsConfig {
     ClientConfig(
       id: 'leruma',
       name: 'dev-leruma',
-      displayName: 'Leruma',
+      displayName: 'Leruma Distribution Center',
       devApiUrl: localBaseUrl,
       prodApiUrl: 'https://leruma.co.tz/api',
+      logoUrl: 'assets/images/leruma-logo.png',
+      branding: const ClientBranding(
+        appTitle: 'Leruma Distribution Center',
+        tagline: 'Distribution made simple',
+      ),
       features: const ClientFeatures(
         hasContracts: false,
         hasProfitSubmit: false,
