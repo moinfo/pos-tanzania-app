@@ -1134,93 +1134,105 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Primary KPI card (design_handoff_home_credit 1.2).
-        if (_topStats != null) ...[
-          _buildCreditsKpiCard(),
-          const SizedBox(height: 12),
-        ],
+        // ---------------------------------------------------------------
+        // Parked on request -- kept in the tree to be brought back later.
+        // Uncomment the block below to restore; the builders it calls
+        // (_buildCreditsKpiCard, _buildStatCard, _buildProgressCard) are
+        // all still live further down this file.
+        // ---------------------------------------------------------------
+        // // Primary KPI card (design_handoff_home_credit 1.2).
+        // if (_topStats != null) ...[
+        // _buildCreditsKpiCard(),
+        // const SizedBox(height: 12),
+        // ],
+        //
+        // // Stat grid (design_handoff_home_credit 1.4). White cards with tinted
+        // // icon squares replace the four saturated tiles: red is reserved for
+        // // real problems, and "Shops served" is not one.
+        // if (_topStats != null) ...[
+        // Row(
+        // children: [
+        // Expanded(child: _buildStatCard(
+        // value: '${_topStats!['total_customers'] ?? 0}',
+        // label: 'Total customers',
+        // icon: Icons.people_outline,
+        // fg: const Color(0xFF1D7DC4), bg: const Color(0xFFEAF3FB),
+        // )),
+        // const SizedBox(width: 10),
+        // Expanded(child: _buildStatCard(
+        // value: '${_topStats!['total_shop_serves'] ?? 0}',
+        // label: 'Shops served',
+        // icon: Icons.storefront_outlined,
+        // fg: const Color(0xFF7A57C9), bg: const Color(0xFFF0EBFA),
+        // )),
+        // ],
+        // ),
+        // const SizedBox(height: 10),
+        // Row(
+        // children: [
+        // Expanded(child: _buildStatCard(
+        // value: '${_progressCustomers?['served'] ?? 0}',
+        // label: 'Served today',
+        // icon: Icons.shopping_cart_outlined,
+        // fg: const Color(0xFF16A34A), bg: const Color(0xFFE7F6EE),
+        // )),
+        // const SizedBox(width: 10),
+        // Expanded(child: _buildStatCard(
+        // value: '${_topStats!['total_disciplinary'] ?? 0}',
+        // label: 'Disciplinary cases',
+        // icon: Icons.shield_outlined,
+        // fg: const Color(0xFF5A6577), bg: const Color(0xFFEEF1F5),
+        // // The only chip the handoff marks as real: everything else
+        // // ("+4", "98%", "+0.8%") is sample data it says not to ship.
+        // chip: (_topStats!['total_disciplinary'] ?? 0) == 0 ? 'Clean' : null,
+        // chipFg: const Color(0xFF4A5462), chipBg: const Color(0xFFEEF1F5),
+        // )),
+        // ],
+        // ),
+        // const SizedBox(height: 20),
+        // ],
 
-        // Stat grid (design_handoff_home_credit 1.4). White cards with tinted
-        // icon squares replace the four saturated tiles: red is reserved for
-        // real problems, and "Shops served" is not one.
-        if (_topStats != null) ...[
-          Row(
-            children: [
-              Expanded(child: _buildStatCard(
-                value: '${_topStats!['total_customers'] ?? 0}',
-                label: 'Total customers',
-                icon: Icons.people_outline,
-                fg: const Color(0xFF1D7DC4), bg: const Color(0xFFEAF3FB),
-              )),
-              const SizedBox(width: 10),
-              Expanded(child: _buildStatCard(
-                value: '${_topStats!['total_shop_serves'] ?? 0}',
-                label: 'Shops served',
-                icon: Icons.storefront_outlined,
-                fg: const Color(0xFF7A57C9), bg: const Color(0xFFF0EBFA),
-              )),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _buildStatCard(
-                value: '${_progressCustomers?['served'] ?? 0}',
-                label: 'Served today',
-                icon: Icons.shopping_cart_outlined,
-                fg: const Color(0xFF16A34A), bg: const Color(0xFFE7F6EE),
-              )),
-              const SizedBox(width: 10),
-              Expanded(child: _buildStatCard(
-                value: '${_topStats!['total_disciplinary'] ?? 0}',
-                label: 'Disciplinary cases',
-                icon: Icons.shield_outlined,
-                fg: const Color(0xFF5A6577), bg: const Color(0xFFEEF1F5),
-                // The only chip the handoff marks as real: everything else
-                // ("+4", "98%", "+0.8%") is sample data it says not to ship.
-                chip: (_topStats!['total_disciplinary'] ?? 0) == 0 ? 'Clean' : null,
-                chipFg: const Color(0xFF4A5462), chipBg: const Color(0xFFEEF1F5),
-              )),
-            ],
-          ),
-          const SizedBox(height: 20),
-        ],
-
-        // Progress Commission & Progress Customers
-        if (_progressCommission != null || _progressCustomers != null) ...[
-          Row(
-            children: [
-              if (_progressCommission != null)
-                Expanded(
-                  child: _buildProgressCard(
-                    title: _progressCommission!['user_name'] != null && _progressCommission!['user_name'].toString().isNotEmpty
-                        ? 'Progress Commission'
-                        : 'Progress Commission',
-                    icon: Icons.shopping_cart,
-                    current: (_progressCommission!['average'] ?? 0).toDouble(),
-                    target: (_progressCommission!['target'] ?? 0).toDouble(),
-                    percentage: (_progressCommission!['percentage'] ?? 0).toDouble(),
-                    isDark: isDark,
-                  ),
-                ),
-              if (_progressCommission != null && _progressCustomers != null)
-                const SizedBox(width: 12),
-              if (_progressCustomers != null)
-                Expanded(
-                  child: _buildProgressCard(
-                    title: 'Customers Served',
-                    icon: Icons.people,
-                    current: (_progressCustomers!['served'] ?? 0).toDouble(),
-                    target: (_progressCustomers!['total'] ?? 0).toDouble(),
-                    percentage: (_progressCustomers!['percentage'] ?? 0).toDouble(),
-                    isDark: isDark,
-                    isCount: true,
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 24),
-        ],
+        // ---------------------------------------------------------------
+        // Parked on request -- kept in the tree to be brought back later.
+        // Uncomment the block below to restore; the builders it calls
+        // (_buildCreditsKpiCard, _buildStatCard, _buildProgressCard) are
+        // all still live further down this file.
+        // ---------------------------------------------------------------
+        // // Progress Commission & Progress Customers
+        // if (_progressCommission != null || _progressCustomers != null) ...[
+        // Row(
+        // children: [
+        // if (_progressCommission != null)
+        // Expanded(
+        // child: _buildProgressCard(
+        // title: _progressCommission!['user_name'] != null && _progressCommission!['user_name'].toString().isNotEmpty
+        // ? 'Progress Commission'
+        // : 'Progress Commission',
+        // icon: Icons.shopping_cart,
+        // current: (_progressCommission!['average'] ?? 0).toDouble(),
+        // target: (_progressCommission!['target'] ?? 0).toDouble(),
+        // percentage: (_progressCommission!['percentage'] ?? 0).toDouble(),
+        // isDark: isDark,
+        // ),
+        // ),
+        // if (_progressCommission != null && _progressCustomers != null)
+        // const SizedBox(width: 12),
+        // if (_progressCustomers != null)
+        // Expanded(
+        // child: _buildProgressCard(
+        // title: 'Customers Served',
+        // icon: Icons.people,
+        // current: (_progressCustomers!['served'] ?? 0).toDouble(),
+        // target: (_progressCustomers!['total'] ?? 0).toDouble(),
+        // percentage: (_progressCustomers!['percentage'] ?? 0).toDouble(),
+        // isDark: isDark,
+        // isCount: true,
+        // ),
+        // ),
+        // ],
+        // ),
+        // const SizedBox(height: 24),
+        // ],
 
         // Commissions (design_handoff_home_credit 1.5) -- the segmented control
         // replaces the two stacked sections ("<name> Commissions" and "Team

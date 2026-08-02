@@ -4,7 +4,9 @@ import '../services/api_service.dart';
 import '../services/pdf_service.dart';
 import '../models/sale.dart';
 import '../models/stock_location.dart';
+import '../models/permission_model.dart';
 import '../providers/location_provider.dart';
+import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -94,9 +96,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     final locationProvider = context.read<LocationProvider>();
     final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
+    final restricted = !_canPickDate;
     final response = await _apiService.getSales(
-      startDate: _startDate,
-      endDate: _endDate,
+      startDate: restricted ? _todayString : _startDate,
+      endDate: restricted ? _todayString : _endDate,
       limit: _limit,
       offset: _offset,
       locationId: selectedLocationId,
@@ -125,7 +128,22 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     }
   }
 
+  /// Whether this user may look at anything other than today.
+  ///
+  /// Without `sales_transaction_date` a seller sees today's transactions only:
+  /// the period is pinned to today, the presets and the range picker are gone,
+  /// and _loadSales always asks the API for today. Hiding the controls is not
+  /// enough on its own -- see _todayString below.
+  bool get _canPickDate => context
+      .read<PermissionProvider>()
+      .hasPermission(PermissionIds.salesTransactionDate);
+
+  static String get _todayString =>
+      DateFormat('yyyy-MM-dd').format(DateTime.now());
+
   void _setDateFilter(String filter) {
+    if (!_canPickDate) return;
+
     final now = DateTime.now();
     setState(() {
       switch (filter) {
@@ -148,6 +166,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   }
 
   Future<void> _selectDateRange() async {
+    if (!_canPickDate) return;
+
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
@@ -263,11 +283,12 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 ),
               ),
             ),
-          IconButton(
-            icon: const Icon(Icons.date_range),
-            onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
-          ),
+          if (_canPickDate)
+            IconButton(
+              icon: const Icon(Icons.date_range),
+              onPressed: _selectDateRange,
+              tooltip: 'Select Date Range',
+            ),
         ],
       ),
       body: Column(
@@ -284,33 +305,37 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                     const Icon(Icons.calendar_today, size: 16),
                     const SizedBox(width: 8),
                     Text(
-                      '${DateFormat('MMM dd, yyyy').format(DateTime.parse(_startDate))} - '
-                      '${DateFormat('MMM dd, yyyy').format(DateTime.parse(_endDate))}',
+                      _canPickDate
+                          ? '${DateFormat('MMM dd, yyyy').format(DateTime.parse(_startDate))} - '
+                              '${DateFormat('MMM dd, yyyy').format(DateTime.parse(_endDate))}'
+                          : "Today · ${DateFormat('MMM dd, yyyy').format(DateTime.now())}",
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                // Quick filter buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _FilterChip(
-                      label: 'Today',
-                      onTap: () => _setDateFilter('today'),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'This Week',
-                      onTap: () => _setDateFilter('week'),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'This Month',
-                      onTap: () => _setDateFilter('month'),
-                    ),
-                  ],
-                ),
+                if (_canPickDate) ...[
+                  const SizedBox(height: 12),
+                  // Quick filter buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _FilterChip(
+                        label: 'Today',
+                        onTap: () => _setDateFilter('today'),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'This Week',
+                        onTap: () => _setDateFilter('week'),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'This Month',
+                        onTap: () => _setDateFilter('month'),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -387,14 +412,22 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                               },
                             ),
                             const SizedBox(width: 8),
-                            _PaymentFilterChip(
-                              label: 'LIPA NAMBA',
-                              isSelected: _paymentFilter == 'LIPA NAMBA',
-                              onTap: () {
-                                setState(() => _paymentFilter = 'LIPA NAMBA');
-                                _filterSales();
-                              },
-                            ),
+                            // Leruma does not take Lipa Namba; Bank is the
+                            // fourth method there, matching what the sale
+                            // screen offers when the customer allows it.
+                            for (final method in [
+                              ApiService.currentClient?.id == 'leruma'
+                                  ? 'Bank'
+                                  : 'LIPA NAMBA'
+                            ])
+                              _PaymentFilterChip(
+                                label: method,
+                                isSelected: _paymentFilter == method,
+                                onTap: () {
+                                  setState(() => _paymentFilter = method);
+                                  _filterSales();
+                                },
+                              ),
                           ],
                         ),
                       ),

@@ -42,6 +42,14 @@ class _QuantitySheetState extends State<QuantitySheet> {
 
   late String _buffer;
 
+  /// True until the seller touches the keypad.
+  ///
+  /// The sheet opens showing the line's current quantity, and the first digit
+  /// typed replaces it instead of appending -- otherwise editing a line that
+  /// holds 1 and typing 5 gave 15, and the seller had to backspace first.
+  /// It behaves like a placeholder even though it is a real value.
+  bool _pristine = true;
+
   @override
   void initState() {
     super.initState();
@@ -57,19 +65,36 @@ class _QuantitySheetState extends State<QuantitySheet> {
   void _apply() => widget.onChanged(_quantity);
 
   void _onDigit(String digit) {
-    if (_buffer.length >= 9) return;
-    setState(() => _buffer = (_buffer == '0' ? '' : _buffer) + digit);
+    if (!_pristine && _buffer.length >= 9) return;
+    setState(() {
+      _buffer = (_pristine || _buffer == '0' ? '' : _buffer) + digit;
+      _pristine = false;
+    });
     _apply();
   }
 
   void _onBackspace() {
+    // Backspacing on the untouched value clears it outright rather than
+    // shaving a digit off a number the seller never typed.
+    if (_pristine) {
+      setState(() {
+        _buffer = '';
+        _pristine = false;
+      });
+      _apply();
+      return;
+    }
+
     if (_buffer.isEmpty) return;
     setState(() => _buffer = _buffer.substring(0, _buffer.length - 1));
     _apply();
   }
 
   void _setPreset(int value) {
-    setState(() => _buffer = value.toString());
+    setState(() {
+      _buffer = value.toString();
+      _pristine = false;
+    });
     _apply();
   }
 
@@ -79,6 +104,7 @@ class _QuantitySheetState extends State<QuantitySheet> {
       label: 'QUANTITY',
       subtitle: widget.itemName,
       value: _buffer.isEmpty ? '0' : _buffer,
+      valueMuted: _pristine || _buffer.isEmpty,
       valueSize: 34,
       keyHeight: 52,
       onDigit: _onDigit,
@@ -141,6 +167,11 @@ class _PaymentSheetState extends State<PaymentSheet> {
   late String _buffer;
   late String _method;
 
+  /// Same placeholder rule as the quantity sheet: the sheet opens on the full
+  /// amount due, and the first digit typed replaces it. Appending to a
+  /// six-figure default is never what a part-payment means.
+  bool _pristine = true;
+
   @override
   void initState() {
     super.initState();
@@ -158,11 +189,22 @@ class _PaymentSheetState extends State<PaymentSheet> {
   bool get _coversBalance => _amount >= widget.amountDue && _amount > 0;
 
   void _onDigit(String digit) {
-    if (_buffer.length >= 9) return;
-    setState(() => _buffer = (_buffer == '0' ? '' : _buffer) + digit);
+    if (!_pristine && _buffer.length >= 9) return;
+    setState(() {
+      _buffer = (_pristine || _buffer == '0' ? '' : _buffer) + digit;
+      _pristine = false;
+    });
   }
 
   void _onBackspace() {
+    if (_pristine) {
+      setState(() {
+        _buffer = '';
+        _pristine = false;
+      });
+      return;
+    }
+
     if (_buffer.isEmpty) return;
     setState(() => _buffer = _buffer.substring(0, _buffer.length - 1));
   }
@@ -175,6 +217,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
       label: widget.isPartPayment ? 'PART PAYMENT' : 'PAYMENT',
       subtitle: 'Due ${_money.format(widget.amountDue)} TSh',
       value: _money.format(_entered),
+      valueMuted: _pristine || _buffer.isEmpty,
       onDigit: _onDigit,
       onBackspace: _onBackspace,
       aboveKeypad: [

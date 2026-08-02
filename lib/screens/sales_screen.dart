@@ -4247,7 +4247,14 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
     final customer = widget.customer!;
     final currentBalance = customer.balance;
-    final creditLimit = customer.creditLimit;
+    // A one-time credit limit is a higher ceiling granted for a single sale.
+    // The web register checks it first and consumes it once used, so the
+    // ceiling shown here has to be the one the sale will actually be judged
+    // against -- otherwise the seller reads "limit exceeded" on a sale the
+    // server would accept.
+    final usesOneTime = customer.oneTimeCredit && customer.oneTimeCreditLimit > 0;
+    final creditLimit =
+        usesOneTime ? customer.oneTimeCreditLimit : customer.creditLimit;
     final availableCredit = creditLimit - currentBalance;
     final isAllowedCredit = customer.isAllowedCredit;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -4311,11 +4318,26 @@ class _PaymentDialogState extends State<PaymentDialog> {
           ),
           const SizedBox(height: 10),
           _buildCreditInfoRow(
-            'Credit Limit',
+            usesOneTime ? 'Credit Limit (one-time)' : 'Credit Limit',
             '${_currencyFormat.format(creditLimit)} TSh',
-            isDark ? Colors.white70 : Colors.grey.shade700,
+            usesOneTime
+                ? AppColors.warning
+                : (isDark ? Colors.white70 : Colors.grey.shade700),
             isDark,
           ),
+          if (usesOneTime) ...[
+            const SizedBox(height: 6),
+            Text(
+              'One-time limit applies to this sale only and is used up '
+              'once the sale goes through. Standard limit: '
+              '${_currencyFormat.format(customer.creditLimit)} TSh',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white60 : Colors.grey.shade600,
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           _buildCreditInfoRow(
             'Current Balance',
@@ -4553,14 +4575,19 @@ class _PaymentDialogState extends State<PaymentDialog> {
         return 'Customer is not allowed to make credit purchases.\nPlease pay with cash.';
       }
 
-      // Check credit limit
+      // Check credit limit, one-time ceiling first -- same order as the web
+      // register and api/Sales.php.
       final currentBalance = customer.balance;
-      final creditLimit = customer.creditLimit;
+      final usesOneTime =
+          customer.oneTimeCredit && customer.oneTimeCreditLimit > 0;
+      final creditLimit =
+          usesOneTime ? customer.oneTimeCreditLimit : customer.creditLimit;
       final availableCredit = creditLimit - currentBalance;
 
       if (amount > availableCredit) {
         return 'Credit limit exceeded!\n'
-            'Available credit: ${_currencyFormat.format(availableCredit)} TSh\n'
+            '${usesOneTime ? 'One-time limit' : 'Available credit'}: '
+            '${_currencyFormat.format(availableCredit)} TSh\n'
             'Requested: ${_currencyFormat.format(amount)} TSh';
       }
     }

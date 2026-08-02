@@ -21,6 +21,10 @@ class KeypadSheet extends StatelessWidget {
   /// Font size of [value]; the handoff uses 34 for quantity and 32 elsewhere.
   final double valueSize;
 
+  /// Dims the figure while it is still the value the sheet opened with, so it
+  /// reads as a placeholder that the next keypress will replace.
+  final bool valueMuted;
+
   /// Optional row above the keypad (presets, method chips, mode toggle).
   final List<Widget> aboveKeypad;
 
@@ -43,6 +47,7 @@ class KeypadSheet extends StatelessWidget {
     required this.footer,
     this.aboveKeypad = const [],
     this.valueSize = 32,
+    this.valueMuted = false,
     this.keyHeight = 50,
   });
 
@@ -112,7 +117,9 @@ class KeypadSheet extends StatelessWidget {
                   fontSize: valueSize,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -1,
-                  color: _sale.brand,
+                  color: valueMuted
+                      ? _sale.brand.withValues(alpha: 0.45)
+                      : _sale.brand,
                   fontFeatures: kTabularFigures,
                 ),
               ),
