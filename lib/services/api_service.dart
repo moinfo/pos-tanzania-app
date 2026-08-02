@@ -3266,6 +3266,14 @@ class ApiService {
     }
   }
 
+  /// Delete a sale.
+  ///
+  /// A completed sale is cancelled and its items returned to stock; only a
+  /// suspended sale is removed outright. The server decides which, and enforces
+  /// the sales_delete grant either way.
+  Future<ApiResponse<Map<String, dynamic>>> deleteSale(int saleId) =>
+      deleteSuspendedSale(saleId);
+
   /// Delete suspended sale
   Future<ApiResponse<Map<String, dynamic>>> deleteSuspendedSale(int saleId) async {
     try {

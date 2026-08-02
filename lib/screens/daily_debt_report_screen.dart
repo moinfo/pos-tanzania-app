@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../models/credit.dart';
 import '../widgets/credit/credit_list_widgets.dart';
+import '../models/permission_model.dart';
 import '../providers/location_provider.dart';
+import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -34,6 +36,12 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
 
   /// Active 5.x preset, or null when the range came from the date picker.
   String? _periodPreset = 'month';
+
+  /// The web puts this screen's whole date filter behind `credits_edit_date`
+  /// (views/credit/daily_debt_report.php). Without it the report is today's.
+  bool get _canPickPeriod => context
+      .read<PermissionProvider>()
+      .hasPermission(PermissionIds.creditsEditDate);
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -52,6 +60,8 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
   }
 
   void _applyPreset(String preset) {
+    if (!_canPickPeriod) return;
+
     final now = DateTime.now();
     late DateTime start;
 
@@ -94,9 +104,13 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
       locationIds = locationProvider.allowedLocations.map((loc) => loc.locationId).toList();
     }
 
+    // Enforced on the request too -- the range is held in state, so a value
+    // from before the check would otherwise still be sent.
+    final now = DateTime.now();
+    final restricted = !_canPickPeriod;
     final response = await _apiService.getDailyDebtReport(
-      startDate: _dateFormat.format(_startDate),
-      endDate: _dateFormat.format(_endDate),
+      startDate: _dateFormat.format(restricted ? now : _startDate),
+      endDate: _dateFormat.format(restricted ? now : _endDate),
       locationIds: locationIds,
     );
 
@@ -124,6 +138,8 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
   }
 
   Future<void> _selectDateRange() async {
+    if (!_canPickPeriod) return;
+
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
@@ -208,8 +224,10 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
           children: [
             _buildLerumaTotalCard(total, debts.length),
             const SizedBox(height: 12),
-            _buildLerumaPresets(),
-            const SizedBox(height: 12),
+            if (_canPickPeriod) ...[
+              _buildLerumaPresets(),
+              const SizedBox(height: 12),
+            ],
             CreditSearchField(
               controller: _searchController,
               hintText: 'Search customer or supervisor',
@@ -315,9 +333,11 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
               const SizedBox(width: 7),
               Expanded(
                 child: GestureDetector(
-                  onTap: _selectDateRange,
+                  onTap: _canPickPeriod ? _selectDateRange : null,
                   child: Text(
-                    '${_displayDateFormat.format(_startDate)} – ${_displayDateFormat.format(_endDate)}',
+                    _canPickPeriod
+                        ? '${_displayDateFormat.format(_startDate)} – ${_displayDateFormat.format(_endDate)}'
+                        : 'Today · ${_displayDateFormat.format(DateTime.now())}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

@@ -187,6 +187,58 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     }
   }
 
+  bool get _canDelete => context
+      .read<PermissionProvider>()
+      .hasPermission(PermissionIds.salesDelete);
+
+  /// Long-press a sale to delete it.
+  ///
+  /// A completed sale is cancelled server-side and its items returned to
+  /// stock -- the same soft delete the web register performs -- so this is
+  /// recoverable in the books, not a silent erasure. The grant is enforced by
+  /// the API as well; hiding the action here is a courtesy, not the control.
+  Future<void> _confirmDelete(Sale sale) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete sale?'),
+        content: Text(
+          'Sale #${sale.saleId} for ${_currencyFormat.format(sale.total)} TSh '
+          'will be cancelled and its items returned to stock.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    final saleId = sale.saleId;
+    if (confirmed != true || saleId == null || !mounted) return;
+
+    final response = await _apiService.deleteSale(saleId);
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(response.isSuccess
+            ? 'Sale #${sale.saleId} deleted'
+            : response.message),
+        backgroundColor:
+            response.isSuccess ? AppColors.success : AppColors.error,
+      ),
+    );
+
+    if (response.isSuccess) _loadSales(refresh: true);
+  }
+
   Future<void> _viewSaleDetails(Sale sale) async {
     // Load full sale details
     final response = await _apiService.getSaleDetails(sale.saleId!);
@@ -583,22 +635,42 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                   ),
                               ],
                             ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  '${_currencyFormat.format(sale.total)} TSh',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: AppColors.primary,
-                                  ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '${_currencyFormat.format(sale.total)} TSh',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    _getSaleStatusBadge(sale.saleStatus),
+                                  ],
                                 ),
-                                _getSaleStatusBadge(sale.saleStatus),
+                                // A visible control: long-press alone is not
+                                // discoverable, and a seller should not have to
+                                // guess that deleting is possible.
+                                if (_canDelete)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 20),
+                                    color: AppColors.error,
+                                    tooltip: 'Delete sale',
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () => _confirmDelete(sale),
+                                  ),
                               ],
                             ),
                             onTap: () => _viewSaleDetails(sale),
+                            onLongPress: _canDelete
+                                ? () => _confirmDelete(sale)
+                                : null,
                           ),
                         );
                       },

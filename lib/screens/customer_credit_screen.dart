@@ -56,6 +56,17 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   /// date picker instead.
   String? _periodPreset = 'month';
 
+  /// Whether this user may look outside today.
+  ///
+  /// Mirrors the web, which puts the credit date controls behind
+  /// `credits_edit_date` (views/credit/daily_debt_report.php and
+  /// credit_account.php). Without it the statement is pinned to today.
+  bool get _canPickPeriod => context
+      .read<PermissionProvider>()
+      .hasPermission(PermissionIds.creditsEditDate);
+
+  static String get _today => DateFormat('yyyy-MM-dd').format(DateTime.now());
+
   @override
   void initState() {
     super.initState();
@@ -84,10 +95,13 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
     print('🔴 DEBUG: Loading statement for customer ${widget.customerId}');
     print('🔴 DEBUG: Date range: $_startDate to $_endDate');
 
+    // Enforced on the request, not just in the UI: the range lives in state
+    // and a value left from before would otherwise still be sent.
+    final restricted = !_canPickPeriod;
     final response = await _apiService.getCreditStatement(
       widget.customerId,
-      startDate: _startDate,
-      endDate: _endDate,
+      startDate: restricted ? _today : _startDate,
+      endDate: restricted ? _today : _endDate,
     );
 
     print('🔴 DEBUG: Statement response success: ${response.isSuccess}');
@@ -109,6 +123,8 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   }
 
   Future<void> _selectDateRange() async {
+    if (!_canPickPeriod) return;
+
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
@@ -396,6 +412,8 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   }
 
   void _applyPreset(String preset) {
+    if (!_canPickPeriod) return;
+
     final now = DateTime.now();
     late DateTime start;
 
@@ -478,8 +496,10 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                       const SizedBox(height: 14),
                     ],
                     _buildLerumaPeriodRow(),
-                    const SizedBox(height: 10),
-                    _buildLerumaPresets(),
+                    if (_canPickPeriod) ...[
+                      const SizedBox(height: 10),
+                      _buildLerumaPresets(),
+                    ],
                     const SizedBox(height: 16),
                     if (_lerumaTransactions.isEmpty)
                       _buildLerumaEmptyTransactions()
@@ -693,9 +713,11 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
         const SizedBox(width: 7),
         Expanded(
           child: GestureDetector(
-            onTap: _selectDateRange,
+            onTap: _canPickPeriod ? _selectDateRange : null,
             child: Text(
-              range,
+              _canPickPeriod
+                  ? range
+                  : 'Today · ${DateFormat('d MMM y').format(DateTime.now())}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -816,6 +838,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               ),
             ),
           ),
+          if (_canPickPeriod) ...[
           const SizedBox(height: 16),
           // Widens the period instead of dead-ending on an empty card.
           GestureDetector(
@@ -847,6 +870,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               ),
             ),
           ),
+          ],
         ],
       ),
     );
@@ -1106,7 +1130,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                           Icon(Icons.add, size: 20, color: Colors.white),
                           SizedBox(width: 7),
                           Text(
-                            'Record payment',
+                            'Add payment',
                             style: TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w800,
