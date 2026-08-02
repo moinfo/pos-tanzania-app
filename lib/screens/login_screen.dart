@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
@@ -540,8 +541,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         letterSpacing: -0.5,
                         color: _ink)),
               ),
-              const SizedBox(width: 8),
-              Material(
+              // Debug builds only. Each client ships its own flavor, so in a
+              // release the switcher can only point somewhere the build cannot
+              // talk to -- and a seller tapping it would land on another
+              // company's login.
+              if (kDebugMode) ...[
+                const SizedBox(width: 8),
+                Material(
                   color: _tint(_brandBlue, const Color(0xFFEAF3FB)),
                   borderRadius: BorderRadius.circular(999),
                   child: InkWell(
@@ -575,7 +581,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-              ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 3),
