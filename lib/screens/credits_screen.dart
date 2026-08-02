@@ -16,7 +16,14 @@ import 'daily_debt_report_screen.dart';
 /// Credits Screen - Shows list of supervisors with their credit balances
 /// Similar to web /credits page
 class CreditsScreen extends StatefulWidget {
-  const CreditsScreen({super.key});
+  /// True when the screen is a bottom-nav tab rather than a pushed route.
+  ///
+  /// MainNavigation already supplies the app bar (with the store switcher) and
+  /// the bottom navigation, so an embedded instance must not draw its own or
+  /// the user sees two of each.
+  final bool embedded;
+
+  const CreditsScreen({super.key, this.embedded = false});
 
   @override
   State<CreditsScreen> createState() => _CreditsScreenState();
@@ -41,7 +48,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
 
   Future<void> _initializeAndLoad() async {
     final locationProvider = context.read<LocationProvider>();
-    await locationProvider.initialize(moduleId: 'credits');
+    await locationProvider.initialize(moduleId: 'sales');
     _loadCredits();
   }
 
@@ -60,10 +67,21 @@ class _CreditsScreenState extends State<CreditsScreen> {
       // For Leruma: filter by selected location only
       locationIds = [locationProvider.selectedLocation!.locationId];
     } else if (locationProvider.allowedLocations.isNotEmpty) {
-      // For other clients: use all allowed locations
+      // Fall back to every location the user is granted
       locationIds = locationProvider.allowedLocations
           .map((loc) => loc.locationId)
           .toList();
+    }
+
+    // A null locationIds means "no filter", i.e. every supervisor in the
+    // company. Never do that for Leruma: if no location resolved, the seller
+    // simply has none, and showing everything would leak other supervisors.
+    if (isLeruma && (locationIds == null || locationIds.isEmpty)) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'No stock location assigned to your account';
+      });
+      return;
     }
 
     final response = await _apiService.getSupervisorCredits(
@@ -113,7 +131,9 @@ class _CreditsScreenState extends State<CreditsScreen> {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: widget.embedded
+          ? null
+          : AppBar(
         title: const Text('Customer Credits'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -192,7 +212,8 @@ class _CreditsScreenState extends State<CreditsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+      bottomNavigationBar:
+          widget.embedded ? null : const AppBottomNavigation(currentIndex: -1),
       body: Container(
         color: isDark ? AppColors.darkBackground : Colors.grey.shade100,
         child: Column(

@@ -28,6 +28,7 @@ import 'suspended_summary_screen.dart';
 import 'package:intl/intl.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../services/nfc_service.dart';
+import '../models/item_quantity_offer.dart';
 import '../utils/sale_design.dart';
 import '../widgets/sale/keypad_sheet.dart';
 import '../widgets/sale/sale_sheets.dart';
@@ -667,6 +668,22 @@ class _SalesScreenState extends State<SalesScreen> {
     );
   }
 
+  /// Quantity a customer must reach before an offer pays out.
+  ///
+  /// A tiered offer stores its thresholds in the tiers and leaves
+  /// purchase_quantity at 0, so reading that column directly renders "Buy 0".
+  /// The first tier is the lowest bar to clear.
+  double _offerThreshold(ItemQuantityOffer offer) {
+    if (offer.useTieredRewards == 1 &&
+        offer.tiers != null &&
+        offer.tiers!.isNotEmpty) {
+      return offer.tiers!
+          .map((tier) => tier.minQuantity)
+          .reduce((a, b) => a < b ? a : b);
+    }
+    return offer.purchaseQuantity;
+  }
+
   /// Small status pill used under a cart line.
   Widget _saleBadge({
     required IconData icon,
@@ -765,7 +782,7 @@ class _SalesScreenState extends State<SalesScreen> {
             icon: eligible ? Icons.card_giftcard : Icons.card_giftcard_outlined,
             label: eligible
                 ? '+${freeQty.toStringAsFixed(0)} FREE'
-                : 'Buy ${offer.purchaseQuantity.toStringAsFixed(0)}',
+                : 'Buy ${_offerThreshold(offer).toStringAsFixed(0)}',
             color: eligible ? SaleColors.success : SaleColors.brand,
           );
         }),
@@ -776,11 +793,7 @@ class _SalesScreenState extends State<SalesScreen> {
           final combined = saleProvider.groupOfferCombinedQuantity(groupOffer);
           final freeQty = saleProvider.groupOfferReward(groupOffer);
           final eligible = freeQty > 0;
-          final threshold = groupOffer.useTieredRewards == 1
-              ? (groupOffer.tiers?.isNotEmpty == true
-                  ? groupOffer.tiers!.first.minQuantity
-                  : groupOffer.purchaseQuantity)
-              : groupOffer.purchaseQuantity;
+          final threshold = _offerThreshold(groupOffer);
 
           return _saleBadge(
             icon: eligible ? Icons.card_giftcard : Icons.groups_outlined,
@@ -4923,9 +4936,20 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
     final connectivityProvider = context.read<ConnectivityProvider>();
     if (!connectivityProvider.isOnline) return;
 
+    // Must carry the same location filter as _loadCustomers: the API maps
+    // location_id to that location's supervisor and filters on it. Without it a
+    // search returned every supervisor's customers and merged them into the
+    // list, so searching quietly widened what the seller could reach.
+    int? locationId;
+    if (_hasCustomersByLocationFeature()) {
+      final locationProvider = context.read<LocationProvider>();
+      locationId = locationProvider.selectedLocation?.locationId;
+    }
+
     final response = await _apiService.getCustomers(
       search: query,
       limit: 50,
+      locationId: locationId,
     );
 
     if (response.isSuccess && response.data != null && mounted) {

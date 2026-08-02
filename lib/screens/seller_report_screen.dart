@@ -13,7 +13,12 @@ import '../widgets/glassmorphic_card.dart';
 /// Shows seller/supervisor performance data by stock location
 /// NOTE: This screen is ONLY for Leruma client
 class SellerReportScreen extends StatefulWidget {
-  const SellerReportScreen({super.key});
+  /// True when shown as a bottom-nav tab. MainNavigation already provides the
+  /// app bar (with the store switcher), so an embedded instance must not draw a
+  /// second one. Store and date are reachable from the header card in content.
+  final bool embedded;
+
+  const SellerReportScreen({super.key, this.embedded = false});
 
   @override
   State<SellerReportScreen> createState() => _SellerReportScreenState();
@@ -215,11 +220,13 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
     // Block access for non-Leruma clients
     if (!_isLeruma) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Seller Report'),
-          backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-          foregroundColor: Colors.white,
-        ),
+        appBar: widget.embedded
+            ? null
+            : AppBar(
+                title: const Text('Seller Report'),
+                backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
@@ -267,24 +274,24 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Seller Report'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          // Location selector
-          IconButton(
-            icon: const Icon(Icons.store),
-            onPressed: _showLocationPicker,
-            tooltip: _selectedLocation?.locationName ?? 'Select Location',
-          ),
-          // Date selector
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: _selectDate,
-          ),
-        ],
-      ),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: const Text('Seller Report'),
+              backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+              foregroundColor: Colors.white,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.store),
+                  onPressed: _showLocationPicker,
+                  tooltip: _selectedLocation?.locationName ?? 'Select Location',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: _selectDate,
+                ),
+              ],
+            ),
       body: _isLoading
           ? _buildSkeletonLoading(isDark)
           : _errorMessage != null
@@ -637,7 +644,13 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                     ),
                     const SizedBox(height: 12),
                     // Date row
-                    Row(
+                    // Tappable so the date can be changed from the content --
+                    // the app bar's calendar action is gone now that this screen
+                    // uses the shared top bar.
+                    InkWell(
+                      onTap: _selectDate,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
@@ -686,7 +699,10 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                               ),
                             ),
                           ),
+                        const Icon(Icons.edit_calendar_outlined,
+                            size: 18, color: AppColors.textLight),
                       ],
+                    ),
                     ),
                   ],
                 ),

@@ -3,11 +3,11 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../models/credit.dart';
-import '../models/stock_location.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/app_bottom_navigation.dart';
+import '../widgets/store_switcher_title.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../utils/constants.dart';
 
@@ -42,7 +42,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
 
   Future<void> _initializeAndLoad() async {
     final locationProvider = context.read<LocationProvider>();
-    await locationProvider.initialize(moduleId: 'credits');
+    await locationProvider.initialize(moduleId: 'sales');
     _loadReport();
   }
 
@@ -104,19 +104,18 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
-    final locationProvider = context.watch<LocationProvider>();
     final isDark = themeProvider.isDarkMode;
-    final isLeruma = ApiService.currentClient?.id == 'leruma';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Debt Collection'),
+        // Same top bar as the rest of the app: the store sits in the centre and
+        // is the switcher, instead of a separate chip fighting the title for width.
+        title: const StoreSwitcherTitle(subtitle: 'Debt Collection'),
+        centerTitle: true,
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          if (isLeruma && locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
-            _buildLocationSelector(locationProvider),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadReport),
         ],
       ),
@@ -132,49 +131,6 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
             const SizedBox(height: 8),
             Expanded(child: _buildContent(isDark)),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLocationSelector(LocationProvider locationProvider) {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: PopupMenuButton<StockLocation>(
-          offset: const Offset(0, 40),
-          color: Colors.white,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.location_on, size: 16, color: Colors.white),
-              const SizedBox(width: 4),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 80),
-                child: Text(
-                  locationProvider.selectedLocation!.locationName,
-                  style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w500),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const Icon(Icons.arrow_drop_down, size: 18, color: Colors.white),
-            ],
-          ),
-          onSelected: (location) async {
-            await locationProvider.selectLocation(location);
-            _loadReport();
-          },
-          itemBuilder: (context) => locationProvider.allowedLocations
-              .map((location) => PopupMenuItem<StockLocation>(
-                    value: location,
-                    child: Text(location.locationName),
-                  ))
-              .toList(),
         ),
       ),
     );

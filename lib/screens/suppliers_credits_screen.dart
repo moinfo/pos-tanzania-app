@@ -43,7 +43,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
 
   Future<void> _initializeAndLoad() async {
     final locationProvider = context.read<LocationProvider>();
-    await locationProvider.initialize(moduleId: 'credits');
+    await locationProvider.initialize(moduleId: 'sales');
     _loadCredits();
   }
 
@@ -1219,7 +1219,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
 
   Future<void> _initializeAndLoad() async {
     final locationProvider = context.read<LocationProvider>();
-    await locationProvider.initialize(moduleId: 'credits');
+    await locationProvider.initialize(moduleId: 'sales');
     _loadReport();
   }
 
@@ -1620,7 +1620,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
 
   Future<void> _initializeAndLoad() async {
     final locationProvider = context.read<LocationProvider>();
-    await locationProvider.initialize(moduleId: 'credits');
+    await locationProvider.initialize(moduleId: 'sales');
     _loadReport();
   }
 

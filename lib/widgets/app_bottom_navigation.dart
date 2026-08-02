@@ -36,7 +36,7 @@ class AppBottomNavigation extends StatelessWidget {
   /// Build navigation items matching MainNavigation structure exactly
   /// IMPORTANT: Must match MainNavigation._screenConfigs order for correct index mapping
   /// - SADA: Home, Sales, Expenses, Summary, Contracts, Reports
-  /// - Leruma: Home, Sales, Expenses, Summary, Seller, Reports
+  /// - Leruma: Home, Sales, Expenses, Credits, Seller (Summary + Reports in drawer)
   List<Map<String, dynamic>> _buildNavItems() {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
@@ -57,12 +57,24 @@ class AppBottomNavigation extends StatelessWidget {
         'label': 'Expenses',
         'permission': PermissionIds.expenses,
       },
-      {
+    ];
+
+    // Must mirror MainNavigation._buildScreenConfigs exactly -- this widget is
+    // the bar shown on pushed screens, so any difference makes the tabs jump
+    // when navigating. Leruma swaps Summary/Reports out for Customer Credits.
+    if (!isLeruma) {
+      items.add({
         'icon': Icons.summarize,
         'label': 'Summary',
         'permission': PermissionIds.cashSubmit,
-      },
-    ];
+      });
+    } else {
+      items.add({
+        'icon': Icons.credit_card,
+        'label': 'Credits',
+        'permission': PermissionIds.credits,
+      });
+    }
 
     // Add Seller screen for Leruma only
     if (isLeruma) {
@@ -82,12 +94,14 @@ class AppBottomNavigation extends StatelessWidget {
       });
     }
 
-    // Reports is available to all clients
-    items.add({
-      'icon': Icons.assessment,
-      'label': 'Reports',
-      'permission': PermissionIds.reports,
-    });
+    // Reports is available to all clients -- in the drawer for Leruma
+    if (!isLeruma) {
+      items.add({
+        'icon': Icons.assessment,
+        'label': 'Reports',
+        'permission': PermissionIds.reports,
+      });
+    }
 
     return items;
   }

@@ -113,7 +113,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   // IMPORTANT: All screens MUST have permission checks based on ospos_permissions table
   // Built dynamically to support client-specific screens
   // - SADA: Home, Sales, Expenses, Summary, Contracts, Reports (or Transactions if no stock location)
-  // - Leruma: Home, Sales, Expenses, Summary, Seller, Reports
+  // - Leruma: Home, Sales, Expenses, Credits, Seller (Summary + Reports in drawer)
   // - Come & Save: Home, Sales, Expenses, Summary, Reports (or Transactions if no stock location)
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
@@ -151,13 +151,26 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         'label': 'Expenses',
         'permission': PermissionIds.expenses, // module: expenses
       },
-      {
+    ];
+
+    // Leruma keeps the bottom bar for day-to-day selling: Summary and Reports
+    // move to the drawer and Customer Credits takes a slot, because chasing
+    // customer debt is a daily task for a seller while reporting is not.
+    if (!isLeruma) {
+      configs.add({
         'screen': TodaySummaryScreen(key: ValueKey('summary_$userId')),
         'icon': Icons.summarize,
         'label': 'Summary',
         'permission': PermissionIds.cashSubmit, // module: cash_submit
-      },
-    ];
+      });
+    } else {
+      configs.add({
+        'screen': CreditsScreen(key: ValueKey('credits_$userId'), embedded: true),
+        'icon': Icons.credit_card,
+        'label': 'Credits',
+        'permission': PermissionIds.credits, // module: credits
+      });
+    }
 
     // Add Transactions screen if user has NO stock location but has transactions permission
     // Available for both SADA and Come & Save clients
@@ -173,7 +186,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     // Add Seller screen for Leruma only
     if (isLeruma) {
       configs.add({
-        'screen': SellerReportScreen(key: ValueKey('seller_$userId')),
+        'screen': SellerReportScreen(key: ValueKey('seller_$userId'), embedded: true),
         'icon': Icons.person_outline,
         'label': 'Seller',
         'permission': PermissionIds.cashSubmitSellerReport, // Leruma seller report
@@ -201,13 +214,15 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       });
     }
 
-    // Reports is available to all clients
-    configs.add({
-      'screen': ReportsScreen(key: ValueKey('reports_$userId')),
-      'icon': Icons.assessment,
-      'label': 'Reports',
-      'permission': PermissionIds.reports, // module: reports
-    });
+    // Reports is available to all clients -- in the drawer for Leruma
+    if (!isLeruma) {
+      configs.add({
+        'screen': ReportsScreen(key: ValueKey('reports_$userId')),
+        'icon': Icons.assessment,
+        'label': 'Reports',
+        'permission': PermissionIds.reports, // module: reports
+      });
+    }
 
     return configs;
   }
@@ -941,6 +956,38 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   },
                 ),
               ),
+            // Reports and Summary live here for Leruma -- they were moved out of
+            // the bottom bar to make room for Customer Credits.
+            if (ApiService.currentClient?.id == 'leruma') ...[
+              PermissionWrapper(
+                permissionId: PermissionIds.reports,
+                child: ListTile(
+                  leading: Icon(Icons.assessment, color: AppColors.brandPrimary),
+                  title: const Text('Reports'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                    );
+                  },
+                ),
+              ),
+              PermissionWrapper(
+                permissionId: PermissionIds.cashSubmit,
+                child: ListTile(
+                  leading: Icon(Icons.summarize, color: AppColors.brandPrimary),
+                  title: const Text('Summary'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TodaySummaryScreen()),
+                    );
+                  },
+                ),
+              ),
+            ],
             // 10. Financial Position - requires office permission (hidden for Leruma)
             if (ApiService.currentClient?.id != 'leruma')
               PermissionWrapper(
