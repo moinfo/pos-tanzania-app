@@ -152,6 +152,17 @@ class AppBottomNavigation extends StatelessWidget {
       }
     }
 
+    if (ApiService.currentClient?.id == 'leruma') {
+      return _buildLerumaBar(
+        context,
+        items: availableItems,
+        indexMapping: indexMapping,
+        // currentIndex is -1 on a pushed screen. Highlighting Home there was
+        // wrong: the seller is on the statement, not on the Home tab.
+        activeDisplayIndex: currentIndex >= 0 ? displayIndex : -1,
+      );
+    }
+
     return CurvedBottomNavigation(
       currentIndex: displayIndex >= 0 && displayIndex < availableItems.length ? displayIndex : 0,
       onTap: (displayIndex) {
@@ -163,6 +174,73 @@ class AppBottomNavigation extends StatelessWidget {
       unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
       backgroundColor: isDark ? AppColors.darkCard : Colors.white,
       items: availableItems,
+    );
+  }
+
+  /// Flat bar from design_handoff_home_credit 1.7, matching the one the main
+  /// shell draws so tabs do not change shape when a screen is pushed.
+  Widget _buildLerumaBar(
+    BuildContext context, {
+    required List<CurvedNavItem> items,
+    required Map<int, int> indexMapping,
+    required int activeDisplayIndex,
+  }) {
+    // Same order as MainNavigation._buildLerumaBottomNav; keep the two in step.
+    const order = ['Seller', 'Home', 'Sales', 'Credits', 'Expenses'];
+
+    final ordered = [...items.asMap().entries]
+      ..sort((a, b) {
+        int rank(MapEntry<int, CurvedNavItem> e) {
+          final i = order.indexOf(e.value.label);
+          return i == -1 ? order.length + e.key : i;
+        }
+
+        return rank(a).compareTo(rank(b));
+      });
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFEEF1F5))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 7, bottom: 6),
+          child: Row(
+            children: ordered.map((entry) {
+              final active = entry.key == activeDisplayIndex;
+              final color =
+                  active ? const Color(0xFF1668A6) : const Color(0xFF64748B);
+
+              return Expanded(
+                child: InkWell(
+                  onTap: () =>
+                      _handleTap(context, indexMapping[entry.key] ?? 0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(entry.value.icon, size: 20, color: color),
+                      const SizedBox(height: 4),
+                      Text(
+                        entry.value.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight:
+                              active ? FontWeight.w800 : FontWeight.w700,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
     );
   }
 }

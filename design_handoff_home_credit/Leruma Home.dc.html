@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9ECF1;font-family:"Plus Jakarta Sans",system-ui,sans-serif}
+a{color:#1D7DC4}a:hover{color:#1668A6}
+*{-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;border:none;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+
+<div style="height:100%;display:flex;flex-direction:column;background:#F2F5F9;position:relative;overflow:hidden;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#0F172A">
+
+  <div style="flex:none;background:#103863;padding:54px 14px 14px;display:flex;align-items:center;gap:11px">
+    <button onClick="{{ openMenu }}" style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0 10px;flex:none" style-active="background:rgba(255,255,255,.22)" aria-label="Menu">
+      <span style="display:block;height:2px;background:#fff;border-radius:2px"></span>
+      <span style="display:block;height:2px;background:#fff;border-radius:2px"></span>
+      <span style="display:block;height:2px;background:#fff;border-radius:2px"></span>
+    </button>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.8px;color:rgba(255,255,255,.6)">SELLER</span>
+      <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Apolinar Mpinga</span>
+    </div>
+    <button style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none" style-active="background:rgba(255,255,255,.22)" aria-label="Theme">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"></path></svg>
+    </button>
+  </div>
+
+  <div style="flex:1;min-height:0;overflow:auto">
+
+    <div style="padding:14px 14px 0;position:relative">
+      <div style="background:#fff;border-radius:20px;padding:15px 16px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 8px 22px rgba(16,56,99,.07);position:relative;z-index:2">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:11.5px;font-weight:800;letter-spacing:1px;color:#64748B">TOTAL CREDITS</span>
+          <button style="display:flex;align-items:center;gap:6px;background:#F1F5FB;border-radius:999px;padding:6px 11px" style-active="background:#E4EDFA">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1D7DC4" stroke-width="2.2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="16" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+            <span style="font-size:12px;font-weight:800;color:#1D7DC4;white-space:nowrap">{{ dateLabel }}</span>
+          </button>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:9px">
+          <span style="font-size:34px;font-weight:800;letter-spacing:-1.4px;color:#103863;line-height:1">{{ credits }}</span>
+          <span style="font-size:14px;font-weight:700;color:#64748B;padding-bottom:4px">TSh</span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:60px;margin-top:16px">
+          <sc-for list="{{ spark }}" as="b" hint-placeholder-count="7">
+            <span style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+              <span style="display:block;border-radius:5px 5px 2px 2px;background:{{ b.color }};height:{{ b.h }}"></span>
+            </span>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:5px;margin-top:6px">
+          <sc-for list="{{ spark }}" as="b" hint-placeholder-count="7">
+            <span style="flex:1;text-align:center;font-size:10px;font-weight:{{ b.weight }};color:{{ b.labelColor }}">{{ b.day }}</span>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:13px">
+          <span style="flex:1;display:flex;flex-direction:column;gap:2px;background:#F5F8FC;border-radius:12px;padding:9px 11px">
+            <span style="font-size:11px;font-weight:800;letter-spacing:.6px;color:#6B7684">COLLECTED</span>
+            <span style="font-size:15px;font-weight:800;color:#12833C">{{ collected }}</span>
+          </span>
+          <span style="flex:1;display:flex;flex-direction:column;gap:2px;background:#F5F8FC;border-radius:12px;padding:9px 11px">
+            <span style="font-size:11px;font-weight:800;letter-spacing:.6px;color:#6B7684">OUTSTANDING</span>
+            <span style="font-size:15px;font-weight:800;color:#103863">{{ outstanding }}</span>
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px;padding-top:11px;border-top:1px solid #F1F4F8">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="display:flex;align-items:center;gap:3px;background:#E7F6EE;border-radius:7px;padding:3px 7px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#12833C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"></path></svg>
+              <span style="font-size:11.5px;font-weight:800;color:#12833C">{{ creditDelta }}</span>
+            </span>
+            <span style="font-size:12px;font-weight:600;color:#64748B;white-space:nowrap">vs last week</span>
+          </span>
+          <button style="font-size:12.5px;font-weight:800;color:#1D7DC4" style-active="opacity:.6">Details</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:12px 14px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+      <sc-for list="{{ actions }}" as="a" hint-placeholder-count="3">
+        <button style="display:flex;flex-direction:column;align-items:center;gap:7px;background:#fff;border-radius:16px;padding:13px 8px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)" style-active="background:#F1F5FB">
+          <span style="width:38px;height:38px;border-radius:13px;background:{{ a.tint }};display:flex;align-items:center;justify-content:center">
+            <span style="width:18px;height:18px;display:block;color:{{ a.color }}">{{ a.icon }}</span>
+          </span>
+          <span style="font-size:12px;font-weight:800;color:#103863;text-align:center;line-height:1.2">{{ a.label }}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="padding:10px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+        <div style="background:#fff;border-radius:16px;padding:13px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+            <span style="width:34px;height:34px;border-radius:11px;background:{{ s.tint }};display:flex;align-items:center;justify-content:center">
+              <span style="width:16px;height:16px;display:block;color:{{ s.color }}">{{ s.icon }}</span>
+            </span>
+            <sc-if value="{{ s.hasDelta }}" hint-placeholder-val="{{ true }}">
+              <span style="font-size:11px;font-weight:800;color:{{ s.deltaColor }};background:{{ s.deltaTint }};border-radius:7px;padding:3px 7px">{{ s.delta }}</span>
+            </sc-if>
+          </div>
+          <div style="font-size:24px;font-weight:800;letter-spacing:-.7px;color:#103863;line-height:1">{{ s.value }}</div>
+          <div style="font-size:12.5px;font-weight:600;color:#5C6675;margin-top:4px">{{ s.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="padding:20px 14px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+        <span style="font-size:16.5px;font-weight:800;letter-spacing:-.3px;color:#103863">Commissions</span>
+        <span style="font-size:12px;font-weight:700;color:#64748B">{{ periodLabel }}</span>
+      </div>
+      <div style="display:flex;gap:4px;background:#EAEFF5;border-radius:13px;padding:4px;margin-bottom:12px">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+          <button onClick="{{ t.pick }}" style="flex:1;height:38px;border-radius:10px;background:{{ t.bg }};color:{{ t.fg }};font-size:13.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;box-shadow:{{ t.shadow }}">{{ t.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="background:#fff;border-radius:18px;padding:4px 14px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)">
+        <sc-for list="{{ levels }}" as="l" hint-placeholder-count="3">
+          <button onClick="{{ l.open }}" style="display:block;width:100%;padding:14px 0;border-bottom:1px solid #F1F4F8" style-active="opacity:.65">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="width:36px;height:36px;border-radius:12px;background:{{ l.badgeBg }};color:{{ l.badgeFg }};font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;letter-spacing:.4px">{{ l.roman }}</span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:14.5px;font-weight:800;color:#103863">{{ l.name }}</span>
+                <span style="font-size:12px;font-weight:600;color:#64748B">{{ l.sub }}</span>
+              </span>
+              <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                <span style="font-size:15px;font-weight:800;color:{{ l.amountColor }}">{{ l.amount }}</span>
+                <span style="font-size:11px;font-weight:700;color:#6B7684">{{ l.amountLabel }}</span>
+              </span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA5B4" stroke-width="2.6" stroke-linecap="round" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:10px">
+              <span style="flex:1;height:7px;border-radius:5px;background:#EEF2F7;overflow:hidden;display:block">
+                <span style="display:block;height:7px;border-radius:5px;background:{{ l.barColor }};width:{{ l.pct }}"></span>
+              </span>
+              <span style="font-size:12px;font-weight:800;color:#475569;min-width:38px;text-align:right">{{ l.pctLabel }}</span>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="padding:16px 14px 22px">
+      <div style="display:flex;align-items:center;gap:11px;background:#FFF8EC;border:1px solid #F3DDB4;border-radius:16px;padding:13px">
+        <span style="width:34px;height:34px;border-radius:11px;background:#FBEDD2;display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C4820E" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l9 16H3z"></path><path d="M12 10v4M12 16.6v.2"></path></svg>
+        </span>
+        <span style="flex:1;display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:13.5px;font-weight:800;color:#8A5F0B">{{ disciplineTitle }}</span>
+          <span style="font-size:12px;font-weight:600;color:#8A5F0B">{{ disciplineSub }}</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:none;background:#fff;border-top:1px solid #EEF1F5;display:grid;grid-template-columns:repeat(5,1fr);padding:7px 0 26px">
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+      <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0">
+        <span style="width:20px;height:20px;display:block;color:{{ n.color }}">{{ n.icon }}</span>
+        <span style="font-size:10.5px;font-weight:{{ n.weight }};color:{{ n.color }}">{{ n.label }}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeMenu }}" style="position:absolute;inset:0;background:rgba(4,26,61,.45);z-index:40;animation:fadeIn .18s ease"></div>
+    <div style="position:absolute;top:0;bottom:0;left:0;width:300px;background:#F7F9FC;z-index:50;display:flex;flex-direction:column;animation:slideIn .24s cubic-bezier(.2,.8,.3,1);box-shadow:8px 0 30px rgba(4,26,61,.25)">
+
+      <div style="flex:none;background:#103863;padding:52px 16px 16px;display:flex;align-items:center;gap:11px">
+        <span style="width:46px;height:46px;border-radius:15px;background:#1D7DC4;color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none">AM</span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:15.5px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Apolinar Mpinga</span>
+          <span style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.6)">Seller · Leruma</span>
+        </span>
+        <button onClick="{{ closeMenu }}" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex:none" style-active="background:rgba(255,255,255,.24)" aria-label="Close">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </button>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow:auto;padding:10px 10px 6px">
+        <sc-for list="{{ menuGroups }}" as="g" hint-placeholder-count="4">
+          <div style="margin-bottom:12px">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:1.1px;color:#6B7684;padding:6px 8px 6px">{{ g.title }}</div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ g.items }}" as="m" hint-placeholder-count="4">
+                <button onClick="{{ m.pick }}" style="display:flex;align-items:center;gap:11px;width:100%;height:46px;padding:0 10px;border-radius:12px;background:{{ m.bg }}" style-active="background:#E9F0F8">
+                  <span style="width:19px;height:19px;display:block;color:{{ m.color }};flex:none">{{ m.icon }}</span>
+                  <span style="flex:1;font-size:14.5px;font-weight:{{ m.weight }};color:{{ m.textColor }}">{{ m.label }}</span>
+                  <sc-if value="{{ m.expandable }}" hint-placeholder-val="{{ false }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B6C0CD" stroke-width="2.6" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+                  </sc-if>
+                  <sc-if value="{{ m.hasBadge }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size:11px;font-weight:800;color:#fff;background:#D14343;border-radius:999px;padding:2px 7px">{{ m.badge }}</span>
+                  </sc-if>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="flex:none;border-top:1px solid #E7ECF3;background:#fff;padding:8px 10px 28px;display:flex;flex-direction:column;gap:2px">
+        <button style="display:flex;align-items:center;gap:11px;height:46px;padding:0 10px;border-radius:12px" style-active="background:#F1F4F8">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5A6577" stroke-width="1.9"><circle cx="12" cy="12" r="3.2"></circle><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1v.3a2 2 0 11-4 0v-.2a1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00-1.1-2.7H3a2 2 0 110-4h.2a1.6 1.6 0 001.1-2.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V3a2 2 0 114 0v.2a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.2a1.6 1.6 0 00-1.4 1z"></path></svg>
+          <span style="flex:1;font-size:14.5px;font-weight:700;color:#334155">Settings</span>
+        </button>
+        <button style="display:flex;align-items:center;gap:11px;height:46px;padding:0 10px;border-radius:12px" style-active="background:#FDECEC">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#D14343" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5.5A1.5 1.5 0 004 5.5v13A1.5 1.5 0 005.5 20H9"></path><path d="M15 8l4 4-4 4M19 12H9"></path></svg>
+          <span style="flex:1;font-size:14.5px;font-weight:800;color:#D14343">Logout</span>
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:482,&quot;height&quot;:954},&quot;showSparkline&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+const svg = (paths, opts) => React.createElement('svg', Object.assign({
+  viewBox: '0 0 24 24', width: '100%', height: '100%', fill: 'none',
+  stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+}, opts || {}), paths.map((d, i) => React.createElement('path', { key: i, d })));
+
+const ICONS = {
+  users: () => svg(['M16 20v-1.5a4 4 0 00-4-4H6a4 4 0 00-4 4V20', 'M9 5.5a3.2 3.2 0 110 6.4 3.2 3.2 0 010-6.4', 'M18 14.2a4 4 0 013 3.8V20', 'M16.5 5.7a3.2 3.2 0 010 6.2']),
+  store: () => svg(['M4 9.5V19a1 1 0 001 1h14a1 1 0 001-1V9.5', 'M3 5h18l1 4.5a2.6 2.6 0 01-5 .8 2.6 2.6 0 01-5 0 2.6 2.6 0 01-5 0 2.6 2.6 0 01-5-.8L3 5z']),
+  cart: () => svg(['M3 5h2.2l2 10.5h11L21 8H6', 'M9.5 19.5v.2', 'M17.5 19.5v.2']),
+  shield: () => svg(['M12 3l7.5 3v5.5c0 4.4-3 8.1-7.5 9.5-4.5-1.4-7.5-5.1-7.5-9.5V6L12 3z', 'M9.2 12.2l2 2 3.6-3.8']),
+  home: () => svg(['M3.5 10.6L12 3.5l8.5 7.1V20a1 1 0 01-1 1h-15a1 1 0 01-1-1z']),
+  chart: () => svg(['M4 20V11', 'M10 20V4', 'M16 20v-6', 'M22 20H2']),
+  doc: () => svg(['M6 3h8l4.5 4.5V21H6z', 'M9 10h6M9 14h6M9 18h4']),
+  person: () => svg(['M12 4.6a3.4 3.4 0 110 6.8 3.4 3.4 0 010-6.8', 'M5 20c0-3.5 3.1-6.2 7-6.2s7 2.7 7 6.2']),
+  box: () => svg(['M3.5 7.5L12 3.5l8.5 4v9L12 20.5 3.5 16.5z', 'M3.5 7.5L12 11.5l8.5-4M12 11.5V20.5']),
+  truck: () => svg(['M3 6.5h11v9H3z', 'M14 9.5h3.6l2.4 3v3H14z', 'M7 18.2v.2', 'M17 18.2v.2']),
+  bank: () => svg(['M3.5 9.5L12 4.5l8.5 5', 'M5.5 10.5v7M10 10.5v7M14 10.5v7M18.5 10.5v7', 'M3.5 20.5h17']),
+  tag: () => svg(['M11 3.5H20.5V13L11.5 22 2.5 13z', 'M16.6 8.1v.2']),
+  nfc: () => svg(['M4.5 4.5h15v15h-15z', 'M8.5 8.5h7v7h-7z', 'M12 12v.2']),
+  inbox: () => svg(['M3.5 12.5h4l1.6 3h5.8l1.6-3h4', 'M3.5 12.5L6 5h12l2.5 7.5V19h-17z']),
+};
+
+const STATS = [
+  { key: 'customers', value: '130', label: 'Total customers', icon: 'users', color: '#1D7DC4', tint: '#EAF3FB', delta: '+4', deltaColor: '#12833C', deltaTint: '#E7F6EE' },
+  { key: 'shops', value: '128', label: 'Shops served', icon: 'store', color: '#7A57C9', tint: '#F0EBFA', delta: '98%', deltaColor: '#5E3FA8', deltaTint: '#F0EBFA' },
+  { key: 'today', value: '1', label: 'Served today', icon: 'cart', color: '#16A34A', tint: '#E7F6EE', delta: '+0.8%', deltaColor: '#12833C', deltaTint: '#E7F6EE' },
+  { key: 'discipline', value: '0', label: 'Disciplinary cases', icon: 'shield', color: '#5A6577', tint: '#EEF1F5', delta: 'Clean', deltaColor: '#4A5462', deltaTint: '#EEF1F5' },
+];
+
+const MY_LEVELS = [
+  { roman: 'I', name: 'Level I', sub: 'Target 4.0M · avg 3.1M', pct: 78, amount: '312,000', amountLabel: 'commission', tone: 'green' },
+  { roman: 'II', name: 'Level II', sub: 'Target 8.0M · avg 3.1M', pct: 39, amount: '96,000', amountLabel: 'commission', tone: 'amber' },
+  { roman: 'III', name: 'Level III', sub: 'Target 12.0M · avg 3.1M', pct: 12, amount: '0', amountLabel: 'not reached', tone: 'blue' },
+];
+
+const TEAM_LEVELS = [
+  { roman: 'I', name: 'Level I', sub: '104 / 130 customers', pct: 80, amount: '540,000', amountLabel: 'net', tone: 'green' },
+  { roman: 'II', name: 'Level II', sub: '61 / 130 customers', pct: 47, amount: '188,000', amountLabel: 'net', tone: 'amber' },
+  { roman: 'III', name: 'Level III', sub: '18 / 130 customers', pct: 14, amount: '0', amountLabel: 'not reached', tone: 'blue' },
+];
+
+const TONES = {
+  green: { badgeBg: '#E7F6EE', badgeFg: '#12833C', bar: '#16A34A', amount: '#12833C' },
+  amber: { badgeBg: '#FDF1DC', badgeFg: '#8A5F0B', bar: '#E5A227', amount: '#103863' },
+  blue: { badgeBg: '#EAF3FB', badgeFg: '#1668A6', bar: '#1D7DC4', amount: '#6B7684' },
+};
+
+const MENU = [
+  { title: 'SELL', items: [
+    { label: 'Sales', icon: 'cart', expandable: true },
+    { label: 'Customers', icon: 'users', expandable: true },
+    { label: 'Trade', icon: 'tag' },
+  ]},
+  { title: 'STOCK', items: [
+    { label: 'Items', icon: 'box' },
+    { label: 'Suppliers', icon: 'truck', expandable: true },
+    { label: 'Receivings', icon: 'inbox', badge: '3' },
+  ]},
+  { title: 'MONEY', items: [
+    { label: 'Financial Banking', icon: 'bank' },
+    { label: 'NFC', icon: 'nfc', expandable: true },
+  ]},
+  { title: 'INSIGHTS', items: [
+    { label: 'Home', icon: 'home', active: true },
+    { label: 'Seller Report', icon: 'person' },
+    { label: 'Reports', icon: 'chart' },
+    { label: 'Summary', icon: 'doc' },
+  ]},
+];
+
+class Component extends DCLogic {
+  state = { menuOpen: false, tab: 'mine' };
+
+  renderVals() {
+    const s = this.state;
+    const rows = s.tab === 'mine' ? MY_LEVELS : TEAM_LEVELS;
+    const spark = [38, 52, 30, 66, 48, 82, 61];
+
+    return {
+      dateLabel: '02 Aug 2026',
+      credits: '12.66M',
+      creditDelta: '6.4%',
+      periodLabel: 'August 2026',
+      collected: '4.21M',
+      outstanding: '8.45M',
+      spark: spark.map((h, i) => ({
+        h: Math.round(10 + h * 0.6) + 'px',
+        day: ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i],
+        color: i === spark.length - 1 ? '#1D7DC4' : '#D3E2F0',
+        weight: i === spark.length - 1 ? 800 : 700,
+        labelColor: i === spark.length - 1 ? '#1668A6' : '#6B7684',
+      })),
+
+      actions: [
+        { label: 'New sale', icon: 'cart', color: '#1668A6', tint: '#EAF3FB' },
+        { label: 'Add customer', icon: 'users', color: '#12833C', tint: '#E7F6EE' },
+        { label: 'Collect debt', icon: 'bank', color: '#8A5F0B', tint: '#FDF1DC' },
+      ].map((a) => ({
+        label: a.label,
+        icon: ICONS[a.icon](),
+        color: a.color,
+        tint: a.tint,
+      })),
+
+      stats: STATS.map((st) => ({
+        value: st.value,
+        label: st.label,
+        tint: st.tint,
+        color: st.color,
+        icon: ICONS[st.icon](),
+        hasDelta: true,
+        delta: st.delta,
+        deltaColor: st.deltaColor,
+        deltaTint: st.deltaTint,
+      })),
+
+      tabs: [
+        { id: 'mine', label: 'My commission' },
+        { id: 'team', label: 'Team' },
+      ].map((t) => ({
+        label: t.label,
+        bg: s.tab === t.id ? '#FFFFFF' : 'transparent',
+        fg: s.tab === t.id ? '#103863' : '#5C6675',
+        shadow: s.tab === t.id ? '0 2px 6px rgba(16,56,99,.12)' : 'none',
+        pick: () => this.setState({ tab: t.id }),
+      })),
+
+      levels: rows.map((l) => {
+        const tone = TONES[l.tone];
+        return {
+          roman: l.roman,
+          name: l.name,
+          sub: l.sub,
+          pct: l.pct + '%',
+          pctLabel: l.pct + '%',
+          amount: l.amount,
+          amountLabel: l.amountLabel,
+          amountColor: tone.amount,
+          badgeBg: tone.badgeBg,
+          badgeFg: tone.badgeFg,
+          barColor: tone.bar,
+          open: () => {},
+        };
+      }),
+
+      disciplineTitle: 'No disciplinary cases',
+      disciplineSub: 'Keep the record clean to unlock Level III bonus',
+
+      nav: [
+        { label: 'Seller', icon: 'person' },
+        { label: 'Home', icon: 'home', active: true },
+        { label: 'Sales', icon: 'cart' },
+        { label: 'Customers', icon: 'users' },
+        { label: 'Reports', icon: 'chart' },
+      ].map((n) => ({
+        label: n.label,
+        icon: ICONS[n.icon](),
+        color: n.active ? '#1D7DC4' : '#64748B',
+        weight: n.active ? 800 : 700,
+      })),
+
+      menuOpen: s.menuOpen,
+      openMenu: () => this.setState({ menuOpen: true }),
+      closeMenu: () => this.setState({ menuOpen: false }),
+      menuGroups: MENU.map((g) => ({
+        title: g.title,
+        items: g.items.map((m) => ({
+          label: m.label,
+          icon: ICONS[m.icon](),
+          bg: m.active ? '#E4EFFA' : 'transparent',
+          color: m.active ? '#1D7DC4' : '#64748B',
+          textColor: m.active ? '#1668A6' : '#334155',
+          weight: m.active ? 800 : 700,
+          expandable: !!m.expandable,
+          hasBadge: !!m.badge,
+          badge: m.badge || '',
+          pick: () => this.setState({ menuOpen: false }),
+        })),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../models/credit.dart';
+import '../widgets/credit/credit_list_widgets.dart';
 import '../models/stock_location.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
@@ -37,6 +38,20 @@ class _CreditsScreenState extends State<CreditsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   String _searchQuery = '';
+
+  /// Balance filter chips (design_handoff_home_credit 3.4): all / open / settled.
+  String _balanceFilter = 'all';
+
+  /// Sort toggle behind the 3.5 header button.
+  bool _sortByBalance = true;
+
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -109,6 +124,39 @@ class _CreditsScreenState extends State<CreditsScreen> {
       return s.name.toLowerCase().contains(query) ||
           s.phone.toLowerCase().contains(query);
     }).toList();
+  }
+
+  /// 3.4/3.5: search, then the balance chip, then the sort toggle.
+  List<SupervisorCredit> get _lerumaSupervisors {
+    final list = [..._filteredSupervisors];
+
+    if (_balanceFilter == 'open') {
+      list.removeWhere((s) => s.balance <= 0);
+    } else if (_balanceFilter == 'settled') {
+      list.removeWhere((s) => s.balance > 0);
+    }
+
+    list.sort((a, b) => _sortByBalance
+        ? b.balance.compareTo(a.balance)
+        : a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+    return list;
+  }
+
+  /// Initials for the row avatar.
+  ///
+  /// Non-letter tokens are skipped, so "Mija (sembe) Mapinga" gives MM and not
+  /// "M(" -- bracketed nicknames are common in these customer names.
+  static String _initials(String name) {
+    final letters = name
+        .split(RegExp(r'[\s]+'))
+        .map((word) => word.replaceAll(RegExp(r'[^A-Za-z]'), ''))
+        .where((word) => word.isNotEmpty)
+        .toList();
+
+    if (letters.isEmpty) return '?';
+    if (letters.length == 1) return letters.first[0].toUpperCase();
+    return (letters.first[0] + letters.last[0]).toUpperCase();
   }
 
   void _viewSupervisorCustomers(SupervisorCredit supervisor) {
@@ -214,7 +262,9 @@ class _CreditsScreenState extends State<CreditsScreen> {
       ),
       bottomNavigationBar:
           widget.embedded ? null : const AppBottomNavigation(currentIndex: -1),
-      body: Container(
+      body: isLeruma
+          ? _buildLerumaBody()
+          : Container(
         color: isDark ? AppColors.darkBackground : Colors.grey.shade100,
         child: Column(
           children: [
@@ -332,6 +382,152 @@ class _CreditsScreenState extends State<CreditsScreen> {
                           : _buildSupervisorsList(isDark),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Leruma credit & debt list (design_handoff_home_credit, screen 3).
+  //
+  // Leruma only: the glassmorphic cards below are what every other client ships
+  // and this handoff does not cover them.
+  // ---------------------------------------------------------------------------
+
+  Widget _buildLerumaBody() {
+    final supervisors = _lerumaSupervisors;
+
+    return Container(
+      color: const Color(0xFFF2F5F9),
+      child: RefreshIndicator(
+        onRefresh: _loadCredits,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
+          children: [
+            if (_creditsData != null && !_isLoading) ...[
+              CreditTotalsCard(
+                balance: _creditsData!.summary.totalBalance,
+                credit: _creditsData!.summary.totalCredit,
+                paid: _creditsData!.summary.totalDebit,
+                openAccounts: _creditsData!.supervisors
+                    .where((s) => s.balance > 0)
+                    .length,
+              ),
+              const SizedBox(height: 12),
+            ],
+            _buildLerumaCollectionCard(),
+            const SizedBox(height: 12),
+            CreditSearchField(
+              controller: _searchController,
+              hintText: 'Search supervisor or phone',
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+            const SizedBox(height: 10),
+            CreditFilterChips(
+              selected: _balanceFilter,
+              onChanged: (value) => setState(() => _balanceFilter = value),
+            ),
+            const SizedBox(height: 14),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_errorMessage != null)
+              _buildErrorView()
+            else ...[
+              CreditListHeader(
+                label: '${supervisors.length} SUPERVISORS',
+                sortByBalance: _sortByBalance,
+                onToggleSort: () =>
+                    setState(() => _sortByBalance = !_sortByBalance),
+              ),
+              const SizedBox(height: 10),
+              if (supervisors.isEmpty)
+                const CreditEmptyResult(
+                    message: 'No match for that name or phone')
+              else
+                for (final supervisor in supervisors) ...[
+                  CreditRowCard(
+                    name: supervisor.name,
+                    phone: supervisor.phone,
+                    credit: supervisor.credit,
+                    paid: supervisor.debit,
+                    balance: supervisor.balance,
+                    ctaLabel: 'Customers',
+                    onTap: () => _viewSupervisorCustomers(supervisor),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 3.3 Daily debt collection card.
+  ///
+  /// The design puts today's collected amount on the right. There is no field
+  /// for it on the supervisor-credits response, so the chevron stands alone
+  /// rather than showing a number that is not the one the label promises.
+  Widget _buildLerumaCollectionCard() {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const DailyDebtReportScreen()),
+        ),
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: creditCardShadow,
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE7F6EE),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.payments,
+                    size: 20, color: Color(0xFF12833C)),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Daily debt collection',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF103863),
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'All debt payments received today',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF5C6675),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 20, color: Color(0xFF9AA5B4)),
+            ],
+          ),
         ),
       ),
     );
@@ -714,11 +910,37 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   String _searchQuery = '';
+  String _balanceFilter = 'all';
+  bool _sortByBalance = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadCustomers();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// 3.4/3.5: search, then the balance chip, then the sort toggle.
+  List<CustomerCredit> get _lerumaCustomers {
+    final list = [..._filteredCustomers];
+
+    if (_balanceFilter == 'open') {
+      list.removeWhere((c) => c.balance <= 0);
+    } else if (_balanceFilter == 'settled') {
+      list.removeWhere((c) => c.balance > 0);
+    }
+
+    list.sort((a, b) => _sortByBalance
+        ? b.balance.compareTo(a.balance)
+        : a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()));
+
+    return list;
   }
 
   Future<void> _loadCustomers() async {
@@ -759,6 +981,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
         builder: (_) => CustomerCreditScreen(
           customerId: customer.customerId,
           customerName: customer.fullName,
+          customerPhone: customer.phone,
         ),
       ),
     );
@@ -768,6 +991,8 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode;
+
+    if (ApiService.currentClient?.id == 'leruma') return _buildLerumaScreen();
 
     return Scaffold(
       appBar: AppBar(
@@ -845,6 +1070,116 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
                           ? _buildEmptyView()
                           : _buildCustomersList(isDark),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Customer level of screen 3: same layout as the supervisor list, with the
+  /// SUPERVISOR kicker in the app bar and a Statement CTA on each row.
+  Widget _buildLerumaScreen() {
+    final customers = _lerumaCustomers;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F5F9),
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        titleSpacing: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'SUPERVISOR',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.1,
+                color: Colors.white70,
+              ),
+            ),
+            Text(
+              widget.supervisorName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15.5,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadCustomers,
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadCustomers,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
+          children: [
+            if (_customersData != null && !_isLoading) ...[
+              CreditTotalsCard(
+                balance: _customersData!.summary.totalBalance,
+                credit: _customersData!.summary.totalCredit,
+                paid: _customersData!.summary.totalDebit,
+                openAccounts: _customersData!.customers
+                    .where((c) => c.balance > 0)
+                    .length,
+              ),
+              const SizedBox(height: 12),
+            ],
+            CreditSearchField(
+              controller: _searchController,
+              hintText: 'Search customer or phone',
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+            const SizedBox(height: 10),
+            CreditFilterChips(
+              selected: _balanceFilter,
+              onChanged: (value) => setState(() => _balanceFilter = value),
+            ),
+            const SizedBox(height: 14),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_errorMessage != null)
+              _buildErrorView()
+            else ...[
+              CreditListHeader(
+                label: '${customers.length} CUSTOMERS',
+                sortByBalance: _sortByBalance,
+                onToggleSort: () =>
+                    setState(() => _sortByBalance = !_sortByBalance),
+              ),
+              const SizedBox(height: 10),
+              if (customers.isEmpty)
+                const CreditEmptyResult(
+                    message: 'No match for that name or phone')
+              else
+                for (final customer in customers) ...[
+                  CreditRowCard(
+                    name: customer.fullName,
+                    phone: customer.phone,
+                    credit: customer.credit,
+                    paid: customer.debit,
+                    balance: customer.balance,
+                    ctaLabel: 'Statement',
+                    onTap: () => _viewCustomerCredit(customer),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+            ],
           ],
         ),
       ),

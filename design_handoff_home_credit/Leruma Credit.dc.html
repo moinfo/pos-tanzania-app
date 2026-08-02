@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9ECF1;font-family:"Plus Jakarta Sans",system-ui,sans-serif}
+a{color:#1668A6}a:hover{color:#103863}
+*{-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;border:none;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+input{font-family:inherit}
+input::placeholder{color:#8A94A6;font-weight:600}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+
+<div style="height:100%;display:flex;flex-direction:column;background:#F2F5F9;position:relative;overflow:hidden;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#0F172A">
+
+  <div style="flex:none;background:#103863;padding:54px 14px 14px;display:flex;align-items:center;gap:11px">
+    <button onClick="{{ goBack }}" style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none" style-active="background:rgba(255,255,255,.22)" aria-label="Back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+    </button>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.8px;color:rgba(255,255,255,.6)">{{ headerKicker }}</span>
+      <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ headerTitle }}</span>
+    </div>
+    <button style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none" style-active="background:rgba(255,255,255,.22)" aria-label="Theme">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"></path></svg>
+    </button>
+  </div>
+
+  <div style="flex:1;min-height:0;overflow:auto">
+
+    <sc-if value="{{ showList }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:14px 14px 0">
+      <div style="background:#fff;border-radius:20px;padding:16px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 8px 22px rgba(16,56,99,.07)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+          <span style="font-size:11.5px;font-weight:800;letter-spacing:1px;color:#6B7684">OUTSTANDING BALANCE</span>
+          <span style="display:flex;align-items:center;gap:5px;background:#FDF1DC;border-radius:8px;padding:4px 8px">
+            <span style="width:6px;height:6px;border-radius:50%;background:#C4820E"></span>
+            <span style="font-size:11px;font-weight:800;color:#8A5F0B">{{ openCount }}</span>
+          </span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px">
+          <span style="font-size:32px;font-weight:800;letter-spacing:-1.3px;color:#103863;line-height:1">{{ balance }}</span>
+          <span style="font-size:14px;font-weight:700;color:#6B7684;padding-bottom:3px">TSh</span>
+        </div>
+
+        <div style="margin-top:15px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+            <span style="font-size:12px;font-weight:700;color:#5C6675">Collected this cycle</span>
+            <span style="font-size:12.5px;font-weight:800;color:#12833C">{{ collectedPct }}</span>
+          </div>
+          <span style="display:block;height:9px;border-radius:6px;background:#EEF2F7;overflow:hidden">
+            <span style="display:block;height:9px;border-radius:6px;background:#16A34A;width:{{ collectedPct }}"></span>
+          </span>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <span style="flex:1;display:flex;flex-direction:column;gap:3px;background:#F5F8FC;border-radius:13px;padding:10px 12px">
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:.7px;color:#6B7684">TOTAL CREDIT</span>
+            <span style="font-size:15px;font-weight:800;color:#103863">{{ totalCredit }}</span>
+          </span>
+          <span style="flex:1;display:flex;flex-direction:column;gap:3px;background:#EEF9F2;border-radius:13px;padding:10px 12px">
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:.7px;color:#3F7355">TOTAL PAID</span>
+            <span style="font-size:15px;font-weight:800;color:#12833C">{{ totalPaid }}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ showDaily }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:12px 14px 0">
+      <button onClick="{{ openCollection }}" style="display:flex;align-items:center;gap:12px;width:100%;background:#fff;border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)" style-active="background:#F1F5FB">
+        <span style="width:42px;height:42px;border-radius:14px;background:#E7F6EE;display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#12833C" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"></rect><circle cx="12" cy="12" r="2.6"></circle><path d="M6 9.5v.2M18 14.3v.2"></path></svg>
+        </span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:14.5px;font-weight:800;color:#103863">Daily debt collection</span>
+          <span style="font-size:12px;font-weight:600;color:#5C6675">All debt payments received today</span>
+        </span>
+        <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none">
+          <span style="font-size:14.5px;font-weight:800;color:#12833C">{{ todayCollected }}</span>
+          <span style="font-size:10.5px;font-weight:700;color:#6B7684">today</span>
+        </span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA5B4" stroke-width="2.6" stroke-linecap="round" style="flex:none"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+    </div>
+    </sc-if>
+
+    <div style="padding:14px 14px 0;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid #E6EBF2;border-radius:14px;padding:0 12px;height:48px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A94A6" stroke-width="2.2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="{{ searchPlaceholder }}" style="flex:1;min-width:0;border:none;background:transparent;outline:none;font-size:15px;font-weight:700;color:#0F172A;height:46px" />
+        <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ clearQuery }}" style="width:28px;height:28px;border-radius:9px;background:#EEF2F7;display:flex;align-items:center;justify-content:center;flex:none">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5C6675" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </button>
+        </sc-if>
+      </div>
+      <div style="display:flex;gap:7px">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+          <button onClick="{{ f.pick }}" style="height:36px;border-radius:11px;padding:0 13px;font-size:12.5px;font-weight:800;white-space:nowrap;background:{{ f.bg }};color:{{ f.fg }};border:1.5px solid {{ f.border }}" style-active="opacity:.8">{{ f.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="padding:14px 14px 22px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 9px">
+        <span style="font-size:11px;font-weight:800;letter-spacing:1.1px;color:#6B7684">{{ listLabel }}</span>
+        <button style="display:flex;align-items:center;gap:5px" style-active="opacity:.6">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1668A6" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"></path></svg>
+          <span style="font-size:11.5px;font-weight:800;color:#1668A6">{{ sortLabel }}</span>
+        </button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="1">
+          <button onClick="{{ r.open }}" style="display:block;width:100%;background:#fff;border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)" style-active="background:#F7FAFD">
+            <div style="display:flex;align-items:center;gap:11px">
+              <span style="width:42px;height:42px;border-radius:14px;background:{{ r.avatarBg }};color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none">{{ r.initials }}</span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:14.5px;font-weight:800;color:#103863;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                <span style="display:flex;align-items:center;gap:5px">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8A94A6" stroke-width="2.2" stroke-linejoin="round"><path d="M5 4h4l1.5 4-2 1.6a12 12 0 006 6l1.6-2 4 1.5v4a1 1 0 01-1.1 1A16.5 16.5 0 014 5.1 1 1 0 015 4z"></path></svg>
+                  <span style="font-size:12px;font-weight:600;color:#5C6675">{{ r.phone }}</span>
+                </span>
+              </span>
+              <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none">
+                <span style="font-size:16px;font-weight:800;color:{{ r.balanceColor }};letter-spacing:-.3px">{{ r.balance }}</span>
+                <span style="font-size:10.5px;font-weight:700;color:#6B7684">balance</span>
+              </span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:12px">
+              <span style="flex:1;height:7px;border-radius:5px;background:#EEF2F7;overflow:hidden;display:block">
+                <span style="display:block;height:7px;border-radius:5px;background:#16A34A;width:{{ r.pct }}"></span>
+              </span>
+              <span style="font-size:11.5px;font-weight:800;color:#3F7355;min-width:42px;text-align:right">{{ r.pct }}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:11px;border-top:1px solid #F1F4F8">
+              <span style="display:flex;flex-direction:column;gap:1px">
+                <span style="font-size:10.5px;font-weight:700;color:#6B7684">Credit</span>
+                <span style="font-size:13px;font-weight:800;color:#103863">{{ r.credit }}</span>
+              </span>
+              <span style="display:flex;flex-direction:column;gap:1px">
+                <span style="font-size:10.5px;font-weight:700;color:#6B7684">Paid</span>
+                <span style="font-size:13px;font-weight:800;color:#12833C">{{ r.paid }}</span>
+              </span>
+              <span style="display:flex;align-items:center;gap:5px;background:#EAF3FB;border-radius:9px;padding:6px 11px">
+                <span style="font-size:12px;font-weight:800;color:#1668A6;white-space:nowrap">{{ r.cta }}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1668A6" stroke-width="2.8" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+              </span>
+            </div>
+          </button>
+        </sc-for>
+        <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:44px 24px;text-align:center;font-size:14px;font-weight:700;color:#6B7684">No match for that name or phone</div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ inCollection }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 14px 0;display:flex;flex-direction:column;gap:12px">
+
+        <div style="background:#fff;border-radius:20px;padding:16px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 8px 22px rgba(16,56,99,.07)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:11.5px;font-weight:800;letter-spacing:1px;color:#5C6675">COLLECTED</span>
+              <span style="display:flex;align-items:flex-end;gap:7px">
+                <span style="font-size:32px;font-weight:800;letter-spacing:-1.3px;color:#12833C;line-height:1">{{ collectionTotal }}</span>
+                <span style="font-size:13.5px;font-weight:700;color:#5C6675;padding-bottom:3px">TSh</span>
+              </span>
+            </span>
+            <span style="width:46px;height:46px;border-radius:15px;background:#E7F6EE;display:flex;align-items:center;justify-content:center;flex:none">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#12833C" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"></rect><circle cx="12" cy="12" r="2.6"></circle></svg>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid #F1F4F8">
+            <span style="display:flex;align-items:center;gap:7px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1668A6" stroke-width="2.2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="16" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+              <span style="font-size:12.5px;font-weight:700;color:#334155;white-space:nowrap">{{ rangeLabel }}</span>
+            </span>
+            <span style="font-size:12px;font-weight:800;color:#5C6675;background:#F1F4F8;border-radius:8px;padding:5px 10px;white-space:nowrap">{{ collectionCount }}</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:7px">
+          <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3">
+            <button onClick="{{ r.pick }}" style="flex:1;height:38px;border-radius:11px;font-size:12.5px;font-weight:800;white-space:nowrap;display:flex;align-items:center;justify-content:center;background:{{ r.bg }};color:{{ r.fg }};border:1.5px solid {{ r.border }}" style-active="opacity:.8">{{ r.label }}</button>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid #E6EBF2;border-radius:14px;padding:0 12px;height:48px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A94A6" stroke-width="2.2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Search customer or supervisor" style="flex:1;min-width:0;border:none;background:transparent;outline:none;font-size:15px;font-weight:700;color:#0F172A;height:46px" />
+        </div>
+
+        <sc-if value="{{ hasCollections }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fff;border-radius:20px;padding:4px 14px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)">
+            <sc-for list="{{ collections }}" as="c" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid #F1F4F8">
+                <span style="width:38px;height:38px;border-radius:13px;background:#E7F6EE;color:#12833C;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none">{{ c.initials }}</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:14px;font-weight:800;color:#103863;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span>
+                  <span style="font-size:11.5px;font-weight:600;color:#5C6675;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.sub }}</span>
+                </span>
+                <span style="font-size:15px;font-weight:800;color:#12833C;flex:none">{{ c.amount }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noCollectionMatch }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fff;border-radius:20px;padding:44px 24px;text-align:center;font-size:14px;font-weight:700;color:#6B7684;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)">No payment matches that search</div>
+        </sc-if>
+        <sc-if value="{{ noCollections }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff;border-radius:20px;padding:34px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)">
+          <span style="width:60px;height:60px;border-radius:20px;background:#F1F5FB;display:flex;align-items:center;justify-content:center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9AA5B4" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"></path><path d="M9 8h6M9 12h6"></path></svg>
+          </span>
+          <span style="font-size:15px;font-weight:800;color:#103863;text-align:center">No collections in this period</span>
+          <span style="font-size:12.5px;font-weight:600;color:#5C6675;text-align:center;line-height:1.5;max-width:230px">Payments you record against customer debt will appear here with date, customer and method.</span>
+          <button style="height:46px;border-radius:14px;background:linear-gradient(135deg,#1D7DC4 0%,#103863 100%);display:flex;align-items:center;justify-content:center;gap:8px;padding:0 20px;margin-top:6px;box-shadow:0 8px 18px rgba(16,56,99,.24)" style-active="opacity:.9">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            <span style="font-size:14.5px;font-weight:800;color:#fff;white-space:nowrap">Record payment</span>
+          </button>
+        </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ inStatement }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 14px 0;display:flex;flex-direction:column;gap:12px">
+
+        <div style="background:#fff;border-radius:20px;padding:16px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 8px 22px rgba(16,56,99,.07)">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:12.5px;font-weight:700;color:#5C6675">{{ stOpeningLabel }}</span>
+            <span style="font-size:14px;font-weight:800;color:#334155">{{ stOpening }}</span>
+          </div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid #F1F4F8">
+            <span style="display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:11.5px;font-weight:800;letter-spacing:1px;color:#6B7684">CURRENT BALANCE</span>
+              <span style="font-size:12px;font-weight:600;color:#5C6675">{{ stAging }}</span>
+            </span>
+            <span style="display:flex;align-items:flex-end;gap:6px">
+              <span style="font-size:27px;font-weight:800;letter-spacing:-1.1px;color:#103863;line-height:1">{{ stBalance }}</span>
+              <span style="font-size:13px;font-weight:700;color:#6B7684;padding-bottom:2px">TSh</span>
+            </span>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <span style="flex:1;display:flex;flex-direction:column;gap:3px;background:#F5F8FC;border-radius:13px;padding:10px 12px">
+              <span style="font-size:10.5px;font-weight:800;letter-spacing:.7px;color:#6B7684">CREDIT GIVEN</span>
+              <span style="font-size:15px;font-weight:800;color:#103863">{{ stCredit }}</span>
+            </span>
+            <span style="flex:1;display:flex;flex-direction:column;gap:3px;background:#EEF9F2;border-radius:13px;padding:10px 12px">
+              <span style="font-size:10.5px;font-weight:800;letter-spacing:.7px;color:#3F7355">PAID</span>
+              <span style="font-size:15px;font-weight:800;color:#12833C">{{ stPaid }}</span>
+            </span>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px">
+          <span style="display:flex;align-items:center;gap:7px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1668A6" stroke-width="2.2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="16" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+            <span style="font-size:12.5px;font-weight:700;color:#334155;white-space:nowrap">{{ rangeLabel }}</span>
+          </span>
+          <button style="display:flex;align-items:center;gap:5px" style-active="opacity:.6">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1668A6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 11-2.4-5.7M20 4v4h-4"></path></svg>
+            <span style="font-size:12.5px;font-weight:800;color:#1668A6">Refresh</span>
+          </button>
+        </div>
+
+        <div style="display:flex;gap:7px">
+          <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3">
+            <button onClick="{{ r.pick }}" style="flex:1;height:38px;border-radius:11px;font-size:12.5px;font-weight:800;white-space:nowrap;display:flex;align-items:center;justify-content:center;background:{{ r.bg }};color:{{ r.fg }};border:1.5px solid {{ r.border }}" style-active="opacity:.8">{{ r.label }}</button>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ hasTx }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 2px">
+            <span style="font-size:11px;font-weight:800;letter-spacing:1.1px;color:#6B7684">{{ txCount }}</span>
+          </div>
+          <div style="background:#fff;border-radius:18px;padding:4px 14px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)">
+            <sc-for list="{{ txs }}" as="t" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid #F1F4F8">
+                <span style="width:34px;height:34px;border-radius:11px;background:#E7F6EE;display:flex;align-items:center;justify-content:center;flex:none">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#12833C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+                </span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:14px;font-weight:800;color:#103863">{{ t.title }}</span>
+                  <span style="font-size:11.5px;font-weight:600;color:#5C6675;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.sub }}</span>
+                </span>
+                <span style="font-size:15px;font-weight:800;color:#12833C;flex:none">{{ t.amount }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noTx }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff;border-radius:20px;padding:34px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 1px 2px rgba(16,56,99,.05),0 5px 14px rgba(16,56,99,.04)">
+          <span style="width:60px;height:60px;border-radius:20px;background:#F1F5FB;display:flex;align-items:center;justify-content:center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9AA5B4" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"></path><path d="M9 8h6M9 12h6"></path></svg>
+          </span>
+          <span style="font-size:15px;font-weight:800;color:#103863;text-align:center">No transactions in this period</span>
+          <span style="font-size:12.5px;font-weight:600;color:#5C6675;text-align:center;line-height:1.5;max-width:240px">Sales on credit and payments received will be listed here, newest first.</span>
+          <button onClick="{{ widenRange }}" style="height:42px;border-radius:13px;background:#F1F4F8;padding:0 18px;margin-top:6px;display:flex;align-items:center;justify-content:center" style-active="background:#E4EAF2">
+            <span style="font-size:13.5px;font-weight:800;color:#334155;white-space:nowrap">See last 3 months</span>
+          </button>
+        </div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ inStatement }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:none;background:#fff;border-top:1px solid #EEF1F5;padding:10px 14px;display:flex;gap:9px">
+      <button onClick="{{ callCustomer }}" style="width:54px;height:52px;border-radius:15px;background:#F1F4F8;display:flex;align-items:center;justify-content:center;flex:none" style-active="background:#E4EAF2" aria-label="Call">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l1.5 4-2 1.6a12 12 0 006 6l1.6-2 4 1.5v4a1 1 0 01-1.1 1A16.5 16.5 0 014 5.1 1 1 0 015 4z"></path></svg>
+      </button>
+      <button onClick="{{ openPay }}" style="flex:1;height:52px;border-radius:15px;background:linear-gradient(135deg,#1D7DC4 0%,#103863 100%);display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 8px 18px rgba(16,56,99,.26)" style-active="opacity:.9">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        <span style="font-size:15.5px;font-weight:800;color:#fff;white-space:nowrap">Record payment</span>
+      </button>
+    </div>
+  </sc-if>
+
+  <div style="flex:none;background:#fff;border-top:1px solid #EEF1F5;display:grid;grid-template-columns:repeat(5,1fr);padding:7px 0 26px">
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+      <button style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0">
+        <span style="width:20px;height:20px;display:block;color:{{ n.color }}">{{ n.icon }}</span>
+        <span style="font-size:10.5px;font-weight:{{ n.weight }};color:{{ n.color }}">{{ n.label }}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:14px;right:14px;bottom:168px;z-index:60;display:flex;align-items:center;gap:10px;background:#103863;border-radius:14px;padding:13px 15px;box-shadow:0 10px 26px rgba(4,26,61,.3);animation:fadeIn .2s ease">
+      <span style="width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+      </span>
+      <span style="flex:1;font-size:13px;font-weight:700;color:#fff">{{ toast }}</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(4,26,61,.45);z-index:40;animation:fadeIn .18s ease"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:26px 26px 0 0;padding:10px 16px 26px;z-index:50;animation:sheetUp .24s cubic-bezier(.2,.8,.3,1);box-shadow:0 -10px 34px rgba(4,26,61,.22)">
+      <div style="width:42px;height:4px;border-radius:4px;background:#E2E8F1;margin:0 auto 12px"></div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="width:38px;height:38px;border-radius:13px;background:#1D7DC4;color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none">{{ sheetInitials }}</span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-size:15px;font-weight:800;color:#103863;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ sheetName }}</span>
+          <span style="font-size:12px;font-weight:600;color:#5C6675">Balance {{ sheetBalance }} TSh</span>
+        </span>
+        <button onClick="{{ closeSheet }}" style="width:32px;height:32px;border-radius:10px;background:#F1F4F8;display:flex;align-items:center;justify-content:center;flex:none" style-active="background:#E4EAF2" aria-label="Close">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5C6675" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </button>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;background:#F5F8FC;border-radius:16px;padding:12px 14px;margin-bottom:11px">
+        <span style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:10.5px;font-weight:800;letter-spacing:.8px;color:#6B7684">PAYMENT AMOUNT</span>
+          <span style="font-size:12px;font-weight:600;color:#5C6675">{{ payRemainLabel }}</span>
+        </span>
+        <span style="display:flex;align-items:flex-end;gap:5px">
+          <span style="font-size:30px;font-weight:800;letter-spacing:-1.1px;color:{{ payAmountColor }};line-height:1">{{ payAmountLabel }}</span>
+          <span style="font-size:12.5px;font-weight:700;color:#6B7684;padding-bottom:2px">TSh</span>
+        </span>
+      </div>
+
+      <div style="display:flex;gap:7px;margin-bottom:11px">
+        <sc-for list="{{ payPresets }}" as="p" hint-placeholder-count="3">
+          <button onClick="{{ p.set }}" style="flex:1;height:36px;border-radius:10px;background:#EAF3FB;font-size:12.5px;font-weight:800;color:#1668A6;white-space:nowrap;display:flex;align-items:center;justify-content:center" style-active="background:#DCEBF8">{{ p.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:11px">
+        <span style="font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#6B7684">STOCK LOCATION</span>
+        <div style="display:flex;gap:7px">
+          <sc-for list="{{ locations }}" as="l" hint-placeholder-count="2">
+            <button onClick="{{ l.pick }}" style="flex:1;height:44px;border-radius:12px;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px;display:flex;align-items:center;justify-content:center;background:{{ l.bg }};color:{{ l.fg }};border:1.5px solid {{ l.border }}" style-active="opacity:.85">{{ l.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <sc-for list="{{ payKeys }}" as="k" hint-placeholder-count="12">
+          <button onClick="{{ k.press }}" style="height:48px;border-radius:12px;background:#F4F6F9;font-size:20px;font-weight:700;color:#103863;display:flex;align-items:center;justify-content:center" style-active="background:#E4EAF2">{{ k.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:9px;background:#F7F9FC;border:1.5px solid #E6EBF2;border-radius:13px;padding:0 12px;height:46px;margin-top:11px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A94A6" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h8"></path></svg>
+        <input value="{{ payNote }}" onChange="{{ onPayNote }}" placeholder="Description (optional)" style="flex:1;min-width:0;border:none;background:transparent;outline:none;font-size:14px;font-weight:600;color:#0F172A;height:44px" />
+      </div>
+
+      <div style="display:flex;gap:9px;margin-top:12px">
+        <button onClick="{{ closeSheet }}" style="width:96px;height:54px;border-radius:15px;background:#F1F4F8;display:flex;align-items:center;justify-content:center" style-active="background:#E4EAF2">
+          <span style="font-size:14.5px;font-weight:800;color:#334155">Cancel</span>
+        </button>
+        <button onClick="{{ submitPay }}" style="flex:1;height:54px;border-radius:15px;background:{{ submitBg }};display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:{{ submitShadow }}" style-active="opacity:.9">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+          <span style="font-size:15.5px;font-weight:800;color:#fff;white-space:nowrap">{{ submitLabel }}</span>
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:482,&quot;height&quot;:954},&quot;showDailyCollection&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+const svg = (paths) => React.createElement('svg', {
+  viewBox: '0 0 24 24', width: '100%', height: '100%', fill: 'none',
+  stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+}, paths.map((d, i) => React.createElement('path', { key: i, d })));
+
+const ICONS = {
+  cart: () => svg(['M3 5h2.2l2 10.5h11L21 8H6', 'M9.5 19.5v.2', 'M17.5 19.5v.2']),
+  card: () => svg(['M2.5 6.5h19v11h-19z', 'M2.5 10.5h19']),
+  person: () => svg(['M12 4.6a3.4 3.4 0 110 6.8 3.4 3.4 0 010-6.8', 'M5 20c0-3.5 3.1-6.2 7-6.2s7 2.7 7 6.2']),
+  home: () => svg(['M3.5 10.6L12 3.5l8.5 7.1V20a1 1 0 01-1 1h-15a1 1 0 01-1-1z']),
+  chart: () => svg(['M4 20V11', 'M10 20V4', 'M16 20v-6', 'M22 20H2']),
+};
+
+const SUPERVISORS = [
+  { name: 'Apolinali Apolinali Mpinga', phone: '677036711', credit: 205638700, paid: 192976700 },
+];
+
+const CUSTOMERS = [
+  { name: 'Mija (sembe) Mapinga', phone: '693176005', credit: 22270500, paid: 19370500 },
+  { name: 'Ngosha Kerege', phone: '756545800', credit: 47747500, paid: 44857500 },
+  { name: 'Amadoni Shop', phone: '754369085', credit: 18420000, paid: 18420000 },
+  { name: 'Gody Shop Mbezi', phone: '679393633', credit: 31560750, paid: 29118750 },
+  { name: 'Amani Shop', phone: '757375994', credit: 16456000, paid: 12026000 },
+];
+
+const fmt = (n) => n.toLocaleString('en-US');
+const initials = (n) => n.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+class Component extends DCLogic {
+  state = { query: '', filter: 'all', sheet: null, view: 'supervisors', parent: null };
+
+  renderVals() {
+    const s = this.state;
+    const q = s.query.trim().toLowerCase();
+    const inCollection = s.view === 'collection';
+    const inStatement = s.view === 'statement';
+    const inCustomers = s.view === 'customers' || inStatement;
+    const source = inCustomers ? CUSTOMERS : SUPERVISORS;
+
+    const ledger = s.ledger || [];
+    // a payment reduces the customer's balance AND the balance of the supervisor who owns them
+    const recorded = (name) => ledger
+      .filter((e) => e.key === name || e.sup === name)
+      .reduce((a, e) => a + e.amount, 0);
+    const ledgerTotal = ledger.reduce((a, e) => a + e.amount, 0);
+    const visibleLedger = ledger.filter((e) => !q
+      || e.key.toLowerCase().includes(q)
+      || (e.sup || '').toLowerCase().includes(q)
+      || (e.location || '').toLowerCase().includes(q));
+
+    const enriched = source.map((v0) => {
+      const v = Object.assign({}, v0, { paid: v0.paid + recorded(v0.name) });
+      const balance = v.credit - v.paid;
+      const pct = v.credit ? Math.round((v.paid / v.credit) * 1000) / 10 : 0;
+      return Object.assign({}, v, { balance, pct });
+    });
+
+    const totalCredit = enriched.reduce((a, v) => a + v.credit, 0);
+    const totalPaid = enriched.reduce((a, v) => a + v.paid, 0);
+    const balance = totalCredit - totalPaid;
+    const collectedPct = totalCredit ? Math.round((totalPaid / totalCredit) * 1000) / 10 : 0;
+
+    let rows = enriched.filter((v) =>
+      !q || v.name.toLowerCase().includes(q) || v.phone.includes(q));
+    if (s.filter === 'balance') rows = rows.filter((v) => v.balance > 0);
+    if (s.filter === 'clear') rows = rows.filter((v) => v.balance <= 0);
+
+    const open = enriched.filter((v) => v.balance > 0).length;
+    const sel = s.sheet != null ? enriched[s.sheet] : null;
+    const st = inStatement && s.statement != null ? enriched[s.statement] : null;
+    const payAmt = parseInt(s.payBuf || '', 10) || 0;
+    const stTx = st ? (s.ledger || []).filter((e) => e.key === st.name) : [];
+    // net change inside the selected period (payments reduce the balance)
+    const periodMovement = -stTx.reduce((a, e) => a + e.amount, 0);
+
+    return {
+      inCustomers,
+      inCollection,
+      inStatement,
+      showList: !inCollection && !inStatement,
+      headerKicker: inCollection ? 'DEBT COLLECTION' : inStatement ? 'STATEMENT' : inCustomers ? 'SUPERVISOR' : 'CUSTOMER',
+      headerTitle: inCollection ? 'Apolinary Mpinga'
+        : inStatement ? (st ? st.name : '')
+        : inCustomers ? (s.parent || '') : 'Credit & debt',
+      openCollection: () => this.setState({ view: 'collection', query: '', sheet: null }),
+
+      stOpeningLabel: 'Balance at period start',
+      stOpening: st ? fmt(st.balance - periodMovement) : '',
+      stBalance: st ? fmt(st.balance) : '',
+      stCredit: st ? fmt(st.credit) : '',
+      stPaid: st ? fmt(st.paid) : '',
+      stAging: st ? (st.balance > 0 ? 'Outstanding · ' + st.pct + '% collected' : 'Fully settled') : '',
+      widenRange: () => this.setState({ range: 'month' }),
+      callCustomer: () => { if (st) window.open('tel:' + st.phone); },
+      hasTx: stTx.length > 0,
+      noTx: stTx.length === 0,
+      txCount: stTx.length + (stTx.length === 1 ? ' transaction' : ' transactions'),
+      txs: stTx.slice().reverse().map((e) => ({
+        amount: '− ' + fmt(e.amount),
+        title: 'Debt payment',
+        sub: e.when + ' · ' + e.location + (e.note ? ' · ' + e.note : ''),
+      })),
+      openPay: () => this.setState({ sheet: s.statement }),
+
+      ranges: [
+        { id: 'today', label: 'Today' },
+        { id: 'week', label: 'This week' },
+        { id: 'month', label: 'This month' },
+      ].map((r) => {
+        const on = (s.range || 'month') === r.id;
+        return {
+          label: r.label,
+          bg: on ? '#103863' : '#FFFFFF',
+          fg: on ? '#FFFFFF' : '#5C6675',
+          border: on ? '#103863' : '#E6EBF2',
+          pick: () => this.setState({ range: r.id }),
+        };
+      }),
+      rangeLabel: { today: '02 Aug 2026', week: '27 Jul – 02 Aug 2026', month: '01 Aug – 31 Aug 2026' }[s.range || 'month'],
+      collectionTotal: fmt(visibleLedger.reduce((a, e) => a + e.amount, 0)),
+      collectionCount: visibleLedger.length + (visibleLedger.length === 1 ? ' payment' : ' payments'),
+      hasCollections: visibleLedger.length > 0,
+      noCollections: visibleLedger.length === 0 && !q,
+      noCollectionMatch: visibleLedger.length === 0 && !!q,
+      collections: visibleLedger.slice().reverse().map((e) => ({
+        name: e.key,
+        initials: initials(e.key),
+        amount: '+ ' + fmt(e.amount),
+        sub: e.when + ' · ' + e.location + (e.note ? ' · ' + e.note : ''),
+      })),
+      goBack: () => {
+        if (inStatement) return this.setState({ view: 'customers', statement: null, sheet: null, range: 'month' });
+        this.setState({ view: 'supervisors', parent: null, query: '', filter: 'all', sheet: null, statement: null, range: 'month' });
+      },
+      searchPlaceholder: inCustomers ? 'Search customer or phone' : 'Search supervisor or phone',
+
+      balance: fmt(balance),
+      totalCredit: fmt(totalCredit),
+      totalPaid: fmt(totalPaid),
+      collectedPct: collectedPct + '%',
+      openCount: open + (open === 1 ? ' open account' : ' open accounts'),
+      todayCollected: fmt(ledgerTotal),
+      showDaily: !inCustomers && (this.props.showDailyCollection ?? true),
+
+      query: s.query,
+      hasQuery: !!s.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+      clearQuery: () => this.setState({ query: '' }),
+
+      filters: [
+        { id: 'all', label: 'All' },
+        { id: 'balance', label: 'With balance' },
+        { id: 'clear', label: 'Settled' },
+      ].map((f) => {
+        const on = s.filter === f.id;
+        return {
+          label: f.label,
+          bg: on ? '#103863' : '#FFFFFF',
+          fg: on ? '#FFFFFF' : '#5C6675',
+          border: on ? '#103863' : '#E6EBF2',
+          pick: () => this.setState({ filter: f.id }),
+        };
+      }),
+
+      listLabel: rows.length + ' ' + (inCustomers
+        ? (rows.length === 1 ? 'CUSTOMER' : 'CUSTOMERS')
+        : (rows.length === 1 ? 'SUPERVISOR' : 'SUPERVISORS')),
+      sortLabel: 'Highest balance',
+      noRows: rows.length === 0,
+      rows: rows.map((v) => ({
+        name: v.name,
+        initials: initials(v.name),
+        avatarBg: v.balance > 0 ? '#1D7DC4' : '#12833C',
+        phone: v.phone,
+        balance: fmt(v.balance),
+        balanceColor: v.balance > 0 ? '#103863' : '#12833C',
+        credit: fmt(v.credit),
+        paid: fmt(v.paid),
+        pct: v.pct + '%',
+        cta: inCustomers ? 'Statement' : 'Customers',
+        open: () => {
+          if (inCustomers) this.setState({ view: 'statement', statement: enriched.indexOf(v), range: 'today' });
+          else this.setState({ view: 'customers', parent: v.name, query: '', filter: 'all' });
+        },
+      })),
+
+      sheetOpen: sel != null,
+      closeSheet: () => this.setState({ sheet: null, payBuf: '', payNote: '' }),
+      sheetName: sel ? sel.name : '',
+      sheetInitials: sel ? initials(sel.name) : '',
+      sheetPhone: sel ? sel.phone : '',
+      sheetBalance: sel ? fmt(sel.balance) : '',
+      sheetCredit: sel ? fmt(sel.credit) : '',
+      sheetPaid: sel ? fmt(sel.paid) : '',
+
+      payAmountLabel: fmt(payAmt),
+      payAmountColor: payAmt > 0 ? '#103863' : '#9AA5B4',
+      payRemainLabel: sel
+        ? (payAmt >= sel.balance ? 'Clears the full balance' : 'Leaves ' + fmt(sel.balance - payAmt) + ' TSh')
+        : '',
+      payPresets: sel ? [
+        { label: 'Full ' + fmt(sel.balance), v: sel.balance },
+        { label: 'Half', v: Math.round(sel.balance / 2) },
+        { label: '500,000', v: 500000 },
+      ].map((p) => ({ label: p.label, set: () => this.setState({ payBuf: String(p.v) }) })) : [],
+      payKeys: ['1','2','3','4','5','6','7','8','9','000','0','⌫'].map((k) => ({
+        label: k,
+        press: () => this.setState((prev) => {
+          const b = prev.payBuf || '';
+          if (k === '⌫') return { payBuf: b.slice(0, -1) };
+          if ((b + k).length > 12) return null;
+          return { payBuf: (b === '0' ? '' : b) + k };
+        }),
+      })),
+      locations: ['Apolinary Mpinga', 'Main store'].map((l) => {
+        const on = (s.location || 'Apolinary Mpinga') === l;
+        return {
+          label: l,
+          bg: on ? '#EAF3FB' : '#FFFFFF',
+          fg: on ? '#1668A6' : '#5C6675',
+          border: on ? '#1D7DC4' : '#E6EBF2',
+          pick: () => this.setState({ location: l }),
+        };
+      }),
+      payNote: s.payNote || '',
+      onPayNote: (e) => this.setState({ payNote: e.target.value }),
+      submitLabel: payAmt > 0 ? 'Submit ' + fmt(payAmt) : 'Enter amount',
+      submitBg: payAmt > 0 ? 'linear-gradient(135deg,#1D7DC4 0%,#103863 100%)' : '#C3CBD8',
+      submitShadow: payAmt > 0 ? '0 8px 18px rgba(16,56,99,.26)' : 'none',
+      submitPay: () => {
+        if (payAmt <= 0 || !sel) return;
+        const entry = {
+          key: sel.name,
+          sup: s.parent || SUPERVISORS[0].name,
+          amount: Math.min(payAmt, sel.balance),
+          note: (s.payNote || '').trim(),
+          location: s.location || 'Apolinary Mpinga',
+          when: 'Just now',
+        };
+        this.setState((prev) => ({
+          ledger: (prev.ledger || []).concat([entry]),
+          sheet: null,
+          payBuf: '',
+          payNote: '',
+          toast: 'Payment of ' + fmt(entry.amount) + ' TSh recorded',
+        }));
+        clearTimeout(this._toast);
+        this._toast = setTimeout(() => this.setState({ toast: '' }), 2600);
+      },
+      toast: s.toast || '',
+      hasToast: !!s.toast,
+
+      nav: [
+        { label: 'Sales', icon: 'cart' },
+        { label: 'Credit', icon: 'card', active: true },
+        { label: 'Home', icon: 'home' },
+        { label: 'Seller', icon: 'person' },
+        { label: 'Reports', icon: 'chart' },
+      ].map((n) => ({
+        label: n.label,
+        icon: ICONS[n.icon](),
+        color: n.active ? '#1668A6' : '#64748B',
+        weight: n.active ? 800 : 700,
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

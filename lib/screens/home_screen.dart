@@ -11,6 +11,7 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
+import 'daily_debt_report_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,6 +44,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Enhanced Leruma data (new)
   Map<String, dynamic>? _topStats;
+
+  /// Daily debt collection for the last 14 days, oldest first, used by the
+  /// credits KPI card (design_handoff_home_credit 1.2).
+  ///
+  /// The handoff had no data behind its chart or its "vs last week" figure.
+  /// Both are derived here from the debt-collection report, which returns
+  /// individual payments with dates -- so the bars and the delta are the
+  /// seller's actual collections, not sample numbers.
+  /// Null until the fetch finishes; an all-zero list is a real answer (a week
+  /// with no collections) and must still draw the chart, so emptiness cannot
+  /// double as "not loaded".
+  List<double>? _dailyCollections;
+
+  /// 1.5 segmented control: false = My commission, true = Team.
+  bool _showTeamCommission = false;
+
+  LocationProvider? _locationProvider;
+  int? _loadedLocationId;
   Map<String, dynamic>? _progressCommission;
   Map<String, dynamic>? _progressCustomers;
   Map<String, dynamic>? _myCommissions; // User's individual commission data
@@ -55,8 +74,29 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _locationProvider = context.read<LocationProvider>()
+        ..addListener(_onLocationChanged);
       _initializeDashboard();
     });
+  }
+
+  @override
+  void dispose() {
+    _locationProvider?.removeListener(_onLocationChanged);
+    super.dispose();
+  }
+
+  /// Reloads when the store changes.
+  ///
+  /// The switcher moved to the app bar, which knows nothing about this screen,
+  /// so without this the figures kept describing the previous store while the
+  /// title named the new one.
+  void _onLocationChanged() {
+    final locationId = _locationProvider?.selectedLocation?.locationId;
+    if (locationId == _loadedLocationId) return;
+
+    _loadedLocationId = locationId;
+    _loadDashboardData();
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -293,6 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Get selected location from provider
     final locationProvider = context.read<LocationProvider>();
     final selectedLocationId = locationProvider.selectedLocation?.locationId;
+    _loadedLocationId = selectedLocationId;
 
     // Format dates for API
     final startDate = DateFormat('yyyy-MM-dd').format(DateTime(_selectedDate.year, _selectedDate.month, 1));
@@ -341,6 +382,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
         _isLoading = false;
       });
+
+      _loadDailyCollections(selectedLocationId);
     } else {
       setState(() {
         _error = dashboardResponse.message ?? 'Failed to load dashboard';
@@ -349,11 +392,61 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Buckets the last 14 days of debt payments into one total per day.
+  ///
+  /// Deliberately not awaited by the dashboard load: the card renders without
+  /// the chart if this is slow or fails, rather than holding up every stat.
+  Future<void> _loadDailyCollections(int? locationId) async {
+    final end = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final start = end.subtract(const Duration(days: 13));
+    final format = DateFormat('yyyy-MM-dd');
+
+    // Fall back to every allowed store, matching the debt-collection screen.
+    // Passing null would ask the API for the whole company.
+    final locationProvider = context.read<LocationProvider>();
+    final locationIds = locationId != null
+        ? [locationId]
+        : locationProvider.allowedLocations.map((l) => l.locationId).toList();
+
+    try {
+      final response = await _apiService.getDailyDebtReport(
+        startDate: format.format(start),
+        endDate: format.format(end),
+        locationIds: locationIds.isEmpty ? null : locationIds,
+      );
+
+      if (!mounted) return;
+
+      if (!response.isSuccess || response.data == null) {
+        print('📊 Daily collections failed: ${response.message}');
+        return;
+      }
+
+      final totals = List<double>.filled(14, 0);
+      for (final debt in response.data!.debts) {
+        final date = DateTime.tryParse(debt.date);
+        if (date == null) continue;
+
+        final index =
+            DateTime(date.year, date.month, date.day).difference(start).inDays;
+        if (index >= 0 && index < 14) totals[index] += debt.amount;
+      }
+
+      print('📊 Daily collections: ${response.data!.debts.length} payments, '
+          'week total ${totals.sublist(7).fold<double>(0, (a, b) => a + b)}');
+
+      setState(() => _dailyCollections = totals);
+    } catch (e) {
+      // Not awaited by the caller, so an uncaught throw here would vanish
+      // silently and leave the card looking like it simply had no data.
+      print('📊 Daily collections error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final themeProvider = context.watch<ThemeProvider>();
-    final user = authProvider.user;
     final isDark = themeProvider.isDarkMode;
 
     return Container(
@@ -374,52 +467,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Welcome Card with Glassmorphism
-            GlassmorphicCard(
-              isDark: isDark,
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  // Profile picture (Leruma feature) or default icon
-                  _buildProfileAvatar(user, 60),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Welcome Back',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user?.displayName ?? 'User',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          ),
-                        ),
-                        if (user?.email != null && user!.email!.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            user.email!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 24),
 
             // Dashboard Title and Date Selector
@@ -472,9 +519,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Location Selector (Leruma and Come and Save - for users with multiple locations)
-            if ((ApiService.currentClient?.features.hasCommissionDashboard ?? false) ||
-                (ApiService.currentClient?.id == 'come_and_save'))
+            // The store switcher lives in the app bar (StoreSwitcherTitle) for
+            // Leruma, so the in-body selector duplicated it -- two controls for
+            // one piece of state, one of them scrolling out of view. Kept for
+            // Come and Save, which has no switcher in its top bar.
+            if (ApiService.currentClient?.id == 'come_and_save')
               Consumer<LocationProvider>(
                 builder: (context, locationProvider, child) {
                   // Only show if user has multiple locations
@@ -1085,58 +1134,53 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Top Stats Cards (like web dashboard)
+        // Primary KPI card (design_handoff_home_credit 1.2).
         if (_topStats != null) ...[
-          // Row 1: Total Customers & Total Credits
+          _buildCreditsKpiCard(),
+          const SizedBox(height: 12),
+        ],
+
+        // Stat grid (design_handoff_home_credit 1.4). White cards with tinted
+        // icon squares replace the four saturated tiles: red is reserved for
+        // real problems, and "Shops served" is not one.
+        if (_topStats != null) ...[
           Row(
             children: [
-              Expanded(
-                child: _buildTopStatCard(
-                  title: 'Total Customers',
-                  value: _topStats!['total_customers'] ?? 0,
-                  icon: Icons.people,
-                  color: const Color(0xFF2563EB), // Blue
-                  isDark: isDark,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTopStatCard(
-                  title: 'Total Credits',
-                  value: _topStats!['total_credits'] ?? 0,
-                  icon: Icons.credit_card,
-                  color: const Color(0xFF10B981), // Green
-                  isDark: isDark,
-                  isCurrency: true,
-                ),
-              ),
+              Expanded(child: _buildStatCard(
+                value: '${_topStats!['total_customers'] ?? 0}',
+                label: 'Total customers',
+                icon: Icons.people_outline,
+                fg: const Color(0xFF1D7DC4), bg: const Color(0xFFEAF3FB),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: _buildStatCard(
+                value: '${_topStats!['total_shop_serves'] ?? 0}',
+                label: 'Shops served',
+                icon: Icons.storefront_outlined,
+                fg: const Color(0xFF7A57C9), bg: const Color(0xFFF0EBFA),
+              )),
             ],
           ),
-          const SizedBox(height: 12),
-
-          // Row 2: Disciplinary & Shop Serves
+          const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(
-                child: _buildTopStatCard(
-                  title: 'Disciplinary',
-                  value: _topStats!['total_disciplinary'] ?? 0,
-                  icon: Icons.warning_amber,
-                  color: const Color(0xFFF59E0B), // Orange
-                  isDark: isDark,
-                  isCurrency: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTopStatCard(
-                  title: 'Shop Serves',
-                  value: _topStats!['total_shop_serves'] ?? 0,
-                  icon: Icons.store,
-                  color: const Color(0xFFEF4444), // Red
-                  isDark: isDark,
-                ),
-              ),
+              Expanded(child: _buildStatCard(
+                value: '${_progressCustomers?['served'] ?? 0}',
+                label: 'Served today',
+                icon: Icons.shopping_cart_outlined,
+                fg: const Color(0xFF16A34A), bg: const Color(0xFFE7F6EE),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: _buildStatCard(
+                value: '${_topStats!['total_disciplinary'] ?? 0}',
+                label: 'Disciplinary cases',
+                icon: Icons.shield_outlined,
+                fg: const Color(0xFF5A6577), bg: const Color(0xFFEEF1F5),
+                // The only chip the handoff marks as real: everything else
+                // ("+4", "98%", "+0.8%") is sample data it says not to ship.
+                chip: (_topStats!['total_disciplinary'] ?? 0) == 0 ? 'Clean' : null,
+                chipFg: const Color(0xFF4A5462), chipBg: const Color(0xFFEEF1F5),
+              )),
             ],
           ),
           const SizedBox(height: 20),
@@ -1178,90 +1222,15 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 24),
         ],
 
-        // Commission Progress Section - Show the user name whose commission is displayed
-        Text(
-          _myCommissions != null && _myCommissions!['user_name'] != null && _myCommissions!['user_name'].toString().isNotEmpty
-              ? '${_myCommissions!['user_name']} Commissions'
-              : 'My Commissions',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkText : AppColors.text,
-          ),
-        ),
-        const SizedBox(height: 12),
+        // Commissions (design_handoff_home_credit 1.5) -- the segmented control
+        // replaces the two stacked sections ("<name> Commissions" and "Team
+        // Commission"), which showed six near-identical cards at once.
+        _buildCommissionsSection(),
 
-        // Commission Level Cards - Use my_commissions.levels (user's individual data)
-        if (_myCommissions != null && _myCommissions!['levels'] != null) ...[
-          _buildMyCommissionLevelCard(
-            level: 'I',
-            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_i'] as Map<String, dynamic>?,
-            color: AppColors.success,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          _buildMyCommissionLevelCard(
-            level: 'II',
-            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_ii'] as Map<String, dynamic>?,
-            color: AppColors.warning,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          _buildMyCommissionLevelCard(
-            level: 'III',
-            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_iii'] as Map<String, dynamic>?,
-            color: AppColors.brandPrimary,
-            isDark: isDark,
-          ),
-        ] else
-          GlassmorphicCard(
-            isDark: isDark,
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'No commission data available',
-                style: TextStyle(
-                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                ),
-              ),
-            ),
-          ),
+        const SizedBox(height: 14),
 
-        const SizedBox(height: 24),
-
-        // Team Commission Overview (location-wide, all 3 levels)
-        if (_commissionData != null) ...[
-          Text(
-            'Team Commission',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkText : AppColors.text,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildCommissionLevelCard(
-            level: 'I',
-            data: (_commissionData!['level_i'] as Map<String, dynamic>?),
-            color: AppColors.success,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          _buildCommissionLevelCard(
-            level: 'II',
-            data: (_commissionData!['level_ii'] as Map<String, dynamic>?),
-            color: AppColors.warning,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          _buildCommissionLevelCard(
-            level: 'III',
-            data: (_commissionData!['level_iii'] as Map<String, dynamic>?),
-            color: AppColors.brandPrimary,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 24),
-        ],
+        // 1.6 Discipline banner.
+        _buildDisciplineBanner(),
 
         const SizedBox(height: 24),
 
@@ -1270,6 +1239,690 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Build Top Stat Card (colorful cards like web dashboard)
+  /// Stat card for the dashboard grid (design_handoff_home_credit 1.4).
+  /// 1.5 Commissions.
+  Widget _buildCommissionsSection() {
+    final myLevels = _myCommissions?['levels'] as Map<String, dynamic>?;
+    final hasData = _showTeamCommission ? _commissionData != null : myLevels != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Commissions',
+              style: TextStyle(
+                fontSize: 16.5, fontWeight: FontWeight.w800,
+                letterSpacing: -0.3, color: Color(0xFF103863),
+              ),
+            ),
+            Text(
+              DateFormat('MMMM yyyy').format(_selectedDate),
+              style: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _buildCommissionTabs(),
+        const SizedBox(height: 12),
+        if (!hasData)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
+                BoxShadow(color: Color(0x12103863), blurRadius: 18, offset: Offset(0, 6)),
+              ],
+            ),
+            child: const Text(
+              'No commission data available',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF5C6675),
+              ),
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: const [
+                BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
+                BoxShadow(color: Color(0x12103863), blurRadius: 18, offset: Offset(0, 6)),
+              ],
+            ),
+            child: Column(
+              children: [
+                for (final level in const ['i', 'ii', 'iii'])
+                  _buildCommissionLevelRow(
+                    level: level,
+                    data: _levelData(level, myLevels),
+                    isLast: level == 'iii',
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Map<String, dynamic>? _levelData(String level, Map<String, dynamic>? myLevels) {
+    final source = _showTeamCommission ? _commissionData : myLevels;
+    return source?['level_$level'] as Map<String, dynamic>?;
+  }
+
+  Widget _buildCommissionTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAEFF5),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        children: [
+          for (final team in const [false, true])
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _showTeamCommission = team),
+                child: Container(
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _showTeamCommission == team ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: _showTeamCommission == team
+                        ? const [
+                            BoxShadow(
+                              color: Color(0x1F103863),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    team ? 'Team' : 'My commission',
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: _showTeamCommission == team
+                          ? const Color(0xFF103863)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommissionLevelRow({
+    required String level,
+    required Map<String, dynamic>? data,
+    required bool isLast,
+  }) {
+    const badgeBg = {
+      'i': Color(0xFFE7F6EE), 'ii': Color(0xFFFDF1DC), 'iii': Color(0xFFEAF3FB)
+    };
+    const badgeFg = {
+      'i': Color(0xFF12833C), 'ii': Color(0xFF8A5F0B), 'iii': Color(0xFF1668A6)
+    };
+    const barColor = {
+      'i': Color(0xFF16A34A), 'ii': Color(0xFFE5A227), 'iii': Color(0xFF1D7DC4)
+    };
+    const amountColor = {
+      'i': Color(0xFF12833C), 'ii': Color(0xFF103863), 'iii': Color(0xFF6B7684)
+    };
+
+    final numeral = level.toUpperCase();
+
+    late final String subtitle;
+    late final double amount;
+    late final double percent;
+
+    if (_showTeamCommission) {
+      final achieved = _asDouble(data?['achieved_count']);
+      final total = _asDouble(data?['total_customers']);
+      subtitle = '${achieved.round()} / ${total.round()} customers';
+      amount = _asDouble(data?['actual_commission']);
+      percent = _asDouble(data?['progress_percent']);
+    } else {
+      final target = _asDouble(data?['target']);
+      final average = _asDouble(data?['average']);
+      subtitle = 'Target ${_formatCompact(target)} · avg ${_formatCompact(average)}';
+      amount = _asDouble(data?['commission']);
+      // my_commissions carries no percentage of its own; the level is reached
+      // when the running average clears the target.
+      percent = target > 0 ? (average / target) * 100 : 0;
+    }
+
+    final reached = amount > 0;
+
+    return Column(
+      children: [
+        InkWell(
+          onTap: data == null
+              ? null
+              : () => _showCommissionDetail(numeral, data, badgeFg[level]!, false),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: badgeBg[level],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        numeral,
+                        style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4, color: badgeFg[level],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Level $numeral',
+                            style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w800,
+                              color: Color(0xFF103863),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          reached ? _formatCompact(amount) : '0',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w800,
+                            color: reached
+                                ? amountColor[level]
+                                : const Color(0xFF6B7684),
+                          ),
+                        ),
+                        Text(
+                          reached
+                              ? (_showTeamCommission ? 'net' : 'commission')
+                              : 'not reached',
+                          style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700,
+                            color: Color(0xFF6B7684),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Icon(Icons.chevron_right, size: 15, color: Color(0xFF9AA5B4)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: LinearProgressIndicator(
+                          value: (percent / 100).clamp(0.0, 1.0),
+                          minHeight: 7,
+                          backgroundColor: const Color(0xFFEEF2F7),
+                          valueColor: AlwaysStoppedAnimation<Color>(barColor[level]!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 38,
+                      child: Text(
+                        '${percent.round()}%',
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w800,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (!isLast)
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+      ],
+    );
+  }
+
+  /// 1.6 Discipline banner.
+  Widget _buildDisciplineBanner() {
+    final cases = (_topStats?['total_disciplinary'] ?? 0);
+    final clean = _asDouble(cases) == 0;
+
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: clean ? const Color(0xFFFFF8EC) : const Color(0xFFFDECEC),
+        border: Border.all(
+            color: clean ? const Color(0xFFF3DDB4) : const Color(0xFFF3BDBD)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: clean ? const Color(0xFFFBEDD2) : const Color(0xFFF9D9D9),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(
+              Icons.warning_amber_rounded,
+              size: 17,
+              color: clean ? const Color(0xFFC4820E) : const Color(0xFFC0392B),
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  clean
+                      ? 'No disciplinary cases'
+                      : '${_asDouble(cases).round()} disciplinary cases',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: clean ? const Color(0xFF8A5F0B) : const Color(0xFFC0392B),
+                  ),
+                ),
+                Text(
+                  clean
+                      ? 'Keep the record clean to unlock Level III bonus'
+                      : 'Clear these to stay eligible for the Level III bonus',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: clean ? const Color(0xFF8A5F0B) : const Color(0xFFC0392B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 1.2 Credits KPI card.
+  Widget _buildCreditsKpiCard() {
+    final loaded = _dailyCollections;
+    final thisWeek = loaded != null ? loaded.sublist(7) : const <double>[];
+    final lastWeek = loaded != null ? loaded.sublist(0, 7) : const <double>[];
+
+    final collected = thisWeek.fold<double>(0, (sum, v) => sum + v);
+    final previous = lastWeek.fold<double>(0, (sum, v) => sum + v);
+    final outstanding = _asDouble(_topStats!['total_credits']);
+
+    // Null when there is no prior week to compare against -- a "+100%" against
+    // zero would read as growth when it only means last week had no data.
+    final double? delta =
+        previous > 0 ? ((collected - previous) / previous) * 100 : null;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: Color(0x12103863), blurRadius: 22, offset: Offset(0, 8)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Flexible(
+                child: Text(
+                  'TOTAL CREDITS',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5, fontWeight: FontWeight.w800,
+                    letterSpacing: 1, color: Color(0xFF6B7684),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => _selectDate(context),
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5FB),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_today, size: 13, color: Color(0xFF1D7DC4)),
+                      const SizedBox(width: 6),
+                      Text(
+                        DateFormat('dd MMM yyyy').format(_selectedDate),
+                        style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w800,
+                          color: Color(0xFF1D7DC4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Flexible(
+                child: Text(
+                  _formatCompact(outstanding),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 34, fontWeight: FontWeight.w800,
+                    letterSpacing: -1.4, color: Color(0xFF103863),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 7),
+              const Text('TSh',
+                  style: TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF6B7684))),
+            ],
+          ),
+          if (thisWeek.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildCollectionChart(thisWeek),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _buildKpiSplit('COLLECTED', collected, const Color(0xFF12833C)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildKpiSplit('OUTSTANDING', outstanding, const Color(0xFF103863)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+          const SizedBox(height: 11),
+          Row(
+            children: [
+              if (delta != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: delta >= 0 ? const Color(0xFFE7F6EE) : const Color(0xFFFDECEC),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        delta >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                        size: 11,
+                        color: delta >= 0 ? const Color(0xFF12833C) : const Color(0xFFC0392B),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${delta.abs().toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w800,
+                          color: delta >= 0 ? const Color(0xFF12833C) : const Color(0xFFC0392B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Flexible(
+                  child: Text(
+                    'vs last week',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF5C6675),
+                    ),
+                  ),
+                ),
+              ],
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DailyDebtReportScreen()),
+                ),
+                child: const Text(
+                  'Details',
+                  style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1668A6),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Seven bars, one per day of the current week, scaled to the busiest day.
+  Widget _buildCollectionChart(List<double> week) {
+    final end = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final labels = List.generate(
+      7,
+      (i) => DateFormat('E').format(end.subtract(Duration(days: 6 - i)))[0],
+    );
+    final peak = week.reduce((a, b) => a > b ? a : b);
+    final todayIndex = week.length - 1;
+
+    return SizedBox(
+      height: 98,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: List.generate(7, (index) {
+          final value = week[index];
+          // A flat 6px floor keeps empty days visible as an empty slot rather
+          // than a gap the eye reads as missing data.
+          final height = peak > 0 ? 6 + (value / peak) * 64 : 6.0;
+          final today = index == todayIndex;
+
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    height: height,
+                    decoration: BoxDecoration(
+                      color: today ? const Color(0xFF3C7CBF) : const Color(0xFFD6E3F1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    labels[index],
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      height: 1.2,
+                      fontWeight: today ? FontWeight.w800 : FontWeight.w700,
+                      color: today ? const Color(0xFF1668A6) : const Color(0xFF8A94A6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildKpiSplit(String label, double value, Color valueColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F8FC),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10.5, fontWeight: FontWeight.w800,
+              letterSpacing: 0.7, color: Color(0xFF6B7684),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _formatCompact(value),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 17, fontWeight: FontWeight.w800, color: valueColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required String value,
+    required String label,
+    required IconData icon,
+    required Color fg,
+    required Color bg,
+    String? chip,
+    Color? chipFg,
+    Color? chipBg,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: Color(0x0A103863), blurRadius: 14, offset: Offset(0, 5)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 15, color: fg),
+              ),
+              const Spacer(),
+              if (chip != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: chipBg ?? bg,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Text(
+                    chip,
+                    style: TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w800,
+                      color: chipFg ?? fg,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 21, height: 1.15, fontWeight: FontWeight.w800,
+              letterSpacing: -0.7, color: Color(0xFF103863),
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11.5, height: 1.2, fontWeight: FontWeight.w600,
+              color: Color(0xFF5C6675),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTopStatCard({
     required String title,
     required dynamic value,
@@ -1365,139 +2018,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Build Progress Card (Progress Commission / Customers Served)
-  Widget _buildProgressCard({
-    required String title,
-    required IconData icon,
-    required double current,
-    required double target,
-    required double percentage,
-    required bool isDark,
-    bool isCount = false,
-  }) {
-    // Determine color based on percentage
-    final baseColor = percentage >= 100
-        ? AppColors.success
-        : percentage >= 50
-            ? AppColors.brandPrimary
-            : AppColors.warning;
-
-    // Muted colors for dark mode
-    final iconColor = isDark
-        ? HSLColor.fromColor(AppColors.brandPrimary).withSaturation(0.5).withLightness(0.55).toColor()
-        : AppColors.brandPrimary;
-    final progressColor = isDark
-        ? HSLColor.fromColor(baseColor).withSaturation(0.6).withLightness(0.45).toColor()
-        : baseColor;
-    final badgeTextColor = isDark
-        ? HSLColor.fromColor(baseColor).withSaturation(0.5).withLightness(0.6).toColor()
-        : baseColor;
-
-    return GlassmorphicCard(
-      isDark: isDark,
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with icon and percentage badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? HSLColor.fromColor(AppColors.brandPrimary).withSaturation(0.4).withLightness(0.2).toColor()
-                      : AppColors.brandPrimary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: isDark
-                      ? Border.all(color: AppColors.brandPrimary.withOpacity(0.2), width: 1)
-                      : null,
-                ),
-                child: Icon(icon, size: 18, color: iconColor),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? HSLColor.fromColor(baseColor).withSaturation(0.4).withLightness(0.2).toColor()
-                      : progressColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isDark ? baseColor.withOpacity(0.25) : progressColor.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${percentage.toStringAsFixed(1)}%',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: badgeTextColor,
-                      ),
-                    ),
-                    Icon(Icons.arrow_upward, size: 10, color: badgeTextColor),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Title on its own line
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          // Value
-          Text(
-            isCount
-                ? '${current.toInt()}'
-                : '${_formatCompact(current)} / ${_formatCompact(target)}',
-            style: TextStyle(
-              fontSize: isCount ? 26 : 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkText : AppColors.text,
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Progress bar with gradient effect
-          Container(
-            height: 6,
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: (percentage / 100).clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      progressColor.withOpacity(0.8),
-                      progressColor,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  /// The dashboard sums arrive as numbers on some builds and as strings on
+  /// others (MySQL SUM() through CI's json encoder), so parse defensively --
+  /// a bare .toDouble() throws on the string form.
+  double _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value') ?? 0;
   }
 
-  /// Format large numbers to compact form (e.g., 15.50M)
   String _formatCompact(double value) {
     if (value >= 1000000) {
       return '${(value / 1000000).toStringAsFixed(2)}M';
@@ -1507,7 +2035,103 @@ class _HomeScreenState extends State<HomeScreen> {
     return value.toStringAsFixed(0);
   }
 
-  /// Build Commission Level Card with progress bar
+  /// Progress pair below the stat grid.
+  ///
+  /// Restyled to the same compact language as the stat cards: the old version
+  /// stacked a large icon tile, a title, a value and a bar with generous gaps,
+  /// so two cards took more height than the four above them.
+  Widget _buildProgressCard({
+    required String title,
+    required IconData icon,
+    required double current,
+    required double target,
+    required double percentage,
+    required bool isDark,
+    bool isCount = false,
+  }) {
+    final reached = percentage >= 100;
+    final fg = reached ? const Color(0xFF12833C) : const Color(0xFF1D7DC4);
+    final bg = reached ? const Color(0xFFE7F6EE) : const Color(0xFFEAF3FB);
+
+    final value = isCount
+        ? '${current.round()}'
+        : '${_formatCompact(current)} / ${_formatCompact(target)}';
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: Color(0x0A103863), blurRadius: 14, offset: Offset(0, 5)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 15, color: fg),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Text(
+                  '${percentage.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w800, color: fg,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 19, height: 1.15, fontWeight: FontWeight.w800,
+              letterSpacing: -0.6, color: Color(0xFF103863),
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11.5, height: 1.2, fontWeight: FontWeight.w600,
+              color: Color(0xFF5C6675),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: (percentage / 100).clamp(0.0, 1.0),
+              minHeight: 6,
+              backgroundColor: const Color(0xFFEEF2F7),
+              valueColor: AlwaysStoppedAnimation<Color>(fg),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCommissionLevelCard({
     required String level,
     required Map<String, dynamic>? data,

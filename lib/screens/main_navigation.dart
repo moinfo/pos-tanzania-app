@@ -612,6 +612,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ),
             // 1. Customers Menu
+            const _DrawerGroupTitle('SELL'),
             ExpansionTile(
               leading: Icon(Icons.people, color: AppColors.brandPrimary),
               title: const Text('Customers'),
@@ -682,6 +683,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ),
               ),
             // 2. Items - requires items permission
+            const _DrawerGroupTitle('STOCK'),
             PermissionWrapper(
               permissionId: PermissionIds.items,
               child: ListTile(
@@ -806,6 +808,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ),
             // 5. Cash Submit - requires cash_submit module permission (hidden for Leruma)
+            const _DrawerGroupTitle('MONEY'),
             if (ApiService.currentClient?.id != 'leruma')
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
@@ -941,6 +944,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ],
               ),
             // 9. Seller Report - Leruma only, requires cash_submit_seller_report permission
+            const _DrawerGroupTitle('INSIGHTS'),
             if (ApiService.currentClient?.id == 'leruma')
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmitSellerReport,
@@ -1133,11 +1137,88 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           ? availableScreens[_selectedIndex]['screen'] as Widget
           : const Center(child: Text('No access to any screens')),
       bottomNavigationBar: availableScreens.length > 1
-          ? MediaQuery(
-              data: MediaQuery.of(context).removePadding(removeBottom: true),
-              child: _buildCurvedBottomNav(availableScreens, isDark),
-            )
+          ? (ApiService.currentClient?.id == 'leruma'
+              // Leruma uses the flat bar from design_handoff_home_credit 1.7.
+              // The curved bar with the notched Sales FAB stays for every other
+              // client -- it is their shipped navigation, not a shared style.
+              ? _buildLerumaBottomNav(availableScreens)
+              : MediaQuery(
+                  data: MediaQuery.of(context).removePadding(removeBottom: true),
+                  child: _buildCurvedBottomNav(availableScreens, isDark),
+                ))
           : null,
+    );
+  }
+
+  /// Flat bottom navigation (design_handoff_home_credit 1.7).
+  ///
+  /// White, hairline top border, equal columns, no notch and no rotation --
+  /// the curved bar moved the active item to the centre on every tap, so the
+  /// labels never sat still long enough to be learned.
+  ///
+  /// The design lists Seller / Home / Sales / Customers / Reports. Credits and
+  /// Expenses stand in for the last two here because Reports was moved to the
+  /// drawer on request and Credits was moved into the bar; only the order below
+  /// needs changing if that decision is revisited.
+  Widget _buildLerumaBottomNav(List<Map<String, dynamic>> screens) {
+    const order = ['Seller', 'Home', 'Sales', 'Credits', 'Expenses'];
+
+    final ordered = [...screens.asMap().entries]
+      ..sort((a, b) {
+        // Anything the design does not name keeps its original position at the
+        // end rather than being dropped -- a permission-gated screen with no
+        // tab is unreachable.
+        int rank(MapEntry<int, Map<String, dynamic>> e) {
+          final i = order.indexOf(e.value['label'] as String);
+          return i == -1 ? order.length + e.key : i;
+        }
+
+        return rank(a).compareTo(rank(b));
+      });
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFEEF1F5))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 7, bottom: 6),
+          child: Row(
+            children: ordered.map((entry) {
+              final active = entry.key == _selectedIndex;
+              final color =
+                  active ? const Color(0xFF1668A6) : const Color(0xFF64748B);
+
+              return Expanded(
+                child: InkWell(
+                  onTap: () => _onItemTapped(entry.key),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(entry.value['icon'] as IconData,
+                          size: 20, color: color),
+                      const SizedBox(height: 4),
+                      Text(
+                        entry.value['label'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight:
+                              active ? FontWeight.w800 : FontWeight.w700,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1414,3 +1495,24 @@ class _CurvedNavPainter extends CustomPainter {
   }
 }
 
+/// Section heading in the drawer (design_handoff_home_credit, screen 2).
+class _DrawerGroupTitle extends StatelessWidget {
+  final String label;
+  const _DrawerGroupTitle(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.1,
+          color: Color(0xFF6B7684),
+        ),
+      ),
+    );
+  }
+}

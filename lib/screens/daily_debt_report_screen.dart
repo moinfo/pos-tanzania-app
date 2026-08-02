@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../models/credit.dart';
+import '../widgets/credit/credit_list_widgets.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/skeleton_loader.dart';
@@ -31,6 +32,10 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
   late DateTime _startDate;
   late DateTime _endDate;
 
+  /// Active 5.x preset, or null when the range came from the date picker.
+  String? _periodPreset = 'month';
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +43,36 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
     _startDate = DateTime(now.year, now.month, 1);
     _endDate = DateTime(now.year, now.month + 1, 0);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initializeAndLoad());
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _applyPreset(String preset) {
+    final now = DateTime.now();
+    late DateTime start;
+
+    switch (preset) {
+      case 'today':
+        start = DateTime(now.year, now.month, now.day);
+        break;
+      case 'week':
+        start = DateTime(now.year, now.month, now.day)
+            .subtract(Duration(days: now.weekday - 1));
+        break;
+      default:
+        start = DateTime(now.year, now.month, 1);
+    }
+
+    setState(() {
+      _periodPreset = preset;
+      _startDate = start;
+      _endDate = now;
+    });
+    _loadReport();
   }
 
   Future<void> _initializeAndLoad() async {
@@ -96,7 +131,11 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
       initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
     );
     if (picked != null) {
-      setState(() { _startDate = picked.start; _endDate = picked.end; });
+      setState(() {
+        _periodPreset = null;
+        _startDate = picked.start;
+        _endDate = picked.end;
+      });
       _loadReport();
     }
   }
@@ -105,6 +144,8 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode;
+
+    if (ApiService.currentClient?.id == 'leruma') return _buildLerumaScreen();
 
     return Scaffold(
       appBar: AppBar(
@@ -133,6 +174,391 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Leruma debt collection (design_handoff_home_credit, screen 5).
+  // ---------------------------------------------------------------------------
+
+  Widget _buildLerumaScreen() {
+    // The search filters the total and the count as well as the list, so a
+    // seller checking one customer sees that customer's figure, not the day's.
+    final debts = [..._filteredDebts]
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final total = debts.fold<double>(0, (sum, d) => sum + d.amount);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F5F9),
+      appBar: AppBar(
+        title: const StoreSwitcherTitle(subtitle: 'DEBT COLLECTION'),
+        centerTitle: true,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadReport),
+        ],
+      ),
+      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+      body: RefreshIndicator(
+        onRefresh: _loadReport,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
+          children: [
+            _buildLerumaTotalCard(total, debts.length),
+            const SizedBox(height: 12),
+            _buildLerumaPresets(),
+            const SizedBox(height: 12),
+            CreditSearchField(
+              controller: _searchController,
+              hintText: 'Search customer or supervisor',
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+            const SizedBox(height: 14),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_errorMessage != null)
+              _buildErrorView()
+            else if (debts.isEmpty)
+              _buildLerumaEmpty()
+            else
+              _buildLerumaList(debts),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 5 Total card.
+  Widget _buildLerumaTotalCard(double total, int count) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: creditCardShadow,
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'COLLECTED',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                        color: Color(0xFF5C6675),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _formatter.format(total),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -1.3,
+                              color: Color(0xFF12833C),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'TSh',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF6B7684),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE7F6EE),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(Icons.payments,
+                    size: 22, color: Color(0xFF12833C)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.calendar_today,
+                  size: 14, color: Color(0xFF1668A6)),
+              const SizedBox(width: 7),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _selectDateRange,
+                  child: Text(
+                    '${_displayDateFormat.format(_startDate)} – ${_displayDateFormat.format(_endDate)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F4F8),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count payments',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF5C6675),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 5 Period presets. Replaces reaching for the date picker in the common
+  /// cases; the picker is still there for a custom range.
+  Widget _buildLerumaPresets() {
+    const presets = {
+      'today': 'Today',
+      'week': 'This week',
+      'month': 'This month'
+    };
+
+    return Row(
+      children: presets.entries.map((entry) {
+        final selected = _periodPreset == entry.key;
+
+        return Expanded(
+          child: Padding(
+            padding:
+                EdgeInsets.only(right: entry.key == 'month' ? 0 : 8),
+            child: GestureDetector(
+              onTap: () => _applyPreset(entry.key),
+              child: Container(
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected ? const Color(0xFF103863) : Colors.white,
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: selected
+                        ? const Color(0xFF103863)
+                        : const Color(0xFFE6EBF2),
+                    width: 1.5,
+                  ),
+                ),
+                child: Text(
+                  entry.value,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: selected ? Colors.white : const Color(0xFF5C6675),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildLerumaEmpty() {
+    // The design offers a "Record payment" button here, but this screen has no
+    // customer in context to record against, so it would dead-end in a picker
+    // the handoff does not define. Left out until that flow is decided.
+    final searching = _searchQuery.isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+          vertical: searching ? 44 : 34, horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: creditCardShadow,
+      ),
+      child: searching
+          ? const Text(
+              'No payment matches that search',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF6B7684),
+              ),
+            )
+          : Column(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5FB),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(Icons.receipt_long,
+                      size: 28, color: Color(0xFF9AA5B4)),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'No collections in this period',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF103863),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const SizedBox(
+                  width: 230,
+                  child: Text(
+                    'Debt payments recorded against this store will appear here.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      height: 1.5,
+                      color: Color(0xFF5C6675),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildLerumaList(List<DailyDebtEntry> debts) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: creditCardShadow,
+      ),
+      child: Column(
+        children: [
+          for (int i = 0; i < debts.length; i++)
+            _buildLerumaRow(debts[i], isLast: i == debts.length - 1),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLerumaRow(DailyDebtEntry debt, {required bool isLast}) {
+    final parts = <String>[];
+    final date = DateTime.tryParse(debt.date);
+    if (date != null) parts.add(DateFormat('d MMM, HH:mm').format(date));
+    if (debt.locationName.trim().isNotEmpty) parts.add(debt.locationName);
+    if (debt.description.trim().isNotEmpty) parts.add(debt.description.trim());
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE7F6EE),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Text(
+                  creditInitials(debt.customerName),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF12833C),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      debt.customerName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF103863),
+                      ),
+                    ),
+                    if (parts.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        parts.join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF5C6675),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '+${_formatter.format(debt.amount)}',
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF12833C),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!isLast)
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+      ],
     );
   }
 
