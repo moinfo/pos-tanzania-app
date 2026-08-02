@@ -198,10 +198,16 @@ class AppBottomNavigation extends StatelessWidget {
         return rank(a).compareTo(rank(b));
       });
 
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFEEF1F5))),
+      decoration: BoxDecoration(
+        color: dark ? AppColors.darkCard : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: dark ? Colors.white.withValues(alpha: 0.10) : const Color(0xFFEEF1F5),
+          ),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -210,8 +216,9 @@ class AppBottomNavigation extends StatelessWidget {
           child: Row(
             children: ordered.map((entry) {
               final active = entry.key == activeDisplayIndex;
-              final color =
-                  active ? const Color(0xFF1668A6) : const Color(0xFF64748B);
+              final color = active
+                  ? (dark ? const Color(0xFF6FA8DC) : const Color(0xFF1668A6))
+                  : (dark ? AppColors.darkTextLight : const Color(0xFF64748B));
 
               return Expanded(
                 child: InkWell(

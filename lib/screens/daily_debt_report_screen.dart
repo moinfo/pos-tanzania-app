@@ -189,7 +189,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
     final total = debts.fold<double>(0, (sum, d) => sum + d.amount);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5F9),
+      backgroundColor: creditPageBg(context),
       appBar: AppBar(
         title: const StoreSwitcherTitle(subtitle: 'DEBT COLLECTION'),
         centerTitle: true,
@@ -238,9 +238,9 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: creditCardBg(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: creditCardShadow,
+        boxShadow: creditShadow(context),
       ),
       child: Column(
         children: [
@@ -250,13 +250,13 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'COLLECTED',
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
-                        color: Color(0xFF5C6675),
+                        color: creditInkMuted(context),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -269,7 +269,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                             _formatter.format(total),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -1.3,
@@ -278,12 +278,12 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Text(
+                        Text(
                           'TSh',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF6B7684),
+                            color: creditInkMuted(context),
                           ),
                         ),
                       ],
@@ -296,7 +296,8 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE7F6EE),
+                  color: creditTint(
+                      context, const Color(0xFF12833C), const Color(0xFFE7F6EE)),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: const Icon(Icons.payments,
@@ -305,7 +306,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+          Divider(height: 1, thickness: 1, color: creditHairline(context)),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -319,10 +320,10 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                     '${_displayDateFormat.format(_startDate)} – ${_displayDateFormat.format(_endDate)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF334155),
+                      color: creditInkStrong(context),
                     ),
                   ),
                 ),
@@ -331,15 +332,15 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F4F8),
+                  color: creditTrack(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '$count payments',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF5C6675),
+                    color: creditInkMuted(context),
                   ),
                 ),
               ),
@@ -373,12 +374,14 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF103863) : Colors.white,
+                  color: selected
+                      ? (creditDark(context)
+                          ? const Color(0xFF2C6FA8)
+                          : const Color(0xFF103863))
+                      : creditCardBg(context),
                   borderRadius: BorderRadius.circular(11),
                   border: Border.all(
-                    color: selected
-                        ? const Color(0xFF103863)
-                        : const Color(0xFFE6EBF2),
+                    color: selected ? Colors.transparent : creditBorder(context),
                     width: 1.5,
                   ),
                 ),
@@ -388,7 +391,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
-                    color: selected ? Colors.white : const Color(0xFF5C6675),
+                    color: selected ? Colors.white : creditInkMuted(context),
                   ),
                 ),
               ),
@@ -410,18 +413,18 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
       padding: EdgeInsets.symmetric(
           vertical: searching ? 44 : 34, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: creditCardBg(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: creditCardShadow,
+        boxShadow: creditShadow(context),
       ),
       child: searching
-          ? const Text(
+          ? Text(
               'No payment matches that search',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF6B7684),
+                color: creditInkMuted(context),
               ),
             )
           : Column(
@@ -430,24 +433,25 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5FB),
+                    color: creditTint(
+                        context, const Color(0xFF1668A6), const Color(0xFFF1F5FB)),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Icon(Icons.receipt_long,
                       size: 28, color: Color(0xFF9AA5B4)),
                 ),
                 const SizedBox(height: 14),
-                const Text(
+                Text(
                   'No collections in this period',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF103863),
+                    color: creditInkStrong(context),
                   ),
                 ),
                 const SizedBox(height: 6),
-                const SizedBox(
+                SizedBox(
                   width: 230,
                   child: Text(
                     'Debt payments recorded against this store will appear here.',
@@ -456,7 +460,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                       height: 1.5,
-                      color: Color(0xFF5C6675),
+                      color: creditInkMuted(context),
                     ),
                   ),
                 ),
@@ -469,9 +473,9 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: creditCardBg(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: creditCardShadow,
+        boxShadow: creditShadow(context),
       ),
       child: Column(
         children: [
@@ -500,12 +504,13 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE7F6EE),
+                  color: creditTint(
+                      context, const Color(0xFF12833C), const Color(0xFFE7F6EE)),
                   borderRadius: BorderRadius.circular(13),
                 ),
                 child: Text(
                   creditInitials(debt.customerName),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF12833C),
@@ -521,10 +526,10 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                       debt.customerName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF103863),
+                        color: creditInkStrong(context),
                       ),
                     ),
                     if (parts.isNotEmpty) ...[
@@ -533,10 +538,10 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                         parts.join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF5C6675),
+                          color: creditInkMuted(context),
                         ),
                       ),
                     ],
@@ -547,7 +552,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
               Text(
                 '+${_formatter.format(debt.amount)}',
                 maxLines: 1,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF12833C),
@@ -557,7 +562,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
           ),
         ),
         if (!isLast)
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+          Divider(height: 1, thickness: 1, color: creditHairline(context)),
       ],
     );
   }

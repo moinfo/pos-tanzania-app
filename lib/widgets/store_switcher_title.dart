@@ -82,9 +82,13 @@ class StoreSwitcherTitle extends StatelessWidget {
 
         if (!canSwitch) return label;
 
+        // The menu was pinned to white while the app's dark theme kept the
+        // default white label colour, so the list rendered as a blank sheet.
+        final dark = Theme.of(context).brightness == Brightness.dark;
+
         return PopupMenuButton<StockLocation>(
           offset: const Offset(0, 40),
-          color: Colors.white,
+          color: dark ? AppColors.darkCard : Colors.white,
           tooltip: 'Switch store',
           onSelected: (location) => locationProvider.selectLocation(location),
           itemBuilder: (context) => locationProvider.allowedLocations
@@ -100,7 +104,7 @@ class StoreSwitcherTitle extends StatelessWidget {
                         size: 20,
                         color: location.locationId == selected.locationId
                             ? AppColors.primary
-                            : Colors.grey,
+                            : (dark ? AppColors.darkTextLight : Colors.grey),
                       ),
                       const SizedBox(width: 10),
                       Flexible(
@@ -108,7 +112,15 @@ class StoreSwitcherTitle extends StatelessWidget {
                           location.locationName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: location.locationId == selected.locationId
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: location.locationId == selected.locationId
+                                ? AppColors.primary
+                                : (dark ? AppColors.darkText : Colors.black87),
+                          ),
                         ),
                       ),
                     ],

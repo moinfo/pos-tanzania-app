@@ -398,7 +398,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
     final supervisors = _lerumaSupervisors;
 
     return Container(
-      color: const Color(0xFFF2F5F9),
+      color: creditPageBg(context),
       child: RefreshIndicator(
         onRefresh: _loadCredits,
         child: ListView(
@@ -473,7 +473,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
   /// rather than showing a number that is not the one the label promises.
   Widget _buildLerumaCollectionCard() {
     return Material(
-      color: Colors.white,
+      color: creditCardBg(context),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: () => Navigator.push(
@@ -483,9 +483,9 @@ class _CreditsScreenState extends State<CreditsScreen> {
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: creditCardBg(context),
             borderRadius: BorderRadius.circular(18),
-            boxShadow: creditCardShadow,
+            boxShadow: creditShadow(context),
           ),
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -494,14 +494,15 @@ class _CreditsScreenState extends State<CreditsScreen> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE7F6EE),
+                  color: creditTint(
+                      context, const Color(0xFF12833C), const Color(0xFFE7F6EE)),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(Icons.payments,
                     size: 20, color: Color(0xFF12833C)),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -510,22 +511,22 @@ class _CreditsScreenState extends State<CreditsScreen> {
                       style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF103863),
+                        color: creditInkStrong(context),
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       'All debt payments received today',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF5C6675),
+                        color: creditInkMuted(context),
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 20, color: Color(0xFF9AA5B4)),
+              Icon(Icons.chevron_right, size: 20, color: creditInkMuted(context)),
             ],
           ),
         ),
@@ -1082,7 +1083,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
     final customers = _lerumaCustomers;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5F9),
+      backgroundColor: creditPageBg(context),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

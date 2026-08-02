@@ -38,6 +38,8 @@ class QuantitySheet extends StatefulWidget {
 }
 
 class _QuantitySheetState extends State<QuantitySheet> {
+  SaleTheme get _sale => SaleTheme.of(context);
+
   late String _buffer;
 
   @override
@@ -99,8 +101,8 @@ class _QuantitySheetState extends State<QuantitySheet> {
       ],
       footer: SaleSheetButton(
         label: 'Done',
-        color: SaleColors.brand,
-        pressedColor: SaleColors.brandPressed,
+        color: _sale.brand,
+        pressedColor: _sale.brandPressed,
         onTap: () {
           _apply();
           Navigator.pop(context);
@@ -134,6 +136,8 @@ class PaymentSheet extends StatefulWidget {
 }
 
 class _PaymentSheetState extends State<PaymentSheet> {
+  SaleTheme get _sale => SaleTheme.of(context);
+
   late String _buffer;
   late String _method;
 
@@ -196,9 +200,9 @@ class _PaymentSheetState extends State<PaymentSheet> {
             : 'Add ${_money.format(_amount)} · ${_money.format(remaining)} left',
         icon: Icons.check_rounded,
         height: 54,
-        color: SaleColors.success,
-        pressedColor: SaleColors.successPressed,
-        shadow: SaleShadows.successButton,
+        color: _sale.success,
+        pressedColor: _sale.successPressed,
+        shadow: _sale.successButtonShadow,
         onTap: _amount <= 0
             ? null
             : () {

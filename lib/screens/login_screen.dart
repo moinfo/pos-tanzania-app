@@ -300,11 +300,43 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  // ---------------------------------------------------------------------------
+  // Theme-aware surfaces.
+  //
+  // The dark-mode button already called ThemeProvider.toggleTheme, but every
+  // colour on this screen was a hardcoded light literal, so the toggle changed
+  // the app's theme and nothing here moved. These resolve each design colour
+  // against the active theme, so the switch has a visible effect.
+  // ---------------------------------------------------------------------------
+
+  bool get _dark => Theme.of(context).brightness == Brightness.dark;
+
+  Color get _bg => _dark ? AppColors.darkBackground : _pageBg;
+  Color get _surface => _dark ? AppColors.darkCard : Colors.white;
+  Color get _ink => _dark ? AppColors.darkText : _navy;
+  Color get _inkMuted =>
+      _dark ? AppColors.darkTextLight : const Color(0xFF5A6577);
+  Color get _inkFaint =>
+      _dark ? Colors.white.withValues(alpha: 0.38) : const Color(0xFFA3ADBC);
+
+  Color get _hairline =>
+      _dark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFE4EAF2);
+
+  /// Text-field fill (design #F6F8FC, white when focused).
+  Color _fieldFill(bool focused) => _dark
+      ? Colors.white.withValues(alpha: focused ? 0.10 : 0.05)
+      : (focused ? Colors.white : const Color(0xFFF6F8FC));
+
+  /// Pale brand tints wash out to a glow on black.
+  Color _tint(Color fg, Color lightBg) =>
+      _dark ? fg.withValues(alpha: 0.20) : lightBg;
+
+  @override
   Widget build(BuildContext context) {
     final client = ApiService.currentClient;
 
     return Scaffold(
-      backgroundColor: _pageBg,
+      backgroundColor: _bg,
       // The sheet is a sibling in the Column rather than stacked on top: as an
       // overlay it covered the hero, because Expanded centred the logo in the
       // FULL screen height instead of the space left above the sheet.
@@ -312,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           Positioned(
             top: 0, left: 0, right: 0, height: 330,
-            child: CustomPaint(painter: _OrbitPainter()),
+            child: CustomPaint(painter: _OrbitPainter(dark: _dark)),
           ),
           SafeArea(
             bottom: false,
@@ -351,9 +383,9 @@ class _LoginScreenState extends State<LoginScreen> {
               return Container(
                 padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: _surface,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFFE4EAF2)),
+                  border: Border.all(color: _hairline),
                   boxShadow: const [
                     BoxShadow(color: Color(0x0F103863), blurRadius: 8, offset: Offset(0, 2)),
                   ],
@@ -374,9 +406,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(width: 8),
                     Text(
                       online ? 'ONLINE' : 'OFFLINE',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5, fontWeight: FontWeight.w800,
-                        letterSpacing: 0.4, color: Color(0xFF5A6577),
+                        letterSpacing: 0.4, color: _inkMuted,
                       ),
                     ),
                   ],
@@ -386,22 +418,26 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) => Material(
-              color: Colors.white,
+              color: _surface,
               borderRadius: BorderRadius.circular(12),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                highlightColor: const Color(0xFFEEF2F7),
+                highlightColor: _hairline,
                 onTap: themeProvider.toggleTheme,
                 child: Container(
                   width: 38, height: 38,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE4EAF2)),
+                    border: Border.all(color: _hairline),
                     boxShadow: const [
                       BoxShadow(color: Color(0x0F103863), blurRadius: 8, offset: Offset(0, 2)),
                     ],
                   ),
-                  child: const Icon(Icons.dark_mode_outlined, size: 18, color: Color(0xFF5A6577)),
+                  child: Icon(
+                    _dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                    size: 18,
+                    color: _inkMuted,
+                  ),
                 ),
               ),
             ),
@@ -413,13 +449,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildHero(ClientConfig? client) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(26, 0, 26, 22),
+      padding: const EdgeInsets.fromLTRB(26, 0, 26, 30),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
+              // Stays white in both themes: the Leruma mark is navy artwork and
+              // vanishes without its own ground.
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               boxShadow: const [
@@ -427,29 +465,31 @@ class _LoginScreenState extends State<LoginScreen> {
                 BoxShadow(color: Color(0x0F103863), blurRadius: 6, offset: Offset(0, 2)),
               ],
             ),
-            child: SvgPicture.asset('assets/images/leruma-logo.svg', width: 158),
+            child: SvgPicture.asset('assets/images/leruma-logo.svg', width: 138),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
             client?.branding.appTitle ?? AppConstants.appName,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 23, fontWeight: FontWeight.w800,
-              letterSpacing: -0.5, height: 1.15, color: _navy,
+              letterSpacing: -0.5, height: 1.15, color: _ink,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 7),
             decoration: BoxDecoration(
-              color: _brandBlue.withValues(alpha: 0.1),
+              color: _brandBlue.withValues(alpha: _dark ? 0.22 : 0.1),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               client?.branding.tagline ?? "Always make customer's rights",
-              style: const TextStyle(
+              textAlign: TextAlign.center,
+              style: TextStyle(
                 fontSize: 12.5, fontWeight: FontWeight.w700,
-                letterSpacing: 0.2, color: Color(0xFF1668A6),
+                letterSpacing: 0.2,
+                color: _dark ? const Color(0xFF8FBEE6) : const Color(0xFF1668A6),
               ),
             ),
           ),
@@ -463,79 +503,91 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(color: Color(0x21103863), blurRadius: 44, offset: Offset(0, -16)),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(18, 22, 18, 0),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 44, height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
+            margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFE7ECF3),
+              color: _hairline,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
+          // Title and client chip share the top line, with the sub-line full
+          // width beneath. Putting the chip beside "Karibu tena" only -- not
+          // beside the whole heading block -- leaves it enough room to show
+          // "Leruma Distribution Center" without the 104px cap that used to
+          // clip it to "Leruma Distri...".
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Karibu tena',
-                        style: TextStyle(
-                            fontSize: 23, fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5, color: _navy)),
-                    SizedBox(height: 2),
-                    Text('Sign in to start selling',
-                        style: TextStyle(
-                            fontSize: 12.5, fontWeight: FontWeight.w600,
-                            color: Color(0xFF8A94A6))),
-                  ],
-                ),
+              Flexible(
+                child: Text('Karibu tena',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: _ink)),
               ),
+              const SizedBox(width: 8),
               Material(
-                color: const Color(0xFFEAF3FB),
-                borderRadius: BorderRadius.circular(999),
-                child: InkWell(
+                  color: _tint(_brandBlue, const Color(0xFFEAF3FB)),
                   borderRadius: BorderRadius.circular(999),
-                  highlightColor: const Color(0xFFDCEBF8),
-                  onTap: _openClientSheet,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFFCFE3F4), width: 1.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.swap_horiz_rounded, size: 13, color: _brandBlue),
-                        const SizedBox(width: 6),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 104),
-                          child: Text(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    highlightColor: _tint(_brandBlue, const Color(0xFFDCEBF8)),
+                    onTap: _openClientSheet,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 11, vertical: 7),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                            color: _tint(_brandBlue, const Color(0xFFCFE3F4)),
+                            width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.swap_horiz_rounded,
+                              size: 13, color: _brandBlue),
+                          const SizedBox(width: 5),
+                          Text(
                             client?.displayName ?? 'Client',
-                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                             style: const TextStyle(
-                                fontSize: 12.5, fontWeight: FontWeight.w800, color: _brandBlue),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                color: _brandBlue),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 3),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Sign in to start selling',
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: _inkMuted)),
+          ),
+          const SizedBox(height: 16),
           _buildField(
             label: 'USERNAME', controller: _usernameController, fieldKey: 'user',
             hint: 'e.g. anzwari.m', icon: Icons.person_outline,
@@ -551,9 +603,9 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
               decoration: BoxDecoration(
-                color: const Color(0xFFFDECEC),
+                color: _tint(const Color(0xFFD14343), _tint(const Color(0xFFD14343), const Color(0xFFFDECEC))),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFF3C4C4)),
+                border: Border.all(color: _tint(const Color(0xFFD14343), _tint(const Color(0xFFD14343), const Color(0xFFF3C4C4)))),
               ),
               child: Row(
                 children: [
@@ -583,10 +635,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       Container(
                         width: 22, height: 22,
                         decoration: BoxDecoration(
-                          color: _rememberMe ? _brandBlue : Colors.white,
+                          color: _rememberMe ? _brandBlue : _surface,
                           borderRadius: BorderRadius.circular(7),
                           border: Border.all(
-                            color: _rememberMe ? _brandBlue : const Color(0xFFD5DCE6),
+                            color: _rememberMe ? _brandBlue : _hairline,
                             width: 1.5,
                           ),
                         ),
@@ -595,10 +647,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             : null,
                       ),
                       const SizedBox(width: 8),
-                      const Text('Remember me',
+                      Text('Remember me',
                           style: TextStyle(
                               fontSize: 13, fontWeight: FontWeight.w700,
-                              color: Color(0xFF475569))),
+                              color: _inkMuted)),
                     ],
                   ),
                 ),
@@ -666,17 +718,17 @@ class _LoginScreenState extends State<LoginScreen> {
               if (_isBiometricAvailable && _isBiometricEnabled) ...[
                 const SizedBox(width: 10),
                 Material(
-                  color: Colors.white,
+                  color: _surface,
                   shape: const CircleBorder(),
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    highlightColor: const Color(0xFFEAF3FB),
+                    highlightColor: _tint(_brandBlue, const Color(0xFFEAF3FB)),
                     onTap: loading ? null : _submitBiometric,
                     child: Container(
                       width: 58, height: 58,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFCFE3F4), width: 2),
+                        border: Border.all(color: _tint(_brandBlue, const Color(0xFFCFE3F4)), width: 2),
                         boxShadow: const [
                           BoxShadow(color: Color(0x291D7DC4), blurRadius: 14, offset: Offset(0, 4)),
                         ],
@@ -706,30 +758,30 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ],
           Container(
-            margin: const EdgeInsets.only(top: 14),
-            padding: const EdgeInsets.only(top: 18, bottom: 34),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: Color(0xFFF1F4F8))),
+            margin: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: 14, bottom: 22),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: _hairline)),
             ),
             child: Column(
               children: [
                 RichText(
-                  text: const TextSpan(
+                  text: TextSpan(
                     style: TextStyle(
-                        fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFFA3ADBC)),
+                        fontSize: 11.5, fontWeight: FontWeight.w600, color: _inkFaint),
                     children: [
                       TextSpan(text: 'Powered by '),
                       TextSpan(
                         text: 'Moinfotech',
-                        style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF5A6577)),
+                        style: TextStyle(fontWeight: FontWeight.w800, color: _inkMuted),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(_appVersion,
-                    style: const TextStyle(
-                        fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFFC3CBD8))),
+                    style: TextStyle(
+                        fontSize: 10.5, fontWeight: FontWeight.w600, color: _inkFaint)),
               ],
             ),
           ),
@@ -754,23 +806,23 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w800,
-                letterSpacing: 1, color: Color(0xFF8A94A6))),
+                letterSpacing: 1, color: _inkMuted)),
         const SizedBox(height: 6),
         AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: focused ? Colors.white : const Color(0xFFF6F8FC),
+            color: _fieldFill(focused),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: hasError
-                  ? const Color(0xFFF3C4C4)
+                  ? _tint(const Color(0xFFD14343), _tint(const Color(0xFFD14343), const Color(0xFFF3C4C4)))
                   : focused
                       ? _brandBlue
-                      : const Color(0xFFE6EBF2),
+                      : _hairline,
               width: 1.5,
             ),
             boxShadow: focused
@@ -779,7 +831,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: const Color(0xFF8A94A6)),
+              Icon(icon, size: 18, color: _inkMuted),
               const SizedBox(width: 10),
               Expanded(
                 child: Focus(
@@ -797,11 +849,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       isDense: true,
                       border: InputBorder.none,
                       hintText: hint,
-                      hintStyle: const TextStyle(
-                          fontSize: 15.5, fontWeight: FontWeight.w600, color: Color(0xFFA3ADBC)),
+                      hintStyle: TextStyle(
+                          fontSize: 15.5, fontWeight: FontWeight.w600, color: _inkFaint),
                     ),
-                    style: const TextStyle(
-                        fontSize: 15.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                    style: TextStyle(
+                        fontSize: 15.5, fontWeight: FontWeight.w700, color: _ink),
                   ),
                 ),
               ),
@@ -821,10 +873,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Container(
                     width: 28, height: 28,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE7ECF3),
+                      color: _hairline,
                       borderRadius: BorderRadius.circular(9),
                     ),
-                    child: const Icon(Icons.close, size: 12, color: Color(0xFF5A6577)),
+                    child: Icon(Icons.close, size: 12, color: _inkMuted),
                   ),
                 ),
             ],
@@ -839,9 +891,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final current = ApiService.currentClient?.id;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(color: Color(0x330F172A), blurRadius: 30, offset: Offset(0, -8)),
         ],
@@ -856,7 +908,7 @@ class _LoginScreenState extends State<LoginScreen> {
               width: 38, height: 4,
               margin: const EdgeInsets.only(bottom: 14),
               decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F1),
+                color: _hairline,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -864,16 +916,16 @@ class _LoginScreenState extends State<LoginScreen> {
           const Text('Change client',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _navy)),
           const SizedBox(height: 2),
-          const Text('Pick the business this device sells for',
+          Text('Pick the business this device sells for',
               style: TextStyle(
-                  fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF8A94A6))),
+                  fontSize: 12.5, fontWeight: FontWeight.w600, color: _inkMuted)),
           const SizedBox(height: 14),
           ...clients.map((c) {
             final selected = c.id == current;
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Material(
-                color: selected ? const Color(0xFFF1F5FB) : const Color(0xFFF7F9FC),
+                color: selected ? _tint(_brandBlue, _tint(_brandBlue, const Color(0xFFF1F5FB))) : _fieldFill(false),
                 borderRadius: BorderRadius.circular(14),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
@@ -952,12 +1004,22 @@ const Color _pageBg = Color(0xFFF4F7FA);
 /// Orbit motif: three rotated ellipse strokes derived from the logo's own rings,
 /// faded out before they reach the form sheet.
 class _OrbitPainter extends CustomPainter {
+  /// The orbit rings are drawn in a pale blue that disappears on a dark page,
+  /// so dark mode gets a lifted white instead.
+  final bool dark;
+
+  const _OrbitPainter({this.dark = false});
+
   @override
   void paint(Canvas canvas, Size size) {
     final wash = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFFEAF2FA), _pageBg], stops: [0.0, 0.78],
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: dark
+            ? const [Color(0xFF16202B), AppColors.darkBackground]
+            : const [Color(0xFFEAF2FA), _pageBg],
+        stops: const [0.0, 0.78],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, wash);
 
@@ -973,7 +1035,10 @@ class _OrbitPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = width
-          ..color = color.withValues(alpha: opacity),
+          // The pale rings disappear against a dark page, so they lift to white
+          // there instead of keeping a blue that reads as black-on-black.
+          ..color = (dark ? Colors.white : color)
+              .withValues(alpha: dark ? opacity * 0.55 : opacity),
       );
       canvas.restore();
     }
@@ -986,13 +1051,20 @@ class _OrbitPainter extends CustomPainter {
     canvas.drawRect(
       rect,
       Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: [Color(0x00F4F7FA), _pageBg], stops: [0.0, 0.78],
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: dark
+              ? const [Color(0x000D0D0D), AppColors.darkBackground]
+              : const [Color(0x00F4F7FA), _pageBg],
+          stops: const [0.0, 0.78],
         ).createShader(rect),
     );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  // Must compare `dark`: returning a flat false left the light wash painted
+  // behind the dark sheet after toggling, since the canvas was never redrawn.
+  bool shouldRepaint(covariant _OrbitPainter oldDelegate) =>
+      oldDelegate.dark != dark;
 }

@@ -154,7 +154,7 @@ class ClientsConfig {
       logoUrl: 'assets/images/leruma-logo.png',
       branding: const ClientBranding(
         appTitle: 'Leruma Distribution Center',
-        tagline: 'Distribution made simple',
+        tagline: 'We always care customers rights',
       ),
       features: const ClientFeatures(
         hasContracts: false,

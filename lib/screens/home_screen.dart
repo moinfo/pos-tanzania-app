@@ -1240,6 +1240,50 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build Top Stat Card (colorful cards like web dashboard)
   /// Stat card for the dashboard grid (design_handoff_home_credit 1.4).
+  // ---------------------------------------------------------------------------
+  // Dark-mode surfaces for the redesigned dashboard.
+  //
+  // The handoff specifies one light palette. Rather than hardcode white and
+  // #103863 everywhere, the new cards read these, so the design colours stay
+  // in one place and dark mode is not a second copy of every widget.
+  //
+  // build() watches ThemeProvider, so a read here still rebuilds on toggle.
+  // ---------------------------------------------------------------------------
+
+  bool get _dark => context.read<ThemeProvider>().isDarkMode;
+
+  /// Card surface (design white).
+  Color get _cardBg => _dark ? AppColors.darkCard : Colors.white;
+
+  /// Headline / figure text (design #103863).
+  Color get _inkStrong => _dark ? AppColors.darkText : const Color(0xFF103863);
+
+  /// Secondary label text (design #5C6675 / #64748B / #6B7684).
+  Color get _inkMuted => _dark ? AppColors.darkTextLight : const Color(0xFF5C6675);
+
+  /// Inset blocks inside a card (design #F5F8FC / #F1F4F8).
+  Color get _inset =>
+      _dark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF5F8FC);
+
+  /// Hairlines and progress tracks (design #F1F4F8 / #EEF2F7).
+  Color get _hairline =>
+      _dark ? Colors.white.withValues(alpha: 0.10) : const Color(0xFFF1F4F8);
+
+  Color get _track =>
+      _dark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFEEF2F7);
+
+  /// Tinted icon squares: the light tints are far too bright on black, so in
+  /// dark mode they become a wash of the icon's own colour instead.
+  Color _tint(Color fg, Color lightBg) =>
+      _dark ? fg.withValues(alpha: 0.20) : lightBg;
+
+  List<BoxShadow> get _cardShadow => _dark
+      ? const []
+      : const [
+          BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
+          BoxShadow(color: Color(0x12103863), blurRadius: 18, offset: Offset(0, 6)),
+        ];
+
   /// 1.5 Commissions.
   Widget _buildCommissionsSection() {
     final myLevels = _myCommissions?['levels'] as Map<String, dynamic>?;
@@ -1251,17 +1295,17 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Commissions',
               style: TextStyle(
                 fontSize: 16.5, fontWeight: FontWeight.w800,
-                letterSpacing: -0.3, color: Color(0xFF103863),
+                letterSpacing: -0.3, color: _inkStrong,
               ),
             ),
             Text(
               DateFormat('MMMM yyyy').format(_selectedDate),
-              style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B),
+              style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700, color: _inkMuted,
               ),
             ),
           ],
@@ -1274,18 +1318,15 @@ class _HomeScreenState extends State<HomeScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _cardBg,
               borderRadius: BorderRadius.circular(18),
-              boxShadow: const [
-                BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
-                BoxShadow(color: Color(0x12103863), blurRadius: 18, offset: Offset(0, 6)),
-              ],
+              boxShadow: _cardShadow,
             ),
-            child: const Text(
+            child: Text(
               'No commission data available',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF5C6675),
+                fontSize: 13, fontWeight: FontWeight.w600, color: _inkMuted,
               ),
             ),
           )
@@ -1293,12 +1334,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _cardBg,
               borderRadius: BorderRadius.circular(18),
-              boxShadow: const [
-                BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
-                BoxShadow(color: Color(0x12103863), blurRadius: 18, offset: Offset(0, 6)),
-              ],
+              boxShadow: _cardShadow,
             ),
             child: Column(
               children: [
@@ -1324,7 +1362,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAEFF5),
+        color: _dark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFEAEFF5),
         borderRadius: BorderRadius.circular(13),
       ),
       child: Row(
@@ -1337,7 +1375,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 38,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: _showTeamCommission == team ? Colors.white : Colors.transparent,
+                    color: _showTeamCommission == team
+                        ? (_dark ? AppColors.darkCard : Colors.white)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: _showTeamCommission == team
                         ? const [
@@ -1356,8 +1396,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
                       color: _showTeamCommission == team
-                          ? const Color(0xFF103863)
-                          : const Color(0xFF64748B),
+                          ? _inkStrong
+                          : _inkMuted,
                     ),
                   ),
                 ),
@@ -1427,7 +1467,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 36,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: badgeBg[level],
+                        color: _tint(badgeFg[level]!, badgeBg[level]!),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -1445,9 +1485,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             'Level $numeral',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14.5, fontWeight: FontWeight.w800,
-                              color: Color(0xFF103863),
+                              color: _inkStrong,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -1455,9 +1495,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             subtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
+                              color: _inkMuted,
                             ),
                           ),
                         ],
@@ -1473,17 +1513,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w800,
                             color: reached
-                                ? amountColor[level]
-                                : const Color(0xFF6B7684),
+                                ? (amountColor[level] == const Color(0xFF103863)
+                                    ? _inkStrong
+                                    : amountColor[level])
+                                : _inkMuted,
                           ),
                         ),
                         Text(
                           reached
                               ? (_showTeamCommission ? 'net' : 'commission')
                               : 'not reached',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11, fontWeight: FontWeight.w700,
-                            color: Color(0xFF6B7684),
+                            color: _inkMuted,
                           ),
                         ),
                       ],
@@ -1500,7 +1542,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: LinearProgressIndicator(
                           value: (percent / 100).clamp(0.0, 1.0),
                           minHeight: 7,
-                          backgroundColor: const Color(0xFFEEF2F7),
+                          backgroundColor: _track,
                           valueColor: AlwaysStoppedAnimation<Color>(barColor[level]!),
                         ),
                       ),
@@ -1511,9 +1553,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Text(
                         '${percent.round()}%',
                         textAlign: TextAlign.right,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12, fontWeight: FontWeight.w800,
-                          color: Color(0xFF475569),
+                          color: _inkMuted,
                         ),
                       ),
                     ),
@@ -1524,7 +1566,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         if (!isLast)
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+          Divider(height: 1, thickness: 1, color: _hairline),
       ],
     );
   }
@@ -1537,9 +1579,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: clean ? const Color(0xFFFFF8EC) : const Color(0xFFFDECEC),
+        color: _dark
+            ? (clean ? const Color(0xFF3A2F17) : const Color(0xFF3A1E1E))
+            : (clean ? const Color(0xFFFFF8EC) : const Color(0xFFFDECEC)),
         border: Border.all(
-            color: clean ? const Color(0xFFF3DDB4) : const Color(0xFFF3BDBD)),
+            color: _dark
+                ? Colors.white.withValues(alpha: 0.10)
+                : (clean ? const Color(0xFFF3DDB4) : const Color(0xFFF3BDBD))),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -1548,13 +1594,15 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: clean ? const Color(0xFFFBEDD2) : const Color(0xFFF9D9D9),
+              color: _dark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : (clean ? const Color(0xFFFBEDD2) : const Color(0xFFF9D9D9)),
               borderRadius: BorderRadius.circular(11),
             ),
             child: Icon(
               Icons.warning_amber_rounded,
               size: 17,
-              color: clean ? const Color(0xFFC4820E) : const Color(0xFFC0392B),
+              color: clean ? const Color(0xFFE0A93C) : const Color(0xFFE06B5E),
             ),
           ),
           const SizedBox(width: 11),
@@ -1569,7 +1617,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w800,
-                    color: clean ? const Color(0xFF8A5F0B) : const Color(0xFFC0392B),
+                    color: _dark
+                        ? (clean ? const Color(0xFFF0D9A8) : const Color(0xFFF3C4BE))
+                        : (clean ? const Color(0xFF8A5F0B) : const Color(0xFFC0392B)),
                   ),
                 ),
                 Text(
@@ -1579,7 +1629,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: clean ? const Color(0xFF8A5F0B) : const Color(0xFFC0392B),
+                    color: _dark
+                        ? (clean ? const Color(0xFFCDB98F) : const Color(0xFFDBA9A2))
+                        : (clean ? const Color(0xFF8A5F0B) : const Color(0xFFC0392B)),
                   ),
                 ),
               ],
@@ -1608,12 +1660,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 15, 16, 13),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
-          BoxShadow(color: Color(0x12103863), blurRadius: 22, offset: Offset(0, 8)),
-        ],
+        boxShadow: _cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1621,14 +1670,14 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Flexible(
+              Flexible(
                 child: Text(
                   'TOTAL CREDITS',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 11.5, fontWeight: FontWeight.w800,
-                    letterSpacing: 1, color: Color(0xFF6B7684),
+                    letterSpacing: 1, color: _inkMuted,
                   ),
                 ),
               ),
@@ -1639,7 +1688,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5FB),
+                    color: _tint(const Color(0xFF1D7DC4), const Color(0xFFF1F5FB)),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
@@ -1670,16 +1719,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   _formatCompact(outstanding),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 34, fontWeight: FontWeight.w800,
-                    letterSpacing: -1.4, color: Color(0xFF103863),
+                    letterSpacing: -1.4, color: _inkStrong,
                   ),
                 ),
               ),
               const SizedBox(width: 7),
-              const Text('TSh',
+              Text('TSh',
                   style: TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF6B7684))),
+                      fontSize: 14, fontWeight: FontWeight.w700, color: _inkMuted)),
             ],
           ),
           if (thisWeek.isNotEmpty) ...[
@@ -1699,7 +1748,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+          Divider(height: 1, thickness: 1, color: _hairline),
           const SizedBox(height: 11),
           Row(
             children: [
@@ -1707,7 +1756,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: delta >= 0 ? const Color(0xFFE7F6EE) : const Color(0xFFFDECEC),
+                    color: delta >= 0
+                        ? _tint(const Color(0xFF12833C), const Color(0xFFE7F6EE))
+                        : _tint(const Color(0xFFC0392B), const Color(0xFFFDECEC)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -1730,13 +1781,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Flexible(
+                Flexible(
                   child: Text(
                     'vs last week',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF5C6675),
+                      fontSize: 12.5, fontWeight: FontWeight.w600, color: _inkMuted,
                     ),
                   ),
                 ),
@@ -1791,7 +1842,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     height: height,
                     decoration: BoxDecoration(
-                      color: today ? const Color(0xFF3C7CBF) : const Color(0xFFD6E3F1),
+                      color: today
+                          ? const Color(0xFF3C7CBF)
+                          : (_dark
+                              ? Colors.white.withValues(alpha: 0.14)
+                              : const Color(0xFFD6E3F1)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -1802,7 +1857,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 11.5,
                       height: 1.2,
                       fontWeight: today ? FontWeight.w800 : FontWeight.w700,
-                      color: today ? const Color(0xFF1668A6) : const Color(0xFF8A94A6),
+                      color: today
+                          ? (_dark ? const Color(0xFF6FA8DC) : const Color(0xFF1668A6))
+                          : _inkMuted,
                     ),
                   ),
                 ],
@@ -1818,7 +1875,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F8FC),
+        color: _inset,
         borderRadius: BorderRadius.circular(13),
       ),
       child: Column(
@@ -1826,9 +1883,9 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10.5, fontWeight: FontWeight.w800,
-              letterSpacing: 0.7, color: Color(0xFF6B7684),
+              letterSpacing: 0.7, color: _inkMuted,
             ),
           ),
           const SizedBox(height: 4),
@@ -1837,7 +1894,8 @@ class _HomeScreenState extends State<HomeScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 17, fontWeight: FontWeight.w800, color: valueColor,
+              fontSize: 17, fontWeight: FontWeight.w800,
+              color: valueColor == const Color(0xFF103863) ? _inkStrong : valueColor,
             ),
           ),
         ],
@@ -1858,12 +1916,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
-          BoxShadow(color: Color(0x0A103863), blurRadius: 14, offset: Offset(0, 5)),
-        ],
+        boxShadow: _cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1874,7 +1929,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 width: 30, height: 30,
                 decoration: BoxDecoration(
-                  color: bg,
+                  color: _tint(fg, bg),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, size: 15, color: fg),
@@ -1884,14 +1939,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
-                    color: chipBg ?? bg,
+                    color: _tint(chipFg ?? fg, chipBg ?? bg),
                     borderRadius: BorderRadius.circular(7),
                   ),
                   child: Text(
                     chip,
                     style: TextStyle(
                       fontSize: 11, fontWeight: FontWeight.w800,
-                      color: chipFg ?? fg,
+                      color: _dark ? Colors.white : (chipFg ?? fg),
                     ),
                   ),
                 ),
@@ -1902,10 +1957,10 @@ class _HomeScreenState extends State<HomeScreen> {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 21, height: 1.15, fontWeight: FontWeight.w800,
-              letterSpacing: -0.7, color: Color(0xFF103863),
-              fontFeatures: [FontFeature.tabularFigures()],
+              letterSpacing: -0.7, color: _inkStrong,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
           const SizedBox(height: 3),
@@ -1913,9 +1968,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5, height: 1.2, fontWeight: FontWeight.w600,
-              color: Color(0xFF5C6675),
+              color: _inkMuted,
             ),
           ),
         ],
@@ -2060,12 +2115,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
-          BoxShadow(color: Color(0x0A103863), blurRadius: 14, offset: Offset(0, 5)),
-        ],
+        boxShadow: _cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2076,7 +2128,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 width: 30, height: 30,
                 decoration: BoxDecoration(
-                  color: bg,
+                  color: _tint(fg, bg),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, size: 15, color: fg),
@@ -2085,13 +2137,14 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
-                  color: bg,
+                  color: _tint(fg, bg),
                   borderRadius: BorderRadius.circular(7),
                 ),
                 child: Text(
                   '${percentage.toStringAsFixed(1)}%',
                   style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w800, color: fg,
+                    fontSize: 11, fontWeight: FontWeight.w800,
+                    color: _dark ? Colors.white : fg,
                   ),
                 ),
               ),
@@ -2102,9 +2155,9 @@ class _HomeScreenState extends State<HomeScreen> {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 19, height: 1.15, fontWeight: FontWeight.w800,
-              letterSpacing: -0.6, color: Color(0xFF103863),
+              letterSpacing: -0.6, color: _inkStrong,
             ),
           ),
           const SizedBox(height: 3),
@@ -2112,9 +2165,9 @@ class _HomeScreenState extends State<HomeScreen> {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5, height: 1.2, fontWeight: FontWeight.w600,
-              color: Color(0xFF5C6675),
+              color: _inkMuted,
             ),
           ),
           const SizedBox(height: 8),
@@ -2123,7 +2176,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: LinearProgressIndicator(
               value: (percentage / 100).clamp(0.0, 1.0),
               minHeight: 6,
-              backgroundColor: const Color(0xFFEEF2F7),
+              backgroundColor: _track,
               valueColor: AlwaysStoppedAnimation<Color>(fg),
             ),
           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../utils/constants.dart';
+
 /// Shared pieces of the Leruma credit & debt screens
 /// (design_handoff_home_credit, screen 3).
 ///
@@ -9,6 +11,64 @@ import 'package:intl/intl.dart';
 /// pair of screens in `credits_screen.dart` had already drifted apart once.
 
 final NumberFormat creditMoney = NumberFormat('#,###');
+
+// ---------------------------------------------------------------------------
+// Dark-mode surfaces.
+//
+// The handoff specifies one light palette, so these resolve each design colour
+// against the active theme. MaterialApp switches its brightness from
+// ThemeProvider, so Theme.of is enough and these stay usable from plain
+// StatelessWidgets.
+// ---------------------------------------------------------------------------
+
+bool creditDark(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark;
+
+/// Page background (design #F2F5F9).
+Color creditPageBg(BuildContext context) =>
+    creditDark(context) ? AppColors.darkBackground : const Color(0xFFF2F5F9);
+
+/// Card surface (design white).
+Color creditCardBg(BuildContext context) =>
+    creditDark(context) ? AppColors.darkCard : Colors.white;
+
+/// Headline / figure text (design #103863).
+Color creditInkStrong(BuildContext context) =>
+    creditDark(context) ? AppColors.darkText : const Color(0xFF103863);
+
+/// Secondary label text (design #5C6675 / #6B7684).
+Color creditInkMuted(BuildContext context) =>
+    creditDark(context) ? AppColors.darkTextLight : const Color(0xFF5C6675);
+
+/// Inset blocks inside a card (design #F5F8FC).
+Color creditInset(BuildContext context) => creditDark(context)
+    ? Colors.white.withValues(alpha: 0.06)
+    : const Color(0xFFF5F8FC);
+
+/// Hairlines (design #F1F4F8).
+Color creditHairline(BuildContext context) => creditDark(context)
+    ? Colors.white.withValues(alpha: 0.10)
+    : const Color(0xFFF1F4F8);
+
+/// Progress tracks (design #EEF2F7).
+Color creditTrack(BuildContext context) => creditDark(context)
+    ? Colors.white.withValues(alpha: 0.12)
+    : const Color(0xFFEEF2F7);
+
+/// Field / chip borders (design #E6EBF2).
+Color creditBorder(BuildContext context) => creditDark(context)
+    ? Colors.white.withValues(alpha: 0.14)
+    : const Color(0xFFE6EBF2);
+
+/// Tinted squares: the light tints glow on black, so in dark mode they become
+/// a wash of the icon's own colour instead.
+Color creditTint(BuildContext context, Color fg, Color lightBg) =>
+    creditDark(context) ? fg.withValues(alpha: 0.20) : lightBg;
+
+/// A navy drop shadow on black reads as smudge; the lift comes from the card
+/// colour there instead.
+List<BoxShadow> creditShadow(BuildContext context) =>
+    creditDark(context) ? const [] : creditCardShadow;
 
 const List<BoxShadow> creditCardShadow = [
   BoxShadow(color: Color(0x0D103863), blurRadius: 2, offset: Offset(0, 1)),
@@ -53,9 +113,9 @@ class CreditTotalsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: creditCardBg(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: creditCardShadow,
+        boxShadow: creditShadow(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +123,7 @@ class CreditTotalsCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Flexible(
+              Flexible(
                 child: Text(
                   'OUTSTANDING BALANCE',
                   maxLines: 1,
@@ -72,7 +132,7 @@ class CreditTotalsCard extends StatelessWidget {
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1,
-                    color: Color(0xFF6B7684),
+                    color: creditInkMuted(context),
                   ),
                 ),
               ),
@@ -80,7 +140,7 @@ class CreditTotalsCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFDF1DC),
+                  color: creditTint(context, const Color(0xFFC4820E), const Color(0xFFFDF1DC)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -97,10 +157,12 @@ class CreditTotalsCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       '$openAccounts open',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF8A5F0B),
+                        color: creditDark(context)
+                            ? const Color(0xFFF0D9A8)
+                            : const Color(0xFF8A5F0B),
                       ),
                     ),
                   ],
@@ -120,21 +182,21 @@ class CreditTotalsCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   // Deliberately NOT red: an outstanding balance is normal
                   // business for a distributor, not an error state.
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -1.3,
-                    color: Color(0xFF103863),
+                    color: creditInkStrong(context),
                   ),
                 ),
               ),
               const SizedBox(width: 7),
-              const Text(
+              Text(
                 'TSh',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF6B7684),
+                  color: creditInkMuted(context),
                 ),
               ),
             ],
@@ -143,12 +205,12 @@ class CreditTotalsCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Collected this cycle',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF5C6675),
+                  color: creditInkMuted(context),
                 ),
               ),
               Text(
@@ -167,7 +229,7 @@ class CreditTotalsCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: collected.toDouble(),
               minHeight: 9,
-              backgroundColor: const Color(0xFFEEF2F7),
+              backgroundColor: creditTrack(context),
               valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF16A34A)),
             ),
           ),
@@ -221,7 +283,7 @@ class _TotalBlock extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: bg,
+        color: creditTint(context, valueColor, bg),
         borderRadius: BorderRadius.circular(13),
       ),
       child: Column(
@@ -233,7 +295,7 @@ class _TotalBlock extends StatelessWidget {
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.7,
-              color: labelColor,
+              color: creditDark(context) ? creditInkMuted(context) : labelColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -244,7 +306,9 @@ class _TotalBlock extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: valueColor,
+              color: valueColor == const Color(0xFF103863)
+                  ? creditInkStrong(context)
+                  : valueColor,
             ),
           ),
         ],
@@ -271,9 +335,9 @@ class CreditSearchField extends StatelessWidget {
     return Container(
       height: 48,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: creditCardBg(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE6EBF2), width: 1.5),
+        border: Border.all(color: creditBorder(context), width: 1.5),
       ),
       child: Row(
         children: [
@@ -284,10 +348,10 @@ class CreditSearchField extends StatelessWidget {
             child: TextField(
               controller: controller,
               onChanged: onChanged,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF103863),
+                color: creditInkStrong(context),
               ),
               decoration: InputDecoration(
                 isDense: true,
@@ -312,11 +376,10 @@ class CreditSearchField extends StatelessWidget {
                 height: 28,
                 margin: const EdgeInsets.only(right: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2F7),
+                  color: creditTrack(context),
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child:
-                    const Icon(Icons.close, size: 16, color: Color(0xFF5C6675)),
+                child: Icon(Icons.close, size: 16, color: creditInkMuted(context)),
               ),
             )
           else
@@ -359,12 +422,14 @@ class CreditFilterChips extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 13),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active ? const Color(0xFF103863) : Colors.white,
+                color: active
+                    ? (creditDark(context)
+                        ? const Color(0xFF2C6FA8)
+                        : const Color(0xFF103863))
+                    : creditCardBg(context),
                 borderRadius: BorderRadius.circular(11),
                 border: Border.all(
-                  color: active
-                      ? const Color(0xFF103863)
-                      : const Color(0xFFE6EBF2),
+                  color: active ? Colors.transparent : creditBorder(context),
                   width: 1.5,
                 ),
               ),
@@ -373,7 +438,7 @@ class CreditFilterChips extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w800,
-                  color: active ? Colors.white : const Color(0xFF5C6675),
+                  color: active ? Colors.white : creditInkMuted(context),
                 ),
               ),
             ),
@@ -407,11 +472,11 @@ class CreditListHeader extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.1,
-              color: Color(0xFF6B7684),
+              color: creditInkMuted(context),
             ),
           ),
         ),
@@ -468,16 +533,16 @@ class CreditRowCard extends StatelessWidget {
     final collected = credit > 0 ? (paid / credit).clamp(0.0, 1.0) : 0.0;
 
     return Material(
-      color: Colors.white,
+      color: creditCardBg(context),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: creditCardBg(context),
             borderRadius: BorderRadius.circular(18),
-            boxShadow: creditCardShadow,
+            boxShadow: creditShadow(context),
           ),
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -513,27 +578,27 @@ class CreditRowCard extends StatelessWidget {
                           name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14.5,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF103863),
+                            color: creditInkStrong(context),
                           ),
                         ),
                         const SizedBox(height: 3),
                         Row(
                           children: [
-                            const Icon(Icons.phone,
-                                size: 12, color: Color(0xFF5C6675)),
+                            Icon(Icons.phone,
+                                size: 12, color: creditInkMuted(context)),
                             const SizedBox(width: 5),
                             Flexible(
                               child: Text(
                                 phone,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF5C6675),
+                                  color: creditInkMuted(context),
                                 ),
                               ),
                             ),
@@ -556,15 +621,15 @@ class CreditRowCard extends StatelessWidget {
                           letterSpacing: -0.3,
                           color: settled
                               ? const Color(0xFF12833C)
-                              : const Color(0xFF103863),
+                              : creditInkStrong(context),
                         ),
                       ),
-                      const Text(
+                      Text(
                         'balance',
                         style: TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF6B7684),
+                          color: creditInkMuted(context),
                         ),
                       ),
                     ],
@@ -580,7 +645,7 @@ class CreditRowCard extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: collected.toDouble(),
                         minHeight: 7,
-                        backgroundColor: const Color(0xFFEEF2F7),
+                        backgroundColor: creditTrack(context),
                         valueColor: const AlwaysStoppedAnimation<Color>(
                             Color(0xFF16A34A)),
                       ),
@@ -602,7 +667,7 @@ class CreditRowCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+              Divider(height: 1, thickness: 1, color: creditHairline(context)),
               const SizedBox(height: 11),
               Row(
                 children: [
@@ -624,7 +689,8 @@ class CreditRowCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAF3FB),
+                      color: creditTint(
+                          context, const Color(0xFF1668A6), const Color(0xFFEAF3FB)),
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: Row(
@@ -632,14 +698,19 @@ class CreditRowCard extends StatelessWidget {
                       children: [
                         Text(
                           ctaLabel,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF1668A6),
+                            color: creditDark(context)
+                                ? const Color(0xFF6FA8DC)
+                                : const Color(0xFF1668A6),
                           ),
                         ),
-                        const Icon(Icons.chevron_right,
-                            size: 15, color: Color(0xFF1668A6)),
+                        Icon(Icons.chevron_right,
+                            size: 15,
+                            color: creditDark(context)
+                                ? const Color(0xFF6FA8DC)
+                                : const Color(0xFF1668A6)),
                       ],
                     ),
                   ),
@@ -676,16 +747,18 @@ class _FooterStat extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w800,
-            color: color,
+            color: color == const Color(0xFF103863)
+                ? creditInkStrong(context)
+                : color,
           ),
         ),
         const SizedBox(height: 1),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF6B7684),
+            color: creditInkMuted(context),
           ),
         ),
       ],
@@ -707,10 +780,10 @@ class CreditEmptyResult extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF6B7684),
+            color: creditInkMuted(context),
           ),
         ),
       ),

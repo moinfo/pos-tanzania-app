@@ -48,11 +48,12 @@ class KeypadSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _sale = SaleTheme.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: SaleColors.surface,
+      decoration: BoxDecoration(
+        color: _sale.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: SaleShadows.sheet,
+        boxShadow: _sale.sheetShadow,
       ),
       padding: EdgeInsets.only(
         left: 14,
@@ -69,7 +70,7 @@ class KeypadSheet extends StatelessWidget {
             height: 4,
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: SaleColors.border,
+              color: _sale.border,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -83,11 +84,11 @@ class KeypadSheet extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
-                        color: SaleColors.textFaint,
+                        color: _sale.textFaint,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -95,10 +96,10 @@ class KeypadSheet extends StatelessWidget {
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: SaleColors.textPrimary,
+                        color: _sale.textPrimary,
                       ),
                     ),
                   ],
@@ -111,7 +112,7 @@ class KeypadSheet extends StatelessWidget {
                   fontSize: valueSize,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -1,
-                  color: SaleColors.brand,
+                  color: _sale.brand,
                   fontFeatures: kTabularFigures,
                 ),
               ),
@@ -119,7 +120,7 @@ class KeypadSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...aboveKeypad,
-          _buildKeypad(),
+          _buildKeypad(context),
           const SizedBox(height: 12),
           footer,
         ],
@@ -127,7 +128,8 @@ class KeypadSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildKeypad() {
+  Widget _buildKeypad(BuildContext context) {
+    final _sale = SaleTheme.of(context);
     const keys = [
       ['1', '2', '3'],
       ['4', '5', '6'],
@@ -143,7 +145,7 @@ class KeypadSheet extends StatelessWidget {
             children: [
               for (var i = 0; i < row.length; i++) ...[
                 if (i > 0) const SizedBox(width: 8),
-                Expanded(child: _buildKey(row[i])),
+                Expanded(child: _buildKey(context, row[i])),
               ],
             ],
           ),
@@ -152,28 +154,29 @@ class KeypadSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildKey(String key) {
+  Widget _buildKey(BuildContext context, String key) {
+    final _sale = SaleTheme.of(context);
     final isBackspace = key == '⌫';
 
     return SizedBox(
       height: keyHeight,
       child: Material(
-        color: SaleColors.pageBackground,
+        color: _sale.pageBackground,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          highlightColor: SaleColors.neutralFillPressed,
+          highlightColor: _sale.neutralFillPressed,
           onTap: isBackspace ? onBackspace : () => onDigit(key),
           child: Center(
             child: isBackspace
-                ? const Icon(Icons.backspace_outlined,
-                    size: 21, color: SaleColors.textSecondary)
+                ? Icon(Icons.backspace_outlined,
+                    size: 21, color: _sale.textSecondary)
                 : Text(
                     key,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 21,
                       fontWeight: FontWeight.w700,
-                      color: SaleColors.textPrimary,
+                      color: _sale.textPrimary,
                       fontFeatures: kTabularFigures,
                     ),
                   ),
@@ -199,22 +202,23 @@ class SalePresetChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _sale = SaleTheme.of(context);
     return SizedBox(
       height: height,
       child: Material(
-        color: SaleColors.blueTint2,
+        color: _sale.blueTint2,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
-          highlightColor: SaleColors.blueTintPressed,
+          highlightColor: _sale.blueTintPressed,
           onTap: onTap,
           child: Center(
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w800,
-                color: SaleColors.brand,
+                color: _sale.brand,
               ),
             ),
           ),
@@ -241,10 +245,11 @@ class SaleChoiceChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _sale = SaleTheme.of(context);
     return SizedBox(
       height: height,
       child: Material(
-        color: selected ? SaleColors.blueTint1 : SaleColors.surface,
+        color: selected ? _sale.blueTint1 : _sale.surface,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -253,7 +258,7 @@ class SaleChoiceChip extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected ? SaleColors.brand : SaleColors.border,
+                color: selected ? _sale.brand : _sale.border,
                 width: 1.5,
               ),
             ),
@@ -263,7 +268,7 @@ class SaleChoiceChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w800,
-                color: selected ? SaleColors.brand : SaleColors.textMuted,
+                color: selected ? _sale.brand : _sale.textMuted,
               ),
             ),
           ),
@@ -296,6 +301,7 @@ class SaleSheetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _sale = SaleTheme.of(context);
     final enabled = onTap != null;
 
     return Container(
@@ -305,7 +311,7 @@ class SaleSheetButton extends StatelessWidget {
         boxShadow: enabled ? shadow : const [],
       ),
       child: Material(
-        color: enabled ? color : SaleColors.iconFaint,
+        color: enabled ? color : _sale.iconFaint,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),

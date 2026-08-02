@@ -16,6 +16,7 @@ import '../widgets/permission_wrapper.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../widgets/credit/record_payment_sheet.dart';
+import '../widgets/credit/credit_list_widgets.dart';
 import 'sale_details_screen.dart';
 
 class CustomerCreditScreen extends StatefulWidget {
@@ -421,7 +422,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
 
   Widget _buildLerumaScreen() {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5F9),
+      backgroundColor: creditPageBg(context),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -431,7 +432,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'STATEMENT',
               style: TextStyle(
                 fontSize: 10.5,
@@ -444,7 +445,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               widget.customerName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15.5,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
@@ -461,7 +462,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(_errorMessage!,
-                          style: const TextStyle(color: AppColors.error)),
+                          style: TextStyle(color: AppColors.error)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                           onPressed: _loadStatement,
@@ -510,9 +511,9 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: creditCardBg(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: _cardShadow,
+        boxShadow: creditShadow(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -520,7 +521,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Flexible(
+              Flexible(
                 child: Text(
                   'Balance at period start',
                   maxLines: 1,
@@ -528,23 +529,23 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF5C6675),
+                    color: creditInkMuted(context),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 _money.format(openingBalance),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF334155),
+                  color: creditInkStrong(context),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+          Divider(height: 1, thickness: 1, color: creditHairline(context)),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,13 +554,13 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'CURRENT BALANCE',
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
-                        color: Color(0xFF6B7684),
+                        color: creditInkMuted(context),
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -567,10 +568,10 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                       settled
                           ? 'Fully settled'
                           : 'Outstanding · ${(collected * 100).round()}% collected',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF5C6675),
+                        color: creditInkMuted(context),
                       ),
                     ),
                   ],
@@ -584,25 +585,28 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Flexible(
-                    child: Text(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
                     _money.format(balance),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 27,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -1.1,
-                      color: Color(0xFF103863),
+                      color: creditInkStrong(context),
                     ),
                   ),
+                    ),
                   ),
                   const SizedBox(width: 5),
-                  const Text(
+                  Text(
                     'TSh',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF6B7684),
+                      color: creditInkMuted(context),
                     ),
                   ),
                 ],
@@ -644,7 +648,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: bg,
+        color: creditTint(context, valueColor, bg),
         borderRadius: BorderRadius.circular(13),
       ),
       child: Column(
@@ -656,7 +660,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.7,
-              color: labelColor,
+              color: creditDark(context) ? creditInkMuted(context) : labelColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -667,7 +671,9 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: valueColor,
+              color: valueColor == const Color(0xFF103863)
+                  ? creditInkStrong(context)
+                  : valueColor,
             ),
           ),
         ],
@@ -692,10 +698,10 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               range,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF334155),
+                color: creditInkStrong(context),
               ),
             ),
           ),
@@ -739,12 +745,14 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF103863) : Colors.white,
+                  color: selected
+                      ? (creditDark(context)
+                          ? const Color(0xFF2C6FA8)
+                          : const Color(0xFF103863))
+                      : creditCardBg(context),
                   borderRadius: BorderRadius.circular(11),
                   border: Border.all(
-                    color: selected
-                        ? const Color(0xFF103863)
-                        : const Color(0xFFE6EBF2),
+                    color: selected ? Colors.transparent : creditBorder(context),
                   ),
                 ),
                 child: Text(
@@ -752,7 +760,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
-                    color: selected ? Colors.white : const Color(0xFF5C6675),
+                    color: selected ? Colors.white : creditInkMuted(context),
                   ),
                 ),
               ),
@@ -769,9 +777,9 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 34, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: creditCardBg(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: _cardShadow,
+        boxShadow: creditShadow(context),
       ),
       child: Column(
         children: [
@@ -779,23 +787,23 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5FB),
+              color: creditTint(context, const Color(0xFF1668A6), const Color(0xFFF1F5FB)),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(Icons.receipt_long,
                 size: 28, color: Color(0xFF9AA5B4)),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'No transactions in this period',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF103863),
+              color: creditInkStrong(context),
             ),
           ),
           const SizedBox(height: 6),
-          const SizedBox(
+          SizedBox(
             width: 240,
             child: Text(
               'Credit sales and debt payments made in this period will appear here.',
@@ -804,7 +812,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 height: 1.5,
-                color: Color(0xFF5C6675),
+                color: creditInkMuted(context),
               ),
             ),
           ),
@@ -826,15 +834,15 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F4F8),
+                color: creditTrack(context),
                 borderRadius: BorderRadius.circular(13),
               ),
-              child: const Text(
+              child: Text(
                 'See last 3 months',
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF334155),
+                  color: creditInkStrong(context),
                 ),
               ),
             ),
@@ -853,20 +861,20 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
       children: [
         Text(
           '${transactions.length} TRANSACTIONS',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.1,
-            color: Color(0xFF6B7684),
+            color: creditInkMuted(context),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: creditCardBg(context),
             borderRadius: BorderRadius.circular(18),
-            boxShadow: _cardShadow,
+            boxShadow: creditShadow(context),
           ),
           child: Column(
             children: [
@@ -913,8 +921,10 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                 height: 34,
                 decoration: BoxDecoration(
                   color: isPayment
-                      ? const Color(0xFFE7F6EE)
-                      : const Color(0xFFF1F5FB),
+                      ? creditTint(context, const Color(0xFF12833C),
+                          const Color(0xFFE7F6EE))
+                      : creditTint(context, const Color(0xFF1668A6),
+                          const Color(0xFFF1F5FB)),
                   borderRadius: BorderRadius.circular(11),
                 ),
                 child: Icon(
@@ -932,10 +942,10 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                   children: [
                     Text(
                       isPayment ? 'Debt payment' : 'Credit sale',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF103863),
+                        color: creditInkStrong(context),
                       ),
                     ),
                     if (parts.isNotEmpty) ...[
@@ -944,10 +954,10 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                         parts.join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF5C6675),
+                          color: creditInkMuted(context),
                         ),
                       ),
                     ],
@@ -965,14 +975,14 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                   fontWeight: FontWeight.w800,
                   color: isPayment
                       ? const Color(0xFF12833C)
-                      : const Color(0xFF103863),
+                      : creditInkStrong(context),
                 ),
               ),
             ],
           ),
         ),
         if (!isLast)
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F4F8)),
+          Divider(height: 1, thickness: 1, color: creditHairline(context)),
       ],
     );
   }
@@ -1041,9 +1051,9 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
     final phone = widget.customerPhone?.trim();
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFEEF1F5))),
+      decoration: BoxDecoration(
+        color: creditCardBg(context),
+        border: Border(top: BorderSide(color: creditHairline(context))),
       ),
       child: SafeArea(
         top: false,
@@ -1058,7 +1068,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                     width: 54,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F4F8),
+                      color: creditTrack(context),
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: const Icon(Icons.call,

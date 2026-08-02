@@ -42,6 +42,8 @@ class SalesScreen extends StatefulWidget {
 }
 
 class _SalesScreenState extends State<SalesScreen> {
+  SaleTheme get _sale => SaleTheme.of(context);
+
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -107,7 +109,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Widget _buildLerumaScaffold() {
     return Scaffold(
-      backgroundColor: SaleColors.pageBackground,
+      backgroundColor: _sale.pageBackground,
       // The keyboard must not squeeze the footer off screen; the middle region
       // scrolls instead.
       resizeToAvoidBottomInset: true,
@@ -131,11 +133,11 @@ class _SalesScreenState extends State<SalesScreen> {
                     Expanded(child: _buildLerumaMainRegion(saleProvider)),
                     // Fixed totals + actions footer
                     Container(
-                      decoration: const BoxDecoration(
-                        color: SaleColors.surface,
+                      decoration: BoxDecoration(
+                        color: _sale.surface,
                         border: Border(
-                            top: BorderSide(color: SaleColors.borderFooter)),
-                        boxShadow: SaleShadows.footer,
+                            top: BorderSide(color: _sale.borderFooter)),
+                        boxShadow: _sale.footerShadow,
                       ),
                       padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
                       child: _buildLerumaTotalsAndActions(saleProvider),
@@ -161,7 +163,7 @@ class _SalesScreenState extends State<SalesScreen> {
     final customer = saleProvider.selectedCustomer;
 
     return Container(
-      color: SaleColors.surface,
+      color: _sale.surface,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -179,34 +181,34 @@ class _SalesScreenState extends State<SalesScreen> {
   /// Amber "required" state -- a sale cannot be charged without a customer.
   Widget _buildCustomerPrompt() {
     return Material(
-      color: SaleColors.warningFill,
+      color: _sale.warningFill,
       borderRadius: BorderRadius.circular(11),
       child: InkWell(
         borderRadius: BorderRadius.circular(11),
-        highlightColor: SaleColors.warningFillPressed,
+        highlightColor: _sale.warningFillPressed,
         onTap: _selectCustomer,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: SaleColors.warningBorder),
+            border: Border.all(color: _sale.warningBorder),
           ),
           child: Row(
             children: [
-              const Icon(Icons.person_add_alt_1_outlined,
-                  size: 20, color: SaleColors.warning),
+              Icon(Icons.person_add_alt_1_outlined,
+                  size: 20, color: _sale.warning),
               const SizedBox(width: 9),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Select customer to start',
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: SaleColors.warningText),
+                      color: _sale.warningText),
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded,
-                  size: 18, color: SaleColors.warning),
+              Icon(Icons.chevron_right_rounded,
+                  size: 18, color: _sale.warning),
             ],
           ),
         ),
@@ -219,11 +221,11 @@ class _SalesScreenState extends State<SalesScreen> {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Material(
-      color: SaleColors.blueTint2,
+      color: _sale.blueTint2,
       borderRadius: BorderRadius.circular(11),
       child: InkWell(
         borderRadius: BorderRadius.circular(11),
-        highlightColor: SaleColors.blueTintPressedRow,
+        highlightColor: _sale.blueTintPressedRow,
         onTap: _selectCustomer,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -233,7 +235,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: SaleColors.brand,
+                  color: _sale.brand,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 alignment: Alignment.center,
@@ -255,18 +257,18 @@ class _SalesScreenState extends State<SalesScreen> {
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: SaleColors.textPrimary),
+                          color: _sale.textPrimary),
                     ),
                     if (customer.phoneNumber.isNotEmpty)
                       Text(
                         customer.phoneNumber,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: SaleColors.textMuted),
+                            color: _sale.textMuted),
                       ),
                   ],
                 ),
@@ -274,15 +276,15 @@ class _SalesScreenState extends State<SalesScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: SaleColors.surface,
+                  color: _sale.surface,
                   borderRadius: BorderRadius.circular(7),
                 ),
-                child: const Text(
+                child: Text(
                   'Change',
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: SaleColors.brand),
+                      color: _sale.brand),
                 ),
               ),
             ],
@@ -300,13 +302,13 @@ class _SalesScreenState extends State<SalesScreen> {
       height: 46,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: SaleColors.pageBackground,
+        color: _sale.pageBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SaleColors.border, width: 1.5),
+        border: Border.all(color: _sale.border, width: 1.5),
       ),
       child: Row(
         children: [
-          const Icon(Icons.search_rounded, size: 18, color: SaleColors.textFaint),
+          Icon(Icons.search_rounded, size: 18, color: _sale.textFaint),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -317,10 +319,10 @@ class _SalesScreenState extends State<SalesScreen> {
               onSubmitted: (_) => _searchFocusNode.unfocus(),
               onTapOutside: (_) => _searchFocusNode.unfocus(),
               onChanged: _filterItems,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: SaleColors.textPrimary),
+                  color: _sale.textPrimary),
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
@@ -331,8 +333,8 @@ class _SalesScreenState extends State<SalesScreen> {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: hasCustomer
-                      ? SaleColors.textFaint
-                      : SaleColors.warningText,
+                      ? _sale.textFaint
+                      : _sale.warningText,
                 ),
               ),
             ),
@@ -345,7 +347,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 width: 26,
                 height: 26,
                 decoration: BoxDecoration(
-                  color: SaleColors.border,
+                  color: _sale.border,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.close_rounded,
@@ -353,8 +355,8 @@ class _SalesScreenState extends State<SalesScreen> {
               ),
             )
           else
-            const Icon(Icons.qr_code_scanner_rounded,
-                size: 20, color: SaleColors.brand),
+            Icon(Icons.qr_code_scanner_rounded,
+                size: 20, color: _sale.brand),
         ],
       ),
     );
@@ -373,7 +375,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Widget _buildLerumaResults() {
     if (_filteredItems.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Text(
           'No item matches that name or barcode',
@@ -381,7 +383,7 @@ class _SalesScreenState extends State<SalesScreen> {
           style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: SaleColors.textFaint),
+              color: _sale.textFaint),
         ),
       );
     }
@@ -400,11 +402,11 @@ class _SalesScreenState extends State<SalesScreen> {
             : (item.quantity ?? 0);
 
         return Material(
-          color: SaleColors.surface,
+          color: _sale.surface,
           borderRadius: BorderRadius.circular(12),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            highlightColor: SaleColors.blueTint2,
+            highlightColor: _sale.blueTint2,
             // Adding clears the query, returning the seller to the cart
             onTap: () {
               _addItemToCart(item);
@@ -414,7 +416,7 @@ class _SalesScreenState extends State<SalesScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: SaleShadows.resultCard,
+                boxShadow: _sale.resultCardShadow,
               ),
               child: Row(
                 children: [
@@ -427,20 +429,20 @@ class _SalesScreenState extends State<SalesScreen> {
                           item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: SaleColors.textPrimary),
+                              color: _sale.textPrimary),
                         ),
                         const SizedBox(height: 3),
                         Text(
                           'Stock ${stock.toStringAsFixed(0)} · ${location?.locationName ?? ''}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: SaleColors.textMuted),
+                              color: _sale.textMuted),
                         ),
                       ],
                     ),
@@ -448,10 +450,10 @@ class _SalesScreenState extends State<SalesScreen> {
                   const SizedBox(width: 10),
                   Text(
                     _currencyFormat.format(item.unitPrice),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: SaleColors.brand,
+                      color: _sale.brand,
                       fontFeatures: kTabularFigures,
                     ),
                   ),
@@ -460,7 +462,7 @@ class _SalesScreenState extends State<SalesScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: SaleColors.brand,
+                      color: _sale.brand,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.add_rounded,
@@ -483,16 +485,16 @@ class _SalesScreenState extends State<SalesScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 56),
       child: Column(
         children: [
-          const Icon(Icons.shopping_cart_outlined,
-              size: 46, color: SaleColors.iconFaintAlt),
+          Icon(Icons.shopping_cart_outlined,
+              size: 46, color: _sale.iconFaintAlt),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Search an item above to\nstart this sale',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14.5,
               fontWeight: FontWeight.w700,
-              color: SaleColors.textFaint,
+              color: _sale.textFaint,
               height: 1.5,
             ),
           ),
@@ -504,11 +506,11 @@ class _SalesScreenState extends State<SalesScreen> {
               alignment: WrapAlignment.center,
               children: quick.map((item) {
                 return Material(
-                  color: SaleColors.surface,
+                  color: _sale.surface,
                   borderRadius: BorderRadius.circular(999),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(999),
-                    highlightColor: SaleColors.blueTint2,
+                    highlightColor: _sale.blueTint2,
                     onTap: () => _addItemToCart(item),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -516,25 +518,25 @@ class _SalesScreenState extends State<SalesScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                            color: SaleColors.border, width: 1.5),
+                            color: _sale.border, width: 1.5),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             item.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: SaleColors.textPrimary),
+                                color: _sale.textPrimary),
                           ),
                           const SizedBox(width: 6),
                           Text(
                             _currencyFormat.format(item.unitPrice),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: SaleColors.brand),
+                                color: _sale.brand),
                           ),
                         ],
                       ),
@@ -564,21 +566,21 @@ class _SalesScreenState extends State<SalesScreen> {
               children: [
                 Text(
                   '${items.length} ITEM${items.length == 1 ? '' : 'S'} IN CART',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.1,
-                      color: SaleColors.textFaint),
+                      color: _sale.textFaint),
                 ),
                 InkWell(
                   onTap: saleProvider.clearCart,
-                  child: const Text(
+                  child: Text(
                     'CLEAR',
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.6,
-                        color: SaleColors.danger),
+                        color: _sale.danger),
                   ),
                 ),
               ],
@@ -586,9 +588,9 @@ class _SalesScreenState extends State<SalesScreen> {
           ),
           Container(
             decoration: BoxDecoration(
-              color: SaleColors.surface,
+              color: _sale.surface,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: SaleShadows.card,
+              boxShadow: _sale.cardShadow,
             ),
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -604,9 +606,9 @@ class _SalesScreenState extends State<SalesScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: SaleColors.surface,
+                color: _sale.surface,
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: SaleShadows.resultCard,
+                boxShadow: _sale.resultCardShadow,
               ),
               child: Column(
                 children: [
@@ -616,8 +618,8 @@ class _SalesScreenState extends State<SalesScreen> {
                       decoration: BoxDecoration(
                         border: i == saleProvider.payments.length - 1
                             ? null
-                            : const Border(
-                                bottom: BorderSide(color: SaleColors.divider)),
+                            : Border(
+                                bottom: BorderSide(color: _sale.divider)),
                       ),
                       child: Row(
                         children: [
@@ -625,11 +627,11 @@ class _SalesScreenState extends State<SalesScreen> {
                             width: 26,
                             height: 26,
                             decoration: BoxDecoration(
-                              color: SaleColors.successTint,
+                              color: _sale.successTint,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(Icons.check_rounded,
-                                size: 14, color: SaleColors.success),
+                            child: Icon(Icons.check_rounded,
+                                size: 14, color: _sale.success),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -641,16 +643,16 @@ class _SalesScreenState extends State<SalesScreen> {
                           ),
                           Text(
                             _currencyFormat.format(saleProvider.payments[i].amount),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: SaleColors.success,
+                              color: _sale.success,
                               fontFeatures: kTabularFigures,
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close_rounded,
-                                size: 14, color: SaleColors.iconFaint),
+                            icon: Icon(Icons.close_rounded,
+                                size: 14, color: _sale.iconFaint),
                             constraints:
                                 const BoxConstraints(minWidth: 30, minHeight: 30),
                             padding: EdgeInsets.zero,
@@ -744,7 +746,7 @@ class _SalesScreenState extends State<SalesScreen> {
           label: item.discount > 0
               ? '−${_currencyFormat.format(item.discount)}'
               : 'Disc',
-          color: item.discount > 0 ? SaleColors.warning : SaleColors.textFaint,
+          color: item.discount > 0 ? _sale.warning : _sale.textFaint,
           outlined: item.discount > 0,
           onTap: () => _openLineDiscountDialog(saleProvider, item, index, discountLimit),
         ),
@@ -752,26 +754,26 @@ class _SalesScreenState extends State<SalesScreen> {
         _saleBadge(
           icon: Icons.local_offer,
           label: 'OTC',
-          color: SaleColors.success,
+          color: _sale.success,
         ),
       if (hasPendingOtc && !hasOtc)
         _saleBadge(
           icon: Icons.local_offer_outlined,
           label:
               'OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}',
-          color: SaleColors.warning,
+          color: _sale.warning,
         ),
       if (hasApproved)
         _saleBadge(
           icon: Icons.verified_outlined,
           label: 'Approved',
-          color: SaleColors.success,
+          color: _sale.success,
         ),
       if (hasPendingApproved && !hasApproved)
         _saleBadge(
           icon: Icons.hourglass_empty_rounded,
           label: 'Pending',
-          color: SaleColors.warning,
+          color: _sale.warning,
         ),
       if (hasOffer)
         Builder(builder: (context) {
@@ -783,7 +785,7 @@ class _SalesScreenState extends State<SalesScreen> {
             label: eligible
                 ? '+${freeQty.toStringAsFixed(0)} FREE'
                 : 'Buy ${_offerThreshold(offer).toStringAsFixed(0)}',
-            color: eligible ? SaleColors.success : SaleColors.brand,
+            color: eligible ? _sale.success : _sale.brand,
           );
         }),
       // Group offer: threshold is the combined quantity of its member items, so
@@ -800,7 +802,7 @@ class _SalesScreenState extends State<SalesScreen> {
             label: eligible
                 ? 'GROUP +${freeQty.toStringAsFixed(0)} FREE'
                 : 'Group ${combined.toStringAsFixed(0)}/${threshold.toStringAsFixed(0)}',
-            color: eligible ? SaleColors.success : SaleColors.brand,
+            color: eligible ? _sale.success : _sale.brand,
           );
         }),
     ];
@@ -833,7 +835,7 @@ class _SalesScreenState extends State<SalesScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Max: ${_currencyFormat.format(discountLimit)} TSh',
-                style: const TextStyle(fontSize: 12, color: SaleColors.warning)),
+                style: TextStyle(fontSize: 12, color: _sale.warning)),
             const SizedBox(height: 8),
             TextField(
               controller: controller,
@@ -878,7 +880,7 @@ class _SalesScreenState extends State<SalesScreen> {
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : const Border(bottom: BorderSide(color: SaleColors.divider)),
+            : Border(bottom: BorderSide(color: _sale.divider)),
       ),
       child: Row(
         children: [
@@ -891,10 +893,10 @@ class _SalesScreenState extends State<SalesScreen> {
                   item.itemName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
-                      color: SaleColors.textPrimary),
+                      color: _sale.textPrimary),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -908,7 +910,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isFree ? SaleColors.success : SaleColors.textMuted),
+                      color: isFree ? _sale.success : _sale.textMuted),
                 ),
                 if (!isFree) _buildLerumaLineBadges(saleProvider, item, index),
               ],
@@ -918,11 +920,11 @@ class _SalesScreenState extends State<SalesScreen> {
           // Quantity pill -> keypad sheet. Reward lines are derived, not editable.
           if (!isFree)
             Material(
-              color: SaleColors.blueTint3,
+              color: _sale.blueTint3,
               borderRadius: BorderRadius.circular(11),
               child: InkWell(
                 borderRadius: BorderRadius.circular(11),
-                highlightColor: SaleColors.blueTintPressedAlt,
+                highlightColor: _sale.blueTintPressedAlt,
                 onTap: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
                     ? null
                     : () => _openQuantitySheet(saleProvider, index),
@@ -931,7 +933,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 11),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(11),
-                    border: Border.all(color: SaleColors.blueBorder, width: 1.5),
+                    border: Border.all(color: _sale.blueBorder, width: 1.5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -941,17 +943,17 @@ class _SalesScreenState extends State<SalesScreen> {
                         alignment: Alignment.center,
                         child: Text(
                           item.quantity.toStringAsFixed(0),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: SaleColors.brand,
+                            color: _sale.brand,
                             fontFeatures: kTabularFigures,
                           ),
                         ),
                       ),
                       const SizedBox(width: 5),
-                      const Icon(Icons.edit_outlined,
-                          size: 13, color: SaleColors.brand),
+                      Icon(Icons.edit_outlined,
+                          size: 13, color: _sale.brand),
                     ],
                   ),
                 ),
@@ -968,11 +970,11 @@ class _SalesScreenState extends State<SalesScreen> {
               textAlign: TextAlign.right,
               maxLines: 1,
               softWrap: false,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.2,
-                color: SaleColors.textPrimary,
+                color: _sale.textPrimary,
                 fontFeatures: kTabularFigures,
               ),
             ),
@@ -984,8 +986,8 @@ class _SalesScreenState extends State<SalesScreen> {
               width: 44,
               height: 44,
               child: IconButton(
-                icon: const Icon(Icons.close_rounded,
-                    size: 13, color: SaleColors.iconFaint),
+                icon: Icon(Icons.close_rounded,
+                    size: 13, color: _sale.iconFaint),
                 padding: EdgeInsets.zero,
                 onPressed: () => saleProvider.removeItem(index),
               ),
@@ -1021,17 +1023,17 @@ class _SalesScreenState extends State<SalesScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Subtotal',
+              Text('Subtotal',
                   style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: SaleColors.textFaint)),
+                      color: _sale.textFaint)),
               Text(
                 '${_currencyFormat.format(subtotal)} TSh',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
-                  color: SaleColors.textSecondary,
+                  color: _sale.textSecondary,
                   fontFeatures: kTabularFigures,
                 ),
               ),
@@ -1048,25 +1050,25 @@ class _SalesScreenState extends State<SalesScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
-                  children: const [
+                  children: [
                     Icon(Icons.discount_outlined,
-                        size: 14, color: SaleColors.warning),
+                        size: 14, color: _sale.warning),
                     SizedBox(width: 5),
                     Text(
                       'Item discounts',
                       style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
-                          color: SaleColors.warning),
+                          color: _sale.warning),
                     ),
                   ],
                 ),
                 Text(
                   '− ${_currencyFormat.format(lineDiscounts)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
-                    color: SaleColors.danger,
+                    color: _sale.danger,
                     fontFeatures: kTabularFigures,
                   ),
                 ),
@@ -1076,8 +1078,8 @@ class _SalesScreenState extends State<SalesScreen> {
         // Balance due
         Container(
           padding: const EdgeInsets.fromLTRB(2, 8, 2, 10),
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: SaleColors.border)),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: _sale.border)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -1086,18 +1088,18 @@ class _SalesScreenState extends State<SalesScreen> {
             children: [
               Text(
                 saleProvider.hasPayments ? 'Balance due' : 'Total',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color: SaleColors.textMuted),
+                    color: _sale.textMuted),
               ),
               Text(
                 _currencyFormat.format(due < 0 ? 0 : due),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 25,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.6,
-                  color: SaleColors.textPrimary,
+                  color: _sale.textPrimary,
                   fontFeatures: kTabularFigures,
                 ),
               ),
@@ -1113,20 +1115,20 @@ class _SalesScreenState extends State<SalesScreen> {
                 width: 52,
                 height: 52,
                 child: Material(
-                  color: SaleColors.warningFillSoft,
+                  color: _sale.warningFillSoft,
                   borderRadius: BorderRadius.circular(14),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    highlightColor: SaleColors.warningFillPressed,
+                    highlightColor: _sale.warningFillPressed,
                     onTap: _isProcessing ? null : _suspendSale,
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: SaleColors.warningBorder, width: 1.5),
+                            color: _sale.warningBorder, width: 1.5),
                       ),
-                      child: const Icon(Icons.pause_rounded,
-                          size: 20, color: SaleColors.warning),
+                      child: Icon(Icons.pause_rounded,
+                          size: 20, color: _sale.warning),
                     ),
                   ),
                 ),
@@ -1139,9 +1141,9 @@ class _SalesScreenState extends State<SalesScreen> {
                     ? 'Complete sale'
                     : 'Charge ${_currencyFormat.format(due < 0 ? 0 : due)}',
                 icon: Icons.credit_card_rounded,
-                color: SaleColors.brand,
-                pressedColor: SaleColors.brandPressed,
-                shadow: SaleShadows.primaryButton,
+                color: _sale.brand,
+                pressedColor: _sale.brandPressed,
+                shadow: _sale.primaryButtonShadow,
                 onTap: canCharge ? () => _onCharge(saleProvider) : null,
               ),
             ),
@@ -1156,9 +1158,9 @@ class _SalesScreenState extends State<SalesScreen> {
   Future<void> _onCharge(SaleProvider saleProvider) async {
     if (saleProvider.selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Select a customer to start'),
-          backgroundColor: SaleColors.warning,
+          backgroundColor: _sale.warning,
         ),
       );
       return;

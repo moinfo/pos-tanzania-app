@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../services/nfc_service.dart';
 import '../../utils/constants.dart';
 import '../nfc_scan_dialog.dart';
+import 'credit_list_widgets.dart';
 
 /// Record-payment sheet (design_handoff_home_credit 4.5).
 ///
@@ -186,9 +187,9 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        decoration: BoxDecoration(
+          color: creditCardBg(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 26),
         child: SafeArea(
@@ -203,7 +204,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                     width: 42,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F1),
+                      color: creditTrack(context),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -243,7 +244,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
           ),
           child: Text(
             _initials(widget.customerName),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -259,20 +260,20 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                 widget.customerName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF103863),
+                  color: creditInkStrong(context),
                 ),
               ),
               Text(
                 'Balance ${_money.format(widget.currentBalance)} TSh',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF5C6675),
+                  color: creditInkMuted(context),
                 ),
               ),
             ],
@@ -284,7 +285,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F4F8),
+              color: creditTrack(context),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.close, size: 18, color: Color(0xFF5C6675)),
@@ -300,7 +301,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F8FC),
+        color: creditInset(context),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -310,13 +311,13 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'PAYMENT AMOUNT',
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.8,
-                    color: Color(0xFF6B7684),
+                    color: creditInkMuted(context),
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -328,10 +329,10 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                           : 'Leaves ${_money.format(remaining)} TSh',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF5C6675),
+                    color: creditInkMuted(context),
                   ),
                 ),
               ],
@@ -360,12 +361,12 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                   ),
                 ),
                 const SizedBox(width: 5),
-                const Text(
+                Text(
                   'TSh',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF6B7684),
+                    color: creditInkMuted(context),
                   ),
                 ),
               ],
@@ -396,17 +397,19 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF3FB),
+                  color: creditTint(context, const Color(0xFF1668A6), const Color(0xFFEAF3FB)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   entry.key,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1668A6),
+                    color: creditDark(context)
+                        ? const Color(0xFF6FA8DC)
+                        : const Color(0xFF1668A6),
                   ),
                 ),
               ),
@@ -424,13 +427,13 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'STOCK LOCATION',
           style: TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.9,
-            color: Color(0xFF6B7684),
+            color: creditInkMuted(context),
           ),
         ),
         const SizedBox(height: 8),
@@ -453,12 +456,15 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: selected ? const Color(0xFFEAF3FB) : Colors.white,
+                    color: selected
+                        ? creditTint(context, const Color(0xFF1D7DC4),
+                            const Color(0xFFEAF3FB))
+                        : creditCardBg(context),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: selected
                           ? const Color(0xFF1D7DC4)
-                          : const Color(0xFFE6EBF2),
+                          : creditBorder(context),
                     ),
                   ),
                   child: Text(
@@ -467,8 +473,10 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: selected
-                          ? const Color(0xFF1668A6)
-                          : const Color(0xFF5C6675),
+                          ? (creditDark(context)
+                              ? const Color(0xFF6FA8DC)
+                              : const Color(0xFF1668A6))
+                          : creditInkMuted(context),
                     ),
                   ),
                 ),
@@ -497,7 +505,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
       childAspectRatio: 2.3,
       children: keys.map((key) {
         return Material(
-          color: const Color(0xFFF4F6F9),
+          color: creditTrack(context),
           borderRadius: BorderRadius.circular(12),
           child: InkWell(
             onTap: () => key == '⌫' ? _backspace() : _append(key),
@@ -508,10 +516,10 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                       size: 20, color: Color(0xFF103863))
                   : Text(
                       key,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF103863),
+                        color: creditInkStrong(context),
                       ),
                     ),
             ),
@@ -526,9 +534,9 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
       height: 46,
       padding: const EdgeInsets.symmetric(horizontal: 13),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FC),
+        color: creditInset(context),
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFFE6EBF2), width: 1.5),
+        border: Border.all(color: creditBorder(context), width: 1.5),
       ),
       child: Row(
         children: [
@@ -538,10 +546,10 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
             child: TextField(
               controller: _descriptionController,
               maxLines: 1,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF103863),
+                color: creditInkStrong(context),
               ),
               decoration: const InputDecoration(
                 isDense: true,
@@ -572,15 +580,15 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
             height: 54,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F4F8),
+              color: creditTrack(context),
               borderRadius: BorderRadius.circular(15),
             ),
-            child: const Text(
+            child: Text(
               'Cancel',
               style: TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF334155),
+                color: creditInkStrong(context),
               ),
             ),
           ),
@@ -634,7 +642,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                                 : 'Enter amount',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
