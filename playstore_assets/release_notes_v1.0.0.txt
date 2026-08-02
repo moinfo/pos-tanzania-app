@@ -1,6 +1,6 @@
 ================================================================================
 LERUMA POS - RELEASE NOTES
-Version 1.0.0 (versionCode 11) - July 2026
+Version 1.0.0 (versionCode 12) - July 2026
 ================================================================================
 
 --------------------------------------------------------------------------------
@@ -58,7 +58,7 @@ Smoke test checklist:
 Build config:
   flutter build appbundle --flavor leruma --dart-define=FLAVOR=leruma --release
   package      co.tz.leruma.pos
-  versionCode  11
+  versionCode  12
   versionName  1.0.0
   minSdk       24 (Android 7.0)
   targetSdk    36 (Android 16)
