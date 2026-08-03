@@ -49,8 +49,7 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   void initState() {
     super.initState();
-    // Enable screenshot protection
-    ScreenProtectionService().enableProtection();
+    // Screenshots are allowed; protection is no longer enabled here.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LandingProvider>().initialize();
     });

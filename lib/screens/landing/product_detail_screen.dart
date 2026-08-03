@@ -1086,7 +1086,7 @@ class _ProtectedFullScreenImageState extends State<_ProtectedFullScreenImage> {
   void initState() {
     super.initState();
     // Ensure protection is enabled for fullscreen view
-    ScreenProtectionService().enableProtection();
+    // Screenshots are allowed; protection is no longer enabled here.
   }
 
   void _showProtectionMessage() {

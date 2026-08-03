@@ -35,10 +35,8 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Enable secure mode by default to prevent screenshots
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_SECURE,
-            WindowManager.LayoutParams.FLAG_SECURE
-        )
+        // Screenshots are allowed. FLAG_SECURE is no longer set at launch; the
+        // enableSecureMode channel above still exists for any screen that needs
+        // to opt in, but nothing does so by default.
     }
 }
