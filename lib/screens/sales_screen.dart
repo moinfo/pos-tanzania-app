@@ -1177,10 +1177,15 @@ class _SalesScreenState extends State<SalesScreen> {
   Future<void> _openPaymentSheet(SaleProvider saleProvider) async {
     // Bank is only offered when this customer is allowed to use it, matching
     // the web register and the customers.allow_bank_payment flag.
+    // 'Credit Card' is what the register stores for a credit sale -- it is the
+    // sales_credit language line, and Customer->get_credit, the statement's
+    // credit side and the API's credit-limit check all match on that exact
+    // string. Sending a bare 'Credit' left credit sales out of every one of
+    // them, so the customer's own statement never showed the sale.
     final methods = <String>[
       'Cash',
       if (saleProvider.selectedCustomer?.allowBankPayment ?? false) 'Bank',
-      'Credit',
+      'Credit Card',
     ];
 
     await showSaleSheet(context, (_) {

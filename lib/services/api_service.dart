@@ -3266,6 +3266,27 @@ class ApiService {
     }
   }
 
+  /// Available chip balance backing a customer's chip payments.
+  ///
+  /// Chips are approved per supervisor and shared across their customers, so
+  /// this is the supervisor's remaining pool.
+  Future<ApiResponse<double>> getChipBalance(int customerId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/credits/chip_balance/$customerId'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<double>(
+        response,
+        (data) => ((data as Map<String, dynamic>)['chip_balance'] ?? 0)
+            .toDouble(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Delete a sale.
   ///
   /// A completed sale is cancelled and its items returned to stock; only a
@@ -6339,7 +6360,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('\$baseUrlSync/sales/cc_check'),
+        Uri.parse('$baseUrlSync/sales/cc_check'),
         headers: await _getHeaders(),
         body: json.encode({
           'customer_id': customerId,
@@ -6364,7 +6385,7 @@ class ApiService {
         message: jsonResponse['message'] ?? 'Failed to check CC restrictions',
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Error checking CC restrictions: \$e');
+      return ApiResponse.error(message: 'Error checking CC restrictions: $e');
     }
   }
 

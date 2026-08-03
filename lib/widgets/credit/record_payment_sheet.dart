@@ -66,6 +66,18 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
   /// Digits as typed. Kept as a string so the keypad can append and backspace
   /// without the round-tripping a double would need.
   String _digits = '';
+
+  /// debits_credits.paid_payment_type, as the web dialog sets it:
+  /// 1 = Cash, 2 = Bank, 3 = Chip. Without this the API defaulted every
+  /// payment to Cash, so a chip or bank collection was recorded as cash.
+  int _paymentType = 1;
+
+  /// The supervisor's remaining chip pool, loaded the first time Chip is
+  /// picked. Null while unknown, so the sheet can say so rather than imply a
+  /// zero balance.
+  double? _chipBalance;
+  bool _loadingChip = false;
+
   int? _selectedLocationId;
   bool _isSubmitting = false;
 
@@ -83,6 +95,26 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
   }
 
   double get _amount => double.tryParse(_digits) ?? 0;
+
+  /// A chip payment cannot draw more than the pool holds. Enforced server-side
+  /// too; this is so the seller finds out before typing an amount they cannot
+  /// take.
+  bool get _overChipBalance =>
+      _paymentType == 3 && _chipBalance != null && _amount > _chipBalance!;
+
+  Future<void> _selectPaymentType(int type) async {
+    setState(() => _paymentType = type);
+    if (type != 3 || _chipBalance != null || _loadingChip) return;
+
+    setState(() => _loadingChip = true);
+    final response = await _apiService.getChipBalance(widget.customerId);
+    if (!mounted) return;
+
+    setState(() {
+      _loadingChip = false;
+      if (response.isSuccess) _chipBalance = response.data;
+    });
+  }
 
   void _append(String value) {
     if (_digits.length + value.length > 12) return;
@@ -109,6 +141,12 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
 
   Future<void> _submit() async {
     if (_amount <= 0 || _isSubmitting) return;
+
+    if (_overChipBalance) {
+      _showError(
+          'Payment exceeds the available chip balance (${_money.format(_chipBalance)} TSh)');
+      return;
+    }
 
     final amount = _amount;
 
@@ -155,6 +193,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
       PaymentFormData(
         customerId: widget.customerId,
         amount: amount,
+        paidPaymentType: _paymentType,
         stockLocationId: _selectedLocationId ??
             context.read<LocationProvider>().selectedLocation?.locationId,
         description: description.isEmpty ? null : description,
@@ -215,6 +254,8 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                 _buildAmountBlock(remaining),
                 const SizedBox(height: 10),
                 _buildPresets(),
+                const SizedBox(height: 14),
+                _buildPaymentTypes(),
                 const SizedBox(height: 14),
                 _buildLocations(),
                 const SizedBox(height: 14),
@@ -420,6 +461,88 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
     );
   }
 
+  /// Payment type (4.5 addition, mirroring the web "Make Payment" dialog).
+  Widget _buildPaymentTypes() {
+    // Values are the ones credit_account.php posts.
+    const types = {1: 'Cash', 3: 'Chip', 2: 'Bank'};
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'PAYMENT TYPE',
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.9,
+            color: creditInkMuted(context),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: types.entries.map((entry) {
+            final selected = _paymentType == entry.key;
+
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(
+                    right: entry.key == types.keys.last ? 0 : 8),
+                child: GestureDetector(
+                  onTap: () => _selectPaymentType(entry.key),
+                  child: Container(
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? creditTint(context, const Color(0xFF1D7DC4),
+                              const Color(0xFFEAF3FB))
+                          : creditCardBg(context),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected
+                            ? const Color(0xFF1D7DC4)
+                            : creditBorder(context),
+                      ),
+                    ),
+                    child: Text(
+                      entry.value,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: selected
+                            ? (creditDark(context)
+                                ? const Color(0xFF6FA8DC)
+                                : const Color(0xFF1668A6))
+                            : creditInkMuted(context),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        if (_paymentType == 3) ...[
+          const SizedBox(height: 8),
+          Text(
+            _loadingChip
+                ? 'Checking chip balance…'
+                : _chipBalance == null
+                    ? 'Chip balance unavailable'
+                    : 'Available chip balance: ${_money.format(_chipBalance)} TSh',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _overChipBalance
+                  ? AppColors.error
+                  : creditInkMuted(context),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildLocations() {
     final locations = context.watch<LocationProvider>().allowedLocations;
     if (locations.length < 2) return const SizedBox.shrink();
@@ -569,7 +692,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
   }
 
   Widget _buildActions() {
-    final enabled = _amount > 0 && !_isSubmitting;
+    final enabled = _amount > 0 && !_isSubmitting && !_overChipBalance;
 
     return Row(
       children: [
@@ -637,9 +760,11 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                         const SizedBox(width: 7),
                         Flexible(
                           child: Text(
-                            _amount > 0
-                                ? 'Submit ${_money.format(_amount)}'
-                                : 'Enter amount',
+                            _overChipBalance
+                                ? 'Over chip balance'
+                                : _amount > 0
+                                    ? 'Submit ${_money.format(_amount)}'
+                                    : 'Enter amount',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
