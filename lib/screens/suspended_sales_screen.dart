@@ -26,6 +26,14 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
   List<SuspendedSale> _suspendedSales = [];
   bool _isLoading = false;
 
+  /// customer person_id -> supervisor's route position (ospos_customers.sort_order),
+  /// the same ordering the supervisor sets on http://.../sales/map_route.
+  ///
+  /// A seller works suspended orders while moving down their visit route, so
+  /// the list should read in that order, not by suspend time -- the two have
+  /// no relation to each other.
+  Map<int, int> _routeOrder = {};
+
   // Date range filter - Initialize to last 30 days
   String? _startDate;
   String? _endDate;
@@ -78,13 +86,23 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         endDate: endDate,
       );
 
+      // Best-effort: the list still renders on route order failure, falling
+      // back to date, rather than blocking on a second request.
+      if (selectedLocationId != null) {
+        final routeResponse =
+            await _apiService.getMapRoute(locationId: selectedLocationId);
+        if (routeResponse.isSuccess && routeResponse.data != null) {
+          _routeOrder = {
+            for (final customer in routeResponse.data!.customers)
+              customer.personId: customer.sortOrder,
+          };
+        }
+      }
+
       if (response.isSuccess && response.data != null) {
         setState(() {
           _suspendedSales = response.data!;
-          // Sort by date descending (newest first)
-          _suspendedSales.sort((a, b) =>
-            DateTime.parse(b.saleTime).compareTo(DateTime.parse(a.saleTime))
-          );
+          _sortByRoute();
           _isLoading = false;
         });
       } else {
@@ -101,6 +119,21 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
       // Silently handle errors - don't show to user
       print('Error loading suspended sales: $e');
     }
+  }
+
+  /// Route position first (walk-ins / customers off the route sink to the
+  /// end, in their original date order), suspend time as the tiebreaker.
+  void _sortByRoute() {
+    _suspendedSales.sort((a, b) {
+      final routeA = a.customerId != null ? _routeOrder[a.customerId] : null;
+      final routeB = b.customerId != null ? _routeOrder[b.customerId] : null;
+
+      if (routeA != null && routeB != null) return routeA.compareTo(routeB);
+      if (routeA != null) return -1;
+      if (routeB != null) return 1;
+
+      return DateTime.parse(b.saleTime).compareTo(DateTime.parse(a.saleTime));
+    });
   }
 
   Future<void> _resumeSale(SuspendedSale sale) async {
