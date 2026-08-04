@@ -82,11 +82,19 @@ class Sale {
 
   // For creating a new sale request
   Map<String, dynamic> toCreateJson() {
+    // The sale-level location is what the payment rows are tagged with, and the
+    // credit reports filter on it. Send it explicitly rather than leaving the
+    // API to guess — items already carry the same location as item_location.
+    final saleLocationId = items!
+        .map((i) => i.stockLocationId)
+        .firstWhere((id) => id != null, orElse: () => null);
+
     return {
       if (customerId != null) 'customer_id': customerId,
       if (comment != null && comment!.isNotEmpty) 'comment': comment,
       'sale_type': saleType,
       'sale_date': saleTime,
+      if (saleLocationId != null) 'stock_location_id': saleLocationId,
       'items': items!.map((i) => i.toCreateJson()).toList(),
       'payments': payments!.map((p) => p.toJson()).toList(),
     };
