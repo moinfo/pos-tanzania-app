@@ -34,6 +34,11 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
   /// no relation to each other.
   Map<int, int> _routeOrder = {};
 
+  /// Filters the already-loaded list client-side -- there's rarely more than
+  /// a screenful of suspended sales, so a round trip isn't worth it.
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   // Date range filter - Initialize to last 30 days
   String? _startDate;
   String? _endDate;
@@ -123,6 +128,17 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
 
   /// Route position first (walk-ins / customers off the route sink to the
   /// end, in their original date order), suspend time as the tiebreaker.
+  List<SuspendedSale> get _filteredSales {
+    if (_searchQuery.isEmpty) return _suspendedSales;
+
+    final query = _searchQuery.toLowerCase();
+    return _suspendedSales.where((sale) {
+      return (sale.customerName?.toLowerCase().contains(query) ?? false) ||
+          sale.employeeName.toLowerCase().contains(query) ||
+          sale.saleId.toString().contains(query);
+    }).toList();
+  }
+
   void _sortByRoute() {
     _suspendedSales.sort((a, b) {
       final routeA = a.customerId != null ? _routeOrder[a.customerId] : null;
@@ -134,6 +150,12 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
 
       return DateTime.parse(b.saleTime).compareTo(DateTime.parse(a.saleTime));
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _resumeSale(SuspendedSale sale) async {
@@ -503,6 +525,28 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                     _buildQuickFilterButton('This Month', 'month', isDark),
                   ],
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by customer, seller or sale #...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                ),
               ],
             ),
           ),
@@ -510,7 +554,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           Expanded(
             child: _isLoading
           ? _buildSkeletonList(isDark)
-          : _suspendedSales.isEmpty
+          : _filteredSales.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -522,7 +566,9 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No suspended sales',
+                        _searchQuery.isEmpty
+                            ? 'No suspended sales'
+                            : 'No match for that search',
                         style: TextStyle(
                           fontSize: 18,
                           color: isDark ? AppColors.darkText : Colors.grey[600],
@@ -530,7 +576,9 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Suspend a sale to see it here',
+                        _searchQuery.isEmpty
+                            ? 'Suspend a sale to see it here'
+                            : 'Try a different name or sale number',
                         style: TextStyle(
                           fontSize: 14,
                           color: isDark ? AppColors.darkTextLight : Colors.grey[500],
@@ -543,9 +591,9 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                   onRefresh: _loadSuspendedSales,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: _suspendedSales.length,
+                    itemCount: _filteredSales.length,
                     itemBuilder: (context, index) {
-                      final sale = _suspendedSales[index];
+                      final sale = _filteredSales[index];
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         elevation: 2,

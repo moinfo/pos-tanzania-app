@@ -258,8 +258,19 @@ class SaleProvider with ChangeNotifier {
 
   // Add item to cart
   void addItem(Item item, {double quantity = 1, int? locationId}) async {
-    // Use provided locationId or fall back to stored location or default
-    final itemLocationId = locationId ?? _stockLocation ?? 1;
+    // No location fallback to a guessed default: item_location decides which
+    // supervisor's suspended-sales list an item ends up filed under. A wrong
+    // guess doesn't fail loudly -- it silently attaches the sale to whichever
+    // stock_location_id the default happened to be, which showed up as
+    // another seller's suspended sale leaking data across supervisors.
+    // Left null is the honest state when the location genuinely is not
+    // known yet; the server likewise must not paper over a missing value.
+    final itemLocationId = locationId ?? _stockLocation;
+    if (itemLocationId == null) {
+      debugPrint(
+          '⚠️ addItem: no stock location available for item ${item.itemId}; not adding to avoid mis-filing the sale.');
+      return;
+    }
 
     // Check if item already exists in cart. Reward lines are skipped so that
     // scanning an item that is also its own offer reward increments the paid
@@ -434,6 +445,20 @@ class SaleProvider with ChangeNotifier {
     _quantityOffers.clear();
     _approvedDiscountRequests.clear();
     notifyListeners();
+  }
+
+  /// Full reset for a login/logout boundary.
+  ///
+  /// SaleProvider is a single instance for the app's whole process (created
+  /// once in main.dart), so on a shared device it survives a logout. clearCart
+  /// never touched _stockLocation, so the previous person's location quietly
+  /// stayed live: the next seller's first addItem(), before their own location
+  /// finished loading, filed the item under a stranger's stock_location_id --
+  /// a suspended sale would then read back scoped to someone else's location
+  /// entirely, invisible to its actual owner.
+  void resetForNewUser() {
+    _stockLocation = null;
+    clearCart();
   }
 
   // Check and apply one-time discount for an item

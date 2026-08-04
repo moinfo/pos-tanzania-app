@@ -7,12 +7,14 @@ import '../services/api_service.dart';
 import 'permission_provider.dart';
 import 'location_provider.dart';
 import 'connectivity_provider.dart';
+import 'sale_provider.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   PermissionProvider? _permissionProvider;
   LocationProvider? _locationProvider;
   ConnectivityProvider? _connectivityProvider;
+  SaleProvider? _saleProvider;
 
   User? _user;
   bool _isLoading = false;
@@ -45,6 +47,11 @@ class AuthProvider with ChangeNotifier {
   /// Set connectivity provider (called from main.dart after providers are set up)
   void setConnectivityProvider(ConnectivityProvider provider) {
     _connectivityProvider = provider;
+  }
+
+  /// Set sale provider (called from main.dart after providers are set up)
+  void setSaleProvider(SaleProvider provider) {
+    _saleProvider = provider;
   }
 
   /// Check if user is already authenticated
@@ -281,6 +288,13 @@ class AuthProvider with ChangeNotifier {
     if (_locationProvider != null) {
       await _locationProvider!.clear();
     }
+
+    // SaleProvider is one instance for the app's whole process, so on a
+    // shared device it otherwise survives into the next login. Left alone,
+    // the next seller's cart could inherit this one's stock_location_id
+    // before their own location finishes loading -- filing a sale, or a
+    // suspend, under a stranger's location.
+    _saleProvider?.resetForNewUser();
 
     // Clear dashboard cache
     ApiService.clearDashboardCache();

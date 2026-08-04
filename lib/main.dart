@@ -32,7 +32,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PermissionProvider()),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
-        ChangeNotifierProxyProvider3<PermissionProvider, LocationProvider, ConnectivityProvider, AuthProvider>(
+        // Created here, ahead of AuthProvider's proxy, so that proxy can wire
+        // it in below -- AuthProvider resets it on logout the same way it
+        // already resets LocationProvider, which is what a single
+        // process-lifetime SaleProvider needs on a device shared between sellers.
+        ChangeNotifierProvider(create: (_) => SaleProvider()),
+        ChangeNotifierProxyProvider4<PermissionProvider, LocationProvider, ConnectivityProvider, SaleProvider, AuthProvider>(
           create: (context) => AuthProvider()
             ..setPermissionProvider(
               Provider.of<PermissionProvider>(context, listen: false),
@@ -42,11 +47,15 @@ class MyApp extends StatelessWidget {
             )
             ..setConnectivityProvider(
               Provider.of<ConnectivityProvider>(context, listen: false),
+            )
+            ..setSaleProvider(
+              Provider.of<SaleProvider>(context, listen: false),
             ),
-          update: (context, permissionProvider, locationProvider, connectivityProvider, authProvider) {
+          update: (context, permissionProvider, locationProvider, connectivityProvider, saleProvider, authProvider) {
             authProvider!.setPermissionProvider(permissionProvider);
             authProvider.setLocationProvider(locationProvider);
             authProvider.setConnectivityProvider(connectivityProvider);
+            authProvider.setSaleProvider(saleProvider);
             return authProvider;
           },
         ),
@@ -57,7 +66,6 @@ class MyApp extends StatelessWidget {
           ),
           update: (context, connectivityProvider, offlineProvider) => offlineProvider!,
         ),
-        ChangeNotifierProvider(create: (_) => SaleProvider()),
         ChangeNotifierProvider(create: (_) => ReceivingProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LandingProvider()),

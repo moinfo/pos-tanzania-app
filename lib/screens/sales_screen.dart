@@ -561,29 +561,16 @@ class _SalesScreenState extends State<SalesScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${items.length} ITEM${items.length == 1 ? '' : 'S'} IN CART',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: _sale.textFaint),
-                ),
-                InkWell(
-                  onTap: saleProvider.clearCart,
-                  child: Text(
-                    'CLEAR',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                        color: _sale.danger),
-                  ),
-                ),
-              ],
+            // CLEAR wiped the whole cart on one tap with no confirmation and
+            // no way back -- removed rather than guarded, per instruction.
+            // Removing individual lines still works via each row's own X.
+            child: Text(
+              '${items.length} ITEM${items.length == 1 ? '' : 'S'} IN CART',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                  color: _sale.textFaint),
             ),
           ),
           Container(
