@@ -76,6 +76,20 @@ class SaleProvider with ChangeNotifier {
   // Stock location (will be set from LocationProvider)
   int? _stockLocation;
 
+  /// sale_id this cart was loaded from via "Resume Sale", or null for a fresh
+  /// cart. Web reuses the same sale row across suspend -> resume -> suspend
+  /// (Sale_lib::copy_entire_sale keeps the session on the original sale_id);
+  /// the app instead deleted the suspended row the moment it was resumed and
+  /// always created a brand new one on the next suspend, so one order in
+  /// progress piled up as several unrelated entries in suspended history.
+  /// Carrying the id here lets the next suspend update the original row
+  /// instead of inserting another.
+  int? _resumedFromSaleId;
+  int? get resumedFromSaleId => _resumedFromSaleId;
+  void setResumedFromSaleId(int? saleId) {
+    _resumedFromSaleId = saleId;
+  }
+
   // Getter for stock location
   int? get stockLocation => _stockLocation;
 
@@ -444,6 +458,7 @@ class SaleProvider with ChangeNotifier {
     _oneTimeDiscounts.clear();
     _quantityOffers.clear();
     _approvedDiscountRequests.clear();
+    _resumedFromSaleId = null;
     notifyListeners();
   }
 

@@ -2357,12 +2357,23 @@ class ApiService {
     int? customerId,
     String? comment,
     int saleType = 0,
+    // Set when re-suspending a cart that was loaded via Resume Sale: the
+    // server updates this sale in place instead of inserting a new one, so
+    // one order in progress doesn't pile up as several suspended entries.
+    int? saleId,
+    // A partial payment taken before parking the sale (split-payment sheet
+    // returns here instead of completing when the balance isn't fully
+    // covered). Web keeps this on suspend; the app was dropping it.
+    List<SalePayment>? payments,
   }) async {
     try {
       final requestBody = {
         'items': items.map((i) => i.toCreateJson()).toList(),
         if (customerId != null) 'customer_id': customerId,
         if (comment != null) 'comment': comment,
+        if (saleId != null) 'sale_id': saleId,
+        if (payments != null && payments.isNotEmpty)
+          'payments': payments.map((p) => p.toJson()).toList(),
         'sale_type': saleType,
       };
 

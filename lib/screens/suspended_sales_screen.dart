@@ -179,6 +179,10 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
 
         // Load sale into cart
         saleProvider.clearCart();
+        // Remember which suspended sale this cart came from, so re-suspending
+        // updates the same row instead of creating a new one. clearCart()
+        // above resets it to null; set it after, not before.
+        saleProvider.setResumedFromSaleId(sale.saleId);
 
         // Set customer if available - MUST happen before adding items
         if (sale.customerId != null) {
@@ -218,6 +222,15 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           saleProvider.addSaleItem(cleanItem);
         }
 
+        // Restore any partial payment taken before this sale was suspended --
+        // api/Sales::suspend now records it, and dropping it here would make
+        // it look like nothing had been paid, letting the seller collect the
+        // full amount a second time.
+        debugPrint('Resume sale: Restoring ${response.data!.payments?.length ?? 0} payments');
+        for (final payment in response.data!.payments ?? []) {
+          saleProvider.addPayment(payment);
+        }
+
         // Re-check for one-time discounts and quantity offers after loading items
         if (sale.customerId != null && saleProvider.selectedCustomer != null) {
           debugPrint('Resume sale: Checking one-time discounts for customer=${saleProvider.selectedCustomer!.personId}, location=${saleProvider.stockLocation}');
@@ -226,9 +239,13 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         debugPrint('Resume sale: Checking quantity offers');
         await saleProvider.checkAllQuantityOffers();
 
-        // Delete the suspended sale after loading
-        debugPrint('Resume sale: Deleting suspended sale');
-        await _apiService.deleteSuspendedSale(sale.saleId);
+        // The suspended row is intentionally left alone here. Deleting it
+        // immediately meant abandoning the sale screen without charging or
+        // re-suspending lost the order outright, and re-suspending always
+        // created a new row since the original was already gone -- one order
+        // showing up as several unrelated entries in suspended history. It is
+        // now updated in place on the next suspend, or removed once the sale
+        // actually completes (see _onCharge in sales_screen.dart).
 
         if (!mounted) return;
         Navigator.pop(context); // Close loading dialog

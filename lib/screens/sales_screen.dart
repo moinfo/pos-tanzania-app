@@ -1574,6 +1574,10 @@ class _SalesScreenState extends State<SalesScreen> {
         items: saleProvider.cartItems,
         customerId: customerId,
         comment: comment?.isNotEmpty == true ? comment : null,
+        // If this cart came from Resume Sale, update that same suspended row
+        // instead of creating a second one for the same order.
+        saleId: saleProvider.resumedFromSaleId,
+        payments: saleProvider.payments,
       );
 
       setState(() => _isProcessing = false);
@@ -2282,6 +2286,14 @@ class _SalesScreenState extends State<SalesScreen> {
           final saleId = response.data!.saleId!;
           debugPrint('Sale completed: Marking discounts as used for sale_id=$saleId');
           await saleProvider.markDiscountsAsUsed(saleId);
+        }
+
+        // This cart may have come from Resume Sale -- the suspended row it
+        // was loaded from is left alone until now (see suspended_sales_screen
+        // .dart), so the customer's order was never lost by resuming without
+        // finishing it. Now that a real completed sale exists, remove it.
+        if (saleProvider.resumedFromSaleId != null) {
+          await _apiService.deleteSuspendedSale(saleProvider.resumedFromSaleId!);
         }
 
         // Clear cart
