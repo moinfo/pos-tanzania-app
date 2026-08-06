@@ -2401,6 +2401,27 @@ class ApiService {
     }
   }
 
+  static const String _registerTokenKey = 'register_token';
+
+  /// Stable id for this install, identifying it as a register.
+  ///
+  /// The suspended-sale claim is scoped to a register rather than to the
+  /// signed-in employee: one seller logged into both the web register and this
+  /// app is two registers, and resuming the same sale into both carts means
+  /// completing it twice. Survives restarts, so re-opening the app re-claims
+  /// its own sale rather than locking the seller out of their own cart.
+  Future<String> _registerToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString(_registerTokenKey);
+
+    if (token == null || token.isEmpty) {
+      token = 'app-${DateTime.now().millisecondsSinceEpoch}-${UniqueKey().hashCode}';
+      await prefs.setString(_registerTokenKey, token);
+    }
+
+    return token;
+  }
+
   /// Claim a suspended sale before loading it into the cart.
   ///
   /// Two sellers opening the suspended list at the same time would otherwise
@@ -2413,7 +2434,10 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrlSync/sales/claim_suspended'),
         headers: await _getHeaders(),
-        body: jsonEncode({'sale_id': saleId}),
+        body: jsonEncode({
+          'sale_id': saleId,
+          'register_token': await _registerToken(),
+        }),
       );
 
       return _handleResponse<Map<String, dynamic>>(
