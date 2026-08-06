@@ -45,9 +45,10 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
 
   String get startDate {
     if (_startDate == null || _startDate!.isEmpty) {
-      final now = DateTime.now();
-      final thirtyDaysAgo = now.subtract(const Duration(days: 30));
-      _startDate = DateFormat('yyyy-MM-dd').format(thirtyDaysAgo);
+      // Today, not the last 30 days: a seller opening this list is looking for
+      // an order parked this morning, and a month of history buries it. The
+      // range picker and the This Week / This Month chips widen it on demand.
+      _startDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
     }
     return _startDate!;
   }
@@ -884,12 +885,21 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
-                                    onPressed: () => _resumeSale(sale),
+                                    // Matches the lock badge above. The claim
+                                    // would refuse anyway, but leaving this
+                                    // enabled next to "In use by X" reads as a
+                                    // bug.
+                                    onPressed: sale.isLocked
+                                        ? null
+                                        : () => _resumeSale(sale),
                                     icon: const Icon(Icons.play_arrow),
-                                    label: const Text('Resume Sale'),
+                                    label: Text(sale.isLocked
+                                        ? 'In use by ${sale.lockedByName ?? 'another user'}'
+                                        : 'Resume Sale'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       foregroundColor: Colors.white,
+                                      disabledBackgroundColor: Colors.grey.shade400,
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
                                   ),
