@@ -273,7 +273,11 @@ class ApiService {
       final bodyPreview = response.body.length > 500
           ? '${response.body.substring(0, 500)}...'
           : response.body;
-      print('Failed to parse JSON. Status: $statusCode, Body: $bodyPreview');
+      // The URL matters more than the body here: a non-JSON reply is almost
+      // always the server erroring before the API layer runs (CSRF, auth, a
+      // missing route), and without the endpoint there is nothing to go on.
+      print('Failed to parse JSON. Status: $statusCode, '
+          'Url: ${response.request?.url}, Body: $bodyPreview');
 
       return ApiResponse<T>.error(
         message: 'Failed to parse response: $e',
