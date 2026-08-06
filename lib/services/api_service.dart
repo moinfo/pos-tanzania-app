@@ -2365,6 +2365,10 @@ class ApiService {
     // returns here instead of completing when the balance isn't fully
     // covered). Web keeps this on suspend; the app was dropping it.
     List<SalePayment>? payments,
+    // Without this the server falls back to location 1, so a sale parked at
+    // any other shop lands there -- and its rows in sales_payments carry the
+    // wrong stock_location_id too.
+    int? stockLocationId,
   }) async {
     try {
       final requestBody = {
@@ -2374,6 +2378,7 @@ class ApiService {
         if (saleId != null) 'sale_id': saleId,
         if (payments != null && payments.isNotEmpty)
           'payments': payments.map((p) => p.toJson()).toList(),
+        if (stockLocationId != null) 'stock_location_id': stockLocationId,
         'sale_type': saleType,
       };
 
@@ -2381,6 +2386,30 @@ class ApiService {
         Uri.parse('$baseUrlSync/sales/suspend'),
         headers: await _getHeaders(),
         body: jsonEncode(requestBody),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Claim a suspended sale before loading it into the cart.
+  ///
+  /// Two sellers opening the suspended list at the same time would otherwise
+  /// both resume the same sale and one would silently overwrite the other.
+  /// The server answers 409 when someone else already holds the claim, with
+  /// their name in the message. The claim is released server-side when the
+  /// sale is completed or re-suspended, and expires by itself after 15 minutes.
+  Future<ApiResponse<Map<String, dynamic>>> claimSuspendedSale(int saleId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/sales/claim_suspended'),
+        headers: await _getHeaders(),
+        body: jsonEncode({'sale_id': saleId}),
       );
 
       return _handleResponse<Map<String, dynamic>>(

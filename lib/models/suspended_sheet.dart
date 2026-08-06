@@ -48,6 +48,12 @@ class SuspendedSheetSale {
   final List<SuspendedSheetItem> items;
   final double saleTotal;
 
+  /// Resume claim held by another seller. The server only reports a claim
+  /// while it is fresh (15 minutes), so a stale one reads as unlocked here.
+  final bool isLocked;
+  final int? lockedBy;
+  final String? lockedByName;
+
   SuspendedSheetSale({
     required this.saleId,
     required this.saleTime,
@@ -59,6 +65,9 @@ class SuspendedSheetSale {
     this.comment,
     required this.items,
     required this.saleTotal,
+    this.isLocked = false,
+    this.lockedBy,
+    this.lockedByName,
   });
 
   factory SuspendedSheetSale.fromJson(Map<String, dynamic> json) {
@@ -77,6 +86,14 @@ class SuspendedSheetSale {
           ?.map((item) => SuspendedSheetItem.fromJson(item as Map<String, dynamic>))
           .toList() ?? [],
       saleTotal: _parseDouble(json['sale_total']),
+      // Absent on servers without the suspended-sale lock, so default unlocked.
+      isLocked: json['is_locked'] == true || json['is_locked'] == 1,
+      lockedBy: json['locked_by'] != null
+          ? (json['locked_by'] is int
+              ? json['locked_by']
+              : int.tryParse(json['locked_by'].toString()))
+          : null,
+      lockedByName: json['locked_by_name']?.toString(),
     );
   }
 

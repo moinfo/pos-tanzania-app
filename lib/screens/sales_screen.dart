@@ -1161,30 +1161,47 @@ class _SalesScreenState extends State<SalesScreen> {
     await _openPaymentSheet(saleProvider);
   }
 
-  Future<void> _openPaymentSheet(SaleProvider saleProvider) async {
-    // Bank is only offered when this customer is allowed to use it, matching
-    // the web register and the customers.allow_bank_payment flag.
-    // 'Credit Card' is what the register stores for a credit sale -- it is the
-    // sales_credit language line, and Customer->get_credit, the statement's
-    // credit side and the API's credit-limit check all match on that exact
-    // string. Sending a bare 'Credit' left credit sales out of every one of
-    // them, so the customer's own statement never showed the sale.
-    final methods = <String>[
-      'Cash',
-      if (saleProvider.selectedCustomer?.allowBankPayment ?? false) 'Bank',
-      'Credit Card',
-    ];
+  /// Payment methods offered for the selected customer.
+  ///
+  /// Bank is only offered when this customer is allowed to use it, matching
+  /// the web register and the customers.allow_bank_payment flag.
+  /// 'Credit Card' is what the register stores for a credit sale -- it is the
+  /// sales_credit language line, and Customer->get_credit, the statement's
+  /// credit side and the API's credit-limit check all match on that exact
+  /// string. Sending a bare 'Credit' left credit sales out of every one of
+  /// them, so the customer's own statement never showed the sale.
+  List<String> _paymentMethodsFor(SaleProvider saleProvider) => <String>[
+        'Cash',
+        if (saleProvider.selectedCustomer?.allowBankPayment ?? false) 'Bank',
+        'Credit Card',
+      ];
+
+  /// Shows the payment keypad and records whatever the seller confirms.
+  ///
+  /// Returns true when a payment was actually added, so callers can tell a
+  /// confirmed amount from a dismissed sheet.
+  Future<bool> _collectPayment(SaleProvider saleProvider,
+      {bool addOnly = false}) async {
+    final countBefore = saleProvider.payments.length;
 
     await showSaleSheet(context, (_) {
       return PaymentSheet(
         amountDue: saleProvider.amountDue,
         isPartPayment: saleProvider.hasPayments,
-        methods: methods,
+        addOnly: addOnly,
+        methods: _paymentMethodsFor(saleProvider),
         onConfirm: (method, amount) {
           saleProvider.addPayment(SalePayment(paymentType: method, amount: amount));
         },
       );
     });
+
+    if (!mounted) return false;
+    return saleProvider.payments.length > countBefore;
+  }
+
+  Future<void> _openPaymentSheet(SaleProvider saleProvider) async {
+    await _collectPayment(saleProvider);
 
     if (!mounted) return;
 
@@ -1518,6 +1535,26 @@ class _SalesScreenState extends State<SalesScreen> {
       return;
     }
 
+    // Leruma parks an order only once a deposit is on it. Rather than refusing,
+    // the pause button opens the payment keypad so the seller picks a method and
+    // amount right here, then falls through to the comment dialog. Backing out
+    // of that sheet cancels the suspend -- no payment, no parked order.
+    final requiresPayment =
+        ApiService.currentClient?.features.hasSuspendRequiresPayment ?? false;
+    if (requiresPayment && !saleProvider.hasPayments) {
+      final paid = await _collectPayment(saleProvider, addOnly: true);
+      if (!mounted) return;
+      if (!paid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('A payment is needed before suspending this sale.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
     // Ask for optional comment
     String? comment;
     final commentController = TextEditingController();
@@ -1578,6 +1615,7 @@ class _SalesScreenState extends State<SalesScreen> {
         // instead of creating a second one for the same order.
         saleId: saleProvider.resumedFromSaleId,
         payments: saleProvider.payments,
+        stockLocationId: saleProvider.stockLocation,
       );
 
       setState(() => _isProcessing = false);

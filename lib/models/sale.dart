@@ -9,6 +9,10 @@ class Sale {
   final String? invoiceNumber;
   final int saleStatus; // 0=completed, 2=suspended
   final int saleType; // 0=POS, 1=Invoice, 2=Return
+  // Stock location the sale belongs to. The web writes this to sales.stock_location_id;
+  // without it a sale created here lands with no location and drops out of the
+  // location-filtered reports (Z-report, today summary, commission dashboard).
+  final int? stockLocationId;
   final double subtotal;
   final double taxTotal;
   final double total;
@@ -28,6 +32,7 @@ class Sale {
     this.invoiceNumber,
     this.saleStatus = 0,
     this.saleType = 0,
+    this.stockLocationId,
     this.subtotal = 0,
     this.taxTotal = 0,
     this.total = 0,
@@ -49,6 +54,7 @@ class Sale {
       invoiceNumber: json['invoice_number'] as String?,
       saleStatus: json['sale_status'] as int? ?? 0,
       saleType: json['sale_type'] as int? ?? 0,
+      stockLocationId: json['stock_location_id'] as int?,
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
       taxTotal: (json['tax_total'] as num?)?.toDouble() ?? 0,
       total: (json['total'] as num?)?.toDouble() ?? (json['total_amount'] as num?)?.toDouble() ?? 0,
@@ -72,6 +78,7 @@ class Sale {
       if (comment != null) 'comment': comment,
       'sale_status': saleStatus,
       'sale_type': saleType,
+      if (stockLocationId != null) 'stock_location_id': stockLocationId,
       'subtotal': subtotal,
       'tax_total': taxTotal,
       'total': total,
@@ -87,6 +94,7 @@ class Sale {
       if (comment != null && comment!.isNotEmpty) 'comment': comment,
       'sale_type': saleType,
       'sale_date': saleTime,
+      if (stockLocationId != null) 'stock_location_id': stockLocationId,
       'items': items!.map((i) => i.toCreateJson()).toList(),
       'payments': payments!.map((p) => p.toJson()).toList(),
     };
@@ -367,6 +375,12 @@ class SuspendedSale {
   final double totalDiscount;
   final double total;
 
+  /// Resume claim held by another user. The server only reports a claim while
+  /// it is fresh (15 minutes), so a stale one already reads as unlocked here.
+  final bool isLocked;
+  final int? lockedBy;
+  final String? lockedByName;
+
   SuspendedSale({
     required this.saleId,
     required this.saleTime,
@@ -379,6 +393,9 @@ class SuspendedSale {
     required this.subtotal,
     this.totalDiscount = 0,
     double? total,
+    this.isLocked = false,
+    this.lockedBy,
+    this.lockedByName,
   }) : total = total ?? subtotal;
 
   factory SuspendedSale.fromJson(Map<String, dynamic> json) {
@@ -398,6 +415,10 @@ class SuspendedSale {
       subtotal: subtotal,
       totalDiscount: totalDiscount,
       total: total,
+      // Older servers omit these entirely, so absent means unlocked.
+      isLocked: json['is_locked'] == true || json['is_locked'] == 1,
+      lockedBy: (json['locked_by'] as num?)?.toInt(),
+      lockedByName: json['locked_by_name'] as String?,
     );
   }
 }

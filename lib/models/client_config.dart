@@ -57,6 +57,9 @@ class ClientFeatures {
   final bool hasOutOfStockSelling; // Allow adding items with zero/negative stock to cart
   final bool hasSaleSheetButton; // Show the "Sheet" button in the sales screen top bar
   final bool hasInlineCartPreview; // Show a compact cart preview above the item search grid
+  // Block suspending a sale until at least one payment is on it. Leruma parks
+  // orders only after taking a deposit; other clients park unpaid orders freely.
+  final bool hasSuspendRequiresPayment;
 
   const ClientFeatures({
     this.hasContracts = true,
@@ -92,6 +95,7 @@ class ClientFeatures {
     this.hasOutOfStockSelling = false, // Default: disabled - only Leruma uses this
     this.hasSaleSheetButton = false, // Default: disabled - only Leruma uses this
     this.hasInlineCartPreview = false, // Default: disabled - only Leruma uses this
+    this.hasSuspendRequiresPayment = false, // Default: disabled - only Leruma uses this
   });
 }
 

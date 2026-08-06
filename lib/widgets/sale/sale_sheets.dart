@@ -149,12 +149,19 @@ class PaymentSheet extends StatefulWidget {
 
   final void Function(String method, double amount) onConfirm;
 
+  /// True when confirming only records the payment and hands back to the
+  /// caller -- the suspend flow. The button must never say "Complete" there,
+  /// because covering the balance still parks the sale rather than finishing
+  /// it, and a full-amount deposit is a legitimate thing to park.
+  final bool addOnly;
+
   const PaymentSheet({
     super.key,
     required this.amountDue,
     required this.methods,
     required this.onConfirm,
     this.isPartPayment = false,
+    this.addOnly = false,
   });
 
   @override
@@ -221,6 +228,19 @@ class _PaymentSheetState extends State<PaymentSheet> {
       onDigit: _onDigit,
       onBackspace: _onBackspace,
       aboveKeypad: [
+        // The sheet opens on the full balance, so the button reads "Complete"
+        // until a smaller amount is typed. Without this line a part payment
+        // looks impossible. Drops away once the seller starts typing.
+        if (_pristine && widget.amountDue > 0) ...[
+          Text(
+            'Type a smaller amount for part payment',
+            style: TextStyle(
+              fontSize: 12,
+              color: _sale.textMuted,
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         Row(
           children: [
             for (var i = 0; i < widget.methods.length; i++) ...[
@@ -239,7 +259,9 @@ class _PaymentSheetState extends State<PaymentSheet> {
       ],
       footer: SaleSheetButton(
         label: _coversBalance
-            ? 'Complete · ${_money.format(_amount)}'
+            ? (widget.addOnly
+                ? 'Add ${_money.format(_amount)}'
+                : 'Complete · ${_money.format(_amount)}')
             : 'Add ${_money.format(_amount)} · ${_money.format(remaining)} left',
         icon: Icons.check_rounded,
         height: 54,

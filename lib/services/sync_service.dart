@@ -310,6 +310,7 @@ class SyncService {
       saleTime: localSale['sale_time'] as String? ?? DateTime.now().toIso8601String(),
       saleType: localSale['sale_type'] as int? ?? 0,
       saleStatus: localSale['sale_status'] as int? ?? 0,
+      stockLocationId: localSale['stock_location_id'] as int?,
       comment: localSale['comment'] as String?,
       items: items,
       payments: payments,

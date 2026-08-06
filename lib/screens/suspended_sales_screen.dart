@@ -168,6 +168,24 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
     );
 
     try {
+      // Claim the sale before touching the cart. If another seller already has
+      // it open the server answers 409 and names them, and we stop here rather
+      // than loading a cart that would overwrite their work on re-suspend.
+      final claim = await _apiService.claimSuspendedSale(sale.saleId);
+
+      if (!mounted) return;
+
+      if (!claim.isSuccess) {
+        Navigator.pop(context); // close the loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(claim.message ?? 'This sale is being resumed by someone else'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
       // Get sale details
       debugPrint('Resume sale: Loading sale details for sale_id=${sale.saleId}');
       final response = await _apiService.getSaleDetails(sale.saleId);
@@ -406,12 +424,20 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
       }
     } else {
       if (mounted) {
+        // 409 means someone else has this sale resumed. The server's message
+        // already names them, so show it as-is instead of burying it behind
+        // a generic "Failed to delete" prefix.
+        final isClaimed = response.statusCode == 409;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete sale: ${response.message}'),
+            content: Text(isClaimed
+                ? (response.message ?? 'This sale is being resumed by someone else')
+                : 'Failed to delete sale: ${response.message}'),
             backgroundColor: AppColors.error,
           ),
         );
+        // The list is stale if it showed this as free to delete.
+        if (isClaimed) _loadSuspendedSales();
       }
     }
   }
@@ -615,7 +641,18 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         elevation: 2,
                         child: InkWell(
-                          onTap: () => _resumeSale(sale),
+                          // Locked sales explain themselves rather than going
+                          // dead: the claim call would refuse anyway, so say so
+                          // without the round trip.
+                          onTap: sale.isLocked
+                              ? () => ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Sale #${sale.saleId} is being resumed by ${sale.lockedByName ?? 'another user'}'),
+                                      backgroundColor: AppColors.error,
+                                    ),
+                                  )
+                              : () => _resumeSale(sale),
                           borderRadius: BorderRadius.circular(12),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -666,6 +703,39 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                     ),
                                   ],
                                 ),
+
+                                // Another seller holds the resume claim. Its own
+                                // row rather than the header, so a long name
+                                // cannot overflow next to the delete button.
+                                if (sale.isLocked) ...[
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.error.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.lock_outline,
+                                            size: 14, color: AppColors.error),
+                                        const SizedBox(width: 6),
+                                        Flexible(
+                                          child: Text(
+                                            'In use by ${sale.lockedByName ?? 'another user'}',
+                                            style: const TextStyle(
+                                              color: AppColors.error,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 12),
 
                                 // Customer & Employee

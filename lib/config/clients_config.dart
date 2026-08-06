@@ -171,6 +171,7 @@ class ClientsConfig {
         hasOutOfStockSelling: true, // Leruma sells on credit, stock checked server-side
         hasSaleSheetButton: true, // Suspended sheet button in sales top bar
         hasInlineCartPreview: true, // Compact cart preview above item grid
+        hasSuspendRequiresPayment: true, // Must take a payment before parking a sale
       ),
     ),
   ];

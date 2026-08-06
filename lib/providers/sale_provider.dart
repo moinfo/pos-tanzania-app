@@ -1040,6 +1040,9 @@ class SaleProvider with ChangeNotifier {
       comment: comment,
       saleStatus: 0, // Completed
       saleType: saleType,
+      // Mirrors what the offline path already stores locally, so an online sale
+      // and a synced one land on the same location server-side.
+      stockLocationId: _stockLocation,
       subtotal: subtotal,
       taxTotal: 0,
       total: total,

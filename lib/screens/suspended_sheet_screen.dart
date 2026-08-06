@@ -656,16 +656,39 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
             ),
             child: Column(
               children: [
+                // Another seller has this sale in their cart. Warn here so the
+                // claim refusal isn't the first the seller hears of it.
+                if (sale.isLocked) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.lock_outline,
+                          size: 14, color: Colors.red.shade600),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'In use by ${sale.lockedByName ?? 'another user'}',
+                          style: TextStyle(
+                            color: Colors.red.shade600,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 // Unsuspend button - full width
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => _unsuspendSale(sale),
+                    onPressed: sale.isLocked ? null : () => _unsuspendSale(sale),
                     icon: const Icon(Icons.restore, size: 18),
                     label: const Text('Unsuspend', style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange.shade600,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade400,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -873,6 +896,22 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
     );
 
     if (confirmed != true) return;
+
+    // Same resume claim the drawer's suspended list takes. This is the path
+    // Leruma's Sheet button uses, so without it the claim would never be taken
+    // for the client that actually needs it.
+    final claim = await _apiService.claimSuspendedSale(sale.saleId);
+    if (!mounted) return;
+    if (!claim.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              claim.message ?? 'This sale is being resumed by someone else'),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+      return;
+    }
 
     try {
       final saleProvider = context.read<SaleProvider>();
