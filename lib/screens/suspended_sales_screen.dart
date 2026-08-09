@@ -237,6 +237,13 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           final cleanItem = item.copyWith(
             discount: 0.0, // Use 0.0 for double type
             discountType: 1, // Fixed discount
+            // A server that omits the item's location would otherwise leave it
+            // null here, and re-suspending a null-location item makes the
+            // server fall back -- historically to location 1, silently moving
+            // the sale. Stamp the selected location so it survives the round
+            // trip regardless of server version.
+            stockLocationId: item.stockLocationId ??
+                locationProvider.selectedLocation?.locationId,
           );
           saleProvider.addSaleItem(cleanItem);
         }
