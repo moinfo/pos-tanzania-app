@@ -124,6 +124,12 @@ class SaleItem {
   final int? parentLine; // Line number of parent item (for free items)
   final int? quantityOfferId; // Offer ID that generated this free item
 
+  // One-time discount already applied to this line. Carried through suspend
+  // and resume so the line keeps knowing where its discount came from -- the
+  // discount is marked 'used' at first suspend, so it can never be re-earned
+  // by a live availability check.
+  final int? oneTimeDiscountId;
+
   SaleItem({
     required this.itemId,
     required this.itemName,
@@ -144,6 +150,7 @@ class SaleItem {
     this.quantityOfferFree = false,
     this.parentLine,
     this.quantityOfferId,
+    this.oneTimeDiscountId,
   })  : subtotal = subtotal ?? (quantity * unitPrice),
         lineTotal = lineTotal ?? (quantity * unitPrice);
 
@@ -155,8 +162,14 @@ class SaleItem {
       quantity: (json['quantity'] as num).toDouble(),
       costPrice: (json['cost_price'] as num).toDouble(),
       unitPrice: (json['unit_price'] as num).toDouble(),
-      discount: (json['discount'] as num?)?.toDouble() ?? 0,
-      discountType: json['discount_type'] as int? ?? 0,
+      // discount_raw is the stored line value (total for fixed, percent for
+      // percent) that pairs with discount_type; plain 'discount' is a computed
+      // total amount kept for older servers, only safe as a fixed amount.
+      discount: ((json['discount_raw'] ?? json['discount']) as num?)?.toDouble() ?? 0,
+      // Default fixed, not percent: a server that omits the type sent a
+      // computed amount, and reading an amount as a percentage explodes.
+      discountType: json['discount_type'] as int? ?? 1,
+      oneTimeDiscountId: json['one_time_discount_id'] as int?,
       discountLimit: json['discount_limit'] as int? ?? 0,
       description: json['description'] as String?,
       serialNumber: json['serial_number'] as String?,
@@ -208,6 +221,9 @@ class SaleItem {
       if (description != null) 'description': description,
       if (serialNumber != null) 'serial_number': serialNumber,
       if (stockLocationId != null) 'item_location': stockLocationId, // Include stock location
+      // Suspend persists this on the row so a later resume still knows the
+      // discount's origin; create() ignores it.
+      if (oneTimeDiscountId != null) 'one_time_discount_id': oneTimeDiscountId,
       if (taxes != null && taxes!.isNotEmpty)
         'taxes': taxes!.map((t) => t.toJson()).toList(),
     };
@@ -247,6 +263,7 @@ class SaleItem {
     bool? quantityOfferFree,
     int? parentLine,
     int? quantityOfferId,
+    int? oneTimeDiscountId,
   }) {
     return SaleItem(
       itemId: itemId ?? this.itemId,
@@ -266,6 +283,7 @@ class SaleItem {
       quantityOfferFree: quantityOfferFree ?? this.quantityOfferFree,
       parentLine: parentLine ?? this.parentLine,
       quantityOfferId: quantityOfferId ?? this.quantityOfferId,
+      oneTimeDiscountId: oneTimeDiscountId ?? this.oneTimeDiscountId,
     );
   }
 }

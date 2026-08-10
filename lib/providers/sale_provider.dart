@@ -516,10 +516,12 @@ class SaleProvider with ChangeNotifier {
               final totalDiscount = discount.getTotalDiscountAmount(item.quantity);
               debugPrint('OneTimeDiscount: Applying totalDiscount=$totalDiscount');
 
-              // Apply as fixed discount
+              // Apply as fixed discount, and stamp the line with the discount
+              // id so the linkage survives suspend and resume.
               _cartItems[index] = item.copyWith(
                 discount: totalDiscount,
                 discountType: 1, // Fixed
+                oneTimeDiscountId: discount.discountId,
               );
               notifyListeners();
               return true;
@@ -555,6 +557,26 @@ class SaleProvider with ChangeNotifier {
 
     for (var item in _cartItems) {
       await checkAndApplyOneTimeDiscount(item.itemId, date: date);
+    }
+  }
+
+  /// Re-attach a one-time discount to a line restored from a suspended sale.
+  ///
+  /// No availability gate on purpose: the discount is marked 'used' the moment
+  /// the sale is first suspended, so a live check can never succeed on resume.
+  /// The web register solves this by copying the stored line values verbatim;
+  /// here the money already came back with the item -- this only refetches the
+  /// discount's details so the cart chip shows and completion bookkeeping has
+  /// its id.
+  Future<void> restoreOneTimeDiscount(int itemId, int discountId) async {
+    try {
+      final response = await _apiService.getOneTimeDiscount(discountId);
+      if (response.isSuccess && response.data != null) {
+        _oneTimeDiscounts[itemId] = response.data!;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('OneTimeDiscount: restore of #$discountId failed - $e');
     }
   }
 

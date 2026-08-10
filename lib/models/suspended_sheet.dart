@@ -5,6 +5,13 @@ class SuspendedSheetItem {
   final double quantity;
   final double unitPrice;
   final double discount;
+
+  /// 0 = percent, 1 = fixed (line total). Defaults fixed when the server
+  /// omits it -- reading a stored amount as a percentage explodes.
+  final int discountType;
+
+  /// One-time discount already applied to this line, if any.
+  final int? oneTimeDiscountId;
   final double lineTotal;
 
   SuspendedSheetItem({
@@ -13,6 +20,8 @@ class SuspendedSheetItem {
     required this.quantity,
     required this.unitPrice,
     required this.discount,
+    this.discountType = 1,
+    this.oneTimeDiscountId,
     required this.lineTotal,
   });
 
@@ -23,6 +32,14 @@ class SuspendedSheetItem {
       quantity: _parseDouble(json['quantity']),
       unitPrice: _parseDouble(json['unit_price']),
       discount: _parseDouble(json['discount']),
+      discountType: json['discount_type'] is int
+          ? json['discount_type']
+          : int.tryParse('${json['discount_type']}') ?? 1,
+      oneTimeDiscountId: json['one_time_discount_id'] != null
+          ? (json['one_time_discount_id'] is int
+              ? json['one_time_discount_id']
+              : int.tryParse(json['one_time_discount_id'].toString()))
+          : null,
       lineTotal: _parseDouble(json['line_total']),
     );
   }

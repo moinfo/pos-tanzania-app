@@ -233,10 +233,13 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         // Add items to cart - reset discounts to avoid corruption
         debugPrint('Resume sale: Adding ${response.data!.items?.length ?? 0} items to cart');
         for (final item in response.data!.items ?? []) {
-          // Clear any corrupted discount values - will be recalculated if applicable
+          // Discounts are restored verbatim, like the web register's
+          // copy_entire_sale: the stored discount/discount_type on the row is
+          // an already-decided fact. Re-checking eligibility here can never
+          // succeed for a one-time discount -- it was marked 'used' when this
+          // sale was first suspended -- and the old zero-then-recheck approach
+          // silently stripped it from the resumed cart.
           final cleanItem = item.copyWith(
-            discount: 0.0, // Use 0.0 for double type
-            discountType: 1, // Fixed discount
             // A server that omits the item's location would otherwise leave it
             // null here, and re-suspending a null-location item makes the
             // server fall back -- historically to location 1, silently moving
@@ -257,10 +260,21 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           saleProvider.addPayment(payment);
         }
 
-        // Re-check for one-time discounts and quantity offers after loading items
+        // One-time discounts: lines that carry a discount id get their details
+        // re-attached without an eligibility gate (the discount is 'used'
+        // already, a live check would always say no and strip it). The live
+        // check only runs for lines with no restored discount, so it can never
+        // overwrite one.
         if (sale.customerId != null && saleProvider.selectedCustomer != null) {
-          debugPrint('Resume sale: Checking one-time discounts for customer=${saleProvider.selectedCustomer!.personId}, location=${saleProvider.stockLocation}');
-          await saleProvider.checkAllOneTimeDiscounts();
+          for (final item in response.data!.items ?? []) {
+            if (item.oneTimeDiscountId != null) {
+              debugPrint('Resume sale: Restoring OTD #${item.oneTimeDiscountId} for item=${item.itemId}');
+              await saleProvider.restoreOneTimeDiscount(
+                  item.itemId, item.oneTimeDiscountId!);
+            } else {
+              await saleProvider.checkAndApplyOneTimeDiscount(item.itemId);
+            }
+          }
         }
         debugPrint('Resume sale: Checking quantity offers');
         await saleProvider.checkAllQuantityOffers();

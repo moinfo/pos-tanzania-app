@@ -917,7 +917,9 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
       final saleProvider = context.read<SaleProvider>();
       final locationProvider = context.read<LocationProvider>();
 
-      // Convert SuspendedSheetItem to SaleItem
+      // Convert SuspendedSheetItem to SaleItem. Discount values come through
+      // verbatim with their real stored type -- the old hardcoded "assume
+      // percent" turned a fixed 80,000 TSh line discount into 80,000%.
       final saleItems = sale.items.map((item) => SaleItem(
         itemId: item.itemId,
         itemName: item.itemName,
@@ -925,7 +927,8 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
         costPrice: 0, // Not available in suspended sheet
         unitPrice: item.unitPrice,
         discount: item.discount,
-        discountType: 0, // Assume percent
+        discountType: item.discountType,
+        oneTimeDiscountId: item.oneTimeDiscountId,
         stockLocationId: locationProvider.selectedLocation?.locationId,
         subtotal: item.quantity * item.unitPrice,
         lineTotal: item.lineTotal,
@@ -976,6 +979,16 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
       // Add items to cart
       for (final item in saleItems) {
         saleProvider.addSaleItem(item);
+      }
+
+      // Re-attach one-time discount details for lines that carry one, so the
+      // cart chip shows and completion bookkeeping has the id. No eligibility
+      // re-check -- the discount was consumed when this sale was suspended.
+      for (final item in saleItems) {
+        if (item.oneTimeDiscountId != null) {
+          await saleProvider.restoreOneTimeDiscount(
+              item.itemId, item.oneTimeDiscountId!);
+        }
       }
 
       // The suspended row is NOT deleted here. It stays suspended (and
