@@ -2277,7 +2277,12 @@ class _SalesScreenState extends State<SalesScreen> {
       final sale = saleProvider.createSale();
       print('DEBUG: Creating sale with data: ${sale.toCreateJson()}');
 
-      final response = await _apiService.createSale(sale);
+      // A resumed cart completes its own suspended row in place -- same
+      // sale_id, status flipped -- so nothing needs deleting afterwards.
+      final response = await _apiService.createSale(
+        sale,
+        resumedFromSaleId: saleProvider.resumedFromSaleId,
+      );
       print('DEBUG: API Response - Success: ${response.isSuccess}, Message: ${response.message}');
 
       // Print debug info
@@ -2326,30 +2331,10 @@ class _SalesScreenState extends State<SalesScreen> {
           await saleProvider.markDiscountsAsUsed(saleId);
         }
 
-        // This cart may have come from Resume Sale -- the suspended row it
-        // was loaded from is left alone until now (see suspended_sales_screen
-        // .dart), so the customer's order was never lost by resuming without
-        // finishing it. Now that a real completed sale exists, remove it.
-        if (saleProvider.resumedFromSaleId != null) {
-          // Surface a failure instead of swallowing it: a silent 403 here is
-          // exactly how completed resumes left orphaned suspended rows behind.
-          // The sale itself completed fine, so warn rather than error.
-          final cleanup = await _apiService
-              .deleteSuspendedSale(saleProvider.resumedFromSaleId!);
-          if (!cleanup.isSuccess) {
-            debugPrint(
-                'Complete sale: failed to remove suspended #${saleProvider.resumedFromSaleId}: ${cleanup.message}');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      'Sale completed, but the suspended copy could not be removed: ${cleanup.message}'),
-                  backgroundColor: AppColors.warning,
-                ),
-              );
-            }
-          }
-        }
+        // No cleanup of the suspended original: createSale carried its
+        // resumedFromSaleId, so the server completed that same row in place.
+        // The old create-new-then-delete dance is gone -- deleting needed the
+        // sales_delete grant sellers don't have and tripped the payments FK.
 
         // Clear cart
         saleProvider.clearCart();

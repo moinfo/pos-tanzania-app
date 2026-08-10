@@ -2337,13 +2337,22 @@ class ApiService {
     }
   }
 
-  /// Create new sale
-  Future<ApiResponse<Sale>> createSale(Sale sale) async {
+  /// Create new sale.
+  ///
+  /// [resumedFromSaleId] is the suspended sale this cart was resumed from.
+  /// The server then completes THAT row in place -- same sale_id, status
+  /// flipped from suspended to completed, exactly like the web register --
+  /// instead of inserting a new sale and leaving the old row to be cleaned
+  /// up separately.
+  Future<ApiResponse<Sale>> createSale(Sale sale, {int? resumedFromSaleId}) async {
     try {
+      final body = sale.toCreateJson();
+      if (resumedFromSaleId != null) body['sale_id'] = resumedFromSaleId;
+
       final response = await http.post(
         Uri.parse('$baseUrlSync/sales/create'),
         headers: await _getHeaders(),
-        body: jsonEncode(sale.toCreateJson()),
+        body: jsonEncode(body),
       );
 
       return _handleResponse<Sale>(

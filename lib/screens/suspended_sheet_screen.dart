@@ -933,6 +933,10 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
 
       // Clear current cart and load suspended items
       saleProvider.clearCart();
+      // Same row completes in place: charging this cart flips this sale_id
+      // from suspended to completed, and re-suspending updates it. clearCart()
+      // resets the id, so set it after.
+      saleProvider.setResumedFromSaleId(sale.saleId);
 
       // Set customer if available
       if (sale.customerId != null) {
@@ -974,31 +978,20 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
         saleProvider.addSaleItem(item);
       }
 
-      // Delete the suspended sale from server
-      final response = await _apiService.deleteSuspendedSale(sale.saleId);
-
+      // The suspended row is NOT deleted here. It stays suspended (and
+      // claimed) until the seller finishes: completing flips this same
+      // sale_id to completed, re-suspending updates it. Deleting up front
+      // meant abandoning the cart lost the order outright.
       if (mounted) {
-        if (response.isSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Loaded ${sale.items.length} items into cart'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          // Navigate back to sales screen
-          Navigator.pop(context);
-        } else {
-          // Still loaded into cart, just warn about delete failure
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Items loaded. Note: ${response.message}'),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-          Navigator.pop(context);
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Loaded ${sale.items.length} items into cart'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        // Navigate back to sales screen
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
