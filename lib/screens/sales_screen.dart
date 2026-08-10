@@ -2331,7 +2331,24 @@ class _SalesScreenState extends State<SalesScreen> {
         // .dart), so the customer's order was never lost by resuming without
         // finishing it. Now that a real completed sale exists, remove it.
         if (saleProvider.resumedFromSaleId != null) {
-          await _apiService.deleteSuspendedSale(saleProvider.resumedFromSaleId!);
+          // Surface a failure instead of swallowing it: a silent 403 here is
+          // exactly how completed resumes left orphaned suspended rows behind.
+          // The sale itself completed fine, so warn rather than error.
+          final cleanup = await _apiService
+              .deleteSuspendedSale(saleProvider.resumedFromSaleId!);
+          if (!cleanup.isSuccess) {
+            debugPrint(
+                'Complete sale: failed to remove suspended #${saleProvider.resumedFromSaleId}: ${cleanup.message}');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                      'Sale completed, but the suspended copy could not be removed: ${cleanup.message}'),
+                  backgroundColor: AppColors.warning,
+                ),
+              );
+            }
+          }
         }
 
         // Clear cart
