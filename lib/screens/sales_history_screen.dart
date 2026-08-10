@@ -650,6 +650,18 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                         color: AppColors.primary,
                                       ),
                                     ),
+                                    // A discounted sale says so at a glance --
+                                    // the total alone hides that anything was
+                                    // taken off.
+                                    if (sale.totalDiscount > 0)
+                                      Text(
+                                        'Disc -${_currencyFormat.format(sale.totalDiscount)}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.success,
+                                        ),
+                                      ),
                                     _getSaleStatusBadge(sale.saleStatus),
                                   ],
                                 ),

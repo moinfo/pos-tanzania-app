@@ -16,6 +16,10 @@ class Sale {
   final double subtotal;
   final double taxTotal;
   final double total;
+
+  /// Sum of line discounts on this sale (stored line totals). Zero when the
+  /// server does not report it.
+  final double totalDiscount;
   final String? paymentType;
   final List<SaleItem>? items;
   final List<SalePayment>? payments;
@@ -36,6 +40,7 @@ class Sale {
     this.subtotal = 0,
     this.taxTotal = 0,
     this.total = 0,
+    this.totalDiscount = 0,
     this.paymentType,
     this.items,
     this.payments,
@@ -58,6 +63,7 @@ class Sale {
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0,
       taxTotal: (json['tax_total'] as num?)?.toDouble() ?? 0,
       total: (json['total'] as num?)?.toDouble() ?? (json['total_amount'] as num?)?.toDouble() ?? 0,
+      totalDiscount: (json['total_discount'] as num?)?.toDouble() ?? 0,
       paymentType: json['payment_type'] as String?,
       items: json['items'] != null
           ? (json['items'] as List).map((i) => SaleItem.fromJson(i)).toList()
