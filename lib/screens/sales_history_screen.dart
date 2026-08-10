@@ -638,32 +638,39 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '${_currencyFormat.format(sale.total)} TSh',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    // A discounted sale says so at a glance --
-                                    // the total alone hides that anything was
-                                    // taken off.
-                                    if (sale.totalDiscount > 0)
+                                // ListTile caps the trailing at 56px; three
+                                // stacked lines exceed that on discounted
+                                // sales, so scale down instead of overflowing.
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
                                       Text(
-                                        'Disc -${_currencyFormat.format(sale.totalDiscount)}',
+                                        '${_currencyFormat.format(sale.total)} TSh',
                                         style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.success,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: AppColors.primary,
                                         ),
                                       ),
-                                    _getSaleStatusBadge(sale.saleStatus),
-                                  ],
+                                      // A discounted sale says so at a glance --
+                                      // the total alone hides that anything was
+                                      // taken off.
+                                      if (sale.totalDiscount > 0)
+                                        Text(
+                                          'Disc -${_currencyFormat.format(sale.totalDiscount)}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.success,
+                                          ),
+                                        ),
+                                      _getSaleStatusBadge(sale.saleStatus),
+                                    ],
+                                  ),
                                 ),
                                 // A visible control: long-press alone is not
                                 // discoverable, and a seller should not have to
