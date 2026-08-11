@@ -7,6 +7,7 @@ import '../models/stock_location.dart';
 import '../providers/sale_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
+import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
@@ -471,6 +472,14 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
     final themeProvider = context.watch<ThemeProvider>();
     final locationProvider = context.watch<LocationProvider>();
     final isDark = themeProvider.isDarkMode;
+    // Locks are per REGISTER, but the list only reports who holds one. A lock
+    // held by this same employee is very often this device's own abandoned
+    // resume, which the server would happily let us re-claim -- so only a
+    // lock held by somebody ELSE hard-blocks the UI; our own falls through to
+    // the claim call, and the server still refuses if it is genuinely another
+    // register (web, second phone) with a clear message.
+    final myEmployeeId =
+        int.tryParse(context.read<AuthProvider>().user?.id ?? '');
 
     return Scaffold(
       appBar: AppBar(
@@ -661,14 +670,18 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                     itemCount: _filteredSales.length,
                     itemBuilder: (context, index) {
                       final sale = _filteredSales[index];
+                      final lockedByOther = sale.isLocked &&
+                          (myEmployeeId == null ||
+                              sale.lockedBy != myEmployeeId);
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         elevation: 2,
                         child: InkWell(
                           // Locked sales explain themselves rather than going
                           // dead: the claim call would refuse anyway, so say so
-                          // without the round trip.
-                          onTap: sale.isLocked
+                          // without the round trip. Our own lock taps through --
+                          // it is usually this device's abandoned resume.
+                          onTap: lockedByOther
                               ? () => ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -728,29 +741,43 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                   ],
                                 ),
 
-                                // Another seller holds the resume claim. Its own
-                                // row rather than the header, so a long name
-                                // cannot overflow next to the delete button.
+                                // A resume claim exists. Red when another
+                                // seller holds it (blocked); amber when it is
+                                // our own -- usually this device's abandoned
+                                // resume, and Resume simply continues it. Its
+                                // own row rather than the header, so a long
+                                // name cannot overflow next to the delete
+                                // button.
                                 if (sale.isLocked) ...[
                                   const SizedBox(height: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: AppColors.error.withOpacity(0.12),
+                                      color: (lockedByOther
+                                              ? AppColors.error
+                                              : AppColors.warning)
+                                          .withOpacity(0.12),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.lock_outline,
-                                            size: 14, color: AppColors.error),
+                                        Icon(Icons.lock_outline,
+                                            size: 14,
+                                            color: lockedByOther
+                                                ? AppColors.error
+                                                : AppColors.warning),
                                         const SizedBox(width: 6),
                                         Flexible(
                                           child: Text(
-                                            'In use by ${sale.lockedByName ?? 'another user'}',
-                                            style: const TextStyle(
-                                              color: AppColors.error,
+                                            lockedByOther
+                                                ? 'In use by ${sale.lockedByName ?? 'another user'}'
+                                                : 'In use by you — Resume to continue',
+                                            style: TextStyle(
+                                              color: lockedByOther
+                                                  ? AppColors.error
+                                                  : AppColors.warning,
                                               fontWeight: FontWeight.w600,
                                               fontSize: 12,
                                             ),
@@ -908,15 +935,14 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
-                                    // Matches the lock badge above. The claim
-                                    // would refuse anyway, but leaving this
-                                    // enabled next to "In use by X" reads as a
-                                    // bug.
-                                    onPressed: sale.isLocked
+                                    // Matches the lock badge above. Only a
+                                    // claim held by someone ELSE disables --
+                                    // our own claim resumes right through it.
+                                    onPressed: lockedByOther
                                         ? null
                                         : () => _resumeSale(sale),
                                     icon: const Icon(Icons.play_arrow),
-                                    label: Text(sale.isLocked
+                                    label: Text(lockedByOther
                                         ? 'In use by ${sale.lockedByName ?? 'another user'}'
                                         : 'Resume Sale'),
                                     style: ElevatedButton.styleFrom(

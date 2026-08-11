@@ -10,6 +10,7 @@ import '../models/customer.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/sale_provider.dart';
+import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
 
@@ -656,33 +657,52 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
             ),
             child: Column(
               children: [
-                // Another seller has this sale in their cart. Warn here so the
-                // claim refusal isn't the first the seller hears of it.
-                if (sale.isLocked) ...[
-                  Row(
-                    children: [
-                      Icon(Icons.lock_outline,
-                          size: 14, color: Colors.red.shade600),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'In use by ${sale.lockedByName ?? 'another user'}',
-                          style: TextStyle(
-                            color: Colors.red.shade600,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
+                // A resume claim exists. Red and blocking when another seller
+                // holds it; amber and tappable when it is our own -- usually
+                // this device's abandoned resume, which the server lets the
+                // same register re-claim. The server still arbitrates: the
+                // same employee on a DIFFERENT register (web) gets a clear 409.
+                if (sale.isLocked)
+                  Builder(builder: (context) {
+                    final myId = int.tryParse(
+                        context.read<AuthProvider>().user?.id ?? '');
+                    final lockedByOther =
+                        myId == null || sale.lockedBy != myId;
+                    final color = lockedByOther
+                        ? Colors.red.shade600
+                        : Colors.orange.shade800;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.lock_outline, size: 14, color: color),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              lockedByOther
+                                  ? 'In use by ${sale.lockedByName ?? 'another user'}'
+                                  : 'In use by you — Unsuspend to continue',
+                              style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                    );
+                  }),
                 // Unsuspend button - full width
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: sale.isLocked ? null : () => _unsuspendSale(sale),
+                    onPressed: (sale.isLocked &&
+                            sale.lockedBy !=
+                                int.tryParse(
+                                    context.read<AuthProvider>().user?.id ?? ''))
+                        ? null
+                        : () => _unsuspendSale(sale),
                     icon: const Icon(Icons.restore, size: 18),
                     label: const Text('Unsuspend', style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
