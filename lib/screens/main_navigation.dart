@@ -53,6 +53,11 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> with TickerProviderStateMixin {
   late int _selectedIndex;
+
+  /// The permission-filtered tab list from the last build, so actions outside
+  /// the bottom bar (e.g. landing on the cart after resuming a suspended
+  /// sale) can find a tab's index without re-running the filter logic.
+  List<Map<String, dynamic>> _lastAvailableScreens = const [];
   late AnimationController _rotationController;
   late Animation<double> _rotationAnimation;
   double _currentRotationOffset = 0.0; // Offset to rotate items (in item units)
@@ -571,6 +576,8 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       _selectedIndex = 0;
     }
 
+    _lastAvailableScreens = availableScreens;
+
     return Scaffold(
       extendBody: false,
       appBar: PreferredSize(
@@ -743,12 +750,23 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   child: ListTile(
                     leading: const Icon(Icons.pause_circle, color: AppColors.warning),
                     title: const Text('Suspended Sales'),
-                    onTap: () {
+                    onTap: () async {
                       Navigator.pop(context);
-                      Navigator.push(
+                      // Resuming loads the cart, so landing back on whatever
+                      // tab the drawer was opened from (usually Home) reads as
+                      // "nothing happened". A true result means a sale was
+                      // resumed -- jump to the Sales tab where the cart is.
+                      final resumed = await Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const SuspendedSalesScreen()),
                       );
+                      if (resumed == true && mounted) {
+                        final salesIndex = _lastAvailableScreens
+                            .indexWhere((s) => s['label'] == 'Sales');
+                        if (salesIndex >= 0) {
+                          setState(() => _selectedIndex = salesIndex);
+                        }
+                      }
                     },
                   ),
                 ),

@@ -297,8 +297,10 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           ),
         );
 
-        // Navigate back to sales screen
-        Navigator.pop(context);
+        // Pop back with a "resumed" result: this screen sits on top of the
+        // main navigation, so the caller uses it to switch to the Sales tab --
+        // a bare pop landed on whichever tab the drawer was opened from.
+        Navigator.pop(context, true);
       } else {
         if (!mounted) return;
         Navigator.pop(context); // Close loading dialog
