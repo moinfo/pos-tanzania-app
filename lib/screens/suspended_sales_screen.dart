@@ -40,28 +40,6 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Date range filter - Initialize to last 30 days
-  String? _startDate;
-  String? _endDate;
-
-  String get startDate {
-    if (_startDate == null || _startDate!.isEmpty) {
-      // Today, not the last 30 days: a seller opening this list is looking for
-      // an order parked this morning, and a month of history buries it. The
-      // range picker and the This Week / This Month chips widen it on demand.
-      _startDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    }
-    return _startDate!;
-  }
-
-  String get endDate {
-    if (_endDate == null || _endDate!.isEmpty) {
-      final now = DateTime.now();
-      _endDate = DateFormat('yyyy-MM-dd').format(now);
-    }
-    return _endDate!;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -87,10 +65,11 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
       final locationProvider = context.read<LocationProvider>();
       final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
+      // No date bounds on purpose: a suspended sale is an open order, and a
+      // date window made anything parked before it silently disappear -- the
+      // list looked empty while the customer's order sat waiting.
       final response = await _apiService.getSuspendedSales(
         locationId: selectedLocationId,
-        startDate: startDate,
-        endDate: endDate,
       );
 
       // Best-effort: the list still renders on route order failure, falling
@@ -327,75 +306,6 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
     }
   }
 
-  Future<void> _selectDateRange() async {
-    final DateFormat apiFormat = DateFormat('yyyy-MM-dd');
-
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(
-        start: DateTime.parse(startDate),
-        end: DateTime.parse(endDate),
-      ),
-      builder: (context, child) {
-        final themeProvider = context.read<ThemeProvider>();
-        final isDark = themeProvider.isDarkMode;
-        return Theme(
-          data: isDark
-              ? ThemeData.dark().copyWith(
-                  colorScheme: ColorScheme.dark(
-                    primary: AppColors.primary,
-                    onPrimary: Colors.white,
-                    surface: AppColors.darkCard,
-                    onSurface: Colors.white,
-                  ),
-                )
-              : ThemeData.light().copyWith(
-                  colorScheme: ColorScheme.light(
-                    primary: AppColors.primary,
-                    onPrimary: Colors.white,
-                    surface: Colors.white,
-                    onSurface: Colors.black87,
-                  ),
-                ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _startDate = apiFormat.format(picked.start);
-        _endDate = apiFormat.format(picked.end);
-      });
-      _loadSuspendedSales();
-    }
-  }
-
-  void _setDateRangePreset(String preset) {
-    final now = DateTime.now();
-    final DateFormat apiFormat = DateFormat('yyyy-MM-dd');
-
-    setState(() {
-      switch (preset) {
-        case 'today':
-          _startDate = apiFormat.format(now);
-          _endDate = apiFormat.format(now);
-          break;
-        case 'week':
-          _startDate = apiFormat.format(now.subtract(const Duration(days: 7)));
-          _endDate = apiFormat.format(now);
-          break;
-        case 'month':
-          _startDate = apiFormat.format(now.subtract(const Duration(days: 30)));
-          _endDate = apiFormat.format(now);
-          break;
-      }
-    });
-    _loadSuspendedSales();
-  }
-
   Future<void> _deleteSale(SuspendedSale sale) async {
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
@@ -546,11 +456,6 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
               ),
             ),
           IconButton(
-            icon: const Icon(Icons.date_range),
-            onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadSuspendedSales,
             tooltip: 'Refresh',
@@ -565,43 +470,6 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
             color: isDark ? AppColors.darkCard : Colors.white,
             child: Column(
               children: [
-                // Current date range display
-                InkWell(
-                  onTap: _selectDateRange,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.calendar_today, size: 18, color: isDark ? Colors.white70 : Colors.grey.shade700),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${DateFormat('MMM dd, yyyy').format(DateTime.parse(startDate))} - ${DateFormat('MMM dd, yyyy').format(DateTime.parse(endDate))}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Quick filter buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildQuickFilterButton('Today', 'today', isDark),
-                    _buildQuickFilterButton('This Week', 'week', isDark),
-                    _buildQuickFilterButton('This Month', 'month', isDark),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
@@ -965,26 +833,6 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         ],
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
-    );
-  }
-
-  Widget _buildQuickFilterButton(String label, String preset, bool isDark) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: OutlinedButton(
-          onPressed: () => _setDateRangePreset(preset),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: isDark ? Colors.white : AppColors.primary,
-            side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.primary),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 13),
-          ),
-        ),
-      ),
     );
   }
 
