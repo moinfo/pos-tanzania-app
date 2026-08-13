@@ -411,33 +411,6 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
     return list;
   }
 
-  void _applyPreset(String preset) {
-    if (!_canPickPeriod) return;
-
-    final now = DateTime.now();
-    late DateTime start;
-
-    switch (preset) {
-      case 'today':
-        start = DateTime(now.year, now.month, now.day);
-        break;
-      case 'week':
-        // Monday-based, matching how sellers talk about "this week".
-        start = DateTime(now.year, now.month, now.day)
-            .subtract(Duration(days: now.weekday - 1));
-        break;
-      default:
-        start = DateTime(now.year, now.month, 1);
-    }
-
-    setState(() {
-      _periodPreset = preset;
-      _startDate = DateFormat('yyyy-MM-dd').format(start);
-      _endDate = DateFormat('yyyy-MM-dd').format(now);
-    });
-    _loadStatement();
-  }
-
   Widget _buildLerumaScreen() {
     return Scaffold(
       backgroundColor: creditPageBg(context),
@@ -496,10 +469,6 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                       const SizedBox(height: 14),
                     ],
                     _buildLerumaPeriodRow(),
-                    if (_canPickPeriod) ...[
-                      const SizedBox(height: 10),
-                      _buildLerumaPresets(),
-                    ],
                     const SizedBox(height: 16),
                     if (_lerumaTransactions.isEmpty)
                       _buildLerumaEmptyTransactions()
@@ -747,49 +716,6 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  /// 4.2 Presets.
-  Widget _buildLerumaPresets() {
-    const presets = {'today': 'Today', 'week': 'This week', 'month': 'This month'};
-
-    return Row(
-      children: presets.entries.map((entry) {
-        final selected = _periodPreset == entry.key;
-
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: entry.key == 'month' ? 0 : 8),
-            child: GestureDetector(
-              onTap: () => _applyPreset(entry.key),
-              child: Container(
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? (creditDark(context)
-                          ? const Color(0xFF2C6FA8)
-                          : const Color(0xFF103863))
-                      : creditCardBg(context),
-                  borderRadius: BorderRadius.circular(11),
-                  border: Border.all(
-                    color: selected ? Colors.transparent : creditBorder(context),
-                  ),
-                ),
-                child: Text(
-                  entry.value,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: selected ? Colors.white : creditInkMuted(context),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 

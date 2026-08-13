@@ -135,10 +135,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
     setState(() => _digits = _digits.substring(0, _digits.length - 1));
   }
 
-  void _setAmount(double value) {
-    setState(() => _digits = value.round().toString());
-  }
-
   Future<void> _submit() async {
     if (_amount <= 0 || _isSubmitting) return;
 
@@ -252,8 +248,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                 _buildHeader(),
                 const SizedBox(height: 14),
                 _buildAmountBlock(remaining),
-                const SizedBox(height: 10),
-                _buildPresets(),
                 const SizedBox(height: 14),
                 _buildPaymentTypes(),
                 const SizedBox(height: 14),
@@ -415,49 +409,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPresets() {
-    final presets = <String, double>{
-      'Full ${_money.format(widget.currentBalance)}': widget.currentBalance,
-      'Half': widget.currentBalance / 2,
-      '500,000': 500000,
-    };
-
-    return Row(
-      children: presets.entries.map((entry) {
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-                right: entry.key == presets.keys.last ? 0 : 8),
-            child: GestureDetector(
-              onTap: () => _setAmount(entry.value),
-              child: Container(
-                height: 36,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: BoxDecoration(
-                  color: creditTint(context, const Color(0xFF1668A6), const Color(0xFFEAF3FB)),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  entry.key,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: creditDark(context)
-                        ? const Color(0xFF6FA8DC)
-                        : const Color(0xFF1668A6),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 
