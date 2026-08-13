@@ -41,8 +41,6 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
   String _searchQuery = '';
 
   // Date range filter
-  DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now();
 
   final ScrollController _scrollController = ScrollController();
 
@@ -50,8 +48,6 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
   void initState() {
     super.initState();
     // Set default date range to today
-    _startDate = DateTime(_startDate.year, _startDate.month, _startDate.day);
-    _endDate = DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
     // Initialize location after build is complete
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocation();
@@ -100,8 +96,6 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
         limit: _limit,
         offset: 0,
         search: _searchQuery.isNotEmpty ? _searchQuery : null,
-        startDate: DateFormat('yyyy-MM-dd').format(_startDate),
-        endDate: DateFormat('yyyy-MM-dd').format(_endDate),
         locationId: selectedLocationId,
       );
 
@@ -147,8 +141,6 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
         limit: _limit,
         offset: _currentOffset,
         search: _searchQuery.isNotEmpty ? _searchQuery : null,
-        startDate: DateFormat('yyyy-MM-dd').format(_startDate),
-        endDate: DateFormat('yyyy-MM-dd').format(_endDate),
         locationId: selectedLocationId,
       );
 
@@ -232,105 +224,6 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
         builder: (context) => const MainStoreScreen(),
       ),
     ).then((_) => _loadReceivings());
-  }
-
-  Future<void> _selectDateRange() async {
-    final themeProvider = context.read<ThemeProvider>();
-    final isDark = themeProvider.isDarkMode;
-
-    final DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
-      builder: (context, child) {
-        return Theme(
-          data: isDark
-              ? ThemeData.dark().copyWith(
-                  colorScheme: ColorScheme.dark(
-                    primary: AppColors.primary,
-                    onPrimary: Colors.white,
-                    surface: const Color(0xFF1E1E1E),
-                    onSurface: Colors.white,
-                    secondary: AppColors.primary,
-                    onSecondary: Colors.white,
-                    surfaceContainerHighest: const Color(0xFF2D2D2D),
-                  ),
-                  dialogBackgroundColor: const Color(0xFF1E1E1E),
-                  textButtonTheme: TextButtonThemeData(
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                    ),
-                  ),
-                  datePickerTheme: DatePickerThemeData(
-                    backgroundColor: const Color(0xFF1E1E1E),
-                    headerBackgroundColor: AppColors.primary,
-                    headerForegroundColor: Colors.white,
-                    dayForegroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Colors.white;
-                      }
-                      if (states.contains(WidgetState.disabled)) {
-                        return Colors.grey.shade600;
-                      }
-                      return Colors.white;
-                    }),
-                    dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return AppColors.primary;
-                      }
-                      return null;
-                    }),
-                    todayForegroundColor: WidgetStateProperty.all(AppColors.primary),
-                    todayBackgroundColor: WidgetStateProperty.all(Colors.transparent),
-                    yearForegroundColor: WidgetStateProperty.all(Colors.white),
-                    rangePickerBackgroundColor: const Color(0xFF1E1E1E),
-                    rangePickerHeaderBackgroundColor: AppColors.primary,
-                    rangePickerHeaderForegroundColor: Colors.white,
-                    rangeSelectionBackgroundColor: AppColors.primary.withOpacity(0.3),
-                  ),
-                )
-              : ThemeData.light().copyWith(
-                  colorScheme: ColorScheme.light(
-                    primary: AppColors.primary,
-                    onPrimary: Colors.white,
-                    surface: Colors.white,
-                    onSurface: Colors.black,
-                    secondary: AppColors.primary,
-                  ),
-                  datePickerTheme: DatePickerThemeData(
-                    headerBackgroundColor: AppColors.primary,
-                    headerForegroundColor: Colors.white,
-                    rangeSelectionBackgroundColor: AppColors.primary.withOpacity(0.2),
-                  ),
-                ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _startDate = picked.start;
-        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
-      });
-      _loadReceivings();
-    }
-  }
-
-  String _formatDateRange() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final startDay = DateTime(_startDate.year, _startDate.month, _startDate.day);
-    final endDay = DateTime(_endDate.year, _endDate.month, _endDate.day);
-
-    if (startDay == today && endDay == today) {
-      return 'Today';
-    } else if (startDay == endDay) {
-      return DateFormat('dd MMM yyyy').format(_startDate);
-    } else {
-      return '${DateFormat('dd MMM').format(_startDate)} - ${DateFormat('dd MMM yyyy').format(_endDate)}';
-    }
   }
 
   String _formatDate(String dateString) {
@@ -506,38 +399,6 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
               ),
             ),
 
-          // Date Range Filter
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: isDark ? AppColors.darkSurface : AppColors.primary,
-            child: InkWell(
-              onTap: _selectDateRange,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkCard : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      _formatDateRange(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.darkText : AppColors.primary,
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(Icons.arrow_drop_down, color: AppColors.primary),
-                  ],
-                ),
-              ),
-            ),
-          ),
 
           // Search bar
           Padding(
