@@ -27,6 +27,13 @@ class _ItemsScreenState extends State<ItemsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   List<Item> _items = [];
+
+  /// Sellers work in cartons: PC (and any other variation) rows are the same
+  /// product under a different unit and only clutter the list, so Leruma shows
+  /// CTN entries alone. Other clients have no variation concept -- their items
+  /// default to 'CTN' in the model, so the filter passes everything through.
+  List<Item> get _visibleItems =>
+      _items.where((item) => item.variation == 'CTN').toList();
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -261,15 +268,15 @@ class _ItemsScreenState extends State<ItemsScreen> {
                           ],
                         ),
                       )
-                    : _items.isEmpty
+                    : _visibleItems.isEmpty
                         ? Center(child: Text('No items found', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)))
                         : RefreshIndicator(
                             onRefresh: _loadItems,
                             child: ListView.builder(
-                              itemCount: _items.length,
+                              itemCount: _visibleItems.length,
                               itemBuilder: (context, index) {
-                                final item = _items[index];
-                                return _buildItemCard(item, isDark);
+                                final item = _visibleItems[index];
+                                return _buildItemCard(item, isDark, index + 1);
                               },
                             ),
                           ),
@@ -351,7 +358,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
     );
   }
 
-  Widget _buildItemCard(Item item, bool isDark) {
+  Widget _buildItemCard(Item item, bool isDark, int number) {
     final locationProvider = context.watch<LocationProvider>();
     final selectedLocation = locationProvider.selectedLocation;
     // Check if client has extended item info feature (Leruma only)
@@ -375,12 +382,38 @@ class _ItemsScreenState extends State<ItemsScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
-        title: Text(
-          item.name,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkText : AppColors.text,
-          ),
+        title: Row(
+          children: [
+            // Position in the list, same circled style as the suspended cards.
+            Container(
+              width: 26,
+              height: 26,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+              ),
+              child: Text(
+                '$number',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                item.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkText : AppColors.text,
+                ),
+              ),
+            ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
