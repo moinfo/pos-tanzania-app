@@ -96,6 +96,11 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
         limit: _limit,
         offset: 0,
         search: _searchQuery.isNotEmpty ? _searchQuery : null,
+        // Today only: receiving happens the day the stock arrives, so the
+        // working list is today's deliveries -- history lives in the
+        // summaries. No picker on purpose.
+        startDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        endDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
         locationId: selectedLocationId,
       );
 
@@ -141,6 +146,11 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
         limit: _limit,
         offset: _currentOffset,
         search: _searchQuery.isNotEmpty ? _searchQuery : null,
+        // Today only: receiving happens the day the stock arrives, so the
+        // working list is today's deliveries -- history lives in the
+        // summaries. No picker on purpose.
+        startDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        endDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
         locationId: selectedLocationId,
       );
 
