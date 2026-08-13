@@ -516,6 +516,10 @@ class CreditRowCard extends StatelessWidget {
   final String ctaLabel;
   final VoidCallback onTap;
 
+  /// Position in the list; hidden when null. Same circled-number idea as the
+  /// suspended / items / customers lists, in this design system's colors.
+  final int? number;
+
   const CreditRowCard({
     super.key,
     required this.name,
@@ -525,6 +529,7 @@ class CreditRowCard extends StatelessWidget {
     required this.balance,
     required this.ctaLabel,
     required this.onTap,
+    this.number,
   });
 
   @override
@@ -550,6 +555,29 @@ class CreditRowCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (number != null) ...[
+                    Container(
+                      width: 26,
+                      height: 26,
+                      alignment: Alignment.center,
+                      margin: const EdgeInsets.only(top: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1D7DC4).withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: const Color(0xFF1D7DC4).withOpacity(0.5)),
+                      ),
+                      child: Text(
+                        '$number',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: creditInkStrong(context),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Container(
                     width: 42,
                     height: 42,

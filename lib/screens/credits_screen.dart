@@ -447,8 +447,9 @@ class _CreditsScreenState extends State<CreditsScreen> {
                 const CreditEmptyResult(
                     message: 'No match for that name or phone')
               else
-                for (final supervisor in supervisors) ...[
+                for (final (i, supervisor) in supervisors.indexed) ...[
                   CreditRowCard(
+                    number: i + 1,
                     name: supervisor.name,
                     phone: supervisor.phone,
                     credit: supervisor.credit,
@@ -1168,8 +1169,9 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
                 const CreditEmptyResult(
                     message: 'No match for that name or phone')
               else
-                for (final customer in customers) ...[
+                for (final (i, customer) in customers.indexed) ...[
                   CreditRowCard(
+                    number: i + 1,
                     name: customer.fullName,
                     phone: customer.phone,
                     credit: customer.credit,
