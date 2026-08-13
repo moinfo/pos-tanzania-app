@@ -426,7 +426,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: _customers.length,
                               itemBuilder: (context, index) {
-                                return _buildCustomerCard(_customers[index], isDark, isLeruma);
+                                return _buildCustomerCard(
+                                    _customers[index], isDark, isLeruma, index + 1);
                               },
                             ),
                           ),
@@ -443,7 +444,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  Widget _buildCustomerCard(Customer customer, bool isDark, bool isLeruma) {
+  Widget _buildCustomerCard(
+      Customer customer, bool isDark, bool isLeruma, int number) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -453,6 +455,28 @@ class _CustomersScreenState extends State<CustomersScreen> {
             children: [
               Row(
                 children: [
+                  // Position in the list, same circled style as the suspended
+                  // and items cards.
+                  Container(
+                    width: 26,
+                    height: 26,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                      border:
+                          Border.all(color: AppColors.primary.withOpacity(0.5)),
+                    ),
+                    child: Text(
+                      '$number',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   CircleAvatar(
                     backgroundColor: AppColors.primary.withOpacity(0.1),
                     child: Text(
