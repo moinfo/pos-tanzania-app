@@ -570,6 +570,32 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                   children: [
                                     Row(
                                       children: [
+                                        // Position in the list -- the list is
+                                        // route-ordered, so this is the stop
+                                        // number the seller works down.
+                                        Container(
+                                          width: 28,
+                                          height: 28,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary
+                                                .withOpacity(0.15),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: AppColors.primary
+                                                  .withOpacity(0.5),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '${index + 1}',
+                                            style: const TextStyle(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 12,
