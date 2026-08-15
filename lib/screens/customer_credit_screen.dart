@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/credit.dart';
 import '../models/permission_model.dart';
@@ -1352,6 +1353,9 @@ class _PaymentDialogState extends State<PaymentDialog> {
   final TextEditingController _descriptionController = TextEditingController();
 
   bool _isSubmitting = false;
+
+  /// One id per intended payment; reused on retry, rotated after success.
+  String _requestId = const Uuid().v4();
   int? _selectedSaleId;
   int? _selectedLocationId;
   DateTime _selectedDate = DateTime.now();
@@ -1386,7 +1390,12 @@ class _PaymentDialogState extends State<PaymentDialog> {
   }
 
   Future<void> _submitPayment() async {
+    if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
+    // Locked BEFORE the first await: the NFC-settings fetch used to run with
+    // the button still live, and every tap in that window posted again.
+    setState(() => _isSubmitting = true);
+    try {
 
     final amount = double.parse(_amountController.text);
 
@@ -1444,7 +1453,6 @@ class _PaymentDialogState extends State<PaymentDialog> {
       }
     }
 
-    setState(() => _isSubmitting = true);
 
     // Get location provider to access selected location
     final locationProvider = context.read<LocationProvider>();
@@ -1472,6 +1480,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
       stockLocationId: stockLocationId,
       description: description.isEmpty ? null : description,
       date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+      requestId: _requestId,
     );
 
     print('🔵 DEBUG: PaymentFormData JSON: ${formData.toJson()}');
@@ -1481,10 +1490,9 @@ class _PaymentDialogState extends State<PaymentDialog> {
     print('🔵 DEBUG: Response success: ${response.isSuccess}');
     print('🔵 DEBUG: Response data: ${response.data}');
 
-    setState(() => _isSubmitting = false);
-
     if (mounted) {
       if (response.isSuccess) {
+        _requestId = const Uuid().v4(); // consumed; next payment is new
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Payment added successfully')),
         );
@@ -1494,6 +1502,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
           SnackBar(content: Text('Error: ${response.message}')),
         );
       }
+    }
+
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -1759,7 +1771,6 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
   Future<void> _submitUpdate() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSubmitting = true);
 
     // Get location provider to access selected location
     final locationProvider = context.read<LocationProvider>();

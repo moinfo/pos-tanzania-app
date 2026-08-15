@@ -157,6 +157,13 @@ class PaymentFormData {
   final String? description;
   final String? date;
 
+  /// Client-generated idempotency key. The server records it with the
+  /// payment, so a replay -- double tap, network retry -- returns the
+  /// original success instead of inserting the same money again. Keep the
+  /// SAME id when retrying the same payment; only a new payment gets a new
+  /// one.
+  final String? requestId;
+
   PaymentFormData({
     required this.customerId,
     required this.amount,
@@ -168,6 +175,7 @@ class PaymentFormData {
     this.balance,
     this.description,
     this.date,
+    this.requestId,
   });
 
   Map<String, dynamic> toJson() {
@@ -185,6 +193,7 @@ class PaymentFormData {
     if (balance != null) map['balance'] = balance;
     if (description != null && description!.isNotEmpty) map['description'] = description;
     if (date != null) map['date'] = date;
+    if (requestId != null) map['request_id'] = requestId;
 
     return map;
   }

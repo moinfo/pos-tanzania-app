@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../models/credit.dart';
 import '../../providers/location_provider.dart';
@@ -81,6 +82,10 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
   int? _selectedLocationId;
   bool _isSubmitting = false;
 
+  /// One id per intended payment: retrying after a failure reuses it so the
+  /// server can spot a replay, and it rotates only after a confirmed success.
+  String _requestId = const Uuid().v4();
+
   @override
   void initState() {
     super.initState();
@@ -137,6 +142,11 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
 
   Future<void> _submit() async {
     if (_amount <= 0 || _isSubmitting) return;
+    // Locked BEFORE the first await: the NFC-settings fetch below used to run
+    // with the button still live, and every tap in that window posted the
+    // payment again -- four taps, four rows.
+    setState(() => _isSubmitting = true);
+    try {
 
     if (_overChipBalance) {
       _showError(
@@ -182,7 +192,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
     }
 
     if (!mounted) return;
-    setState(() => _isSubmitting = true);
 
     final description = _descriptionController.text.trim();
     final response = await _apiService.addCreditPayment(
@@ -194,16 +203,21 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
             context.read<LocationProvider>().selectedLocation?.locationId,
         description: description.isEmpty ? null : description,
         date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        requestId: _requestId,
       ),
     );
 
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
 
     if (response.isSuccess) {
+      _requestId = const Uuid().v4(); // consumed; a next payment is a new one
       Navigator.pop(context, true);
     } else {
       _showError(response.message);
+    }
+
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
