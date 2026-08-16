@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import '../providers/sale_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
@@ -53,6 +54,12 @@ class _SalesScreenState extends State<SalesScreen> {
   List<Item> _filteredItems = [];
   bool _isLoading = false;
   bool _isProcessing = false;
+
+  /// Idempotency keys, one per intended checkout / suspend. Reused when the
+  /// same attempt is retried after a failure -- the server then replays the
+  /// original result instead of writing twice -- and cleared only on success.
+  String? _checkoutRequestId;
+  String? _suspendRequestId;
 
   /// Whether the inline cart preview shows its item list.
   ///
@@ -1607,6 +1614,7 @@ class _SalesScreenState extends State<SalesScreen> {
       debugPrint('Suspend sale: customer_id=$customerId, customer_name=${saleProvider.selectedCustomer?.fullName}');
       debugPrint('Suspend sale: ${saleProvider.cartItems.length} items in cart');
 
+      _suspendRequestId ??= const Uuid().v4();
       final response = await _apiService.suspendSale(
         items: saleProvider.cartItems,
         customerId: customerId,
@@ -1616,11 +1624,13 @@ class _SalesScreenState extends State<SalesScreen> {
         saleId: saleProvider.resumedFromSaleId,
         payments: saleProvider.payments,
         stockLocationId: saleProvider.stockLocation,
+        requestId: _suspendRequestId,
       );
 
       setState(() => _isProcessing = false);
 
       if (response.isSuccess) {
+        _suspendRequestId = null; // consumed; the next suspend is new
         // Clear cart
         saleProvider.clearCart();
 
@@ -2053,6 +2063,12 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   Future<void> _completeSale() async {
+    // Locked BEFORE the first await: the NFC and credit-card checks below
+    // used to run with the button still live, and every tap in that window
+    // created another sale.
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    try {
     final saleProvider = context.read<SaleProvider>();
 
     // Validate customer is selected
@@ -2271,17 +2287,17 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     // Create sale
-    setState(() => _isProcessing = true);
-
     try {
       final sale = saleProvider.createSale();
       print('DEBUG: Creating sale with data: ${sale.toCreateJson()}');
 
       // A resumed cart completes its own suspended row in place -- same
       // sale_id, status flipped -- so nothing needs deleting afterwards.
+      _checkoutRequestId ??= const Uuid().v4();
       final response = await _apiService.createSale(
         sale,
         resumedFromSaleId: saleProvider.resumedFromSaleId,
+        requestId: _checkoutRequestId,
       );
       print('DEBUG: API Response - Success: ${response.isSuccess}, Message: ${response.message}');
 
@@ -2294,6 +2310,7 @@ class _SalesScreenState extends State<SalesScreen> {
       setState(() => _isProcessing = false);
 
       if (response.isSuccess) {
+        _checkoutRequestId = null; // consumed; the next checkout is new
         // Process NFC Card payment - deduct from wallet
         double? nfcAmountUsed;
         double? nfcBalanceAfter;
@@ -2366,7 +2383,6 @@ class _SalesScreenState extends State<SalesScreen> {
         }
       }
     } catch (e, stackTrace) {
-      setState(() => _isProcessing = false);
       print('DEBUG: Exception creating sale: $e');
       print('DEBUG: Stack trace: $stackTrace');
 
@@ -2378,6 +2394,9 @@ class _SalesScreenState extends State<SalesScreen> {
           ),
         );
       }
+    }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 

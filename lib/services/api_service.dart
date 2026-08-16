@@ -2344,10 +2344,14 @@ class ApiService {
   /// flipped from suspended to completed, exactly like the web register --
   /// instead of inserting a new sale and leaving the old row to be cleaned
   /// up separately.
-  Future<ApiResponse<Sale>> createSale(Sale sale, {int? resumedFromSaleId}) async {
+  Future<ApiResponse<Sale>> createSale(Sale sale,
+      {int? resumedFromSaleId, String? requestId}) async {
     try {
       final body = sale.toCreateJson();
       if (resumedFromSaleId != null) body['sale_id'] = resumedFromSaleId;
+      // Idempotency key: a replayed create (double tap, network retry) gets
+      // the original sale back instead of a second sale.
+      if (requestId != null) body['request_id'] = requestId;
 
       final response = await http.post(
         Uri.parse('$baseUrlSync/sales/create'),
@@ -2382,6 +2386,8 @@ class ApiService {
     // any other shop lands there -- and its rows in sales_payments carry the
     // wrong stock_location_id too.
     int? stockLocationId,
+    // Idempotency key: a replayed suspend cannot park the same order twice.
+    String? requestId,
   }) async {
     try {
       final requestBody = {
@@ -2392,6 +2398,7 @@ class ApiService {
         if (payments != null && payments.isNotEmpty)
           'payments': payments.map((p) => p.toJson()).toList(),
         if (stockLocationId != null) 'stock_location_id': stockLocationId,
+        if (requestId != null) 'request_id': requestId,
         'sale_type': saleType,
       };
 
