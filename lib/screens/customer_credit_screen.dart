@@ -841,10 +841,58 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
     );
   }
 
+  Future<void> _deleteTransaction(CreditTransaction transaction) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete payment'),
+        content: Text(
+            'Delete this payment of ${_money.format(transaction.debit)} TSh? '
+            'The customer\'s balance will go back up.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || transaction.id == null) return;
+
+    final response = await _apiService.deleteCreditPayment(transaction.id!);
+    if (!mounted) return;
+
+    if (response.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment deleted')),
+      );
+      _loadStatement();
+    } else {
+      // The server enforces credits_delete too; surface its message verbatim.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   Widget _buildLerumaTransactionRow(CreditTransaction transaction,
       {required bool isLast}) {
     final isPayment = transaction.debit > 0;
     final amount = isPayment ? transaction.debit : transaction.credit;
+    // Delete is offered only on payment rows (credit-sale rows belong to the
+    // sale, not the statement) and only with the credits_delete permission --
+    // the same grant the server checks.
+    final canDelete = isPayment &&
+        transaction.id != null &&
+        context.read<PermissionProvider>().hasPermission(PermissionIds.creditsDelete);
 
     final parts = <String>[];
     final date = DateTime.tryParse(transaction.date);
@@ -929,6 +977,17 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                       : creditInkStrong(context),
                 ),
               ),
+              if (canDelete) ...[
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => _deleteTransaction(transaction),
+                  child: Icon(
+                    Icons.delete_outline,
+                    size: 19,
+                    color: AppColors.error.withOpacity(0.8),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
