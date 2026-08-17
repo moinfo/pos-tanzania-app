@@ -234,13 +234,20 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    // Wait for initialization
-    await Future.delayed(const Duration(seconds: 1));
+    // Branding pause, connectivity check and the session verification all run
+    // TOGETHER: the old code slept a fixed second and then read
+    // isAuthenticated while AuthProvider was still verifying the token in the
+    // background, so a slow network bounced valid sessions to the login
+    // screen -- and every cold start paid the full second regardless.
+    final connectivityProvider = context.read<ConnectivityProvider>();
+    final authProvider = context.read<AuthProvider>();
+    await Future.wait([
+      authProvider.ready,
+      connectivityProvider.initialize(),
+      Future.delayed(const Duration(milliseconds: 600)),
+    ]);
 
     if (mounted) {
-      // Initialize connectivity provider
-      final connectivityProvider = context.read<ConnectivityProvider>();
-      await connectivityProvider.initialize();
 
       // Check if client is selected
       final prefs = await SharedPreferences.getInstance();
@@ -268,13 +275,16 @@ class _SplashScreenState extends State<SplashScreen> {
         debugPrint('Offline mode disabled for ${client.displayName}');
       }
 
-      final authProvider = context.read<AuthProvider>();
+      // Settled: authProvider.ready completed above.
       final isAuthenticated = authProvider.isAuthenticated;
 
-      // Initialize location provider if user is already authenticated
+      // Initialize location provider if user is already authenticated.
+      // 'sales' up front: the home dashboard needs the sales-module list
+      // immediately, and the old default ('items') forced a second
+      // /stock_locations/allowed round trip before Home could paint.
       if (isAuthenticated) {
         final locationProvider = context.read<LocationProvider>();
-        await locationProvider.initialize();
+        await locationProvider.initialize(moduleId: 'sales');
       }
 
       if (mounted) {

@@ -30,8 +30,15 @@ class AuthProvider with ChangeNotifier {
   static const String _offlineCredentialsKey = 'offline_credentials';
   static const String _offlineUserKey = 'offline_user';
 
+  /// Completes when the startup session check (token read + verify +
+  /// permissions) has finished. The splash screen awaits this instead of
+  /// racing it with a fixed delay -- the race sent users with a perfectly
+  /// valid session to the login screen whenever the network was slower
+  /// than the splash.
+  late final Future<void> ready;
+
   AuthProvider() {
-    _checkAuth();
+    ready = _checkAuth();
   }
 
   /// Set permission provider (called from main.dart after providers are set up)
