@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -350,6 +353,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
     print('📊 Loading Leruma dashboard: $startDate to $endDate, location: $selectedLocationId');
 
+    // Cache-then-network: paint the last known dashboard for this location
+    // instantly (stale is better than a spinner on a slow link), then let the
+    // network response overwrite it. Only when nothing is on screen yet --
+    // a refresh of visible data must not flash backwards.
+    final cacheKey = 'leruma_dashboard_${selectedLocationId ?? 0}';
+    if (_commissionData == null && _myCommissions == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cached = prefs.getString(cacheKey);
+        if (cached != null && mounted) {
+          _applyLerumaDashboard(
+              json.decode(cached) as Map<String, dynamic>, selectedLocationId,
+              fromCache: true);
+        }
+      } catch (_) {}
+    }
+
     // Clear cache when location changes
     ApiService.clearDashboardCache();
 
@@ -362,42 +382,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (dashboardResponse.isSuccess && dashboardResponse.data != null) {
       final data = dashboardResponse.data!;
-
-      setState(() {
-        _commissionData = data['commission_progress'] as Map<String, dynamic>?;
-        _salesSummary = data['sales_summary'] as Map<String, dynamic>?;
-
-        // New enhanced data
-        _topStats = data['top_stats'] as Map<String, dynamic>?;
-        _progressCommission = data['progress_commission'] as Map<String, dynamic>?;
-        _progressCustomers = data['progress_customers'] as Map<String, dynamic>?;
-        _myCommissions = data['my_commissions'] as Map<String, dynamic>?;
-
-        // Debug: Print commission data
-        print('📊 === COMMISSION DEBUG ===');
-        print('📊 Progress Commission: $_progressCommission');
-        print('📊 My Commissions user_name: ${_myCommissions?['user_name']}');
-        print('📊 My Commissions debug: ${_myCommissions?['debug']}');
-        print('📊 My Commissions levels: ${_myCommissions?['levels']}');
-        print('📊 =========================');
-
-        // Also update the standard fields from sales summary
-        final todaySummary = _salesSummary?['today'] as Map<String, dynamic>?;
-        if (todaySummary != null) {
-          _totalSales = (todaySummary['total_sales'] ?? 0).toDouble();
-          _expenses = (todaySummary['expenses'] ?? 0).toDouble();
-          _profit = (todaySummary['profit'] ?? 0).toDouble();
-        }
-
-        _isLoading = false;
-      });
-
-      _loadDailyCollections(selectedLocationId);
-    } else {
+      _applyLerumaDashboard(data, selectedLocationId);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(cacheKey, json.encode(data));
+      } catch (_) {}
+    } else if (_commissionData == null && _myCommissions == null) {
+      // Only surface the error when the cached paint gave us nothing.
       setState(() {
         _error = dashboardResponse.message ?? 'Failed to load dashboard';
         _isLoading = false;
       });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _applyLerumaDashboard(Map<String, dynamic> data, int? selectedLocationId,
+      {bool fromCache = false}) {
+    setState(() {
+      _commissionData = data['commission_progress'] as Map<String, dynamic>?;
+      _salesSummary = data['sales_summary'] as Map<String, dynamic>?;
+      _topStats = data['top_stats'] as Map<String, dynamic>?;
+      _progressCommission = data['progress_commission'] as Map<String, dynamic>?;
+      _progressCustomers = data['progress_customers'] as Map<String, dynamic>?;
+      _myCommissions = data['my_commissions'] as Map<String, dynamic>?;
+
+      final todaySummary = _salesSummary?['today'] as Map<String, dynamic>?;
+      if (todaySummary != null) {
+        _totalSales = (todaySummary['total_sales'] ?? 0).toDouble();
+        _expenses = (todaySummary['expenses'] ?? 0).toDouble();
+        _profit = (todaySummary['profit'] ?? 0).toDouble();
+      }
+
+      _isLoading = false;
+    });
+
+    if (!fromCache) {
+      _loadDailyCollections(selectedLocationId);
     }
   }
 

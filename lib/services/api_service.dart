@@ -48,8 +48,12 @@ class ApiService {
   /// helpers open and CLOSE a fresh connection per call, so every request
   /// paid a full TCP + TLS handshake -- seconds of pure overhead per call on
   /// a weak mobile network. A shared client keeps connections alive and
-  /// reuses them.
-  static final http.Client _http = http.Client();
+  /// reuses them. The timeout wrapper turns a dead connection into a fast,
+  /// retryable error instead of a spinner that hangs until the OS gives up.
+  static final http.Client _http = _TimeoutClient(http.Client());
+
+  /// The same keep-alive + timeout client, for the other service classes.
+  static http.Client get sharedHttpClient => _http;
 
   final _storage = const FlutterSecureStorage();
 
@@ -1252,6 +1256,10 @@ class ApiService {
     int limit = 50,
     int offset = 0,
     int? locationId,
+    // Sales-grid shape: only the fields checkout needs, and stock trimmed to
+    // the selected location -- about a third of the full payload. The items
+    // management screen keeps the full shape for editing.
+    bool lean = false,
   }) async {
     try {
       final queryParams = {
@@ -1260,6 +1268,7 @@ class ApiService {
         if (search != null) 'search': search,
         if (category != null) 'category': category,
         if (locationId != null) 'location_id': locationId.toString(),
+        if (lean) 'lean': '1',
       };
 
       final uri = Uri.parse('$baseUrlSync/items').replace(
@@ -7052,5 +7061,24 @@ class ApiService {
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
+  }
+}
+
+/// Applies a per-request deadline to everything sent through the shared
+/// client. 30s covers a slow 3G round trip with headroom; uploads (photos on
+/// multipart requests) get longer. A link that associates but never delivers
+/// -- the classic weak-network failure -- now surfaces as a TimeoutException
+/// the normal error handling shows, instead of an endless spinner.
+class _TimeoutClient extends http.BaseClient {
+  _TimeoutClient(this._inner);
+
+  final http.Client _inner;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    final timeout = request is http.MultipartRequest
+        ? const Duration(seconds: 120)
+        : const Duration(seconds: 30);
+    return _inner.send(request).timeout(timeout);
   }
 }

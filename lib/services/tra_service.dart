@@ -41,7 +41,7 @@ class TRALastZResult {
 /// TRA (TRADE) Service for Tanzania Revenue Authority tax reporting
 class TRAService {
   /// Shared keep-alive client -- see ApiService._http for why.
-  static final http.Client _http = http.Client();
+  static final http.Client _http = ApiService.sharedHttpClient;
 
   final ApiService _apiService = ApiService();
 

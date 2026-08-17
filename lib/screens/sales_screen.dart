@@ -1324,6 +1324,7 @@ class _SalesScreenState extends State<SalesScreen> {
     final response = await _apiService.getItems(
       limit: 100,
       locationId: selectedLocationId,
+      lean: true,
     );
 
     if (response.isSuccess && response.data != null) {

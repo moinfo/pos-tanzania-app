@@ -68,15 +68,20 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
       // No date bounds on purpose: a suspended sale is an open order, and a
       // date window made anything parked before it silently disappear -- the
       // list looked empty while the customer's order sat waiting.
-      final response = await _apiService.getSuspendedSales(
-        locationId: selectedLocationId,
-      );
+      //
+      // The list and its route ordering are independent requests, so they go
+      // out together -- serially this screen paid two full round trips before
+      // showing anything. Route order stays best-effort: if it fails, the
+      // list still renders, falling back to date order.
+      final results = await Future.wait([
+        _apiService.getSuspendedSales(locationId: selectedLocationId),
+        if (selectedLocationId != null)
+          _apiService.getMapRoute(locationId: selectedLocationId),
+      ]);
 
-      // Best-effort: the list still renders on route order failure, falling
-      // back to date, rather than blocking on a second request.
-      if (selectedLocationId != null) {
-        final routeResponse =
-            await _apiService.getMapRoute(locationId: selectedLocationId);
+      final response = results[0] as dynamic;
+      if (results.length > 1) {
+        final routeResponse = results[1] as dynamic;
         if (routeResponse.isSuccess && routeResponse.data != null) {
           _routeOrder = {
             for (final customer in routeResponse.data!.customers)
