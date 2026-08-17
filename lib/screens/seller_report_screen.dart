@@ -6,6 +6,7 @@ import '../providers/location_provider.dart';
 import '../models/stock_location.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
+import 'sales_history_screen.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
 
@@ -860,8 +861,10 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             _buildDataRow('All Sales', allSales, isDark),
             _buildDataRow('DO', offerDiscount, isDark),
             _buildDataRow('R-S-DO', rSdo, isDark),
-            _buildDataRow('Cash Sales', cashSales, isDark),
-            _buildDataRow('Credit Sales', creditSales, isDark),
+            _buildDataRow('Cash Sales', cashSales, isDark,
+                onTap: () => _openFilteredSales('Cash')),
+            _buildDataRow('Credit Sales', creditSales, isDark,
+                onTap: () => _openFilteredSales('Credit Card')),
             // Turnover - hidden for Leruma
             if (!_isLeruma)
               _buildDataRow('Turnover', turnover, isDark),
@@ -877,7 +880,8 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             // Expenses - hidden for Leruma
             if (!_isLeruma)
               _buildDataRow('Expenses', expenses, isDark, isNegative: true),
-            _buildDataRow('Bank Amount', bankAmount, isDark),
+            _buildDataRow('Bank Amount', bankAmount, isDark,
+                onTap: () => _openFilteredSales('Bank')),
             _buildDataRow('Direct Deposit', directDeposit, isDark),
             _buildDataRow('Difference Deposit', differenceDeposit, isDark),
             _buildDataRow('Bank Difference', bankDifference, isDark),
@@ -973,8 +977,26 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
     );
   }
 
-  Widget _buildDataRow(String label, double value, bool isDark, {bool isNegative = false}) {
-    return Padding(
+  /// Opens the sales history pre-filtered to one payment type, for the
+  /// report's date and location, ordered by the supervisor's visit route --
+  /// the same ordering the suspended list uses.
+  void _openFilteredSales(String paymentFilter) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SalesHistoryScreen(
+          initialPaymentFilter: paymentFilter,
+          initialDate: _selectedDate,
+          locationId: _selectedLocation?.locationId,
+          routeOrdered: true,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataRow(String label, double value, bool isDark,
+      {bool isNegative = false, VoidCallback? onTap}) {
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -986,17 +1008,34 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
               color: isDark ? AppColors.darkText : AppColors.text,
             ),
           ),
-          Text(
-            Formatters.formatCurrency(isNegative ? -value.abs() : value),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isNegative ? AppColors.error : (isDark ? AppColors.darkText : AppColors.text),
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                Formatters.formatCurrency(isNegative ? -value.abs() : value),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: onTap != null ? FontWeight.w700 : FontWeight.w500,
+                  // Tappable amounts read as links; plain rows stay plain.
+                  color: onTap != null
+                      ? AppColors.primary
+                      : isNegative
+                          ? AppColors.error
+                          : (isDark ? AppColors.darkText : AppColors.text),
+                ),
+              ),
+              if (onTap != null) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right, size: 16, color: AppColors.primary),
+              ],
+            ],
           ),
         ],
       ),
     );
+
+    if (onTap == null) return row;
+    return InkWell(onTap: onTap, child: row);
   }
 
   Widget _buildHighlightRow(String label, double value, bool isDark, {Color? color}) {

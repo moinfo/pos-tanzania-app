@@ -14,7 +14,27 @@ import 'package:intl/intl.dart';
 import 'return_sale_screen.dart';
 
 class SalesHistoryScreen extends StatefulWidget {
-  const SalesHistoryScreen({super.key});
+  const SalesHistoryScreen({
+    super.key,
+    this.initialPaymentFilter,
+    this.initialDate,
+    this.locationId,
+    this.routeOrdered = false,
+  });
+
+  /// Pre-select a payment chip ('Cash', 'Credit Card', 'Bank') -- used by the
+  /// seller report's tappable amounts.
+  final String? initialPaymentFilter;
+
+  /// Open on this date instead of today.
+  final DateTime? initialDate;
+
+  /// Use this location instead of the provider's selection.
+  final int? locationId;
+
+  /// Order the list by the supervisor's visit route (the same ordering the
+  /// suspended list uses) instead of by sale time.
+  final bool routeOrdered;
 
   @override
   State<SalesHistoryScreen> createState() => _SalesHistoryScreenState();
@@ -38,13 +58,19 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   String _searchQuery = '';
   String _paymentFilter = 'All'; // All, Cash, Credit Card
 
+  /// customer person_id -> route position, mirroring the suspended list.
+  Map<int, int> _routeOrder = {};
+
   @override
   void initState() {
     super.initState();
-    // Default to today
-    final now = DateTime.now();
+    // Default to today (or the caller's date)
+    final now = widget.initialDate ?? DateTime.now();
     _startDate = DateFormat('yyyy-MM-dd').format(now);
     _endDate = DateFormat('yyyy-MM-dd').format(now);
+    if (widget.initialPaymentFilter != null) {
+      _paymentFilter = widget.initialPaymentFilter!;
+    }
     // Initialize location after build is complete
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocation();
@@ -63,6 +89,21 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Same ordering as the suspended list: the supervisor's visit route first,
+  /// walk-ins and off-route customers at the end by time.
+  void _sortByRoute() {
+    _sales.sort((a, b) {
+      final routeA = a.customerId != null ? _routeOrder[a.customerId] : null;
+      final routeB = b.customerId != null ? _routeOrder[b.customerId] : null;
+
+      if (routeA != null && routeB != null) return routeA.compareTo(routeB);
+      if (routeA != null) return -1;
+      if (routeB != null) return 1;
+
+      return b.saleTime.compareTo(a.saleTime);
+    });
   }
 
   void _filterSales() {
@@ -94,7 +135,23 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     });
 
     final locationProvider = context.read<LocationProvider>();
-    final selectedLocationId = locationProvider.selectedLocation?.locationId;
+    final selectedLocationId =
+        widget.locationId ?? locationProvider.selectedLocation?.locationId;
+
+    // Route order is fetched once, alongside the first page.
+    if (widget.routeOrdered && _routeOrder.isEmpty && selectedLocationId != null) {
+      _apiService.getMapRoute(locationId: selectedLocationId).then((route) {
+        if (!mounted || !route.isSuccess || route.data == null) return;
+        setState(() {
+          _routeOrder = {
+            for (final customer in route.data!.customers)
+              customer.personId: customer.sortOrder,
+          };
+          _sortByRoute();
+          _filterSales();
+        });
+      });
+    }
 
     final restricted = !_canPickDate;
     final response = await _apiService.getSales(
@@ -113,6 +170,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
       setState(() {
         _sales.addAll(salesList);
+        if (widget.routeOrdered) _sortByRoute();
         _offset += salesList.length;
         _hasMore = salesList.length >= _limit;
         _isLoading = false;
