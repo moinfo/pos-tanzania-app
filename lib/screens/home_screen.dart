@@ -158,6 +158,15 @@ class _HomeScreenState extends State<HomeScreen> {
     await _loadDashboardData();
   }
 
+  /// Pull-to-refresh: bust the server-side dashboard cache first, so a
+  /// deliberate refresh always shows live numbers. Initial loads skip this
+  /// and may ride the server's 5-minute cache -- that trade keeps opening
+  /// the app fast.
+  Future<void> _refreshDashboard() async {
+    await _apiService.clearDashboardServerCache();
+    await _loadDashboardData();
+  }
+
   Future<void> _loadDashboardData() async {
     setState(() {
       _isLoading = true;
@@ -460,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       child: RefreshIndicator(
-        onRefresh: _loadDashboardData,
+        onRefresh: _refreshDashboard,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16.0),

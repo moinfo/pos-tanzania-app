@@ -5715,6 +5715,23 @@ class ApiService {
   // COMMISSION DASHBOARD (Leruma-specific)
   // ============================================================================
 
+  /// Drop the SERVER's 5-minute dashboard cache.
+  ///
+  /// Pull-to-refresh must mean "fresh numbers now": without this, a target
+  /// approved on the web a minute ago stays hidden behind the server cache
+  /// for up to five minutes no matter how often the seller refreshes.
+  /// Best-effort -- an older server without the endpoint just ignores it.
+  Future<void> clearDashboardServerCache() async {
+    try {
+      await http.get(
+        Uri.parse('$baseUrlSync/dashboard/clear_cache'),
+        headers: await _getHeaders(),
+      );
+    } catch (_) {
+      // The refresh itself still proceeds; worst case it hits the cache.
+    }
+  }
+
   /// Get full commission dashboard data (Leruma only)
   /// Includes caching for improved performance (60 second TTL)
   Future<ApiResponse<Map<String, dynamic>>> getCommissionDashboard({
