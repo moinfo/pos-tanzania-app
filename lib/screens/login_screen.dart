@@ -111,8 +111,12 @@ class _LoginScreenState extends State<LoginScreen> {
       // Initialize location provider after successful login
       final locationProvider = context.read<LocationProvider>();
       // 'sales' so the home dashboard reuses this fetch instead of
-      // making a second /stock_locations/allowed call before painting.
-      await locationProvider.initialize(moduleId: 'sales');
+      // making a second /stock_locations/allowed call before painting; the
+      // assigned location must be applied HERE for the same reason.
+      await locationProvider.initialize(
+        moduleId: 'sales',
+        userLocationId: context.read<AuthProvider>().user?.locationId,
+      );
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -174,8 +178,12 @@ class _LoginScreenState extends State<LoginScreen> {
         // Initialize location provider after successful login
         final locationProvider = context.read<LocationProvider>();
         // 'sales' so the home dashboard reuses this fetch instead of
-      // making a second /stock_locations/allowed call before painting.
-      await locationProvider.initialize(moduleId: 'sales');
+      // making a second /stock_locations/allowed call before painting; the
+      // assigned location must be applied HERE for the same reason.
+      await locationProvider.initialize(
+        moduleId: 'sales',
+        userLocationId: context.read<AuthProvider>().user?.locationId,
+      );
 
         if (mounted) {
           Navigator.of(context).pushReplacement(

@@ -63,6 +63,20 @@ class AuthProvider with ChangeNotifier {
 
   /// Check if user is already authenticated
   Future<void> _checkAuth() async {
+    try {
+      await _checkAuthInner();
+    } catch (e) {
+      // A failed session check (secure-storage PlatformException after a
+      // device restore, network down during verify) must resolve to "not
+      // signed in", never to an error: the splash awaits `ready`, and an
+      // error here left it stuck with no navigation at all.
+      debugPrint('Auth check failed, treating as signed out: $e');
+      _isAuthenticated = false;
+      _user = null;
+    }
+  }
+
+  Future<void> _checkAuthInner() async {
     final token = await _apiService.getToken();
     if (token != null) {
       // Verify token is still valid

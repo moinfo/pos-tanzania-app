@@ -241,11 +241,17 @@ class _SplashScreenState extends State<SplashScreen> {
     // screen -- and every cold start paid the full second regardless.
     final connectivityProvider = context.read<ConnectivityProvider>();
     final authProvider = context.read<AuthProvider>();
-    await Future.wait([
-      authProvider.ready,
-      connectivityProvider.initialize(),
-      Future.delayed(const Duration(milliseconds: 600)),
-    ]);
+    try {
+      await Future.wait([
+        authProvider.ready,
+        connectivityProvider.initialize(),
+        Future.delayed(const Duration(milliseconds: 600)),
+      ]);
+    } catch (e) {
+      // Never strand the splash: whatever failed, fall through and route on
+      // the state we have (worst case, the login screen).
+      debugPrint('Splash init error: $e');
+    }
 
     if (mounted) {
 
@@ -284,7 +290,13 @@ class _SplashScreenState extends State<SplashScreen> {
       // /stock_locations/allowed round trip before Home could paint.
       if (isAuthenticated) {
         final locationProvider = context.read<LocationProvider>();
-        await locationProvider.initialize(moduleId: 'sales');
+        // userLocationId here: this is the FIRST initialize of the session,
+        // and the home screen's later call dedupes against it -- without the
+        // assigned location applied now, it never would be.
+        await locationProvider.initialize(
+          moduleId: 'sales',
+          userLocationId: authProvider.user?.locationId,
+        );
       }
 
       if (mounted) {

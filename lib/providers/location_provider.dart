@@ -101,6 +101,12 @@ class LocationProvider with ChangeNotifier {
         _currentModuleId == requestedModule &&
         activeUserId != null &&
         _loadedForUserId == activeUserId) {
+      // Skipping the refetch must not skip the caller's assigned-location
+      // default: if nothing is selected yet, apply it before returning.
+      if (userLocationId != null && _selectedLocation == null) {
+        await _setDefaultLocation(userLocationId);
+        notifyListeners();
+      }
       debugPrint('📍 [LocationProvider] Already initialized for $requestedModule, skipping');
       return;
     }

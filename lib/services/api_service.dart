@@ -1417,7 +1417,7 @@ class ApiService {
         }
       }
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await _http.send(request); // shared client: .send() alone opens+closes its own connection
       final response = await http.Response.fromStream(streamedResponse);
 
       return _handleResponse<Item>(
@@ -1486,7 +1486,7 @@ class ApiService {
         }
       }
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await _http.send(request); // shared client: .send() alone opens+closes its own connection
       final response = await http.Response.fromStream(streamedResponse);
 
       return _handleResponse<Item>(
@@ -3606,7 +3606,7 @@ class ApiService {
       }
 
       // Send request
-      final streamedResponse = await multipartRequest.send();
+      final streamedResponse = await _http.send(multipartRequest); // shared client: .send() alone opens+closes its own connection
       final response = await http.Response.fromStream(streamedResponse);
 
       return _handleResponse<Map<String, dynamic>>(
