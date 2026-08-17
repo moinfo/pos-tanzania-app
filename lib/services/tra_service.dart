@@ -40,6 +40,9 @@ class TRALastZResult {
 
 /// TRA (TRADE) Service for Tanzania Revenue Authority tax reporting
 class TRAService {
+  /// Shared keep-alive client -- see ApiService._http for why.
+  static final http.Client _http = http.Client();
+
   final ApiService _apiService = ApiService();
 
   /// Get TRA Dashboard summary
@@ -59,7 +62,7 @@ class TRAService {
 
       final uri = Uri.parse('$baseUrl/tra/dashboard').replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await http.get(
+      final response = await _http.get(
         uri,
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +91,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.get(
+      final response = await _http.get(
         Uri.parse('$baseUrl/tra/efds'),
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +123,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.get(
+      final response = await _http.get(
         Uri.parse('$baseUrl/tra/efds'),
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +164,7 @@ class TRAService {
 
       final uri = Uri.parse('$baseUrl/tra/sales').replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await http.get(
+      final response = await _http.get(
         uri,
         headers: {
           'Content-Type': 'application/json',
@@ -197,7 +200,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.get(
+      final response = await _http.get(
         Uri.parse('$baseUrl/tra/sales/$id'),
         headers: {
           'Content-Type': 'application/json',
@@ -235,7 +238,7 @@ class TRAService {
         );
       }
 
-      final response = await http.post(
+      final response = await _http.post(
         Uri.parse('$baseUrl/tra/sales/create'),
         headers: {
           'Content-Type': 'application/json',
@@ -287,7 +290,7 @@ class TRAService {
 
       final requestBody = json.encode(sale.toJson());
 
-      final response = await http.put(
+      final response = await _http.put(
         Uri.parse('$baseUrl/tra/sales/update/$id'),
         headers: {
           'Content-Type': 'application/json',
@@ -325,7 +328,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.delete(
+      final response = await _http.delete(
         Uri.parse('$baseUrl/tra/sales/delete/$id'),
         headers: {
           'Content-Type': 'application/json',
@@ -351,7 +354,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.get(
+      final response = await _http.get(
         Uri.parse('$baseUrl/tra/last-z-number/$efdId'),
         headers: {
           'Content-Type': 'application/json',
@@ -395,7 +398,7 @@ class TRAService {
 
       final uri = Uri.parse('$baseUrl/tra/purchases').replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await http.get(
+      final response = await _http.get(
         uri,
         headers: {
           'Content-Type': 'application/json',
@@ -431,7 +434,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.get(
+      final response = await _http.get(
         Uri.parse('$baseUrl/tra/purchases/$id'),
         headers: {
           'Content-Type': 'application/json',
@@ -459,7 +462,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.post(
+      final response = await _http.post(
         Uri.parse('$baseUrl/tra/purchases/create'),
         headers: {
           'Content-Type': 'application/json',
@@ -493,7 +496,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.put(
+      final response = await _http.put(
         Uri.parse('$baseUrl/tra/purchases/update/$id'),
         headers: {
           'Content-Type': 'application/json',
@@ -520,7 +523,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.delete(
+      final response = await _http.delete(
         Uri.parse('$baseUrl/tra/purchases/delete/$id'),
         headers: {
           'Content-Type': 'application/json',
@@ -559,7 +562,7 @@ class TRAService {
 
       final uri = Uri.parse('$baseUrl/tra/expenses').replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await http.get(
+      final response = await _http.get(
         uri,
         headers: {
           'Content-Type': 'application/json',
@@ -599,7 +602,7 @@ class TRAService {
       final expenseData = expense.toJson();
       expenseData['is_expense'] = 'YES';
 
-      final response = await http.post(
+      final response = await _http.post(
         Uri.parse('$baseUrl/tra/expenses/create'),
         headers: {
           'Content-Type': 'application/json',
@@ -637,7 +640,7 @@ class TRAService {
       final expenseData = expense.toJson();
       expenseData['is_expense'] = 'YES';
 
-      final response = await http.put(
+      final response = await _http.put(
         Uri.parse('$baseUrl/tra/expenses/update/$id'),
         headers: {
           'Content-Type': 'application/json',
@@ -664,7 +667,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.delete(
+      final response = await _http.delete(
         Uri.parse('$baseUrl/tra/expenses/delete/$id'),
         headers: {
           'Content-Type': 'application/json',
@@ -692,7 +695,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.get(
+      final response = await _http.get(
         Uri.parse('$baseUrl/tra/suppliers'),
         headers: {
           'Content-Type': 'application/json',
@@ -723,7 +726,7 @@ class TRAService {
       final baseUrl = ApiService.baseUrlSync;
       final token = await _apiService.getToken();
 
-      final response = await http.get(
+      final response = await _http.get(
         Uri.parse('$baseUrl/tra/items'),
         headers: {
           'Content-Type': 'application/json',
