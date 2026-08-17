@@ -120,9 +120,12 @@ class _SalesScreenState extends State<SalesScreen> {
       // The keyboard must not squeeze the footer off screen; the middle region
       // scrolls instead.
       resizeToAvoidBottomInset: true,
-      body: _isLoading
-          ? _buildSkeletonGrid(false)
-          : Consumer<SaleProvider>(
+      // No full-screen skeleton here: items prefetch in the background, but
+      // this screen shows nothing from them until the seller searches -- a
+      // skeleton would promise a grid that never appears, while hiding the
+      // customer selector and cart. The search results area shows its own
+      // small wait state if a search lands mid-fetch.
+      body: Consumer<SaleProvider>(
               builder: (context, saleProvider, child) {
                 return Column(
                   children: [
@@ -382,6 +385,19 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Widget _buildLerumaResults() {
     if (_filteredItems.isEmpty) {
+      // Distinguish "still fetching the catalogue" from a genuine no-match:
+      // a search typed during the prefetch would otherwise flash a false
+      // "no item matches".
+      if (_isLoading) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+              child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.5))),
+        );
+      }
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Text(
