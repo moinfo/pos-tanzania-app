@@ -718,19 +718,70 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   },
                 ),
               ),
-            // 2. Items - requires items permission
+            // 2. Items Menu — the approval queue lives with the catalogue it
+            // acts on. Hidden entirely when the user holds neither permission.
             PermissionWrapper(
-              permissionId: PermissionIds.items,
-              child: ListTile(
+              anyPermissions: const [
+                PermissionIds.items,
+                PermissionIds.itemsApprove,
+              ],
+              child: ExpansionTile(
                 leading: Icon(Icons.inventory_2, color: AppColors.brandPrimary),
-                title: const Text('Items'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ItemsScreen()),
-                  );
-                },
+                // The badge rides in the title rather than `trailing` so the
+                // ExpansionTile keeps its own rotating chevron, and so a
+                // collapsed group still shows that something is waiting.
+                title: Row(
+                  children: [
+                    const Text('Items'),
+                    if (_pendingApprovals > 0) ...[
+                      const SizedBox(width: 8),
+                      _buildCountBadge(_pendingApprovals),
+                    ],
+                  ],
+                ),
+                childrenPadding: const EdgeInsets.only(left: 16),
+                children: [
+                  // Items List
+                  PermissionWrapper(
+                    permissionId: PermissionIds.items,
+                    child: ListTile(
+                      leading: Icon(Icons.inventory_2_outlined,
+                          color: AppColors.brandPrimary),
+                      title: const Text('Items List'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ItemsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  // Item Approvals - only approvers see it. Employees without
+                  // this grant are the ones whose saves get staged, so the
+                  // queue would be empty and unusable for them.
+                  PermissionWrapper(
+                    permissionId: PermissionIds.itemsApprove,
+                    child: ListTile(
+                      leading: Icon(Icons.fact_check_outlined,
+                          color: AppColors.brandPrimary),
+                      title: const Text('Item Approvals'),
+                      trailing: _pendingApprovals > 0
+                          ? _buildCountBadge(_pendingApprovals)
+                          : null,
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ItemApprovalsScreen()),
+                        );
+                        // The queue may have shrunk while the screen was open.
+                        _refreshPendingApprovals();
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
             // Production - gated on the module grant rather than a per-client
@@ -768,27 +819,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     context,
                     MaterialPageRoute(builder: (_) => const CashMovementsScreen()),
                   );
-                },
-              ),
-            ),
-            // Item Approvals - only approvers see it. Employees without this
-            // grant are the ones whose saves get staged, so the queue would
-            // be empty and unusable for them.
-            PermissionWrapper(
-              permissionId: PermissionIds.itemsApprove,
-              child: ListTile(
-                leading: Icon(Icons.fact_check_outlined, color: AppColors.brandPrimary),
-                title: const Text('Item Approvals'),
-                trailing:
-                    _pendingApprovals > 0 ? _buildCountBadge(_pendingApprovals) : null,
-                onTap: () async {
-                  Navigator.pop(context);
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ItemApprovalsScreen()),
-                  );
-                  // The queue may have shrunk while the screen was open.
-                  _refreshPendingApprovals();
                 },
               ),
             ),
