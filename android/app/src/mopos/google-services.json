@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "318730659014",
+    "project_id": "mopos-1ee50",
+    "storage_bucket": "mopos-1ee50.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318730659014:android:3b5c9a4b04293d9be1a3c7",
+        "android_client_info": {
+          "package_name": "co.tz.mopos.pos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4IsetftG25ionIjo2RXmvLSd5Q-g4BgA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
