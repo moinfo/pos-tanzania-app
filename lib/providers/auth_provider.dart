@@ -28,8 +28,18 @@ class AuthProvider with ChangeNotifier {
   static const String _offlineCredentialsKey = 'offline_credentials';
   static const String _offlineUserKey = 'offline_user';
 
+  /// The startup check, kept so callers can await it instead of racing it.
+  Future<void>? _authCheck;
+
+  /// Completes once the constructor's auth check has finished.
+  ///
+  /// Anything that routes on isAuthenticated must await this first, or it
+  /// reads the pre-check default of false and sends a logged-in user to the
+  /// login screen.
+  Future<void> ensureAuthChecked() => _authCheck ?? Future<void>.value();
+
   AuthProvider() {
-    _checkAuth();
+    _authCheck = _checkAuth();
   }
 
   /// Set permission provider (called from main.dart after providers are set up)
@@ -48,7 +58,31 @@ class AuthProvider with ChangeNotifier {
   }
 
   /// Check if user is already authenticated
+  ///
+  /// Holds isLoading for the whole check. Screens decide where to send the
+  /// user with `!isAuthenticated && !isLoading`, and this runs from the
+  /// constructor: without the flag the provider spends the storage read and
+  /// the /auth/verify round trip reporting "not logged in, not busy", and
+  /// MainNavigation redirects to the login screen before the answer arrives.
+  ///
+  /// A cold start never showed it because the app opens on the login route
+  /// anyway. A hot restart rebuilds the tree with MainNavigation already
+  /// current, so it fired every time -- pressing R looked like a logout.
+  ///
+  /// Set directly rather than through a notify: there are no listeners yet
+  /// when the constructor runs.
   Future<void> _checkAuth() async {
+    _isLoading = true;
+
+    try {
+      await _resolveAuth();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _resolveAuth() async {
     final token = await _apiService.getToken();
     if (token != null) {
       // Verify token is still valid

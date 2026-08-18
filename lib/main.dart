@@ -265,6 +265,11 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       final authProvider = context.read<AuthProvider>();
+      // The provider checks the stored session in its constructor. Reading
+      // isAuthenticated before that finishes gets the default of false, which
+      // routes a logged-in user to the login screen -- what a hot restart did
+      // every time, since it reruns this splash with a fresh provider.
+      await authProvider.ensureAuthChecked();
       final isAuthenticated = authProvider.isAuthenticated;
 
       // Initialize location provider if user is already authenticated
