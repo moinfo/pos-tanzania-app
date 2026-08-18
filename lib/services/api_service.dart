@@ -164,7 +164,14 @@ class ApiService {
 
     // Validate token belongs to current client
     if (storedToken != null && storedClientId != null) {
-      final currentClientId = currentClient?.id ?? 'sada';
+      // currentClient is a static cache, so it is null on a fresh Dart
+      // isolate -- which is exactly what a hot restart (R) creates while the
+      // Keychain keeps the token. Falling back to 'sada' meant every
+      // non-sada build compared 'mopos' against 'sada', decided the token
+      // belonged to another client, and deleted a perfectly good session.
+      // Resolve the real client instead; getCurrentClient() reads the build
+      // flavor and never guesses.
+      final currentClientId = (currentClient ?? await getCurrentClient()).id;
 
       if (storedClientId != currentClientId) {
         print('⚠️ Token client mismatch: stored=$storedClientId, current=$currentClientId');
@@ -181,7 +188,9 @@ class ApiService {
 
   // Save token with client ID (and tenant_id for multi-tenant clients)
   Future<void> saveToken(String token, {int? tenantId}) async {
-    final clientId = currentClient?.id ?? 'sada';
+    // Never guess here either: stamping 'sada' onto a mopos token would make
+    // the next getToken() read a mismatch and throw the session away.
+    final clientId = (currentClient ?? await getCurrentClient()).id;
 
     _token = token;
     await _storage.write(key: 'auth_token', value: token);
