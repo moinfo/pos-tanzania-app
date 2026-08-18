@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../models/production.dart';
+import '../../models/permission_model.dart';
+import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/production_messages.dart';
@@ -139,6 +141,10 @@ class _ProductionLotsScreenState extends State<ProductionLotsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
+    // Creating and closing a lot both sit behind production_lot server-side.
+    final canWrite = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.productionLot);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -153,17 +159,19 @@ class _ProductionLotsScreenState extends State<ProductionLotsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: canWrite
+          ? FloatingActionButton.extended(
         onPressed: _newLot,
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('New Lot', style: TextStyle(color: Colors.white)),
-      ),
-      body: _buildBody(isDark),
+            )
+          : null,
+      body: _buildBody(isDark, canWrite),
     );
   }
 
-  Widget _buildBody(bool isDark) {
+  Widget _buildBody(bool isDark, bool canWrite) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
 
     if (_errorMessage != null) {
@@ -211,12 +219,12 @@ class _ProductionLotsScreenState extends State<ProductionLotsScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.all(12),
         itemCount: _lots.length,
-        itemBuilder: (_, i) => _buildCard(_lots[i], isDark),
+        itemBuilder: (_, i) => _buildCard(_lots[i], isDark, canWrite),
       ),
     );
   }
 
-  Widget _buildCard(ProductionLot lot, bool isDark) {
+  Widget _buildCard(ProductionLot lot, bool isDark, bool canWrite) {
     final textColor = isDark ? AppColors.darkText : AppColors.lightText;
     final subColor = isDark ? AppColors.darkTextLight : Colors.grey[600];
     final color = lot.isActive ? AppColors.success : Colors.grey;
@@ -292,7 +300,7 @@ class _ProductionLotsScreenState extends State<ProductionLotsScreen> {
                         color: textColor)),
               ],
             ),
-            if (lot.isActive) ...[
+            if (lot.isActive && canWrite) ...[
               const Divider(height: 20),
               Align(
                 alignment: Alignment.centerRight,

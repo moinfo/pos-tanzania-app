@@ -252,6 +252,8 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
     final canVoid = permissions.hasPermission(PermissionIds.productionVoid);
+    // Batch create/close/release all sit behind production_batch server-side.
+    final canWrite = permissions.hasPermission(PermissionIds.productionBatch);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -260,27 +262,30 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.local_shipping_outlined),
-            tooltip: 'Release cured',
-            onPressed: _isLoading ? null : _releaseCured,
-          ),
+          if (canWrite)
+            IconButton(
+              icon: const Icon(Icons.local_shipping_outlined),
+              tooltip: 'Release cured',
+              onPressed: _isLoading ? null : _releaseCured,
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _isLoading ? null : _load,
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _newBatch,
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New Batch', style: TextStyle(color: Colors.white)),
-      ),
+      floatingActionButton: canWrite
+          ? FloatingActionButton.extended(
+              onPressed: _newBatch,
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text('New Batch', style: TextStyle(color: Colors.white)),
+            )
+          : null,
       body: Column(
         children: [
           _buildFilters(isDark),
-          Expanded(child: _buildList(isDark, canVoid)),
+          Expanded(child: _buildList(isDark, canVoid, canWrite)),
         ],
       ),
     );
@@ -375,7 +380,7 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
     );
   }
 
-  Widget _buildList(bool isDark, bool canVoid) {
+  Widget _buildList(bool isDark, bool canVoid, bool canWrite) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
 
     if (_errorMessage != null) {
@@ -423,12 +428,13 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.all(12),
         itemCount: _batches.length,
-        itemBuilder: (_, i) => _buildCard(_batches[i], isDark, canVoid),
+        itemBuilder: (_, i) => _buildCard(_batches[i], isDark, canVoid, canWrite),
       ),
     );
   }
 
-  Widget _buildCard(ProductionBatch b, bool isDark, bool canVoid) {
+  Widget _buildCard(
+      ProductionBatch b, bool isDark, bool canVoid, bool canWrite) {
     final color = _statusColor(b.status);
     final textColor = isDark ? AppColors.darkText : AppColors.lightText;
     final subColor = isDark ? AppColors.darkTextLight : Colors.grey[600];
@@ -507,7 +513,7 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
                 ],
               ),
             ],
-            if (b.canClose || canVoid) ...[
+            if ((b.canClose && canWrite) || canVoid) ...[
               const Divider(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -519,7 +525,7 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
                       label: const Text('Void'),
                       style: TextButton.styleFrom(foregroundColor: AppColors.error),
                     ),
-                  if (b.canClose) ...[
+                  if (b.canClose && canWrite) ...[
                     const SizedBox(width: 6),
                     ElevatedButton.icon(
                       onPressed: () => _closeBatch(b),

@@ -140,6 +140,9 @@ class PermissionIds {
   // Production module (batches, recipes, lots, cost map) -- tenant-specific,
   // so the grant is the gate rather than a per-client feature flag.
   static const String production = 'production';
+  static const String productionBatch = 'production_batch';
+  static const String productionRecipe = 'production_recipe';
+  static const String productionLot = 'production_lot';
   static const String productionVoid = 'production_void';
   static const String productionCostmap = 'production_costmap';
   static const String productionReports = 'production_reports';

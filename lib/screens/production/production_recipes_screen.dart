@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../models/production.dart';
 import '../../models/item.dart';
+import '../../models/permission_model.dart';
+import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/production_messages.dart';
@@ -115,6 +117,10 @@ class _ProductionRecipesScreenState extends State<ProductionRecipesScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
+    // Create, update and delete all sit behind production_recipe server-side.
+    final canWrite = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.productionRecipe);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -133,12 +139,14 @@ class _ProductionRecipesScreenState extends State<ProductionRecipesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: canWrite
+          ? FloatingActionButton.extended(
         onPressed: () => _openForm(),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('New Recipe', style: TextStyle(color: Colors.white)),
-      ),
+            )
+          : null,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
@@ -161,12 +169,13 @@ class _ProductionRecipesScreenState extends State<ProductionRecipesScreen> {
                   : ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: _recipes.length,
-                      itemBuilder: (_, i) => _buildCard(_recipes[i], isDark),
+                      itemBuilder: (_, i) =>
+                          _buildCard(_recipes[i], isDark, canWrite),
                     ),
     );
   }
 
-  Widget _buildCard(ProductionRecipe r, bool isDark) {
+  Widget _buildCard(ProductionRecipe r, bool isDark, bool canWrite) {
     final textColor = isDark ? AppColors.darkText : AppColors.lightText;
     final subColor = isDark ? AppColors.darkTextLight : Colors.grey[600];
 
@@ -225,6 +234,7 @@ class _ProductionRecipesScreenState extends State<ProductionRecipesScreen> {
                     ),
                   )),
             ],
+            if (canWrite) ...[
             const Divider(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -243,6 +253,7 @@ class _ProductionRecipesScreenState extends State<ProductionRecipesScreen> {
                 ),
               ],
             ),
+            ],
           ],
         ),
       ),
