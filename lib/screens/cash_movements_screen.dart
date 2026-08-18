@@ -158,7 +158,7 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Cash Movements'),
+        title: Text(_type == 'deposit' ? 'Direct Deposit' : 'Direct Withdraw'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
@@ -179,7 +179,7 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
           : null,
       body: Column(
         children: [
-          _buildTypeToggle(isDark),
+          _buildTypeToggle(isDark, permissions),
           if (!_isLoading && _movements.isNotEmpty) _buildTotal(total, isDark),
           Expanded(child: _buildList(isDark, canEdit, canDelete)),
         ],
@@ -187,7 +187,18 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
     );
   }
 
-  Widget _buildTypeToggle(bool isDark) {
+  /// Only offers the types the user may actually read. The grants are
+  /// per-type, so letting a deposit-only user toggle to withdrawals would
+  /// just walk them into a 403; with one type allowed the toggle disappears
+  /// entirely, since there is nothing to switch between.
+  Widget _buildTypeToggle(bool isDark, PermissionProvider permissions) {
+    final canSeeDeposit =
+        permissions.hasPermission(PermissionIds.cashMovementView('deposit'));
+    final canSeeWithdraw =
+        permissions.hasPermission(PermissionIds.cashMovementView('withdraw'));
+
+    if (!(canSeeDeposit && canSeeWithdraw)) return const SizedBox.shrink();
+
     return Container(
       color: isDark ? AppColors.darkSurface : Colors.white,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),

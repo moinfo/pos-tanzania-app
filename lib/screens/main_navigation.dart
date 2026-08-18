@@ -45,7 +45,11 @@ import 'transfer_screen.dart';
 import 'discount_requests_screen.dart';
 import 'item_approvals_screen.dart';
 import 'cash_movements_screen.dart';
-import 'production/production_home_screen.dart';
+import 'production/production_batches_screen.dart';
+import 'production/production_lots_screen.dart';
+import 'production/production_reports_screen.dart';
+import 'production/production_recipes_screen.dart';
+import 'production/production_settings_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -784,42 +788,138 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ],
               ),
             ),
-            // Production - gated on the module grant rather than a per-client
-            // feature flag: it is enabled per tenant, and any client whose
-            // employees lack the grant simply never sees the entry.
+            // Production Menu — the whole module hangs off the `production`
+            // grant; the reports and settings rows need their own grants on
+            // top, exactly as the web gates them.
             PermissionWrapper(
               permissionId: PermissionIds.production,
-              child: ListTile(
+              child: ExpansionTile(
                 leading: Icon(Icons.precision_manufacturing_outlined,
                     color: AppColors.brandPrimary),
                 title: const Text('Production'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProductionHomeScreen()),
-                  );
-                },
+                childrenPadding: const EdgeInsets.only(left: 16),
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.inventory_2_outlined,
+                        color: AppColors.brandPrimary),
+                    title: const Text('Batches'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ProductionBatchesScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.layers_outlined,
+                        color: AppColors.brandPrimary),
+                    title: const Text('Sand Lots'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ProductionLotsScreen()),
+                      );
+                    },
+                  ),
+                  PermissionWrapper(
+                    permissionId: PermissionIds.productionReports,
+                    child: ListTile(
+                      leading: Icon(Icons.bar_chart, color: AppColors.brandPrimary),
+                      title: const Text('Reports'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ProductionReportsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.menu_book_outlined,
+                        color: AppColors.brandPrimary),
+                    title: const Text('Recipes'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ProductionRecipesScreen()),
+                      );
+                    },
+                  ),
+                  PermissionWrapper(
+                    permissionId: PermissionIds.productionCostmap,
+                    child: ListTile(
+                      leading: Icon(Icons.settings_outlined,
+                          color: AppColors.brandPrimary),
+                      title: const Text('Settings'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ProductionSettingsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-            // Cash Movements - Direct Deposit / Direct Withdraw. Gated on the
-            // deposit view grant; the screen itself re-checks per type and per
-            // action, so a withdraw-only user still lands somewhere useful.
+            // Cash Movements Menu — split into the two entries the web uses
+            // ("Direct Deposit" / "Direct Withdraw") rather than one umbrella,
+            // since the grants are per-type and a user often holds only one.
             PermissionWrapper(
               anyPermissions: [
                 PermissionIds.cashMovementView('deposit'),
                 PermissionIds.cashMovementView('withdraw'),
               ],
-              child: ListTile(
+              child: ExpansionTile(
                 leading: Icon(Icons.swap_vert, color: AppColors.brandPrimary),
                 title: const Text('Cash Movements'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CashMovementsScreen()),
-                  );
-                },
+                childrenPadding: const EdgeInsets.only(left: 16),
+                children: [
+                  PermissionWrapper(
+                    permissionId: PermissionIds.cashMovementView('deposit'),
+                    child: ListTile(
+                      leading: Icon(Icons.south_west, color: AppColors.brandPrimary),
+                      title: const Text('Direct Deposit'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const CashMovementsScreen(initialType: 'deposit'),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  PermissionWrapper(
+                    permissionId: PermissionIds.cashMovementView('withdraw'),
+                    child: ListTile(
+                      leading: Icon(Icons.north_east, color: AppColors.brandPrimary),
+                      title: const Text('Direct Withdraw'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const CashMovementsScreen(initialType: 'withdraw'),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
             // 3. Sales Menu — hidden entirely when the user has no sales access.
