@@ -125,6 +125,24 @@ class PermissionIds {
   static const String itemsQuantity = 'items_quantity';
   static const String itemsStock = 'items_stock';
   static const String itemsInventory = 'items_inventory';
+  // Approver for staged item add/edit/inventory changes. Employees WITHOUT
+  // this grant get their saves staged instead of applied (HTTP 202).
+  static const String itemsApprove = 'items_approve';
+
+  // Direct Deposit / Direct Withdraw (ospos_cash_movements). Both the view
+  // and the write grants are per-type, so they are built from the type at
+  // the call site rather than enumerated here for every combination.
+  static String cashMovementView(String type) => 'cash_submit_direct_${type}_amount';
+  static String cashMovementAdd(String type) => 'cash_submit_add_direct_$type';
+  static String cashMovementEdit(String type) => 'cash_submit_edit_direct_$type';
+  static String cashMovementDelete(String type) => 'cash_submit_delete_direct_$type';
+
+  // Production module (batches, recipes, lots, cost map) -- tenant-specific,
+  // so the grant is the gate rather than a per-client feature flag.
+  static const String production = 'production';
+  static const String productionVoid = 'production_void';
+  static const String productionCostmap = 'production_costmap';
+  static const String productionReports = 'production_reports';
   static const String itemsDormantInactive = 'items_dormant_inactive_items';
   static const String itemsMakeDormantActive = 'items_make_item_dormant_active';
   static const String itemAllowOthersFillable = 'item_allow_others_fillable';

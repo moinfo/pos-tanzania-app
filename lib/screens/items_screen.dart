@@ -1024,7 +1024,21 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     setState(() => _isSubmitting = false);
 
     if (mounted) {
-      if (response.isSuccess) {
+      // Staged for approval: the server took the change but has NOT applied
+      // it, so this must not read as "saved". The form still closes — the
+      // work is submitted and leaving it open invites a duplicate request.
+      if (response.isPending) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.orange.shade800,
+            duration: const Duration(seconds: 5),
+            content: Text(widget.item == null
+                ? 'Sent for approval — the item is not created yet'
+                : 'Sent for approval — the changes are not applied yet'),
+          ),
+        );
+        widget.onSaved();
+      } else if (response.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(widget.item == null

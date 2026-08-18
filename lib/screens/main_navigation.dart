@@ -43,6 +43,9 @@ import 'tra/tra_main_screen.dart';
 import 'shops_screen.dart';
 import 'transfer_screen.dart';
 import 'discount_requests_screen.dart';
+import 'item_approvals_screen.dart';
+import 'cash_movements_screen.dart';
+import 'production/production_home_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -61,6 +64,11 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   int _totalNavItems = 0; // Will be set on first build to trigger sync
   bool _initialPositionSet = false; // Track if initial position has been set
 
+  // Item change requests waiting for this user to approve. Drives the menu
+  // badge; 0 means "nothing waiting" AND "not an approver" — both should
+  // render nothing, so a single int is enough.
+  int _pendingApprovals = 0;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +82,8 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
     );
     _checkAuthStatus();
+    // Providers are not readable during initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshPendingApprovals());
   }
 
   @override
@@ -90,6 +100,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     // (the menu rebuilds and the user loses the screens they no longer have).
     if (state == AppLifecycleState.resumed) {
       _refreshPermissions();
+      _refreshPendingApprovals();
     }
   }
 
@@ -101,6 +112,38 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isAuthenticated) {
       context.read<PermissionProvider>().fetchPermissions();
+    }
+  }
+
+  /// Pull the count of item changes awaiting approval.
+  ///
+  /// Deliberately NOT on the 30s permission poll: approvals are a low-traffic
+  /// workflow and that would be two extra requests a minute, forever. Instead
+  /// this runs on the moments the number is about to be looked at — app
+  /// start, resume, menu open, and returning from the approvals screen.
+  ///
+  /// Gated on the grant because employees WITHOUT items_approve are precisely
+  /// the ones whose saves get staged; calling for them would 403 every time.
+  Future<void> _refreshPendingApprovals() async {
+    if (!mounted) return;
+    final authProvider = context.read<AuthProvider>();
+    final permissionProvider = context.read<PermissionProvider>();
+
+    if (!authProvider.isAuthenticated ||
+        !permissionProvider.hasPermission(PermissionIds.itemsApprove)) {
+      if (mounted && _pendingApprovals != 0) {
+        setState(() => _pendingApprovals = 0);
+      }
+      return;
+    }
+
+    final response = await ApiService().getItemApprovalsPendingCount();
+    if (!mounted) return;
+
+    // On failure keep the last known count rather than flashing to zero —
+    // "no badge" reads as "nothing waiting", which a network blip must not fake.
+    if (response.isSuccess && response.data != null && response.data != _pendingApprovals) {
+      setState(() => _pendingApprovals = response.data!);
     }
   }
 
@@ -286,10 +329,34 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             children: [
               // Menu button
               Builder(
-                builder: (context) => IconButton(
-                  icon: const Icon(Icons.menu, color: Colors.white, size: 26),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                  tooltip: 'Menu',
+                builder: (context) => Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.white, size: 26),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                      tooltip: 'Menu',
+                    ),
+                    // A dot, not a number: the drawer is closed most of the
+                    // time, so this only has to say "there is something to
+                    // look at". The exact count is one tap away.
+                    if (_pendingApprovals > 0)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: IgnorePointer(
+                          child: Container(
+                            width: 9,
+                            height: 9,
+                            decoration: BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.2),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               // Logo + Title
@@ -352,6 +419,28 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   }
 
   /// Build drawer avatar with profile picture (Leruma feature) or default icon
+  /// Small count pill for menu entries. Caps at 99+ so a long backlog cannot
+  /// stretch the row and push the label out of the drawer.
+  Widget _buildCountBadge(int count) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      constraints: const BoxConstraints(minWidth: 22),
+      decoration: BoxDecoration(
+        color: AppColors.error,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11.5,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   Widget _buildDrawerAvatar(dynamic user, bool isDark) {
     final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
     final profilePicture = user?.profilePicture;
@@ -508,7 +597,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       // Refresh permissions the moment the menu is opened, so the entries the
       // user sees always reflect the latest server-side grants.
       onDrawerChanged: (isOpened) {
-        if (isOpened) _refreshPermissions();
+        if (isOpened) {
+          _refreshPermissions();
+          _refreshPendingApprovals();
+        }
       },
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56),
@@ -638,6 +730,65 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     context,
                     MaterialPageRoute(builder: (_) => const ItemsScreen()),
                   );
+                },
+              ),
+            ),
+            // Production - gated on the module grant rather than a per-client
+            // feature flag: it is enabled per tenant, and any client whose
+            // employees lack the grant simply never sees the entry.
+            PermissionWrapper(
+              permissionId: PermissionIds.production,
+              child: ListTile(
+                leading: Icon(Icons.precision_manufacturing_outlined,
+                    color: AppColors.brandPrimary),
+                title: const Text('Production'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProductionHomeScreen()),
+                  );
+                },
+              ),
+            ),
+            // Cash Movements - Direct Deposit / Direct Withdraw. Gated on the
+            // deposit view grant; the screen itself re-checks per type and per
+            // action, so a withdraw-only user still lands somewhere useful.
+            PermissionWrapper(
+              anyPermissions: [
+                PermissionIds.cashMovementView('deposit'),
+                PermissionIds.cashMovementView('withdraw'),
+              ],
+              child: ListTile(
+                leading: Icon(Icons.swap_vert, color: AppColors.brandPrimary),
+                title: const Text('Cash Movements'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CashMovementsScreen()),
+                  );
+                },
+              ),
+            ),
+            // Item Approvals - only approvers see it. Employees without this
+            // grant are the ones whose saves get staged, so the queue would
+            // be empty and unusable for them.
+            PermissionWrapper(
+              permissionId: PermissionIds.itemsApprove,
+              child: ListTile(
+                leading: Icon(Icons.fact_check_outlined, color: AppColors.brandPrimary),
+                title: const Text('Item Approvals'),
+                trailing:
+                    _pendingApprovals > 0 ? _buildCountBadge(_pendingApprovals) : null,
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ItemApprovalsScreen()),
+                  );
+                  // The queue may have shrunk while the screen was open.
+                  _refreshPendingApprovals();
                 },
               ),
             ),

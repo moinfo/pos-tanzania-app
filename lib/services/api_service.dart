@@ -14,6 +14,10 @@ import '../models/financial_banking.dart';
 import '../models/profit_submit.dart';
 import '../models/contract.dart';
 import '../models/discount_request.dart';
+import '../models/item_approval.dart';
+import '../models/cash_movement.dart';
+import '../models/production_report.dart';
+import '../models/production.dart';
 import '../models/expense.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
@@ -272,11 +276,26 @@ class ApiService {
       final jsonResponse = json.decode(response.body);
 
       if (statusCode >= 200 && statusCode < 300) {
+        final data = jsonResponse['data'];
+
+        // 202 = accepted but NOT applied: the write was staged for approval
+        // (items add/edit when the employee lacks 'items_approve'). The body
+        // echoes back what was submitted rather than a saved record, so
+        // parsing it as the real object would hand callers a hollow model
+        // and report a change that never happened.
+        if (data is Map && data['pending'] == true) {
+          return ApiResponse<T>.pending(
+            message: jsonResponse['message'] ?? 'Submitted for approval',
+            requestId: data['request_id'] is int
+                ? data['request_id']
+                : int.tryParse('${data['request_id']}'),
+            statusCode: statusCode,
+          );
+        }
+
         // Success
         return ApiResponse<T>.success(
-          data: fromJson != null && jsonResponse['data'] != null
-              ? fromJson(jsonResponse['data'])
-              : jsonResponse['data'],
+          data: fromJson != null && data != null ? fromJson(data) : data,
           message: jsonResponse['message'] ?? 'Success',
         );
       } else {
@@ -7253,6 +7272,515 @@ class ApiService {
       );
 
       return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ============================================================================
+  // ITEM APPROVALS (items add/edit/inventory awaiting an approver)
+  // Backend: application/controllers/api/Item_approvals.php
+  // ============================================================================
+
+  /// Pending item change requests. The endpoint returns pending rows only
+  /// (Item_change_request::get_pending), oldest first, and takes no filter or
+  /// pagination params -- so there is deliberately nothing to pass here.
+  Future<ApiResponse<ItemApprovalListResponse>> getItemApprovals() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/item_approvals'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<ItemApprovalListResponse>(
+        response,
+        (data) => ItemApprovalListResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// One request, with the before/after diffs the list response omits.
+  Future<ApiResponse<ItemApproval>> getItemApproval(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/item_approvals/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<ItemApproval>(
+        response,
+        (data) => ItemApproval.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Pending count for the menu badge.
+  Future<ApiResponse<int>> getItemApprovalsPendingCount() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/item_approvals/pending_count'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<int>(
+        response,
+        (data) => data['pending_count'] is int
+            ? data['pending_count']
+            : int.tryParse(data['pending_count']?.toString() ?? '') ?? 0,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Approve a request -- replays the staged change for real.
+  ///
+  /// 422 when the request is no longer pending (someone else already acted on
+  /// it), 500 when replaying fails because the change went stale, e.g. the
+  /// item number was taken in the meantime. Both arrive as response.message.
+  Future<ApiResponse<void>> approveItemApproval(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/item_approvals/approve/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Reject a request. `reason` is optional server-side and stored on the row.
+  Future<ApiResponse<void>> rejectItemApproval(int id, {String? reason}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/item_approvals/reject/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({if (reason != null && reason.isNotEmpty) 'reason': reason}),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ============================================================================
+  // CASH MOVEMENTS (Direct Deposit / Direct Withdraw)
+  // Backend: application/controllers/api/Cash_movements.php
+  // `type` is 'deposit' or 'withdraw'; anything else is a 400 server-side.
+  // Permissions differ per action AND per type, e.g. cash_submit_add_direct_deposit.
+  // ============================================================================
+
+  Future<ApiResponse<CashMovementListResponse>> getCashMovements(String type) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/cash_movements/$type'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<CashMovementListResponse>(
+        response,
+        (data) => CashMovementListResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<void>> createCashMovement({
+    required String type,
+    required double amount,
+    required String date,
+    required int supervisorId,
+    String? comment,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/cash_movements/$type/create'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'amount': amount,
+          'date': date,
+          'supervisor_id': supervisorId,
+          if (comment != null && comment.isNotEmpty) 'comment': comment,
+        }),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<void>> updateCashMovement({
+    required String type,
+    required int id,
+    required double amount,
+    required String date,
+    required int supervisorId,
+    String? comment,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/cash_movements/$type/update/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'amount': amount,
+          'date': date,
+          'supervisor_id': supervisorId,
+          if (comment != null && comment.isNotEmpty) 'comment': comment,
+        }),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Soft delete -- the row is flagged, not removed.
+  Future<ApiResponse<void>> deleteCashMovement(String type, int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/cash_movements/$type/delete/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+
+  // ============================================================================
+  // PRODUCTION REPORTS
+  // Backend: application/controllers/api/Production_reports.php
+  // Gated by a single `production_reports` grant; every endpoint returns the
+  // same {data, summary, columns} envelope, so one caller covers all of them.
+  // ============================================================================
+
+  /// Report keys accepted by [getProductionReport], in menu order.
+  static const List<String> productionReportKeys = [
+    'batches',
+    'products',
+    'operators',
+    'variance',
+    'expenses',
+    'lots',
+    'material_journey',
+  ];
+
+  /// [report] is one of [productionReportKeys]. `material_journey` also
+  /// requires [itemId]; the others ignore it. Dates are required by every
+  /// report except `materials` and 400 if missing.
+  Future<ApiResponse<ProductionReport>> getProductionReport(
+    String report, {
+    required String startDate,
+    required String endDate,
+    int? itemId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/production/reports/$report').replace(
+        queryParameters: {
+          'start_date': startDate,
+          'end_date': endDate,
+          if (itemId != null) 'item_id': itemId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<ProductionReport>(
+        response,
+        (data) => ProductionReport.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Raw materials, to feed the Material Journey picker. Not a report -- it
+  /// takes no date range and returns {materials: [...]}.
+  Future<ApiResponse<List<RawMaterial>>> getProductionRawMaterials() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/production/reports/materials'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<List<RawMaterial>>(
+        response,
+        (data) => (data['materials'] as List<dynamic>?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(RawMaterial.fromJson)
+                .toList() ??
+            [],
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+
+  // ============================================================================
+  // PRODUCTION (batches, recipes, sand lots, settings)
+  // Backend: application/controllers/api/Production.php
+  // The whole controller is gated by the `production` module grant; void and
+  // cost-map/settings writes need production_void / production_costmap on top.
+  // ============================================================================
+
+  Future<ApiResponse<ProductionBatchListResponse>> getProductionBatches({
+    String? startDate,
+    String? endDate,
+    String? status,
+    int? itemId,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/production/batches').replace(
+        queryParameters: {
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+          if (status != null) 'status': status,
+          if (itemId != null) 'item_id': itemId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<ProductionBatchListResponse>(
+        response,
+        (data) => ProductionBatchListResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<ProductionBatchDetail>> getProductionBatch(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/production/batches/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<ProductionBatchDetail>(
+        response,
+        (data) => ProductionBatchDetail.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Open a draft batch.
+  ///
+  /// [sand] must equal [bagsUsed] -- the lib enforces a 1:1 mirror and returns
+  /// `production_sand_mismatch` otherwise. Business-rule failures come back as
+  /// 422 with a lang key in `message`; see productionErrorMessage().
+  Future<ApiResponse<Map<String, dynamic>>> createProductionBatch({
+    required int itemId,
+    required double bagsUsed,
+    required double sand,
+    String? productionDate,
+    int? recipeId,
+    int? lotId,
+    int? operatorId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/production/batches/create'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'item_id': itemId,
+          'bags_used': bagsUsed,
+          'sand': sand,
+          if (productionDate != null) 'production_date': productionDate,
+          if (recipeId != null) 'recipe_id': recipeId,
+          if (lotId != null) 'lot_id': lotId,
+          if (operatorId != null) 'operator_id': operatorId,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Record actual output. This MOVES STOCK -- raw materials out, product in.
+  Future<ApiResponse<Map<String, dynamic>>> closeProductionBatch(
+    int id, {
+    required double actualOutput,
+    double rejects = 0,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/production/batches/close/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({'actual_output': actualOutput, 'rejects': rejects}),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Reverses every stock movement of the batch. Needs `production_void`.
+  Future<ApiResponse<void>> voidProductionBatch(int id, String reason) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/production/batches/void/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({'reason': reason}),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Move cured batches to the sales location now, instead of waiting for the
+  /// nightly cron.
+  Future<ApiResponse<Map<String, dynamic>>> releaseCuredBatches() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/production/release'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Active recipes by default; pass all=true to include inactive ones.
+  Future<ApiResponse<List<ProductionRecipe>>> getProductionRecipes({bool all = false}) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/production/recipes')
+          .replace(queryParameters: all ? {'all': '1'} : null);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<List<ProductionRecipe>>(
+        response,
+        (data) => (data['recipes'] as List<dynamic>?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(ProductionRecipe.fromJson)
+                .toList() ??
+            [],
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<ProductionLot>>> getProductionLots() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/production/lots'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<List<ProductionLot>>(
+        response,
+        (data) => (data['lots'] as List<dynamic>?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(ProductionLot.fromJson)
+                .toList() ??
+            [],
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// cost_per_bag is derived server-side as total / expected_bags.
+  Future<ApiResponse<Map<String, dynamic>>> createProductionLot({
+    required double materialCost,
+    required double expectedBags,
+    double transportCost = 0,
+    double utilityCost = 0,
+    String? openedOn,
+    String? notes,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/production/lots/create'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'material_cost': materialCost,
+          'expected_bags': expectedBags,
+          'transport_cost': transportCost,
+          'utility_cost': utilityCost,
+          if (openedOn != null) 'opened_on': openedOn,
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LotYield>> getProductionLotYield(int lotId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/production/lots/yield/$lotId'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<LotYield>(
+        response,
+        (data) => LotYield.fromJson(
+            (data['yield'] as Map<String, dynamic>?) ?? <String, dynamic>{}),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// 422 if the lot is already closed. Returns the yield as it was at close.
+  Future<ApiResponse<LotYield>> closeProductionLot(int lotId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/production/lots/close/$lotId'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<LotYield>(
+        response,
+        (data) => LotYield.fromJson(
+            (data['yield'] as Map<String, dynamic>?) ?? <String, dynamic>{}),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<ProductionSettings>> getProductionSettings() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/production/settings'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<ProductionSettings>(
+        response,
+        (data) => ProductionSettings.fromJson(
+            (data['settings'] as Map<String, dynamic>?) ?? <String, dynamic>{}),
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
