@@ -944,7 +944,19 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     double defaultUnitPrice = double.tryParse(_unitPriceController.text) ?? 0;
     int defaultDiscountLimit = int.tryParse(_discountLimitController.text) ?? 0;
 
-    if (widget.currentLocationId != null && widget.item != null) {
+    // Only divert the edited price into locationPrices for clients that
+    // actually price per location. Without this gate the branch ran for
+    // every client: the price the user typed went into location_prices --
+    // which no backend code reads anywhere in application/ -- while
+    // unit_price was sent as the item's ORIGINAL value. The edit was
+    // silently discarded, and the approval queue made it visible as a
+    // request where "nothing changed".
+    final hasLocationPricing =
+        ApiService.currentClient?.features.hasLocationBasedPricing ?? false;
+
+    if (hasLocationPricing &&
+        widget.currentLocationId != null &&
+        widget.item != null) {
       final unitPrice = double.tryParse(_unitPriceController.text);
       final costPrice = double.tryParse(_costPriceController.text);
       final discountLimit = int.tryParse(_discountLimitController.text);
