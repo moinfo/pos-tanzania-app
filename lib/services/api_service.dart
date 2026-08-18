@@ -7699,6 +7699,109 @@ class ApiService {
     }
   }
 
+  /// Create a recipe, optionally with its single raw-material line.
+  ///
+  /// The endpoint accepts one raw material ([rawItemId] + [qtyPerBag]); that
+  /// matches the schema's usage today, where each recipe consumes cement at a
+  /// rate per bag. `is_active` is read with !empty() server-side, so it is
+  /// always sent explicitly rather than omitted when false.
+  Future<ApiResponse<Map<String, dynamic>>> createProductionRecipe({
+    required int itemId,
+    required String name,
+    required double standardYieldPerBag,
+    int? curingDays,
+    String? effectiveFrom,
+    bool isActive = true,
+    int? rawItemId,
+    double? qtyPerBag,
+  }) async {
+    return _saveProductionRecipe(
+      path: 'production/recipes/create',
+      itemId: itemId,
+      name: name,
+      standardYieldPerBag: standardYieldPerBag,
+      curingDays: curingDays,
+      effectiveFrom: effectiveFrom,
+      isActive: isActive,
+      rawItemId: rawItemId,
+      qtyPerBag: qtyPerBag,
+    );
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> updateProductionRecipe(
+    int recipeId, {
+    required int itemId,
+    required String name,
+    required double standardYieldPerBag,
+    int? curingDays,
+    String? effectiveFrom,
+    bool isActive = true,
+    int? rawItemId,
+    double? qtyPerBag,
+  }) async {
+    return _saveProductionRecipe(
+      path: 'production/recipes/update/$recipeId',
+      itemId: itemId,
+      name: name,
+      standardYieldPerBag: standardYieldPerBag,
+      curingDays: curingDays,
+      effectiveFrom: effectiveFrom,
+      isActive: isActive,
+      rawItemId: rawItemId,
+      qtyPerBag: qtyPerBag,
+    );
+  }
+
+  /// Create and update take an identical body, so they share one builder.
+  Future<ApiResponse<Map<String, dynamic>>> _saveProductionRecipe({
+    required String path,
+    required int itemId,
+    required String name,
+    required double standardYieldPerBag,
+    int? curingDays,
+    String? effectiveFrom,
+    required bool isActive,
+    int? rawItemId,
+    double? qtyPerBag,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/$path'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'item_id': itemId,
+          'name': name,
+          'standard_yield_per_bag': standardYieldPerBag,
+          'is_active': isActive ? 1 : 0,
+          // null means "fall back to settings.default_curing_days".
+          if (curingDays != null) 'curing_days': curingDays,
+          if (effectiveFrom != null) 'effective_from': effectiveFrom,
+          if (rawItemId != null) 'raw_item_id': rawItemId,
+          if (rawItemId != null) 'qty_per_bag': qtyPerBag ?? 1,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Soft delete. Returns 422 when any batch references the recipe -- retire
+  /// it with isActive: false instead, which keeps historical reports intact.
+  Future<ApiResponse<void>> deleteProductionRecipe(int recipeId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/production/recipes/delete/$recipeId'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   Future<ApiResponse<List<ProductionLot>>> getProductionLots() async {
     try {
       final response = await http.get(
