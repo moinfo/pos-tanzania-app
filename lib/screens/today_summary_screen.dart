@@ -476,6 +476,45 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
       _buildSummaryRow('Banking Amount', _summaryData!['banking_amount'], highlight: true, isDark: isDark),
     );
 
+    // Direct Deposit / Withdraw. Both are in the Cash Amount formula, so
+    // showing them is what makes the total below add up on screen. Each is
+    // gated on the same per-type grant its Cash Movements screen uses, and
+    // hidden entirely when zero so tenants that never use them see no change.
+    if (_asNum(_summaryData!['direct_deposit']) != 0) {
+      addRowIfPermitted(
+        PermissionIds.cashMovementView('deposit'),
+        _buildSummaryRow('Direct Deposit', _summaryData!['direct_deposit'], isDark: isDark),
+      );
+    }
+    if (_asNum(_summaryData!['direct_withdraw']) != 0) {
+      addRowIfPermitted(
+        PermissionIds.cashMovementView('withdraw'),
+        _buildSummaryRow('Direct Withdraw', _summaryData!['direct_withdraw'],
+            isNegative: true, isDark: isDark),
+      );
+    }
+
+    // Production cash outflows. The server only fills these for a tenant on
+    // the production module, and cement is absent on purpose -- it is bought
+    // through a receiving and already counted as stock.
+    final productionRows = <List<dynamic>>[
+      ['Production Sand', _summaryData!['production_sand']],
+      ['Production WAFYATUAJI', _summaryData!['production_wafyatuaji']],
+      ['Production WAPANGAJI', _summaryData!['production_wapangaji']],
+      ['Production WATER & ELECTRICITY', _summaryData!['production_water_electricity']],
+    ];
+    final hasProductionCosts =
+        productionRows.any((r) => _asNum(r[1]) != 0);
+
+    if (hasProductionCosts &&
+        permissionProvider.hasPermission(PermissionIds.production)) {
+      rows.add(const Divider(height: 1));
+      for (final row in productionRows) {
+        rows.add(_buildSummaryRow(row[0] as String, row[1],
+            isNegative: true, isDark: isDark));
+      }
+    }
+
     // Cash Amount - requires cash_submit_cash_amount
     addRowIfPermitted(
       PermissionIds.cashSubmitCashAmount,
@@ -594,6 +633,12 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     }
 
     return rows;
+  }
+
+  /// Summary values arrive as num or null depending on the field.
+  double _asNum(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   Widget _buildSummaryRow(String label, dynamic value, {bool highlight = false, bool isNegative = false, Color? color, required bool isDark}) {
