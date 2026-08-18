@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../utils/platform_rules.dart';
 import '../services/api_service.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
@@ -146,16 +147,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             _buildCurrentPlanCard(isDark),
             const SizedBox(height: 24),
           ],
-          _sectionHeader('Available Plans', isDark),
-          const SizedBox(height: 12),
-          ..._packages.map((pkg) => _buildPackageCard(pkg, isDark)),
-          if (_addons.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _sectionHeader('Add-on Modules', isDark),
-            const SizedBox(height: 4),
-            _buildAddonsNote(isDark),
+          // Plan and add-on cards carry the buttons that open Pesapal, which
+          // is an external purchase mechanism -- 3.1.1 again. On iOS the
+          // screen stays informational: the current plan and how to renew.
+          if (PlatformRules.allowsExternalSubscriptionPurchase) ...[
+            _sectionHeader('Available Plans', isDark),
             const SizedBox(height: 12),
-            ..._addons.map((addon) => _buildAddonCard(addon, isDark)),
+            ..._packages.map((pkg) => _buildPackageCard(pkg, isDark)),
+            if (_addons.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _sectionHeader('Add-on Modules', isDark),
+              const SizedBox(height: 4),
+              _buildAddonsNote(isDark),
+              const SizedBox(height: 12),
+              ..._addons.map((addon) => _buildAddonCard(addon, isDark)),
+            ],
           ],
           const SizedBox(height: 8),
           _buildContactNote(isDark),

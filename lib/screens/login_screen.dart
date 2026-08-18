@@ -10,6 +10,7 @@ import '../providers/sale_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/biometric_service.dart';
 import '../services/api_service.dart';
+import '../utils/platform_rules.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/offline_indicator.dart';
@@ -503,8 +504,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
 
-                          // Create Account (only for clients with self-service registration)
-                          if (ApiService.currentClient?.features.hasRegistration ?? false) ...[
+                          // Create Account (only for clients with self-service
+                          // registration, and never on iOS -- App Review
+                          // rejected 1.0.2 under 3.1.1 for exactly this).
+                          if ((ApiService.currentClient?.features.hasRegistration ?? false) &&
+                              PlatformRules.allowsSelfSignup) ...[
                             const SizedBox(height: 12),
                             TextButton(
                               onPressed: () {
