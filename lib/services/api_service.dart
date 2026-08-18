@@ -7586,6 +7586,14 @@ class ApiService {
   /// [sand] must equal [bagsUsed] -- the lib enforces a 1:1 mirror and returns
   /// `production_sand_mismatch` otherwise. Business-rule failures come back as
   /// 422 with a lang key in `message`; see productionErrorMessage().
+  /// [wafyatuaajiCost], [wapangajiCost] and [waterElectricityCost] are the
+  /// labour and overhead actually paid for this batch. The controller hands
+  /// the whole body to Production_lib::create_batch(), which reads exactly
+  /// these keys and writes them as manual cost lines -- omit them and the
+  /// batch is saved with labour_cost 0, which understates cost_per_unit and
+  /// therefore COGS on every block sold from it.
+  ///
+  /// The spelling of `wafyatuaaji_cost` (three a's) matches the backend.
   Future<ApiResponse<Map<String, dynamic>>> createProductionBatch({
     required int itemId,
     required double bagsUsed,
@@ -7594,6 +7602,9 @@ class ApiService {
     int? recipeId,
     int? lotId,
     int? operatorId,
+    double wafyatuaajiCost = 0,
+    double wapangajiCost = 0,
+    double waterElectricityCost = 0,
   }) async {
     try {
       final response = await http.post(
@@ -7603,6 +7614,9 @@ class ApiService {
           'item_id': itemId,
           'bags_used': bagsUsed,
           'sand': sand,
+          'wafyatuaaji_cost': wafyatuaajiCost,
+          'wapangaji_cost': wapangajiCost,
+          'water_electricity_cost': waterElectricityCost,
           if (productionDate != null) 'production_date': productionDate,
           if (recipeId != null) 'recipe_id': recipeId,
           if (lotId != null) 'lot_id': lotId,

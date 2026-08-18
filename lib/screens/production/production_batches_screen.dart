@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../models/production.dart';
+import '../../models/supervisor.dart';
 import '../../models/permission_model.dart';
 import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -26,6 +27,7 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
   List<ProductionBatch> _batches = [];
   List<ProductionRecipe> _recipes = [];
   List<ProductionLot> _lots = [];
+  List<Supervisor> _operators = [];
   String? _statusFilter;
   late DateTimeRange _range;
   bool _isLoading = true;
@@ -79,11 +81,15 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
     final results = await Future.wait([
       _apiService.getProductionRecipes(),
       _apiService.getProductionLots(),
+      // No employees endpoint exists; the supervisors list is the tenant's
+      // employees and is what the web Operator dropdown shows too.
+      _apiService.getSupervisors(),
     ]);
     if (!mounted) return;
 
     final recipeResponse = results[0] as dynamic;
     final lotResponse = results[1] as dynamic;
+    final operatorResponse = results[2] as dynamic;
 
     setState(() {
       if (recipeResponse.isSuccess && recipeResponse.data != null) {
@@ -91,6 +97,9 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
       }
       if (lotResponse.isSuccess && lotResponse.data != null) {
         _lots = lotResponse.data!.where((l) => l.isActive).toList();
+      }
+      if (operatorResponse.isSuccess && operatorResponse.data != null) {
+        _operators = operatorResponse.data!;
       }
     });
   }
@@ -145,7 +154,11 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
 
     final created = await showDialog<bool>(
       context: context,
-      builder: (_) => _NewBatchDialog(recipes: _recipes, lots: _lots),
+      builder: (_) => _NewBatchDialog(
+        recipes: _recipes,
+        lots: _lots,
+        operators: _operators,
+      ),
     );
     if (created == true) _load();
   }
@@ -547,8 +560,13 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
 class _NewBatchDialog extends StatefulWidget {
   final List<ProductionRecipe> recipes;
   final List<ProductionLot> lots;
+  final List<Supervisor> operators;
 
-  const _NewBatchDialog({required this.recipes, required this.lots});
+  const _NewBatchDialog({
+    required this.recipes,
+    required this.lots,
+    required this.operators,
+  });
 
   @override
   State<_NewBatchDialog> createState() => _NewBatchDialogState();
@@ -557,10 +575,15 @@ class _NewBatchDialog extends StatefulWidget {
 class _NewBatchDialogState extends State<_NewBatchDialog> {
   final _formKey = GlobalKey<FormState>();
   final _bagsController = TextEditingController();
+  // Labour and overhead actually paid, matching the web form's three inputs.
+  final _wafyatuaajiController = TextEditingController(text: '0');
+  final _wapangajiController = TextEditingController(text: '0');
+  final _waterController = TextEditingController(text: '0');
   final ApiService _apiService = ApiService();
 
   ProductionRecipe? _recipe;
   int? _lotId;
+  int? _operatorId;
   DateTime _date = DateTime.now();
   bool _isSaving = false;
 
@@ -574,6 +597,9 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
   @override
   void dispose() {
     _bagsController.dispose();
+    _wafyatuaajiController.dispose();
+    _wapangajiController.dispose();
+    _waterController.dispose();
     super.dispose();
   }
 
@@ -592,7 +618,11 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
       sand: _bags!,
       recipeId: _recipe!.recipeId,
       lotId: _lotId,
+      operatorId: _operatorId,
       productionDate: DateFormat('yyyy-MM-dd').format(_date),
+      wafyatuaajiCost: double.tryParse(_wafyatuaajiController.text.trim()) ?? 0,
+      wapangajiCost: double.tryParse(_wapangajiController.text.trim()) ?? 0,
+      waterElectricityCost: double.tryParse(_waterController.text.trim()) ?? 0,
     );
 
     if (!mounted) return;
@@ -604,6 +634,21 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
       content: Text(productionErrorMessage(response.message)),
       backgroundColor: response.isSuccess ? AppColors.success : AppColors.error,
     ));
+  }
+
+  /// One of the three manual cost inputs. Blank is read as 0 on submit,
+  /// matching the web form, which pre-fills them with 0.
+  Widget _cost(TextEditingController controller, String label) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixText: 'TSh ',
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+    );
   }
 
   @override
@@ -658,7 +703,7 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '${NumberFormat('#,##0.##').format(expected)} blocks expected',
+                    '= ${NumberFormat('#,##0.##').format(expected)} blocks expected',
                     style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
@@ -667,6 +712,47 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
                 ),
               ],
               const SizedBox(height: 14),
+              // Sand mirrors cement 1:1 and the lib rejects anything else, so
+              // it is shown read-only rather than as a field to get wrong --
+              // same as the web form, which greys it out.
+              TextFormField(
+                enabled: false,
+                key: ValueKey('sand-${_bagsController.text}'),
+                initialValue:
+                    _bags == null ? '' : NumberFormat('#,##0.##').format(_bags),
+                decoration: const InputDecoration(
+                  labelText: 'Sand',
+                  helperText: 'Always equals cement used (1:1)',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _cost(_wafyatuaajiController, 'WAFYATUAJI'),
+              const SizedBox(height: 12),
+              _cost(_wapangajiController, 'WAPANGAJI'),
+              const SizedBox(height: 12),
+              _cost(_waterController, 'WATER & ELECTRICITY'),
+              const SizedBox(height: 14),
+              if (widget.operators.isNotEmpty)
+                DropdownButtonFormField<int>(
+                  initialValue: _operatorId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Operator (mfyatuaji)',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: widget.operators
+                      .map((o) => DropdownMenuItem(
+                            value: int.tryParse(o.id),
+                            child: Text(o.displayName,
+                                overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() => _operatorId = value),
+                ),
+              if (widget.operators.isNotEmpty) const SizedBox(height: 14),
               if (widget.lots.isNotEmpty)
                 DropdownButtonFormField<int>(
                   initialValue: _lotId,
