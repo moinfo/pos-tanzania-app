@@ -27,6 +27,7 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
   List<ProductionRecipe> _recipes = [];
   List<ProductionLot> _lots = [];
   String? _statusFilter;
+  late DateTimeRange _range;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -35,6 +36,11 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
   @override
   void initState() {
     super.initState();
+    // Last 30 days, matching the web default. Commit af9565e41 moved the
+    // production screens off "today only" on purpose -- production is not
+    // daily for every product, so a today-only list reads as "no data".
+    final now = DateTime.now();
+    _range = DateTimeRange(start: now.subtract(const Duration(days: 29)), end: now);
     _load();
   }
 
@@ -44,31 +50,42 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
       _errorMessage = null;
     });
 
-    final now = DateTime.now();
+    // Batches first and on their own. Recipes and lots only feed the New
+    // Batch dialog, so waiting for all three before painting anything left
+    // the screen on a spinner for three round trips instead of one.
+    final response = await _apiService.getProductionBatches(
+      status: _statusFilter,
+      startDate: _dateApi.format(_range.start),
+      endDate: _dateApi.format(_range.end),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      if (response.isSuccess && response.data != null) {
+        _batches = response.data!.batches;
+      } else {
+        _errorMessage = productionErrorMessage(response.message);
+      }
+    });
+
+    _loadFormData();
+  }
+
+  /// Recipes and lots for the New Batch dialog. Fetched after the list is on
+  /// screen; a failure here only disables creating a batch, so it is not
+  /// surfaced as a page error.
+  Future<void> _loadFormData() async {
     final results = await Future.wait([
-      _apiService.getProductionBatches(
-        status: _statusFilter,
-        // Match the web default of the last 30 days rather than today only.
-        startDate: _dateApi.format(now.subtract(const Duration(days: 29))),
-        endDate: _dateApi.format(now),
-      ),
       _apiService.getProductionRecipes(),
       _apiService.getProductionLots(),
     ]);
-
     if (!mounted) return;
 
-    final batchResponse = results[0] as dynamic;
-    final recipeResponse = results[1] as dynamic;
-    final lotResponse = results[2] as dynamic;
+    final recipeResponse = results[0] as dynamic;
+    final lotResponse = results[1] as dynamic;
 
     setState(() {
-      _isLoading = false;
-      if (batchResponse.isSuccess && batchResponse.data != null) {
-        _batches = batchResponse.data!.batches;
-      } else {
-        _errorMessage = productionErrorMessage(batchResponse.message);
-      }
       if (recipeResponse.isSuccess && recipeResponse.data != null) {
         _recipes = recipeResponse.data!;
       }
@@ -76,6 +93,19 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
         _lots = lotResponse.data!.where((l) => l.isActive).toList();
       }
     });
+  }
+
+  Future<void> _pickRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      initialDateRange: _range,
+    );
+    if (picked != null) {
+      setState(() => _range = picked);
+      _load();
+    }
   }
 
   Color _statusColor(String status) {
@@ -244,9 +274,55 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
   }
 
   Widget _buildFilters(bool isDark) {
+    final label = DateFormat('dd MMM yyyy');
+
     return Container(
       color: isDark ? AppColors.darkSurface : Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(top: 10, bottom: 8),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: InkWell(
+              onTap: _pickRange,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.date_range, size: 18, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${label.format(_range.start)}  -  ${label.format(_range.end)}',
+                        style: TextStyle(
+                            fontSize: 13.5,
+                            color: isDark ? AppColors.darkText : AppColors.lightText),
+                      ),
+                    ),
+                    Icon(Icons.expand_more,
+                        size: 18,
+                        color: isDark ? AppColors.darkTextLight : Colors.grey[600]),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildStatusChips(isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChips(bool isDark) {
+    return SizedBox(
+      height: 34,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -319,7 +395,7 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
             Icon(Icons.precision_manufacturing_outlined,
                 size: 52, color: isDark ? Colors.grey[700] : Colors.grey[300]),
             const SizedBox(height: 12),
-            Text('No batches in the last 30 days',
+            Text('No batches in this date range',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: isDark ? AppColors.darkTextLight : Colors.grey[500],
