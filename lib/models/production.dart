@@ -195,6 +195,11 @@ class RecipeItem {
 class ProductionRecipe {
   final int recipeId;
   final int itemId;
+
+  /// The product this recipe makes. Production_recipe::get_all() joins items
+  /// for it, so the recipes endpoint carries it and the app does not need a
+  /// second call to name the product.
+  final String? itemName;
   final String name;
   final double standardYieldPerBag;
 
@@ -207,6 +212,7 @@ class ProductionRecipe {
   ProductionRecipe({
     required this.recipeId,
     required this.itemId,
+    this.itemName,
     required this.name,
     required this.standardYieldPerBag,
     this.curingDays,
@@ -215,10 +221,16 @@ class ProductionRecipe {
     required this.items,
   });
 
+  /// What to show in a product dropdown -- the joined name when present,
+  /// otherwise something identifiable rather than a bare id.
+  String get productLabel =>
+      (itemName != null && itemName!.isNotEmpty) ? itemName! : 'Item #$itemId';
+
   factory ProductionRecipe.fromJson(Map<String, dynamic> json) {
     return ProductionRecipe(
       recipeId: _toInt(json['recipe_id']),
       itemId: _toInt(json['item_id']),
+      itemName: json['item_name']?.toString(),
       name: json['name']?.toString() ?? '',
       standardYieldPerBag: _toDouble(json['standard_yield_per_bag']),
       curingDays: _toIntOrNull(json['curing_days']),

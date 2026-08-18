@@ -75,7 +75,8 @@ void main() {
     test('reads tinyint is_active as a string and nested items', () {
       final r = ProductionRecipe.fromJson(json.decode('''
       {
-        "recipe_id": 3, "item_id": 913, "name": "6 PLAIN standard",
+        "recipe_id": 3, "item_id": 913, "item_name": "BLOCK 6 PLAIN",
+        "name": "6 PLAIN standard",
         "standard_yield_per_bag": "42.000", "curing_days": null,
         "effective_from": "2026-08-01", "is_active": "1",
         "items": [{"item_id": 3812, "name": "CEMENT 3812", "qty_per_bag": "1.000000"}]
@@ -86,6 +87,20 @@ void main() {
       expect(r.curingDays, isNull); // NULL = fall back to settings
       expect(r.items.single.itemName, 'CEMENT 3812');
       expect(r.items.single.qtyPerBag, 1.0);
+      // The joined product name feeds the Product dropdown.
+      expect(r.itemName, 'BLOCK 6 PLAIN');
+      expect(r.productLabel, 'BLOCK 6 PLAIN');
+    });
+  });
+
+  group('ProductionRecipe product label', () {
+    test('falls back to the id when the join gives no name', () {
+      final r = ProductionRecipe.fromJson(json.decode('''
+      {"recipe_id": 4, "item_id": 3818, "name": "5 INCH", "item_name": null,
+       "standard_yield_per_bag": "54.000", "is_active": 1, "items": []}''')
+          as Map<String, dynamic>);
+      expect(r.itemName, isNull);
+      expect(r.productLabel, 'Item #3818');
     });
   });
 

@@ -581,6 +581,13 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
   final _waterController = TextEditingController(text: '0');
   final ApiService _apiService = ApiService();
 
+  /// The chosen product. Recipes are grouped by it, mirroring the web form's
+  /// two dropdowns.
+  int? _itemId;
+
+  /// null means "(active recipe of the product)" -- recipe_id is then left
+  /// out of the request and Production_lib picks the active one itself, which
+  /// is what the web's blank option does.
   ProductionRecipe? _recipe;
   int? _lotId;
   int? _operatorId;
@@ -590,7 +597,7 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
   @override
   void initState() {
     super.initState();
-    _recipe = widget.recipes.first;
+    _itemId = widget.recipes.first.itemId;
     if (widget.lots.isNotEmpty) _lotId = widget.lots.first.lotId;
   }
 
@@ -603,20 +610,41 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
     super.dispose();
   }
 
+  /// One entry per product, in recipe order.
+  List<ProductionRecipe> get _products {
+    final seen = <int>{};
+    return widget.recipes.where((r) => seen.add(r.itemId)).toList();
+  }
+
+  List<ProductionRecipe> get _recipesForProduct =>
+      widget.recipes.where((r) => r.itemId == _itemId).toList();
+
+  /// The recipe that will actually be used: the explicit choice, or the
+  /// product's active one when "(active recipe)" is selected. Only needed to
+  /// preview the expected output -- the server resolves it either way.
+  ProductionRecipe? get _effectiveRecipe {
+    if (_recipe != null) return _recipe;
+    final active = _recipesForProduct.where((r) => r.isActive);
+    return active.isNotEmpty
+        ? active.first
+        : (_recipesForProduct.isNotEmpty ? _recipesForProduct.first : null);
+  }
+
   double? get _bags => double.tryParse(_bagsController.text.trim());
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate() || _recipe == null) return;
+    if (!_formKey.currentState!.validate() || _itemId == null) return;
 
     setState(() => _isSaving = true);
 
     // Sand is sent equal to bags: the lib rejects anything else with
     // production_sand_mismatch, so there is no second field to get wrong.
     final response = await _apiService.createProductionBatch(
-      itemId: _recipe!.itemId,
+      itemId: _itemId!,
       bagsUsed: _bags!,
       sand: _bags!,
-      recipeId: _recipe!.recipeId,
+      // Omitted when "(active recipe)" is chosen, so the lib resolves it.
+      recipeId: _recipe?.recipeId,
       lotId: _lotId,
       operatorId: _operatorId,
       productionDate: DateFormat('yyyy-MM-dd').format(_date),
@@ -653,7 +681,7 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final expected = (_bags ?? 0) * (_recipe?.standardYieldPerBag ?? 0);
+    final expected = (_bags ?? 0) * (_effectiveRecipe?.standardYieldPerBag ?? 0);
 
     return AlertDialog(
       title: const Text('New Batch'),
@@ -663,20 +691,47 @@ class _NewBatchDialogState extends State<_NewBatchDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<ProductionRecipe>(
-                initialValue: _recipe,
+              DropdownButtonFormField<int>(
+                initialValue: _itemId,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: 'Product / recipe *',
+                  labelText: 'Product *',
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
-                items: widget.recipes
+                items: _products
                     .map((r) => DropdownMenuItem(
-                          value: r,
-                          child: Text(r.name, overflow: TextOverflow.ellipsis),
+                          value: r.itemId,
+                          child: Text(r.productLabel,
+                              overflow: TextOverflow.ellipsis),
                         ))
                     .toList(),
+                onChanged: (value) => setState(() {
+                  _itemId = value;
+                  // The old recipe belongs to the old product.
+                  _recipe = null;
+                }),
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<ProductionRecipe?>(
+                initialValue: _recipe,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Recipe',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  const DropdownMenuItem<ProductionRecipe?>(
+                    value: null,
+                    child: Text('(active recipe of the product)',
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  ..._recipesForProduct.map((r) => DropdownMenuItem(
+                        value: r,
+                        child: Text(r.name, overflow: TextOverflow.ellipsis),
+                      )),
+                ],
                 onChanged: (value) => setState(() => _recipe = value),
               ),
               const SizedBox(height: 14),
