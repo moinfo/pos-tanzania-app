@@ -15,14 +15,61 @@ import 'screens/main_navigation.dart';
 import 'screens/client_selector_screen.dart';
 import 'screens/landing/landing_screen.dart';
 import 'services/api_service.dart';
+import 'services/push_service.dart';
+import 'screens/item_approvals_screen.dart';
+import 'screens/items_screen.dart';
+import 'screens/production/production_shell.dart';
 import 'config/clients_config.dart';
 import 'utils/constants.dart';
+
+/// Lets a notification tap route without a BuildContext -- the tap can
+/// arrive before any screen is mounted, when it launched the app.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+/// Where each notification type sends the user.
+///
+/// The `type` values are set by the backend senders (Item_change_lib and the
+/// Cron_jobs push methods). An unknown type opens nothing rather than
+/// guessing -- a future backend release can add one before the app knows it.
+void handlePushTap(Map<String, dynamic> data) {
+  final type = data['type']?.toString();
+  if (type == null) return;
+
+  // The tap can land before the tree exists. Defer to the next frame so the
+  // navigator is mounted, and do nothing if it still is not.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final navigator = navigatorKey.currentState;
+    if (navigator == null) return;
+
+    switch (type) {
+      case 'item_approval':
+        navigator.push(MaterialPageRoute(
+            builder: (_) => const ItemApprovalsScreen()));
+        break;
+      case 'production_ready':
+      case 'lot_low':
+        navigator.push(MaterialPageRoute(
+            builder: (_) => const ProductionShell()));
+        break;
+      case 'low_stock':
+        navigator.push(MaterialPageRoute(builder: (_) => const ItemsScreen()));
+        break;
+      case 'daily_report':
+      case 'subscription_expiring':
+        // Both are about the dashboard the user already lands on.
+        break;
+    }
+  });
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize currentClient before any providers are created so that
   // getToken()'s client-ID check works correctly on app restart.
   await ApiService.getCurrentClient();
+  // Before the first frame: a notification that launched the app has to be
+  // readable at startup, and getInitialMessage() only returns it once.
+  await PushService.instance.initialise(onTap: handlePushTap);
   runApp(const MyApp());
 }
 
@@ -68,6 +115,7 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) => MaterialApp(
+          navigatorKey: navigatorKey,
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,

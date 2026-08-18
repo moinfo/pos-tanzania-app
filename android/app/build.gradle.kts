@@ -6,6 +6,11 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Firebase. The config lives per flavor in src/<flavor>/google-services.json
+    // -- only mopos has one, because this Firebase project registers only
+    // co.tz.mopos.pos and the plugin fails the build when the flavor's
+    // applicationId is missing from the file it finds.
+    id("com.google.gms.google-services")
 }
 
 val keystorePropertiesFile = rootProject.file("key.properties")
@@ -20,6 +25,10 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
+        // flutter_local_notifications uses java.time, which only exists from
+        // API 26. Desugaring back-fills it so the app still runs on the older
+        // Android versions this minSdk supports.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -93,4 +102,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

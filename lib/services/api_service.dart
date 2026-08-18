@@ -7287,6 +7287,54 @@ class ApiService {
   }
 
   // ============================================================================
+  // PUSH NOTIFICATIONS
+  // Backend: application/controllers/api/Notifications.php
+  // ============================================================================
+
+  /// Tell the server this device may receive push.
+  ///
+  /// The token identifies a handset, not a person, so the server moves it to
+  /// whoever is signed in now -- which is why this is called after every
+  /// login and not once at install.
+  Future<ApiResponse<void>> registerDevice({
+    required String token,
+    required String platform,
+    String? appVersion,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/notifications/register'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'token': token,
+          'platform': platform,
+          if (appVersion != null) 'app_version': appVersion,
+        }),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Called on logout so the next person on this handset does not receive
+  /// the previous user's notifications.
+  Future<ApiResponse<void>> unregisterDevice(String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/notifications/unregister'),
+        headers: await _getHeaders(),
+        body: json.encode({'token': token}),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ============================================================================
   // ITEM APPROVALS (items add/edit/inventory awaiting an approver)
   // Backend: application/controllers/api/Item_approvals.php
   // ============================================================================

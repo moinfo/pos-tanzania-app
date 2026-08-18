@@ -53,6 +53,14 @@ class ClientFeatures {
   // Self-service registration — lets new businesses sign up and pick a plan in-app
   final bool hasRegistration;
 
+  /// Whether this client has Firebase configured for push notifications.
+  ///
+  /// The config files are per flavor (android/app/src/<flavor>/ and
+  /// ios/config/<flavor>/) and only mopos has them, because the Firebase
+  /// project registers only co.tz.mopos.pos. Initialising Firebase without
+  /// them throws on launch, so every push call site checks this first.
+  final bool hasPushNotifications;
+
   // Item category dropdown — fetch categories from API instead of free-text input
   final bool hasItemCategories;
 
@@ -87,6 +95,7 @@ class ClientFeatures {
     this.hasDiscountRequests = false, // Default: disabled - only SADA uses this
     this.hasMultiTenant = false, // Default: disabled - enable for multi-tenant backends
     this.hasRegistration = false, // Default: disabled - only Mopos allows self-service sign-up
+    this.hasPushNotifications = false, // Default: disabled - needs per-flavor Firebase config
     this.hasItemCategories = false, // Default: disabled - dropdown category picker from API
   });
 }

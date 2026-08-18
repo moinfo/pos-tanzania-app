@@ -93,6 +93,7 @@ class ClientsConfig {
         hasMultiTenant: true,
         hasRegistration: true,
         hasItemCategories: true,
+        hasPushNotifications: true,
       ),
     ),
     // Come & Save

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/push_service.dart';
 import 'permission_provider.dart';
 import 'location_provider.dart';
 import 'connectivity_provider.dart';
@@ -91,6 +92,10 @@ class AuthProvider with ChangeNotifier {
         _user = result.data;
         _isAuthenticated = true;
 
+        // Re-register this device: the token addresses the handset, so it
+        // has to be moved to whoever just signed in.
+        PushService.instance.registerForCurrentUser();
+
         // Load cached permissions first for instant UI, then ALWAYS refresh
         // from the server. The cache is only a fast-render fallback — if we
         // skipped the fetch whenever a cache existed, server-side permission
@@ -155,6 +160,10 @@ class AuthProvider with ChangeNotifier {
       if (result.isSuccess && result.data != null) {
         _user = result.data;
         _isAuthenticated = true;
+        
+        // This handset now belongs to a different session -- move the
+        // device registration with it.
+        PushService.instance.registerForCurrentUser();
         _error = null;
 
         // Cache credentials for offline login (only if offline mode enabled)
@@ -307,6 +316,11 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    // Before the token is cleared -- unregistering is an authenticated call,
+    // and afterwards it would be rejected, leaving this handset receiving
+    // the previous user's notifications.
+    await PushService.instance.unregister();
+
     await _apiService.logout();
 
     // Clear permissions on logout
@@ -343,6 +357,10 @@ class AuthProvider with ChangeNotifier {
     if (result.isSuccess && result.data != null) {
       _user = result.data;
       _isAuthenticated = true;
+      
+      // This handset now belongs to a different session -- move the
+      // device registration with it.
+      PushService.instance.registerForCurrentUser();
 
       // Same cache resets as login()
       ApiService.clearDashboardCache();
