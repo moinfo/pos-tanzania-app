@@ -7386,12 +7386,22 @@ class ApiService {
   // Permissions differ per action AND per type, e.g. cash_submit_add_direct_deposit.
   // ============================================================================
 
-  Future<ApiResponse<CashMovementListResponse>> getCashMovements(String type) async {
+  /// Omitting both dates returns every movement, which is what the web
+  /// screen shows; the app passes a window so a long history does not have
+  /// to come down in one response.
+  Future<ApiResponse<CashMovementListResponse>> getCashMovements(
+    String type, {
+    String? startDate,
+    String? endDate,
+  }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrlSync/cash_movements/$type'),
-        headers: await _getHeaders(),
+      final uri = Uri.parse('$baseUrlSync/cash_movements/$type').replace(
+        queryParameters: {
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+        },
       );
+      final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<CashMovementListResponse>(
         response,

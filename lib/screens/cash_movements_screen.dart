@@ -29,6 +29,8 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
   final _currency = NumberFormat('#,##0.##');
 
   late String _type;
+  late DateTimeRange _range;
+  final _dateApi = DateFormat('yyyy-MM-dd');
   List<CashMovement> _movements = [];
   List<Supervisor> _supervisors = [];
   bool _isLoading = true;
@@ -38,6 +40,10 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
   void initState() {
     super.initState();
     _type = widget.initialType;
+    // Last 30 days, matching the production screens. The endpoint returns
+    // everything when no range is sent, which grows without bound.
+    final now = DateTime.now();
+    _range = DateTimeRange(start: now.subtract(const Duration(days: 29)), end: now);
     _load();
   }
 
@@ -50,7 +56,11 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
     // Supervisors are needed by the form, not the list -- fetch alongside so
     // opening the form never shows an empty dropdown while it loads.
     final results = await Future.wait([
-      _apiService.getCashMovements(_type),
+      _apiService.getCashMovements(
+        _type,
+        startDate: _dateApi.format(_range.start),
+        endDate: _dateApi.format(_range.end),
+      ),
       _apiService.getSupervisors(),
     ]);
 
@@ -70,6 +80,19 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
         _supervisors = supervisorResponse.data!;
       }
     });
+  }
+
+  Future<void> _pickRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      initialDateRange: _range,
+    );
+    if (picked != null) {
+      setState(() => _range = picked);
+      _load();
+    }
   }
 
   void _switchType(String type) {
@@ -177,9 +200,10 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
                   style: const TextStyle(color: Colors.white)),
             )
           : null,
+      bottomNavigationBar: _buildTypeNav(isDark, permissions),
       body: Column(
         children: [
-          _buildTypeToggle(isDark, permissions),
+          _buildRangeBar(isDark),
           if (!_isLoading && _movements.isNotEmpty) _buildTotal(total, isDark),
           Expanded(child: _buildList(isDark, canEdit, canDelete)),
         ],
@@ -187,70 +211,73 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
     );
   }
 
-  /// Only offers the types the user may actually read. The grants are
-  /// per-type, so letting a deposit-only user toggle to withdrawals would
-  /// just walk them into a 403; with one type allowed the toggle disappears
-  /// entirely, since there is nothing to switch between.
-  Widget _buildTypeToggle(bool isDark, PermissionProvider permissions) {
+  Widget _buildRangeBar(bool isDark) {
+    final label = DateFormat('dd MMM yyyy');
+
+    return Container(
+      color: isDark ? AppColors.darkSurface : Colors.white,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      child: InkWell(
+        onTap: _pickRange,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.all(
+                color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.date_range, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${label.format(_range.start)}  -  ${label.format(_range.end)}',
+                  style: TextStyle(
+                      fontSize: 13.5,
+                      color: isDark ? AppColors.darkText : AppColors.lightText),
+                ),
+              ),
+              Icon(Icons.expand_more,
+                  size: 18,
+                  color: isDark ? AppColors.darkTextLight : Colors.grey[600]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Type switching lives in a bottom bar rather than a segmented control
+  /// at the top, matching the production module, and leaving the top of the
+  /// screen for the date range.
+  ///
+  /// The grants are per type, so a user allowed only one gets no bar at all
+  /// -- there is nothing to switch to, and offering it would walk them into
+  /// a 403.
+  Widget? _buildTypeNav(bool isDark, PermissionProvider permissions) {
     final canSeeDeposit =
         permissions.hasPermission(PermissionIds.cashMovementView('deposit'));
     final canSeeWithdraw =
         permissions.hasPermission(PermissionIds.cashMovementView('withdraw'));
 
-    if (!(canSeeDeposit && canSeeWithdraw)) return const SizedBox.shrink();
+    if (!(canSeeDeposit && canSeeWithdraw)) return null;
 
-    return Container(
-      color: isDark ? AppColors.darkSurface : Colors.white,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Row(
-        children: [
-          Expanded(child: _typeChip('deposit', 'Deposits', Icons.south_west, isDark)),
-          const SizedBox(width: 8),
-          Expanded(child: _typeChip('withdraw', 'Withdrawals', Icons.north_east, isDark)),
-        ],
-      ),
-    );
-  }
-
-  Widget _typeChip(String value, String label, IconData icon, bool isDark) {
-    final selected = _type == value;
-    final color = value == 'deposit' ? AppColors.success : AppColors.warning;
-
-    return InkWell(
-      onTap: () => _switchType(value),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.14) : Colors.transparent,
-          border: Border.all(
-            color: selected
-                ? color
-                : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon,
-                size: 17,
-                color: selected
-                    ? color
-                    : (isDark ? AppColors.darkTextLight : Colors.grey[600])),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                color: selected
-                    ? color
-                    : (isDark ? AppColors.darkTextLight : Colors.grey[700]),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return BottomNavigationBar(
+      currentIndex: _type == 'deposit' ? 0 : 1,
+      onTap: (i) => _switchType(i == 0 ? 'deposit' : 'withdraw'),
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      selectedItemColor:
+          _type == 'deposit' ? AppColors.success : AppColors.warning,
+      unselectedItemColor: isDark ? AppColors.darkTextLight : Colors.grey[600],
+      items: const [
+        BottomNavigationBarItem(
+            icon: Icon(Icons.south_west), label: 'Direct Deposit'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.north_east), label: 'Direct Withdraw'),
+      ],
     );
   }
 
@@ -312,7 +339,7 @@ class _CashMovementsScreenState extends State<CashMovementsScreen> {
             Icon(Icons.account_balance_wallet_outlined,
                 size: 52, color: isDark ? Colors.grey[700] : Colors.grey[300]),
             const SizedBox(height: 12),
-            Text('No ${_typeLabel.toLowerCase()}s recorded',
+            Text('No ${_typeLabel.toLowerCase()}s in this date range',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: isDark ? AppColors.darkTextLight : Colors.grey[500],
