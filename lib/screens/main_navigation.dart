@@ -44,6 +44,8 @@ import 'shops_screen.dart';
 import 'transfer_screen.dart';
 import 'discount_requests_screen.dart';
 import 'item_approvals_screen.dart';
+import 'notifications_screen.dart';
+import '../main.dart' show handlePushTap;
 import 'cash_movements_screen.dart';
 import 'production/production_shell.dart';
 
@@ -69,6 +71,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   // render nothing, so a single int is enough.
   int _pendingApprovals = 0;
 
+  /// Unread notifications, shown on the bell in the app bar.
+  int _unreadNotifications = 0;
+
   @override
   void initState() {
     super.initState();
@@ -83,7 +88,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     );
     _checkAuthStatus();
     // Providers are not readable during initState.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshPendingApprovals());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshPendingApprovals();
+      _refreshNotificationCount();
+    });
   }
 
   @override
@@ -101,6 +109,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     if (state == AppLifecycleState.resumed) {
       _refreshPermissions();
       _refreshPendingApprovals();
+      _refreshNotificationCount();
     }
   }
 
@@ -112,6 +121,27 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isAuthenticated) {
       context.read<PermissionProvider>().fetchPermissions();
+    }
+  }
+
+  /// Unread notification count for the bell.
+  ///
+  /// Cheap on purpose -- its own endpoint, so the badge never pulls the
+  /// whole list. Runs on the same demand-driven moments as the approvals
+  /// count rather than on a timer.
+  Future<void> _refreshNotificationCount() async {
+    if (!mounted) return;
+    if (!context.read<AuthProvider>().isAuthenticated) return;
+
+    final response = await ApiService().getUnreadNotificationCount();
+    if (!mounted) return;
+
+    // A failed call keeps the last known count: an absent badge means "all
+    // read", and a network blip must not be able to claim that.
+    if (response.isSuccess &&
+        response.data != null &&
+        response.data != _unreadNotifications) {
+      setState(() => _unreadNotifications = response.data!);
     }
   }
 
@@ -401,6 +431,62 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   ),
                   tooltip: 'Switch Business',
                 ),
+              // Notifications. Everything the system has told this user, in
+              // one place -- the rows exist whether or not the push arrived,
+              // so this is where a missed notification is found.
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none,
+                        color: Colors.white, size: 26),
+                    tooltip: 'Notifications',
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => NotificationsScreen(
+                            onOpen: (type, data) => handlePushTap({
+                              'type': type,
+                              ...data.map((k, v) => MapEntry(k, v)),
+                            }),
+                          ),
+                        ),
+                      );
+                      // Reading them there changes the count here.
+                      _refreshNotificationCount();
+                    },
+                  ),
+                  if (_unreadNotifications > 0)
+                    Positioned(
+                      top: 8,
+                      right: 6,
+                      child: IgnorePointer(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          constraints: const BoxConstraints(minWidth: 17),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: Colors.white, width: 1.2),
+                          ),
+                          child: Text(
+                            _unreadNotifications > 99
+                                ? '99+'
+                                : '$_unreadNotifications',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               // Dark mode toggle
               IconButton(
                 icon: Icon(
@@ -621,6 +707,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         if (isOpened) {
           _refreshPermissions();
           _refreshPendingApprovals();
+          _refreshNotificationCount();
         }
       },
       appBar: PreferredSize(

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_tanzania_mobile/models/production.dart';
 import 'package:pos_tanzania_mobile/models/production_report.dart';
 import 'package:pos_tanzania_mobile/models/cash_movement.dart';
+import 'package:pos_tanzania_mobile/models/app_notification.dart';
 import 'package:pos_tanzania_mobile/utils/production_messages.dart';
 
 // MySQL DECIMAL columns come back from PHP as strings ("55000.00", "1.000"),
@@ -170,6 +171,43 @@ void main() {
       expect(list.movements.first.isDeposit, isTrue);
       expect(list.movements.last.comment, isNull);
       expect(list.movements.last.supervisorId, isNull);
+    });
+  });
+
+  group('AppNotification', () {
+    test('parses a notification with data', () {
+      final n = AppNotification.fromJson(json.decode('''
+      {"id": 12, "type": "item_approval", "title": "Item approval needed",
+       "body": "Edward Muna edited CEMENT", "data": {"request_id": "19"},
+       "is_read": false, "created_at": "2026-08-18 21:30:00"}''')
+          as Map<String, dynamic>);
+
+      expect(n.id, 12);
+      expect(n.type, 'item_approval');
+      expect(n.isRead, isFalse);
+      expect(n.data['request_id'], '19');
+    });
+
+    test('survives data arriving as an empty array', () {
+      // PHP encodes an empty map as {} but an empty array as [], and the
+      // column is written by json_encode on whatever the sender passed.
+      final n = AppNotification.fromJson(json.decode('''
+      {"id": 13, "type": "daily_report", "title": "Today", "body": "Sales 0",
+       "data": [], "is_read": true}''') as Map<String, dynamic>);
+
+      expect(n.data, isEmpty);
+      expect(n.isRead, isTrue);
+    });
+
+    test('list carries the unread count', () {
+      final list = NotificationListResponse.fromJson(json.decode('''
+      {"notifications": [
+        {"id": 1, "type": "low_stock", "title": "Stock", "body": "3 items",
+         "data": {}, "is_read": false}
+      ], "unread_count": 1}''') as Map<String, dynamic>);
+
+      expect(list.notifications.single.type, 'low_stock');
+      expect(list.unreadCount, 1);
     });
   });
 

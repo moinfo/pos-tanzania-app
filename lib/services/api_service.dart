@@ -16,6 +16,7 @@ import '../models/contract.dart';
 import '../models/discount_request.dart';
 import '../models/item_approval.dart';
 import '../models/cash_movement.dart';
+import '../models/app_notification.dart';
 import '../models/production_report.dart';
 import '../models/production.dart';
 import '../models/expense.dart';
@@ -7290,6 +7291,77 @@ class ApiService {
   // PUSH NOTIFICATIONS
   // Backend: application/controllers/api/Notifications.php
   // ============================================================================
+
+  /// The notification centre behind the bell.
+  Future<ApiResponse<NotificationListResponse>> getNotifications({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/notifications').replace(
+        queryParameters: {'limit': '$limit', 'offset': '$offset'},
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<NotificationListResponse>(
+        response,
+        (data) => NotificationListResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Just the badge number -- its own endpoint so refreshing the badge does
+  /// not pull the whole list.
+  Future<ApiResponse<int>> getUnreadNotificationCount() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/notifications/unread_count'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<int>(
+        response,
+        (data) => data['unread_count'] is int
+            ? data['unread_count']
+            : int.tryParse('${data['unread_count']}') ?? 0,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<int>> markNotificationRead(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/notifications/read/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<int>(
+        response,
+        (data) => data['unread_count'] is int
+            ? data['unread_count']
+            : int.tryParse('${data['unread_count']}') ?? 0,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<void>> markAllNotificationsRead() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/notifications/read_all'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
 
   /// Tell the server this device may receive push.
   ///
