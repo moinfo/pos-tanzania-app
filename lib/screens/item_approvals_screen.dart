@@ -488,7 +488,8 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                   style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
               const SizedBox(height: 6),
               ...r.changedQuantities.map(
-                (d) => _diffRow(_locationLabel(context, d.field), d.beforeLabel, d.afterLabel, isDark),
+                (d) => _diffRow(_locationLabel(context, d.field), d.beforeLabel,
+                    d.afterLabel, isDark, changed: d.changed),
               ),
             ],
           ],
@@ -516,7 +517,9 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
           Text('${changed.length} change${changed.length == 1 ? '' : 's'}',
               style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
           const SizedBox(height: 6),
-          ...changed.map((d) => _diffRow(_label(d.field), d.beforeLabel, d.afterLabel, isDark)),
+          ...changed.map((d) =>
+              _diffRow(_label(d.field), d.beforeLabel, d.afterLabel, isDark,
+                  changed: true)),
         ],
 
         // Everything else is collapsed: an item row is ~40 columns and
@@ -543,7 +546,9 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
             ),
           ),
           if (_showUnchanged)
-            ...unchanged.map((d) => _diffRow(_label(d.field), d.beforeLabel, d.afterLabel, isDark)),
+            ...unchanged.map((d) =>
+                _diffRow(_label(d.field), d.beforeLabel, d.afterLabel, isDark,
+                    changed: false)),
         ],
       ],
     );
@@ -557,7 +562,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _diffRow('Location', d.location, d.location, isDark, highlight: false),
+        _diffRow('Location', d.location, d.location, isDark, changed: false),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
@@ -577,7 +582,8 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
           ),
         ),
         if (d.beforeQty != null && d.afterQty != null)
-          _diffRow('Quantity', qty.format(d.beforeQty), qty.format(d.afterQty), isDark),
+          _diffRow('Quantity', qty.format(d.beforeQty), qty.format(d.afterQty),
+              isDark, changed: true),
         if (d.transComment != null && d.transComment!.isNotEmpty) ...[
           const SizedBox(height: 10),
           Text('Comment', style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
@@ -589,8 +595,12 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     );
   }
 
+  /// [changed] comes from the server, which compares type-aware:
+  /// "12000.00" and 12000 are equal there. Deciding from the rendered text
+  /// instead would draw a before -> after arrow on rows that never moved,
+  /// which is exactly what a DECIMAL column looks like next to a plain int.
   Widget _diffRow(String label, String before, String after, bool isDark,
-      {bool highlight = true}) {
+      {required bool changed}) {
     final subColor = isDark ? AppColors.darkTextLight : Colors.grey[600];
 
     return Padding(
@@ -607,17 +617,20 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
               children: [
                 Flexible(
                   child: Text(
-                    before,
+                    // An unchanged row is one value, not a before and an
+                    // after that happen to match.
+                    changed ? before : after,
                     style: TextStyle(
                       fontSize: 13.5,
-                      color: subColor,
-                      decoration: highlight && before != after
-                          ? TextDecoration.lineThrough
-                          : null,
+                      color: changed
+                          ? subColor
+                          : (isDark ? AppColors.darkText : AppColors.lightText),
+                      decoration:
+                          changed ? TextDecoration.lineThrough : null,
                     ),
                   ),
                 ),
-                if (before != after) ...[
+                if (changed) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Icon(Icons.arrow_forward, size: 13, color: subColor),
