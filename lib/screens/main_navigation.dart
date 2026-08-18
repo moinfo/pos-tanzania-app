@@ -45,11 +45,7 @@ import 'transfer_screen.dart';
 import 'discount_requests_screen.dart';
 import 'item_approvals_screen.dart';
 import 'cash_movements_screen.dart';
-import 'production/production_batches_screen.dart';
-import 'production/production_lots_screen.dart';
-import 'production/production_reports_screen.dart';
-import 'production/production_recipes_screen.dart';
-import 'production/production_settings_screen.dart';
+import 'production/production_shell.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -423,6 +419,27 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   }
 
   /// Build drawer avatar with profile picture (Leruma feature) or default icon
+  /// A drawer row that opens the production shell on a given tab.
+  ///
+  /// The index must line up with ProductionShell's destination list, which is
+  /// itself permission-filtered -- the shell clamps an out-of-range index, so
+  /// a user without Reports landing on 2 still opens something sensible.
+  Widget _productionEntry(
+      BuildContext context, IconData icon, String label, int index) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.brandPrimary),
+      title: Text(label),
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => ProductionShell(initialIndex: index)),
+        );
+      },
+    );
+  }
+
   /// Small count pill for menu entries. Caps at 99+ so a long backlog cannot
   /// stretch the row and push the label out of the drawer.
   Widget _buildCountBadge(int count) {
@@ -788,9 +805,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ],
               ),
             ),
-            // Production Menu — the whole module hangs off the `production`
-            // grant; the reports and settings rows need their own grants on
-            // top, exactly as the web gates them.
+            // Production Menu — each entry opens the module shell on that
+            // tab, so the production bottom bar stays available on every page
+            // and switching between them does not go back through the drawer.
             PermissionWrapper(
               permissionId: PermissionIds.production,
               child: ExpansionTile(
@@ -799,75 +816,17 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 title: const Text('Production'),
                 childrenPadding: const EdgeInsets.only(left: 16),
                 children: [
-                  ListTile(
-                    leading: Icon(Icons.inventory_2_outlined,
-                        color: AppColors.brandPrimary),
-                    title: const Text('Batches'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const ProductionBatchesScreen()),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.layers_outlined,
-                        color: AppColors.brandPrimary),
-                    title: const Text('Sand Lots'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const ProductionLotsScreen()),
-                      );
-                    },
-                  ),
+                  _productionEntry(context, Icons.inventory_2_outlined, 'Batches', 0),
+                  _productionEntry(context, Icons.layers_outlined, 'Sand Lots', 1),
                   PermissionWrapper(
                     permissionId: PermissionIds.productionReports,
-                    child: ListTile(
-                      leading: Icon(Icons.bar_chart, color: AppColors.brandPrimary),
-                      title: const Text('Reports'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ProductionReportsScreen()),
-                        );
-                      },
-                    ),
+                    child: _productionEntry(context, Icons.bar_chart, 'Reports', 2),
                   ),
-                  ListTile(
-                    leading: Icon(Icons.menu_book_outlined,
-                        color: AppColors.brandPrimary),
-                    title: const Text('Recipes'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const ProductionRecipesScreen()),
-                      );
-                    },
-                  ),
+                  _productionEntry(context, Icons.menu_book_outlined, 'Recipes', 3),
                   PermissionWrapper(
                     permissionId: PermissionIds.productionCostmap,
-                    child: ListTile(
-                      leading: Icon(Icons.settings_outlined,
-                          color: AppColors.brandPrimary),
-                      title: const Text('Settings'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ProductionSettingsScreen()),
-                        );
-                      },
-                    ),
+                    child: _productionEntry(
+                        context, Icons.settings_outlined, 'Settings', 4),
                   ),
                 ],
               ),
