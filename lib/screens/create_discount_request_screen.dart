@@ -43,11 +43,12 @@ class _CreateDiscountRequestScreenState
   final _quantity = TextEditingController();
   final _discount = TextEditingController();
   final _reason = TextEditingController();
-  final _itemSearch = TextEditingController();
 
   DiscountFormOptions? _options;
+
+  /// The whole eligible catalogue, fetched once. 488 rows is 7.6 KB on the
+  /// wire; filtering locally beats a round trip per keystroke on 2G.
   List<DiscountEligibleItem> _items = [];
-  Timer? _searchDebounce;
 
   ScopedLocation? _location;
   ScopedCustomer? _customer;
@@ -61,7 +62,23 @@ class _CreateDiscountRequestScreenState
 
   /// Held across retries so a timeout that actually committed replays the
   /// original answer instead of raising a second request.
+  ///
+  /// Tied to the payload it was minted for. Reusing one id for a whole screen
+  /// is wrong: edit the item or the amount after a timeout, submit again, and
+  /// the server replays the FIRST request's response — the app reports success
+  /// for a request that was never made.
   String? _requestId;
+  String? _requestKey;
+
+  String _payloadKey() => [
+        _customer?.customerId,
+        _item?.itemId,
+        _location?.locationId,
+        _quantity.text.trim(),
+        _discount.text.trim(),
+        _reason.text.trim(),
+        DateFormat('yyyy-MM-dd').format(_validDate),
+      ].join('|');
 
   @override
   void initState() {
@@ -73,11 +90,9 @@ class _CreateDiscountRequestScreenState
 
   @override
   void dispose() {
-    _searchDebounce?.cancel();
     _quantity.dispose();
     _discount.dispose();
     _reason.dispose();
-    _itemSearch.dispose();
     super.dispose();
   }
 
@@ -117,25 +132,22 @@ class _CreateDiscountRequestScreenState
       }
     });
 
-    _searchItems('');
+    _loadItems();
   }
 
-  void _onItemSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    _searchDebounce =
-        Timer(const Duration(milliseconds: 350), () => _searchItems(value));
-  }
-
-  Future<void> _searchItems(String search) async {
+  Future<void> _loadItems() async {
     setState(() => _searchingItems = true);
 
-    final response = await _api.getDiscountEligibleItems(search: search);
+    final response = await _api.getDiscountEligibleItems();
     if (!mounted) return;
 
     setState(() {
       _searchingItems = false;
       if (response.isSuccess && response.data != null) {
         _items = response.data!;
+      } else {
+        _items = [];
+        _error = FriendlyError.of(response.message);
       }
     });
   }
@@ -188,7 +200,11 @@ class _CreateDiscountRequestScreenState
       _error = null;
     });
 
-    _requestId ??= const Uuid().v4();
+    final key = _payloadKey();
+    if (_requestKey != key) {
+      _requestKey = key;
+      _requestId = const Uuid().v4();
+    }
 
     final response = await _api.createOneTimeDiscountRequest(
       customerId: _customer!.customerId,
@@ -265,7 +281,7 @@ class _CreateDiscountRequestScreenState
     if (options == null) {
       return ErrorStateView(
         message: FriendlyError.of(_error ?? 'Imeshindikana kupakia'),
-        onRetry: _load,
+        onRetry: FriendlyError.isPermanent(_error) ? null : _load,
         isDark: isDark,
       );
     }
@@ -374,6 +390,10 @@ class _CreateDiscountRequestScreenState
                         const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     decoration: const InputDecoration(
                       labelText: 'Idadi',
+                      // Both number fields carry a helper so they end up the
+                      // same height; one with and one without leaves the pair
+                      // visibly misaligned.
+                      helperText: 'kwenye mauzo',
                       border: InputBorder.none,
                     ),
                     validator: (value) {
@@ -398,7 +418,8 @@ class _CreateDiscountRequestScreenState
                     style:
                         const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     decoration: const InputDecoration(
-                      labelText: 'Punguzo/kimoja',
+                      labelText: 'Punguzo',
+                      helperText: 'kwa kimoja',
                       border: InputBorder.none,
                     ),
                     validator: _validateDiscount,
@@ -413,7 +434,7 @@ class _CreateDiscountRequestScreenState
           Padding(
             padding: const EdgeInsets.only(bottom: 12, left: 4),
             child: Text(
-              'Mauzo yatakayotumia punguzo lazima yawe na idadi hii hasa.',
+              'Punguzo litatumika tu kwenye mauzo yenye idadi hii hasa.',
               style: TextStyle(
                 fontSize: 11.5,
                 color: isDark ? AppColors.darkTextLight : AppColors.textLight,
@@ -578,157 +599,101 @@ class _CreateDiscountRequestScreenState
 
   Widget _buildItemPicker(bool isDark) {
     final selected = _item;
+    final muted = isDark ? AppColors.darkTextLight : AppColors.textLight;
 
-    if (selected != null) {
-      final headroom = selected.discountLimit > 0
-          ? 'Kikomo cha punguzo: ${_money.format(selected.discountLimit)}'
-          : null;
-
+    if (selected == null) {
       return _field(
         isDark,
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: const Icon(Icons.inventory_2,
-                    color: AppColors.success, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selected.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: isDark ? AppColors.darkText : AppColors.text,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      [
-                        'Bei: ${_money.format(selected.unitPrice)} TSh',
-                        if (headroom != null) headroom,
-                      ].join(' · '),
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color:
-                            isDark ? AppColors.darkTextLight : AppColors.textLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                tooltip: 'Badilisha bidhaa',
-                onPressed: () => setState(() => _item = null),
-              ),
-            ],
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.inventory_2_outlined, color: muted),
+          title: Text('Bidhaa', style: TextStyle(fontSize: 12, color: muted)),
+          subtitle: Text(
+            _searchingItems ? 'Inapakia...' : 'Gusa kuchagua',
+            style: TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w700, color: muted),
           ),
+          trailing: _searchingItems
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.search, size: 20),
+          onTap: _searchingItems ? null : _pickItem,
         ),
       );
     }
 
+    final headroom = selected.discountLimit > 0
+        ? 'Kikomo: ${_money.format(selected.discountLimit)}'
+        : null;
+
     return _field(
       isDark,
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _itemSearch,
-            decoration: InputDecoration(
-              labelText: 'Tafuta bidhaa',
-              border: InputBorder.none,
-              suffixIcon: _searchingItems
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : const Icon(Icons.search),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child:
+                  const Icon(Icons.inventory_2, color: AppColors.success, size: 20),
             ),
-            onChanged: _onItemSearchChanged,
-          ),
-          if (_items.isNotEmpty)
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 210),
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.only(bottom: 8),
-                itemCount: _items.length,
-                separatorBuilder: (_, __) => Divider(
-                  height: 1,
-                  color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
-                ),
-                itemBuilder: (context, index) {
-                  final item = _items[index];
-                  return InkWell(
-                    onTap: () {
-                      setState(() => _item = item);
-                      FocusScope.of(context).unfocus();
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark ? AppColors.darkText : AppColors.text,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            _money.format(item.unitPrice),
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppColors.darkTextLight
-                                  : AppColors.textLight,
-                            ),
-                          ),
-                        ],
-                      ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    selected.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: isDark ? AppColors.darkText : AppColors.text,
                     ),
-                  );
-                },
-              ),
-            )
-          else if (!_searchingItems && _itemSearch.text.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                'Hakuna bidhaa inayolingana',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    [
+                      'Bei: ${_money.format(selected.unitPrice)} TSh',
+                      if (headroom != null) headroom,
+                    ].join(' · '),
+                    style: TextStyle(fontSize: 11.5, color: muted),
+                  ),
+                ],
               ),
             ),
-        ],
+            IconButton(
+              icon: const Icon(Icons.swap_horiz, size: 20),
+              tooltip: 'Badilisha bidhaa',
+              onPressed: _pickItem,
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _pickItem() async {
+    final picked = await SearchablePicker.show<DiscountEligibleItem>(
+      context,
+      title: 'Chagua Bidhaa',
+      items: _items,
+      labelOf: (i) => i.name,
+      subtitleOf: (i) => i.itemNumber,
+      trailingOf: (i) => _money.format(i.unitPrice),
+      searchHint: 'Tafuta bidhaa...',
+      emptyMessage: 'Hakuna bidhaa inayolingana',
+      numbered: false,
+    );
+    if (picked != null) setState(() => _item = picked);
   }
 
   Widget _field(bool isDark, Widget child) {

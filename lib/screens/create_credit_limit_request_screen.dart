@@ -61,13 +61,27 @@ class _CreateCreditLimitRequestScreenState
   bool _searchingCustomers = false;
   Timer? _searchDebounce;
 
+  /// Bumped per search. A slow reply for "co" landing after a fast one for
+  /// "col" would otherwise leave the list disagreeing with the box.
+  int _searchGeneration = 0;
+
   CustomerCreditPosition? _position;
   bool _loading = true;
   bool _submitting = false;
   String? _error;
 
-  /// Held across retries — see the note in the discount form.
+  /// Held across retries, and tied to the payload — see the note in the
+  /// discount form. Switching customer after a timeout must not replay the
+  /// previous customer's answer.
   String? _requestId;
+  String? _requestKey;
+
+  String _payloadKey() => [
+        _customerId,
+        _amount.text.trim(),
+        _reason.text.trim(),
+        _notes.text.trim(),
+      ].join('|');
 
   /// True while the screen is still asking which customer this is about.
   bool get _picking => _customerId == null;
@@ -104,6 +118,7 @@ class _CreateCreditLimitRequestScreenState
   }
 
   Future<void> _searchCustomers(String search) async {
+    final generation = ++_searchGeneration;
     setState(() {
       _searchingCustomers = true;
       _loading = false;
@@ -114,7 +129,7 @@ class _CreateCreditLimitRequestScreenState
     // that one applies no stock-location filter, so it would offer customers
     // whose request the server then refuses with 403.
     final response = await _api.getCreditLimitCustomers(search: search);
-    if (!mounted) return;
+    if (!mounted || generation != _searchGeneration) return;
 
     setState(() {
       _searchingCustomers = false;
@@ -175,7 +190,11 @@ class _CreateCreditLimitRequestScreenState
       _error = null;
     });
 
-    _requestId ??= const Uuid().v4();
+    final key = _payloadKey();
+    if (_requestKey != key) {
+      _requestKey = key;
+      _requestId = const Uuid().v4();
+    }
 
     final response = await _api.createCreditLimitRequest(
       customerId: _customerId!,
@@ -285,7 +304,7 @@ class _CreateCreditLimitRequestScreenState
     if (_error != null && _candidates.isEmpty) {
       return ErrorStateView(
         message: _error!,
-        onRetry: () => _searchCustomers(_customerSearch.text),
+        onRetry: FriendlyError.isPermanent(_error) ? null : () => _searchCustomers(_customerSearch.text),
         isDark: isDark,
       );
     }
@@ -330,7 +349,7 @@ class _CreateCreditLimitRequestScreenState
     if (position == null) {
       return ErrorStateView(
         message: _error ?? 'Imeshindikana kupakia',
-        onRetry: _load,
+        onRetry: FriendlyError.isPermanent(_error) ? null : _load,
         isDark: isDark,
       );
     }

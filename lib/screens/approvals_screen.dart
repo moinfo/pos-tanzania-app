@@ -167,8 +167,12 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       ),
       body: TabBarView(
         controller: _tabs,
+        // _tabCount, not a fresh _canApprove read. Logout clears permissions
+        // and notifies before the auth change swaps in the login screen, so a
+        // live read here would rebuild one child against a two-tab controller
+        // and assert.
         children: [
-          if (_canApprove) _buildInbox(isDark),
+          if (_tabCount > 1) _buildInbox(isDark),
           _buildMine(isDark),
         ],
       ),
@@ -325,7 +329,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     if (_loadingInbox) return SkeletonRowList(isDark: isDark);
 
     if (_inboxError != null) {
-      return ErrorStateView(message: _inboxError!, onRetry: _loadInbox, isDark: isDark);
+      return ErrorStateView(message: _inboxError!, onRetry: FriendlyError.isPermanent(_inboxError) ? null : _loadInbox, isDark: isDark);
     }
 
     if (_inbox.isEmpty) {
@@ -427,7 +431,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     if (_loadingMine) return SkeletonRowList(isDark: isDark);
 
     if (_mineError != null) {
-      return ErrorStateView(message: _mineError!, onRetry: _loadMine, isDark: isDark);
+      return ErrorStateView(message: _mineError!, onRetry: FriendlyError.isPermanent(_mineError) ? null : _loadMine, isDark: isDark);
     }
 
     if (_mine.isEmpty) {
@@ -672,8 +676,11 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
   String? _error;
 
   /// One id per decision, held across retries so a timeout cannot approve the
-  /// same request twice.
+  /// same request twice — but re-minted if the decision itself changes, or an
+  /// approve that timed out would be replayed in place of the reject that
+  /// followed it.
   String? _requestId;
+  String? _requestKey;
 
   @override
   void initState() {
@@ -721,7 +728,11 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
       _error = null;
     });
 
-    _requestId ??= const Uuid().v4();
+    final key = '${approve ? 'approve' : 'reject'}|$comment';
+    if (_requestKey != key) {
+      _requestKey = key;
+      _requestId = const Uuid().v4();
+    }
 
     final response = await _api.actOnApproval(
       approvalId: widget.approvalId,
@@ -801,7 +812,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     if (data == null) {
       return ErrorStateView(
         message: _error ?? 'Imeshindikana kupakia',
-        onRetry: _load,
+        onRetry: FriendlyError.isPermanent(_error) ? null : _load,
         isDark: isDark,
       );
     }

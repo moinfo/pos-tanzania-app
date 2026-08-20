@@ -40,6 +40,15 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// firing a guaranteed refusal all day. One is enough to learn from.
   bool _approvalsForbidden = false;
 
+  /// Set when a pull was due but failed.
+  ///
+  /// The unread count is committed as soon as it arrives, so the badge stays
+  /// right even if the follow-up pull fails. But that also means the next poll
+  /// sees no change and would never retry — the arrival would be announced
+  /// never, and only surface if the user happened to open the feed. This makes
+  /// the debt explicit so the next poll settles it.
+  bool _pullOwed = false;
+
   /// False until the first poll of a session has landed.
   ///
   /// On a cold start _unreadCount is 0 in memory while the server may hold
@@ -112,15 +121,23 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Record where the feed currently ends, announcing nothing.
-  Future<void> _seedCursor() async {
+  ///
+  /// Returns false if the feed could not be read, so the caller can try again
+  /// rather than proceed with no idea where the feed ends.
+  Future<bool> _seedCursor() async {
     final epoch = _epoch;
     final response = await _api.getNotifications(limit: 1);
-    if (epoch != _epoch) return;
+    if (epoch != _epoch) return false;
+
+    if (!response.isSuccess) return false;
 
     final newest = response.data;
-    if (response.isSuccess && newest != null && newest.isNotEmpty) {
+    if (newest != null && newest.isNotEmpty) {
       await _saveCursor(newest.first.createdAt);
     }
+    // An empty feed is a legitimate answer: there is nothing to seed from and
+    // nothing that could be replayed.
+    return true;
   }
 
   /// Call on logout. Clears state so the next user does not inherit a badge.
@@ -132,6 +149,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer?.cancel();
     _timer = null;
     _primed = false;
+    _pullOwed = false;
     _approvalsForbidden = false;
     WidgetsBinding.instance.removeObserver(this);
     _announced.clear();
@@ -187,22 +205,29 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
       var changed = false;
 
       final unread = results[0];
-      if (unread.isSuccess && unread.data != null && unread.data != _unreadCount) {
-        _unreadCount = unread.data!;
-        changed = true;
+      if (unread.isSuccess && unread.data != null) {
+        final moved = unread.data != _unreadCount;
+        if (moved) {
+          _unreadCount = unread.data!;
+          changed = true;
+        }
 
         // Any change, not just a rise. If the user reads one notification on
         // the web and a new one lands between two polls, the total is
         // unchanged or lower and the arrival would never be announced at all.
         // The cursor and the announced-id set are what prevent a repeat, so
         // pulling more often is safe; missing a pull is not.
-        if (_primed) await _pullArrivals();
+        if (_primed && (moved || _pullOwed)) {
+          _pullOwed = !await _pullArrivals();
+        }
       }
 
       // The first poll of a session only establishes where things stand.
+      // _primed is set only once the seed actually lands: marking it early and
+      // then failing would leave _cursor null, and the next change would
+      // announce the entire backlog — the storm this exists to prevent.
       if (!_primed) {
-        _primed = true;
-        await _seedCursor();
+        _primed = await _seedCursor();
       }
 
       final pending = results[1];
@@ -213,8 +238,13 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
         _pendingApprovals = pending.data!;
         changed = true;
       } else if (!pending.isSuccess && pending.statusCode == 403) {
-        // No approvals grant. Stop asking.
-        _approvalsForbidden = true;
+        // Latch only on the server actually saying "no grant". A captive
+        // portal or proxy answering 403 HTML also lands here, and latching on
+        // that would kill the badge for the rest of the session over a network
+        // blip.
+        if (pending.message.contains('do not have permission')) {
+          _approvalsForbidden = true;
+        }
         if (_pendingApprovals != 0) {
           _pendingApprovals = 0;
           changed = true;
@@ -233,15 +263,14 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   ///
   /// The `after` cursor is what keeps this from re-announcing the same row on
   /// every poll, and from replaying the entire backlog on a cold start.
-  Future<void> _pullArrivals() async {
+  Future<bool> _pullArrivals() async {
     final epoch = _epoch;
 
     final response = await _api.getNotifications(after: _cursor, limit: 20);
-    if (epoch != _epoch) return;
+    if (epoch != _epoch) return true;
 
-    if (!response.isSuccess || response.data == null || response.data!.isEmpty) {
-      return;
-    }
+    if (!response.isSuccess) return false;
+    if (response.data == null || response.data!.isEmpty) return true;
 
     final fresh = response.data!;
 
@@ -249,7 +278,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     // same second could both sit on the boundary. Dedupe by id rather than
     // trusting the timestamp alone.
     final unseen = fresh.where((n) => !_announced.contains(n.id)).toList();
-    if (unseen.isEmpty) return;
+    if (unseen.isEmpty) return true;
 
     // Newest first from the API; announce oldest first so the most recent
     // banner is the one left on screen.
@@ -266,6 +295,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     ];
 
     await _saveCursor(fresh.first.createdAt);
+    return true;
   }
 
   /// Keep the announced-id set from growing without bound on a long shift.

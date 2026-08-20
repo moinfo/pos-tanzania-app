@@ -14,6 +14,20 @@
 class FriendlyError {
   const FriendlyError._();
 
+  /// True when retrying cannot possibly help.
+  ///
+  /// A permission or scope refusal will answer the same way every time, so
+  /// offering "Jaribu tena" on one is a button that can only ever fail.
+  static bool isPermanent(String? raw) {
+    if (raw == null) return false;
+    return raw.startsWith('You do not have permission') ||
+        raw.contains('outside your assigned stock locations') ||
+        raw.contains('stock location is not assigned to you') ||
+        raw.contains('Huna ruhusa') ||
+        raw.contains('hayuko kwenye maeneo') ||
+        raw.contains('Eneo hilo hukupangiwa');
+  }
+
   /// A short Swahili line for [raw], which may be an API message or an
   /// exception's toString.
   static String of(String? raw) {

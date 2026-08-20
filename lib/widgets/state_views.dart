@@ -94,13 +94,19 @@ class ErrorStateView extends StatelessWidget {
   const ErrorStateView({
     super.key,
     required this.message,
-    required this.onRetry,
     required this.isDark,
+    this.onRetry,
+    this.icon = Icons.error_outline,
   });
 
   final String message;
-  final VoidCallback onRetry;
   final bool isDark;
+
+  /// Omit when retrying cannot help — a permission refusal answers the same
+  /// way every time, and a button that can only fail is worse than none.
+  final VoidCallback? onRetry;
+
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +116,8 @@ class ErrorStateView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            Icon(icon, size: 48,
+                color: onRetry == null ? Colors.grey.shade400 : AppColors.error),
             const SizedBox(height: 12),
             Text(
               message,
@@ -120,12 +127,14 @@ class ErrorStateView extends StatelessWidget {
                 color: isDark ? AppColors.darkTextLight : AppColors.textLight,
               ),
             ),
-            const SizedBox(height: 14),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Jaribu tena'),
-            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 14),
+              ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Jaribu tena'),
+              ),
+            ],
           ],
         ),
       ),
