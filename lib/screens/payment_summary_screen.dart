@@ -182,6 +182,12 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
   (IconData, Color) _styleFor(String type) =>
       _typeStyles[type] ?? (Icons.payment, const Color(0xFF5C6675));
 
+  String _plural(num count, String singular) =>
+      '${_money.format(count)} $singular${count == 1 ? '' : 's'}';
+
+  double get _grandTotal => _totals.fold<double>(
+      0, (sum, row) => sum + ((row['total'] ?? 0) as num).toDouble());
+
   @override
   Widget build(BuildContext context) {
     final locationProvider = context.watch<LocationProvider>();
@@ -254,77 +260,222 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
 
   Widget _buildTotals(bool isDark) {
     if (_totals.isEmpty) {
-      return const Center(child: Text('No payments recorded for this day'));
+      return LayoutBuilder(
+        builder: (context, constraints) => RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: constraints.maxHeight * 0.7,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.payments_outlined,
+                          size: 56,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : Colors.grey.shade400),
+                      const SizedBox(height: 12),
+                      Text('No payments recorded',
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.darkTextLight
+                                  : AppColors.textLight)),
+                      const SizedBox(height: 4),
+                      Text('Nothing was collected on this day',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              color: isDark
+                                  ? AppColors.darkTextLight
+                                  : AppColors.textLight)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView.separated(
+      child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        itemCount: _totals.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final row = _totals[index];
-          final type = row['payment_type'] as String? ?? '?';
-          final (icon, color) = _styleFor(type);
-          final customerCount = (row['customers'] ?? 0) as num;
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [
+          // The day's grand total leads: it is the number being reconciled,
+          // and each type below is a breakdown of it.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1D7DC4), Color(0xFF155E92)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('TOTAL COLLECTED',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: Colors.white.withOpacity(0.85),
+                    )),
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('${_money.format(_grandTotal)} TSh',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      )),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_plural(_totals.length, 'payment type')}'
+                  ' · ${_plural(_totals.fold<int>(0, (n, r) => n + ((r['sales'] ?? 0) as num).toInt()), 'sale')}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          ..._totals.map((row) {
+            final type = row['payment_type'] as String? ?? '?';
+            final (icon, color) = _styleFor(type);
+            final share = _grandTotal > 0
+                ? ((row['total'] ?? 0) as num) / _grandTotal
+                : 0.0;
 
-          return Card(
-            margin: EdgeInsets.zero,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => setState(() => _selectedType = type),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(icon, color: color),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Material(
+                color: isDark ? AppColors.darkCard : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                elevation: 0,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => setState(() => _selectedType = type),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: isDark
+                              ? Colors.white10
+                              : Colors.grey.shade200),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(type,
-                              style: const TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 2),
-                          Text(
-                            '$customerCount customers · ${row['sales'] ?? 0} sales',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.darkTextLight
-                                  : AppColors.textLight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Name row: icon, type, chevron. The amount gets its
+                        // own line below so a large figure never squeezes the
+                        // meta text into a second line.
+                        Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.14),
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              child: Icon(icon, color: color, size: 20),
                             ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(type,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark
+                                        ? AppColors.darkText
+                                        : AppColors.text,
+                                  )),
+                            ),
+                            Icon(Icons.chevron_right,
+                                size: 20,
+                                color: isDark
+                                    ? AppColors.darkTextLight
+                                    : Colors.grey.shade400),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('${_money.format((row['total'] ?? 0) as num)} TSh',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: color,
+                              )),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${_plural((row['customers'] ?? 0) as num, 'customer')}'
+                                ' · ${_plural((row['sales'] ?? 0) as num, 'sale')}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? AppColors.darkTextLight
+                                      : AppColors.textLight,
+                                ),
+                              ),
+                            ),
+                            Text('${(share * 100).round()}%',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: color,
+                                )),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Share of the day, so the split reads at a glance.
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: share.clamp(0.0, 1.0),
+                            minHeight: 5,
+                            backgroundColor: isDark
+                                ? Colors.white12
+                                : Colors.grey.shade200,
+                            valueColor: AlwaysStoppedAnimation(color),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '${_money.format((row['total'] ?? 0) as num)} TSh',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.chevron_right, size: 20),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          }),
+        ],
       ),
     );
   }
@@ -334,79 +485,143 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     if (rows.isEmpty) {
       return Center(child: Text('No $_selectedType payments for this day'));
     }
-    final (_, color) = _styleFor(_selectedType!);
+    final (icon, color) = _styleFor(_selectedType!);
+    final total = rows.fold<double>(
+        0, (sum, r) => sum + ((r['amount'] ?? 0) as num).toDouble());
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final row = rows[index];
-        return Card(
-          margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                // Stop number on the route -- the same circled serial the
-                // suspended, items and customers lists carry.
-                Container(
-                  width: 28,
-                  height: 28,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                    border:
-                        Border.all(color: AppColors.primary.withOpacity(0.5)),
-                  ),
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
+    return Column(
+      children: [
+        // Sticky context: which type, how much, how many stops.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          color: color.withOpacity(isDark ? 0.16 : 0.09),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(11),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        row['customer_name'] as String? ?? 'Walk-in Customer',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${row['sales'] ?? 0} sale(s)',
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('${_money.format(total)} TSh',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: color,
+                          )),
+                    ),
+                    Text(_plural(rows.length, 'customer'),
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                           color: isDark
                               ? AppColors.darkTextLight
                               : AppColors.textLight,
-                        ),
-                      ),
-                    ],
-                  ),
+                        )),
+                  ],
                 ),
-                Text(
-                  '${_money.format((row['amount'] ?? 0) as num)} TSh',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            itemCount: rows.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final row = rows[index];
+              final onRoute = row['customer_id'] != null &&
+                  _routeOrder.containsKey(row['customer_id']);
+
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkCard : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: isDark ? Colors.white10 : Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    // Stop number on the route -- the same circled serial the
+                    // suspended, items and customers lists carry. Customers
+                    // off the route are numbered too but shown muted, so the
+                    // route sequence stays readable.
+                    Container(
+                      width: 28,
+                      height: 28,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: (onRoute ? AppColors.primary : Colors.grey)
+                            .withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: (onRoute ? AppColors.primary : Colors.grey)
+                                .withOpacity(0.5)),
+                      ),
+                      child: Text('${index + 1}',
+                          style: TextStyle(
+                            color: onRoute ? AppColors.primary : Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          )),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            row['customer_name'] as String? ??
+                                'Walk-in Customer',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color:
+                                  isDark ? AppColors.darkText : AppColors.text,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(_plural((row['sales'] ?? 0) as num, 'sale'),
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: isDark
+                                    ? AppColors.darkTextLight
+                                    : AppColors.textLight,
+                              )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text('${_money.format((row['amount'] ?? 0) as num)}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: color,
+                        )),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
