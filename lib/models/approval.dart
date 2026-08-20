@@ -459,6 +459,44 @@ class ScopedCustomer {
       );
 }
 
+/// A customer this employee may raise a credit request for, with enough of
+/// their credit position to choose between them.
+class CreditScopedCustomer {
+  final int customerId;
+  final String customerName;
+  final String? phoneNumber;
+  final int sortOrder;
+  final double creditLimit;
+  final double oneTimeCreditLimit;
+  final bool hasOneTimeCredit;
+  final String isAllowedCredit;
+
+  CreditScopedCustomer({
+    required this.customerId,
+    required this.customerName,
+    required this.sortOrder,
+    required this.creditLimit,
+    required this.oneTimeCreditLimit,
+    required this.hasOneTimeCredit,
+    required this.isAllowedCredit,
+    this.phoneNumber,
+  });
+
+  bool get creditAllowed => isAllowedCredit.toUpperCase() == 'ACTIVE';
+
+  factory CreditScopedCustomer.fromJson(Map<String, dynamic> json) =>
+      CreditScopedCustomer(
+        customerId: _asInt(json['customer_id']),
+        customerName: (json['customer_name']?.toString() ?? '').trim(),
+        phoneNumber: _asString(json['phone_number']),
+        sortOrder: _asInt(json['sort_order']),
+        creditLimit: _asDouble(json['credit_limit']),
+        oneTimeCreditLimit: _asDouble(json['one_time_credit_limit']),
+        hasOneTimeCredit: _asInt(json['one_time_credit']) == 1,
+        isAllowedCredit: json['is_allowed_credit']?.toString() ?? '',
+      );
+}
+
 /// An item eligible for a discount request.
 class DiscountEligibleItem {
   final int itemId;

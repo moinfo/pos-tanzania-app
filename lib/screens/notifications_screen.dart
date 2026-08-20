@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../models/app_notification.dart';
 import '../providers/notification_provider.dart';
 import '../utils/constants.dart';
+import '../utils/formatters.dart';
+import '../widgets/app_bottom_navigation.dart';
+import '../widgets/state_views.dart';
 import 'approvals_screen.dart';
 
 /// The notification feed.
@@ -35,17 +38,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Taarifa'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           Consumer<NotificationProvider>(
             builder: (context, provider, _) {
               if (provider.unreadCount == 0) return const SizedBox.shrink();
-              return TextButton(
+              return TextButton.icon(
                 onPressed: provider.markAllRead,
-                child: const Text(
+                icon: const Icon(Icons.done_all, size: 17, color: Colors.white),
+                label: const Text(
                   'Soma zote',
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                  style: TextStyle(color: Colors.white, fontSize: 12.5),
                 ),
               );
             },
@@ -55,49 +59,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       body: Consumer<NotificationProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && provider.notifications.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return SkeletonRowList(
+                isDark: isDark, itemCount: 7, hasTrailingAmount: false);
           }
 
           if (provider.notifications.isEmpty) {
-            return RefreshIndicator(
+            return EmptyStateView(
+              icon: Icons.notifications_none,
+              title: 'Hakuna taarifa',
+              message: 'Maombi yanapotumwa au kuidhinishwa utaona hapa.',
+              isDark: isDark,
               onRefresh: () => provider.loadNotifications(refresh: true),
-              child: ListView(
-                children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.25),
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.notifications_none,
-                          size: 56,
-                          color: isDark
-                              ? AppColors.darkTextLight
-                              : Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Hakuna taarifa',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             );
           }
 
+          final unread = provider.unreadCount;
+
           return RefreshIndicator(
             onRefresh: () => provider.loadNotifications(refresh: true),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: provider.notifications.length,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              itemCount: provider.notifications.length + (unread > 0 ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final notification = provider.notifications[index];
+                if (unread > 0 && index == 0) {
+                  return _UnreadStrip(count: unread, isDark: isDark);
+                }
+                final notification =
+                    provider.notifications[index - (unread > 0 ? 1 : 0)];
                 return _NotificationCard(
                   notification: notification,
                   isDark: isDark,
@@ -108,6 +98,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           );
         },
       ),
+      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
     );
   }
 
@@ -125,6 +116,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => ApprovalsScreen(initialApprovalId: approvalId),
+      ),
+    );
+  }
+}
+
+/// A single line saying how much is unread, so the count is legible without
+/// counting dots down the list.
+class _UnreadStrip extends StatelessWidget {
+  const _UnreadStrip({required this.count, required this.isDark});
+
+  final int count;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.16 : 0.09),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.mark_email_unread_outlined,
+              size: 16, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Text(
+            count == 1 ? 'Taarifa 1 mpya' : 'Taarifa $count mpya',
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -158,31 +184,40 @@ class _NotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final (icon, colour) = _look;
     final unread = !notification.isRead;
+    final muted = isDark ? AppColors.darkTextLight : AppColors.textLight;
+    final opens = notification.approvalId != null;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: unread ? 2 : 0,
+    return Material(
       color: unread
           ? (isDark ? AppColors.darkCard : Colors.white)
           : (isDark ? AppColors.darkSurface : Colors.grey.shade50),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
+        child: Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: unread
+                  ? colour.withValues(alpha: 0.35)
+                  : (isDark ? Colors.white10 : Colors.grey.shade200),
+            ),
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: colour.withValues(alpha: 0.13),
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, size: 18, color: colour),
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,10 +227,12 @@ class _NotificationCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             notification.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 13.5,
                               fontWeight:
-                                  unread ? FontWeight.bold : FontWeight.w500,
+                                  unread ? FontWeight.w800 : FontWeight.w600,
                               color: isDark ? AppColors.darkText : AppColors.text,
                             ),
                           ),
@@ -204,8 +241,9 @@ class _NotificationCard extends StatelessWidget {
                           Container(
                             width: 7,
                             height: 7,
-                            decoration: const BoxDecoration(
-                              color: AppColors.error,
+                            margin: const EdgeInsets.only(left: 6),
+                            decoration: BoxDecoration(
+                              color: colour,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -214,22 +252,31 @@ class _NotificationCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       notification.body,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark
-                            ? AppColors.darkTextLight
-                            : AppColors.textLight,
-                      ),
+                      style: TextStyle(fontSize: 12, color: muted),
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      notification.createdAt,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDark
-                            ? AppColors.darkTextLight
-                            : AppColors.textLight,
-                      ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          Formatters.formatDate(notification.createdAt,
+                              format: 'dd MMM yyyy HH:mm'),
+                          style: TextStyle(fontSize: 10.5, color: muted),
+                        ),
+                        if (opens) ...[
+                          const Spacer(),
+                          Text(
+                            'FUNGUA OMBI',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.4,
+                              color: colour,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(Icons.chevron_right, size: 14, color: colour),
+                        ],
+                      ],
                     ),
                   ],
                 ),

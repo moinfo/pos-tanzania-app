@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../models/approval.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
+import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 
 /// Ask for a one-time discount on a specific item for a specific customer.
 ///
@@ -32,7 +34,7 @@ class CreateDiscountRequestScreen extends StatefulWidget {
 class _CreateDiscountRequestScreenState
     extends State<CreateDiscountRequestScreen> {
   final _api = ApiService();
-  final _money = NumberFormat('#,##0');
+  final _money = NumberFormat('#,##0', 'en_US');
   final _formKey = GlobalKey<FormState>();
 
   final _quantity = TextEditingController();
@@ -57,6 +59,8 @@ class _CreateDiscountRequestScreenState
   @override
   void initState() {
     super.initState();
+    _quantity.addListener(_refreshPreview);
+    _discount.addListener(_refreshPreview);
     _load();
   }
 
@@ -69,6 +73,8 @@ class _CreateDiscountRequestScreenState
     _itemSearch.dispose();
     super.dispose();
   }
+
+  void _refreshPreview() => setState(() {});
 
   Future<void> _load() async {
     final response = await _api.getDiscountFormOptions();
@@ -109,10 +115,8 @@ class _CreateDiscountRequestScreenState
 
   void _onItemSearchChanged(String value) {
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(
-      const Duration(milliseconds: 350),
-      () => _searchItems(value),
-    );
+    _searchDebounce =
+        Timer(const Duration(milliseconds: 350), () => _searchItems(value));
   }
 
   Future<void> _searchItems(String search) async {
@@ -139,12 +143,21 @@ class _CreateDiscountRequestScreenState
     if (item == null) return null;
 
     if (value >= item.unitPrice) {
-      return 'Punguzo haliwezi kufikia bei ya bidhaa (${_money.format(item.unitPrice)})';
+      return 'Punguzo haliwezi kufikia bei ya bidhaa '
+          '(${_money.format(item.unitPrice)})';
     }
     if (item.costPrice > 0 && value >= item.costPrice) {
-      return 'Punguzo haliwezi kufikia bei ya gharama (${_money.format(item.costPrice)})';
+      return 'Punguzo haliwezi kufikia bei ya gharama '
+          '(${_money.format(item.costPrice)})';
     }
     return null;
+  }
+
+  double? get _totalGiven {
+    final qty = double.tryParse(_quantity.text);
+    final off = double.tryParse(_discount.text);
+    if (qty == null || off == null || qty <= 0 || off <= 0) return null;
+    return qty * off;
   }
 
   Future<void> _submit() async {
@@ -182,13 +195,14 @@ class _CreateDiscountRequestScreenState
 
     if (response.isSuccess) {
       // Under the bypass threshold the server activates the discount outright
-      // and there is nobody to wait for — say so rather than promising an
+      // and there is nobody to wait for -- say so rather than promising an
       // approval that will never arrive.
       final needsApproval = response.data?['requires_approval'] == true;
       final document = response.data?['document_number']?.toString() ?? '';
 
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             needsApproval
@@ -215,12 +229,23 @@ class _CreateDiscountRequestScreenState
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Omba Punguzo'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildForm(isDark),
+      body: _loading ? _buildSkeleton(isDark) : _buildForm(isDark),
+    );
+  }
+
+  Widget _buildSkeleton(bool isDark) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        for (var i = 0; i < 5; i++) ...[
+          SkeletonLoader(
+              width: double.infinity, height: 62, borderRadius: 12, isDark: isDark),
+          const SizedBox(height: 12),
+        ],
+      ],
     );
   }
 
@@ -228,34 +253,19 @@ class _CreateDiscountRequestScreenState
     final options = _options;
 
     if (options == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(_error ?? 'Imeshindikana kupakia'),
-        ),
+      return ErrorStateView(
+        message: _error ?? 'Imeshindikana kupakia',
+        onRetry: _load,
+        isDark: isDark,
       );
     }
 
     if (!options.canRequest) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.lock_outline, size: 52, color: Colors.grey),
-              const SizedBox(height: 14),
-              Text(
-                'Huna ruhusa ya kuomba punguzo',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkText : AppColors.text,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return EmptyStateView(
+        icon: Icons.lock_outline,
+        title: 'Huna ruhusa ya kuomba punguzo',
+        message: 'Wasiliana na msimamizi wako kama unahitaji ruhusa hii.',
+        isDark: isDark,
       );
     }
 
@@ -264,8 +274,11 @@ class _CreateDiscountRequestScreenState
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (_totalGiven != null && _item != null && _customer != null)
+            _preview(isDark),
+
           if (options.locations.length > 1)
-            _card(
+            _field(
               isDark,
               DropdownButtonFormField<ScopedLocation>(
                 value: _location,
@@ -277,14 +290,15 @@ class _CreateDiscountRequestScreenState
                 items: options.locations
                     .map((location) => DropdownMenuItem(
                           value: location,
-                          child: Text(location.locationName),
+                          child: Text(location.locationName,
+                              overflow: TextOverflow.ellipsis),
                         ))
                     .toList(),
                 onChanged: (value) => setState(() => _location = value),
               ),
             ),
 
-          _card(
+          _field(
             isDark,
             DropdownButtonFormField<ScopedCustomer>(
               value: _customer,
@@ -296,10 +310,8 @@ class _CreateDiscountRequestScreenState
               items: options.customers
                   .map((customer) => DropdownMenuItem(
                         value: customer,
-                        child: Text(
-                          customer.customerName,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: Text(customer.customerName,
+                            overflow: TextOverflow.ellipsis),
                       ))
                   .toList(),
               onChanged: (value) => setState(() => _customer = value),
@@ -307,151 +319,90 @@ class _CreateDiscountRequestScreenState
             ),
           ),
 
-          // Item picker: search box plus the filtered list, because 488 carton
-          // items in a dropdown is unusable on a phone.
-          _card(
-            isDark,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _itemSearch,
-                  decoration: InputDecoration(
-                    labelText: 'Tafuta bidhaa',
-                    border: InputBorder.none,
-                    suffixIcon: _searchingItems
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
-                        : const Icon(Icons.search),
+          _buildItemPicker(isDark),
+
+          Row(
+            children: [
+              Expanded(
+                child: _field(
+                  isDark,
+                  TextFormField(
+                    controller: _quantity,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                    ],
+                    style:
+                        const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    decoration: const InputDecoration(
+                      labelText: 'Idadi',
+                      border: InputBorder.none,
+                    ),
+                    validator: (value) {
+                      final parsed = double.tryParse(value ?? '');
+                      if (parsed == null || parsed <= 0) return 'Weka idadi';
+                      return null;
+                    },
                   ),
-                  onChanged: _onItemSearchChanged,
                 ),
-                if (_item != null)
-                  Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _field(
+                  isDark,
+                  TextFormField(
+                    controller: _discount,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                    ],
+                    style:
+                        const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    decoration: const InputDecoration(
+                      labelText: 'Punguzo/kimoja',
+                      border: InputBorder.none,
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.check_circle,
-                            size: 16, color: AppColors.success),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _item!.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              Text(
-                                'Bei: ${_money.format(_item!.unitPrice)} TSh',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark
-                                      ? AppColors.darkTextLight
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 18),
-                          onPressed: () => setState(() => _item = null),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (_items.isNotEmpty)
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 190),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: _items.length,
-                      itemBuilder: (context, index) {
-                        final item = _items[index];
-                        return ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            item.name,
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          subtitle: Text(
-                            '${_money.format(item.unitPrice)} TSh',
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          onTap: () {
-                            setState(() => _item = item);
-                            FocusScope.of(context).unfocus();
-                          },
-                        );
-                      },
-                    ),
+                    validator: _validateDiscount,
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
 
-          _card(
-            isDark,
-            TextFormField(
-              controller: _quantity,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
-              decoration: const InputDecoration(
-                labelText: 'Idadi',
-                border: InputBorder.none,
-                helperText: 'Mauzo yatakayotumia punguzo lazima yawe na idadi hii',
+          // The quantity is not advisory: redemption requires the sale's
+          // quantity to match this to within 0.001, so say so plainly.
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12, left: 4),
+            child: Text(
+              'Mauzo yatakayotumia punguzo lazima yawe na idadi hii hasa.',
+              style: TextStyle(
+                fontSize: 11.5,
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
               ),
-              validator: (value) {
-                final parsed = double.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) return 'Weka idadi';
-                return null;
-              },
-            ),
-          ),
-
-          _card(
-            isDark,
-            TextFormField(
-              controller: _discount,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
-              decoration: const InputDecoration(
-                labelText: 'Punguzo kwa kila kimoja (TSh)',
-                border: InputBorder.none,
-              ),
-              validator: _validateDiscount,
             ),
           ),
 
           if (options.canSetDate)
-            _card(
+            _field(
               isDark,
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Tarehe ya kutumika', style: TextStyle(fontSize: 12)),
+                title: Text(
+                  'Tarehe ya kutumika',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                  ),
+                ),
                 subtitle: Text(
                   DateFormat('EEE, dd MMM yyyy').format(_validDate),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: isDark ? AppColors.darkText : AppColors.text,
+                  ),
                 ),
                 trailing: const Icon(Icons.calendar_today, size: 18),
                 onTap: () async {
@@ -466,7 +417,7 @@ class _CreateDiscountRequestScreenState
               ),
             ),
 
-          _card(
+          _field(
             isDark,
             TextFormField(
               controller: _reason,
@@ -526,13 +477,231 @@ class _CreateDiscountRequestScreenState
     );
   }
 
-  Widget _card(bool isDark, Widget child) {
+  /// What is actually being given away, before it is asked for.
+  ///
+  /// The per-unit figure understates the ask: 500 off looks small until it is
+  /// multiplied by a hundred cartons. The approver will see the total, so the
+  /// requester should too.
+  Widget _preview(bool isDark) {
+    final total = _totalGiven!;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1D7DC4), Color(0xFF155E92)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'JUMLA YA PUNGUZO',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${_money.format(total)} TSh',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_money.format(double.tryParse(_quantity.text) ?? 0)}'
+            ' × ${_money.format(double.tryParse(_discount.text) ?? 0)}'
+            ' · ${_item!.name}',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemPicker(bool isDark) {
+    final selected = _item;
+
+    if (selected != null) {
+      final headroom = selected.discountLimit > 0
+          ? 'Kikomo cha punguzo: ${_money.format(selected.discountLimit)}'
+          : null;
+
+      return _field(
+        isDark,
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(Icons.inventory_2,
+                    color: AppColors.success, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selected.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: isDark ? AppColors.darkText : AppColors.text,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        'Bei: ${_money.format(selected.unitPrice)} TSh',
+                        if (headroom != null) headroom,
+                      ].join(' · '),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color:
+                            isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                tooltip: 'Badilisha bidhaa',
+                onPressed: () => setState(() => _item = null),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _field(
+      isDark,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _itemSearch,
+            decoration: InputDecoration(
+              labelText: 'Tafuta bidhaa',
+              border: InputBorder.none,
+              suffixIcon: _searchingItems
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : const Icon(Icons.search),
+            ),
+            onChanged: _onItemSearchChanged,
+          ),
+          if (_items.isNotEmpty)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 210),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: 8),
+                itemCount: _items.length,
+                separatorBuilder: (_, __) => Divider(
+                  height: 1,
+                  color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                ),
+                itemBuilder: (context, index) {
+                  final item = _items[index];
+                  return InkWell(
+                    onTap: () {
+                      setState(() => _item = item);
+                      FocusScope.of(context).unfocus();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? AppColors.darkText : AppColors.text,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            _money.format(item.unitPrice),
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? AppColors.darkTextLight
+                                  : AppColors.textLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          else if (!_searchingItems && _itemSearch.text.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Hakuna bidhaa inayolingana',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field(bool isDark, Widget child) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
       ),
       child: child,
     );

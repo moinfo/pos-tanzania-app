@@ -7313,6 +7313,33 @@ class ApiService {
 
   // ---- customer credit limit requests ----
 
+  /// Customers this employee may raise a credit request for, in route order.
+  ///
+  /// Deliberately not the general getCustomers endpoint: that one applies no
+  /// stock-location scope, so a picker built on it would offer all 3,749
+  /// customers and only reveal on submit that most return 403.
+  Future<ApiResponse<List<CreditScopedCustomer>>> getCreditLimitCustomers({
+    String? search,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/customer_credit_limits/customers')
+          .replace(queryParameters: {
+        if (search != null && search.isNotEmpty) 'search': search,
+      });
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<CreditScopedCustomer>>(response, (data) {
+        final list = data['customers'];
+        if (list is! List) return <CreditScopedCustomer>[];
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(CreditScopedCustomer.fromJson)
+            .toList();
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// A customer's live credit position, mirroring the gate the sale endpoint
   /// applies — so the app can warn before checkout instead of after.
   Future<ApiResponse<CustomerCreditPosition>> getCustomerCreditPosition(
