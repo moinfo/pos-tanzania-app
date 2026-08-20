@@ -2454,6 +2454,29 @@ class ApiService {
     return token;
   }
 
+  /// Day's takings grouped by payment type, with the customers behind each
+  /// -- both levels in one response, so tapping a type opens instantly.
+  Future<ApiResponse<Map<String, dynamic>>> getPaymentSummary({
+    required int locationId,
+    String? date,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/sales/payment_summary').replace(
+        queryParameters: {
+          'location_id': locationId.toString(),
+          if (date != null) 'date': date,
+        },
+      );
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Claim a suspended sale before loading it into the cart.
   ///
   /// Two sellers opening the suspended list at the same time would otherwise

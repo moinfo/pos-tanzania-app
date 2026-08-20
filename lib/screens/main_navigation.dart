@@ -21,6 +21,7 @@ import 'items_screen.dart';
 import 'sales_screen.dart';
 import 'sales_history_screen.dart';
 import 'suspended_sales_screen.dart';
+import 'payment_summary_screen.dart';
 import 'receivings/receivings_list_screen.dart';
 import 'banking/banking_list_screen.dart';
 import 'financial_banking/financial_banking_screen.dart';
@@ -767,6 +768,23 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                           setState(() => _selectedIndex = salesIndex);
                         }
                       }
+                    },
+                  ),
+                ),
+                // Payment Summary -- the day's takings per payment type
+                PermissionWrapper(
+                  permissionId: PermissionIds.sales,
+                  child: ListTile(
+                    leading:
+                        const Icon(Icons.payments, color: AppColors.primary),
+                    title: const Text('Payment Summary'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PaymentSummaryScreen()),
+                      );
                     },
                   ),
                 ),
