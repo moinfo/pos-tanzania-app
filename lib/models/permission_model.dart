@@ -139,6 +139,10 @@ class PermissionIds {
   static const String salesStock = 'sales_stock';
   static const String salesChangeModeReturn = 'sales_change_mode_return';
   static const String salesSuspended = 'sales_suspended';
+  /// The day's collections grouped by payment type. Its own grant rather
+  /// than the sales module, so it can be withheld from a seller who may sell
+  /// but should not see the shop's takings.
+  static const String salesPaymentSummary = 'sales_payment_summary';
   static const String salesUnsuspended = 'sales_unsuspended';
   static const String salesUnsuspendPrint = 'sales_unsuspend_print';
   static const String salesPrintedLogs = 'sales_printed_logs';

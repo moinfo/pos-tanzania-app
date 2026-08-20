@@ -983,7 +983,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // a reconciliation view (what came in, by type, per route stop),
             // not an action a seller takes while selling.
             PermissionWrapper(
-              permissionId: PermissionIds.sales,
+              permissionId: PermissionIds.salesPaymentSummary,
               child: ListTile(
                 leading: Icon(Icons.payments, color: AppColors.brandPrimary),
                 title: const Text('Payment Summary'),
