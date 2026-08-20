@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/approval.dart';
 import '../models/permission_model.dart';
@@ -9,6 +10,7 @@ import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
+import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
@@ -100,7 +102,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       if (response.isSuccess && response.data != null) {
         _inbox = response.data!;
       } else {
-        _inboxError = response.message;
+        _inboxError = FriendlyError.of(response.message);
       }
     });
   }
@@ -119,7 +121,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       if (response.isSuccess && response.data != null) {
         _mine = response.data!;
       } else {
-        _mineError = response.message;
+        _mineError = FriendlyError.of(response.message);
       }
     });
   }
@@ -669,6 +671,10 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
   bool _submitting = false;
   String? _error;
 
+  /// One id per decision, held across retries so a timeout cannot approve the
+  /// same request twice.
+  String? _requestId;
+
   @override
   void initState() {
     super.initState();
@@ -695,7 +701,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
       if (response.isSuccess && response.data != null) {
         _data = response.data;
       } else {
-        _error = response.message;
+        _error = FriendlyError.of(response.message);
       }
     });
   }
@@ -715,27 +721,41 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
       _error = null;
     });
 
+    _requestId ??= const Uuid().v4();
+
     final response = await _api.actOnApproval(
       approvalId: widget.approvalId,
       approve: approve,
       comment: comment,
+      requestId: _requestId,
     );
 
     if (!mounted) return;
 
     if (response.isSuccess) {
+      // These flows have two steps. Saying "imeidhinishwa" after the first one
+      // told a manager the request was finished when it had only moved on to
+      // the administrator.
+      final isFinal = response.data?['is_final'] != false;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context, true);
       messenger.showSnackBar(
         SnackBar(
-          content: Text(approve ? 'Ombi limeidhinishwa' : 'Ombi limekataliwa'),
+          content: Text(
+            !approve
+                ? 'Ombi limekataliwa'
+                : isFinal
+                    ? 'Ombi limeidhinishwa'
+                    : 'Umeidhinisha - sasa linasubiri idhini ya mwisho',
+          ),
           backgroundColor: approve ? AppColors.success : AppColors.error,
+          duration: const Duration(seconds: 4),
         ),
       );
     } else {
       setState(() {
         _submitting = false;
-        _error = response.message;
+        _error = FriendlyError.of(response.message);
       });
     }
   }
@@ -856,7 +876,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isDiscount ? 'PUNGUZO KWA KILA KIMOJA' : 'KIKOMO KINACHOOMBWA',
+                      isDiscount ? 'JUMLA YA PUNGUZO' : 'KIKOMO KINACHOOMBWA',
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
@@ -877,6 +897,18 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                         ),
                       ),
                     ),
+                    // The breakdown under the total, so the approver can see
+                    // where it comes from without doing the multiplication.
+                    if (isDiscount && detail?.quantity != null)
+                      Text(
+                        '${widget.money.format(detail!.quantity!)}'
+                        ' x ${widget.money.format(detail.perUnitAmount ?? 0)} TSh',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: accent,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -885,11 +917,6 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
               _Field(label: 'Mteja', value: detail?.customerName ?? '-', isDark: isDark),
               if (isDiscount) ...[
                 _Field(label: 'Bidhaa', value: detail?.itemName ?? '-', isDark: isDark),
-                _Field(
-                  label: 'Idadi',
-                  value: widget.money.format(detail?.quantity ?? 0),
-                  isDark: isDark,
-                ),
                 _Field(label: 'Eneo', value: detail?.locationName ?? '-', isDark: isDark),
                 _Field(
                   label: 'Tarehe ya kutumika',

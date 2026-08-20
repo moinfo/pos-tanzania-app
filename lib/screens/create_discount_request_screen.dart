@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/approval.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
+import '../utils/friendly_error.dart';
+import '../widgets/searchable_picker.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 
@@ -56,6 +59,10 @@ class _CreateDiscountRequestScreenState
   bool _submitting = false;
   String? _error;
 
+  /// Held across retries so a timeout that actually committed replays the
+  /// original answer instead of raising a second request.
+  String? _requestId;
+
   @override
   void initState() {
     super.initState();
@@ -83,7 +90,7 @@ class _CreateDiscountRequestScreenState
     if (!response.isSuccess || response.data == null) {
       setState(() {
         _loading = false;
-        _error = response.message;
+        _error = FriendlyError.of(response.message);
       });
       return;
     }
@@ -181,6 +188,8 @@ class _CreateDiscountRequestScreenState
       _error = null;
     });
 
+    _requestId ??= const Uuid().v4();
+
     final response = await _api.createOneTimeDiscountRequest(
       customerId: _customer!.customerId,
       itemId: _item!.itemId,
@@ -189,6 +198,7 @@ class _CreateDiscountRequestScreenState
       discountAmount: double.parse(_discount.text),
       reason: _reason.text.trim(),
       validDate: DateFormat('yyyy-MM-dd').format(_validDate),
+      requestId: _requestId,
     );
 
     if (!mounted) return;
@@ -216,7 +226,7 @@ class _CreateDiscountRequestScreenState
     } else {
       setState(() {
         _submitting = false;
-        _error = response.message;
+        _error = FriendlyError.of(response.message);
       });
     }
   }
@@ -254,7 +264,7 @@ class _CreateDiscountRequestScreenState
 
     if (options == null) {
       return ErrorStateView(
-        message: _error ?? 'Imeshindikana kupakia',
+        message: FriendlyError.of(_error ?? 'Imeshindikana kupakia'),
         onRetry: _load,
         isDark: isDark,
       );
@@ -298,24 +308,51 @@ class _CreateDiscountRequestScreenState
               ),
             ),
 
+          // A searchable sheet, not a dropdown. A route's customer list runs to
+          // a few hundred names; scrolling one to find the shop you are
+          // standing in is the slowest step of the whole form.
           _field(
             isDark,
-            DropdownButtonFormField<ScopedCustomer>(
-              value: _customer,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Mteja',
-                border: InputBorder.none,
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.storefront_outlined,
+                color: _customer == null
+                    ? (isDark ? AppColors.darkTextLight : AppColors.textLight)
+                    : AppColors.primary,
               ),
-              items: options.customers
-                  .map((customer) => DropdownMenuItem(
-                        value: customer,
-                        child: Text(customer.customerName,
-                            overflow: TextOverflow.ellipsis),
-                      ))
-                  .toList(),
-              onChanged: (value) => setState(() => _customer = value),
-              validator: (value) => value == null ? 'Chagua mteja' : null,
+              title: Text(
+                'Mteja',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                ),
+              ),
+              subtitle: Text(
+                _customer?.customerName ?? 'Gusa kuchagua',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: _customer == null
+                      ? (isDark ? AppColors.darkTextLight : AppColors.textLight)
+                      : (isDark ? AppColors.darkText : AppColors.text),
+                ),
+              ),
+              trailing: const Icon(Icons.search, size: 20),
+              onTap: () async {
+                final picked = await SearchablePicker.show<ScopedCustomer>(
+                  context,
+                  title: 'Chagua Mteja',
+                  items: options.customers,
+                  labelOf: (c) => c.customerName,
+                  subtitleOf: (c) => c.phoneNumber,
+                  searchHint: 'Tafuta kwa jina au namba ya simu...',
+                  emptyMessage: 'Hakuna mteja anayelingana',
+                );
+                if (picked != null) setState(() => _customer = picked);
+              },
             ),
           ),
 

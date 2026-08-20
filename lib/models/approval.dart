@@ -148,9 +148,19 @@ class ApprovalDetail {
     this.expiryDate,
   });
 
-  /// The single number that matters for this record, for the list row.
-  double get headlineAmount =>
-      kind == ApprovalKind.discount ? (discountAmount ?? 0) : (creditAmount ?? 0);
+  /// The number the decision actually turns on.
+  ///
+  /// For a discount that is the TOTAL being given away, not the per-unit
+  /// figure the record stores: 500 off reads as small until it is multiplied
+  /// by a hundred cartons. The requester's own screen has always shown the
+  /// total; the approver was seeing the per-unit amount and deciding on it.
+  double get headlineAmount => kind == ApprovalKind.discount
+      ? (discountAmount ?? 0) * (quantity ?? 1)
+      : (creditAmount ?? 0);
+
+  /// The per-unit discount, kept for the detail view where both belong.
+  double? get perUnitAmount =>
+      kind == ApprovalKind.discount ? discountAmount : null;
 
   factory ApprovalDetail.fromJson(Map<String, dynamic> json, String? modelType) {
     return ApprovalDetail(

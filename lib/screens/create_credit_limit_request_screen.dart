@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/approval.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
+import '../utils/friendly_error.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 
@@ -64,6 +66,9 @@ class _CreateCreditLimitRequestScreenState
   bool _submitting = false;
   String? _error;
 
+  /// Held across retries — see the note in the discount form.
+  String? _requestId;
+
   /// True while the screen is still asking which customer this is about.
   bool get _picking => _customerId == null;
 
@@ -116,7 +121,7 @@ class _CreateCreditLimitRequestScreenState
       if (response.isSuccess && response.data != null) {
         _candidates = response.data!;
       } else {
-        _error = response.message;
+        _error = FriendlyError.of(response.message);
       }
     });
   }
@@ -157,7 +162,7 @@ class _CreateCreditLimitRequestScreenState
       if (response.isSuccess && response.data != null) {
         _position = response.data;
       } else {
-        _error = response.message;
+        _error = FriendlyError.of(response.message);
       }
     });
   }
@@ -170,11 +175,14 @@ class _CreateCreditLimitRequestScreenState
       _error = null;
     });
 
+    _requestId ??= const Uuid().v4();
+
     final response = await _api.createCreditLimitRequest(
       customerId: _customerId!,
       creditAmount: double.parse(_amount.text),
       reason: _reason.text.trim(),
       notes: _notes.text.trim(),
+      requestId: _requestId,
     );
 
     if (!mounted) return;
@@ -197,7 +205,7 @@ class _CreateCreditLimitRequestScreenState
     } else {
       setState(() {
         _submitting = false;
-        _error = response.message;
+        _error = FriendlyError.of(response.message);
       });
     }
   }

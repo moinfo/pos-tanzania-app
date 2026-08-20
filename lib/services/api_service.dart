@@ -7163,12 +7163,17 @@ class ApiService {
     required int approvalId,
     required bool approve,
     String comment = '',
+    String? requestId,
   }) async {
     try {
       final response = await _http.post(
         Uri.parse('$baseUrlSync/approvals/${approve ? 'approve' : 'reject'}'),
         headers: await _getHeaders(),
-        body: jsonEncode({'approval_id': approvalId, 'comment': comment}),
+        body: jsonEncode({
+          'approval_id': approvalId,
+          'comment': comment,
+          if (requestId != null) 'request_id': requestId,
+        }),
       );
       return _handleResponse<Map<String, dynamic>>(
         response,
@@ -7263,6 +7268,7 @@ class ApiService {
     required double discountAmount,
     required String reason,
     String? validDate,
+    String? requestId,
   }) async {
     try {
       final response = await _http.post(
@@ -7276,6 +7282,10 @@ class ApiService {
           'discount_amount': discountAmount,
           'reason': reason,
           if (validDate != null) 'valid_date': validDate,
+          // Retrying after a timeout must not raise a second request. The
+          // server replays the original response for a request_id it has
+          // already seen.
+          if (requestId != null) 'request_id': requestId,
         }),
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
@@ -7369,6 +7379,7 @@ class ApiService {
     String? notes,
     String? effectiveDate,
     String? expiryDate,
+    String? requestId,
   }) async {
     try {
       final response = await _http.post(
@@ -7381,6 +7392,7 @@ class ApiService {
           if (notes != null && notes.isNotEmpty) 'notes': notes,
           if (effectiveDate != null) 'effective_date': effectiveDate,
           if (expiryDate != null) 'expiry_date': expiryDate,
+          if (requestId != null) 'request_id': requestId,
         }),
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);

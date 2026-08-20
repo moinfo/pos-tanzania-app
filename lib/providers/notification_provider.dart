@@ -32,6 +32,15 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _disposed = false;
   bool _polling = false;
 
+  /// False until the first poll of a session has landed.
+  ///
+  /// On a cold start _unreadCount is 0 in memory while the server may hold
+  /// twelve unread rows, so that first poll always looks like a rise. Without
+  /// this the app would announce every one of them: up to twenty six-second
+  /// banners queued back to back before the newest is on screen. The first
+  /// poll therefore sets the counts and announces nothing.
+  bool _primed = false;
+
   /// Bumped by [stop]. A poll that was already in flight when the user signed
   /// out captures the old value and drops its result instead of writing the
   /// previous seller's badge and notifications back over a cleared state.
@@ -80,17 +89,13 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     _cursor = prefs.getString(_cursorKey);
 
-    // With no cursor, every existing notification looks new. Seed from the
-    // current newest WITHOUT announcing, or signing in would fire a banner per
-    // unread row — twenty stacked snackbars on the first screen.
-    if (_cursor == null) {
-      await _seedCursor();
-    }
+    // No seeding here: the first refreshCounts() below is the priming poll,
+    // which records where the feed ends and announces nothing.
 
-    // Registered only now. As an observer, a resume event arriving mid-seed
-    // would call refreshCounts() while _cursor is still null, and
-    // _pullArrivals would then announce the entire backlog — the exact thing
-    // seeding exists to prevent.
+    // Registered only now. As an observer, a resume event arriving before the
+    // priming poll had run would call refreshCounts() with _primed still
+    // false — harmless today, but registering after keeps the ordering
+    // obvious rather than accidental.
     WidgetsBinding.instance.removeObserver(this);
     WidgetsBinding.instance.addObserver(this);
 
@@ -118,6 +123,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     _timer?.cancel();
     _timer = null;
+    _primed = false;
     WidgetsBinding.instance.removeObserver(this);
     _announced.clear();
 
@@ -170,13 +176,21 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       final unread = results[0];
       if (unread.isSuccess && unread.data != null && unread.data != _unreadCount) {
-        final rose = unread.data! > _unreadCount;
         _unreadCount = unread.data!;
         changed = true;
 
-        // Only when the count went UP is there anything new to announce, and
-        // only then is the extra request worth making.
-        if (rose) await _pullArrivals();
+        // Any change, not just a rise. If the user reads one notification on
+        // the web and a new one lands between two polls, the total is
+        // unchanged or lower and the arrival would never be announced at all.
+        // The cursor and the announced-id set are what prevent a repeat, so
+        // pulling more often is safe; missing a pull is not.
+        if (_primed) await _pullArrivals();
+      }
+
+      // The first poll of a session only establishes where things stand.
+      if (!_primed) {
+        _primed = true;
+        await _seedCursor();
       }
 
       final pending = results[1];
