@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
 import 'providers/sale_provider.dart';
+import 'providers/notification_provider.dart';
 import 'providers/receiving_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/permission_provider.dart';
@@ -37,7 +38,12 @@ class MyApp extends StatelessWidget {
         // already resets LocationProvider, which is what a single
         // process-lifetime SaleProvider needs on a device shared between sellers.
         ChangeNotifierProvider(create: (_) => SaleProvider()),
-        ChangeNotifierProxyProvider4<PermissionProvider, LocationProvider, ConnectivityProvider, SaleProvider, AuthProvider>(
+        // Polls the notification feed and the approval badge. Handed to
+        // AuthProvider below so it starts on login and stops on logout -- on a
+        // shared device it would otherwise keep polling under the previous
+        // seller's token and show them someone else's unread count.
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProxyProvider5<PermissionProvider, LocationProvider, ConnectivityProvider, SaleProvider, NotificationProvider, AuthProvider>(
           create: (context) => AuthProvider()
             ..setPermissionProvider(
               Provider.of<PermissionProvider>(context, listen: false),
@@ -50,12 +56,16 @@ class MyApp extends StatelessWidget {
             )
             ..setSaleProvider(
               Provider.of<SaleProvider>(context, listen: false),
+            )
+            ..setNotificationProvider(
+              Provider.of<NotificationProvider>(context, listen: false),
             ),
-          update: (context, permissionProvider, locationProvider, connectivityProvider, saleProvider, authProvider) {
+          update: (context, permissionProvider, locationProvider, connectivityProvider, saleProvider, notificationProvider, authProvider) {
             authProvider!.setPermissionProvider(permissionProvider);
             authProvider.setLocationProvider(locationProvider);
             authProvider.setConnectivityProvider(connectivityProvider);
             authProvider.setSaleProvider(saleProvider);
+            authProvider.setNotificationProvider(notificationProvider);
             return authProvider;
           },
         ),

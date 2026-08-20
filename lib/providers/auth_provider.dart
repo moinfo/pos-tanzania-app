@@ -8,6 +8,7 @@ import 'permission_provider.dart';
 import 'location_provider.dart';
 import 'connectivity_provider.dart';
 import 'sale_provider.dart';
+import 'notification_provider.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -15,6 +16,7 @@ class AuthProvider with ChangeNotifier {
   LocationProvider? _locationProvider;
   ConnectivityProvider? _connectivityProvider;
   SaleProvider? _saleProvider;
+  NotificationProvider? _notificationProvider;
 
   User? _user;
   bool _isLoading = false;
@@ -61,6 +63,10 @@ class AuthProvider with ChangeNotifier {
     _saleProvider = provider;
   }
 
+  void setNotificationProvider(NotificationProvider provider) {
+    _notificationProvider = provider;
+  }
+
   /// Check if user is already authenticated
   Future<void> _checkAuth() async {
     try {
@@ -85,6 +91,11 @@ class AuthProvider with ChangeNotifier {
         _user = result.data;
         _isAuthenticated = true;
         await _persistActiveUserId();
+
+        // Begin polling for notifications and the approval badge. Not awaited:
+        // it makes a network call, and nothing about resuming a session should
+        // wait on it.
+        _notificationProvider?.start();
 
         // Load permissions from local storage or fetch
         if (_permissionProvider != null) {
@@ -146,6 +157,8 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = true;
         _error = null;
         await _persistActiveUserId();
+
+        _notificationProvider?.start();
 
         // Cache credentials for offline login (only if offline mode enabled)
         if (client.features.hasOfflineMode) {
@@ -316,6 +329,11 @@ class AuthProvider with ChangeNotifier {
     // before their own location finishes loading -- filing a sale, or a
     // suspend, under a stranger's location.
     _saleProvider?.resetForNewUser();
+
+    // Stop the notification poll and clear the badge. On a shared device the
+    // next seller would otherwise inherit this one's unread count -- and keep
+    // polling under a token that no longer belongs to them.
+    await _notificationProvider?.stop();
 
     // Clear dashboard cache
     ApiService.clearDashboardCache();

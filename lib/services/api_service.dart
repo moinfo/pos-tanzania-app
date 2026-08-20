@@ -14,6 +14,8 @@ import '../models/financial_banking.dart';
 import '../models/profit_submit.dart';
 import '../models/contract.dart';
 import '../models/discount_request.dart';
+import '../models/approval.dart';
+import '../models/app_notification.dart';
 import '../models/expense.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
@@ -7085,6 +7087,385 @@ class ApiService {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
+
+  // ============ APPROVALS, REQUESTS & NOTIFICATIONS ============
+  //
+  // The server scopes every one of these to the caller's stock locations, so
+  // the app never has to filter results for safety — only for presentation.
+
+  /// Approvals waiting on me. Already narrowed server-side to requests whose
+  /// customer sits under a supervisor running one of my locations.
+  Future<ApiResponse<List<Approval>>> getPendingApprovals({
+    String? modelType,
+    int limit = 200,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/approvals/pending').replace(
+        queryParameters: {
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (modelType != null) 'model_type': modelType,
+        },
+      );
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<Approval>>(response, (data) {
+        final list = data['approvals'];
+        if (list is! List) return <Approval>[];
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(Approval.fromJson)
+            .toList();
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Count for the inbox badge. Deliberately separate from the list so the
+  /// poll stays cheap.
+  Future<ApiResponse<int>> getPendingApprovalsCount() async {
+    try {
+      final response = await _http.get(
+        Uri.parse('$baseUrlSync/approvals/pending_count'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<int>(
+        response,
+        (data) => (data['count'] as num?)?.toInt() ??
+            int.tryParse(data['count']?.toString() ?? '') ??
+            0,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// One approval with its full trail, plus whether I may act on it.
+  Future<ApiResponse<ApprovalWithHistory>> getApprovalDetail(int approvalId) async {
+    try {
+      final response = await _http.get(
+        Uri.parse('$baseUrlSync/approvals/detail/$approvalId'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<ApprovalWithHistory>(
+        response,
+        ApprovalWithHistory.fromJson,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Approve or reject. A rejection must carry a reason; the server rejects
+  /// an empty one with 400 rather than recording a silent refusal.
+  Future<ApiResponse<Map<String, dynamic>>> actOnApproval({
+    required int approvalId,
+    required bool approve,
+    String comment = '',
+  }) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/approvals/${approve ? 'approve' : 'reject'}'),
+        headers: await _getHeaders(),
+        body: jsonEncode({'approval_id': approvalId, 'comment': comment}),
+      );
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Everything I have submitted, both kinds, newest first.
+  Future<ApiResponse<List<Approval>>> getMySubmittedRequests({
+    String? modelType,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/approvals/my_requests').replace(
+        queryParameters: {
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (modelType != null) 'model_type': modelType,
+        },
+      );
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<Approval>>(response, (data) {
+        final list = data['requests'];
+        if (list is! List) return <Approval>[];
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(Approval.fromJson)
+            .toList();
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- one-time discount requests ----
+
+  /// Locations, customers and date permission for the discount request form,
+  /// all pre-filtered to what this employee may choose.
+  Future<ApiResponse<DiscountFormOptions>> getDiscountFormOptions() async {
+    try {
+      final response = await _http.get(
+        Uri.parse('$baseUrlSync/one_time_discounts/form_options'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<DiscountFormOptions>(
+        response,
+        DiscountFormOptions.fromJson,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Items that may carry a one-time discount: active, carton, priced.
+  Future<ApiResponse<List<DiscountEligibleItem>>> getDiscountEligibleItems({
+    String? search,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/one_time_discounts/items').replace(
+        queryParameters: {
+          if (search != null && search.isNotEmpty) 'search': search,
+        },
+      );
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<DiscountEligibleItem>>(response, (data) {
+        final list = data['items'];
+        if (list is! List) return <DiscountEligibleItem>[];
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(DiscountEligibleItem.fromJson)
+            .toList();
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Raise a discount request. The server generates the document number,
+  /// blocks a duplicate for the same customer/item/location/day, and submits
+  /// it into the approval flow — or activates it outright if the amount falls
+  /// under the bypass threshold, in which case requiresApproval comes back
+  /// false and the discount is usable immediately.
+  Future<ApiResponse<Map<String, dynamic>>> createOneTimeDiscountRequest({
+    required int customerId,
+    required int itemId,
+    required int stockLocationId,
+    required double quantity,
+    required double discountAmount,
+    required String reason,
+    String? validDate,
+  }) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/one_time_discounts/create'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'customer_id': customerId,
+          'item_id': itemId,
+          'stock_location_id': stockLocationId,
+          'quantity': quantity,
+          'discount_amount': discountAmount,
+          'reason': reason,
+          if (validDate != null) 'valid_date': validDate,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<MyDiscountRequest>>> getMyDiscountRequests({
+    String? status,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/one_time_discounts/my_requests').replace(
+        queryParameters: {
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (status != null && status.isNotEmpty) 'status': status,
+        },
+      );
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<MyDiscountRequest>>(response, (data) {
+        final list = data['requests'];
+        if (list is! List) return <MyDiscountRequest>[];
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(MyDiscountRequest.fromJson)
+            .toList();
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- customer credit limit requests ----
+
+  /// A customer's live credit position, mirroring the gate the sale endpoint
+  /// applies — so the app can warn before checkout instead of after.
+  Future<ApiResponse<CustomerCreditPosition>> getCustomerCreditPosition(
+      int customerId) async {
+    try {
+      final response = await _http.get(
+        Uri.parse('$baseUrlSync/customer_credit_limits/customer/$customerId'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<CustomerCreditPosition>(
+        response,
+        CustomerCreditPosition.fromJson,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Ask for a credit increase for a customer.
+  ///
+  /// An approved request grants a ONE-TIME allowance consumed by the next
+  /// credit sale — it does not permanently raise the customer's limit.
+  Future<ApiResponse<Map<String, dynamic>>> createCreditLimitRequest({
+    required int customerId,
+    required double creditAmount,
+    required String reason,
+    String? notes,
+    String? effectiveDate,
+    String? expiryDate,
+  }) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/customer_credit_limits/create'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'customer_id': customerId,
+          'credit_amount': creditAmount,
+          'reason': reason,
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+          if (effectiveDate != null) 'effective_date': effectiveDate,
+          if (expiryDate != null) 'expiry_date': expiryDate,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<MyCreditLimitRequest>>> getMyCreditLimitRequests({
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/customer_credit_limits/my_requests')
+          .replace(queryParameters: {
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      });
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<MyCreditLimitRequest>>(response, (data) {
+        final list = data['requests'];
+        if (list is! List) return <MyCreditLimitRequest>[];
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(MyCreditLimitRequest.fromJson)
+            .toList();
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- notifications ----
+
+  /// Notifications for the signed-in user.
+  ///
+  /// [after] is the newest id already held; passing it makes the poll return
+  /// only what is new, so a repeated check costs one indexed lookup and the
+  /// app never re-processes the same row.
+  Future<ApiResponse<List<AppNotification>>> getNotifications({
+    String? after,
+    bool unreadOnly = false,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/notifications').replace(
+        queryParameters: {
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (unreadOnly) 'unread_only': '1',
+          if (after != null && after.isNotEmpty) 'after': after,
+        },
+      );
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<AppNotification>>(response, (data) {
+        final list = data['notifications'];
+        if (list is! List) return <AppNotification>[];
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map(AppNotification.fromJson)
+            .toList();
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<int>> getUnreadNotificationCount() async {
+    try {
+      final response = await _http.get(
+        Uri.parse('$baseUrlSync/notifications/count'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<int>(
+        response,
+        (data) => (data['unread_count'] as num?)?.toInt() ??
+            int.tryParse(data['unread_count']?.toString() ?? '') ??
+            0,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> markNotificationRead(
+      String notificationId) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/notifications/mark_read'),
+        headers: await _getHeaders(),
+        body: jsonEncode({'notification_id': notificationId}),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> markAllNotificationsRead() async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/notifications/mark_all_read'),
+        headers: await _getHeaders(),
+        body: jsonEncode({}),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
 }
 
 /// Applies a per-request deadline to everything sent through the shared

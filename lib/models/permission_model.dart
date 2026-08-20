@@ -143,6 +143,32 @@ class PermissionIds {
   /// than the sales module, so it can be withheld from a seller who may sell
   /// but should not see the shop's takings.
   static const String salesPaymentSummary = 'sales_payment_summary';
+  // --- Requests and approvals ---
+  //
+  // Two independent gates guard an approval: the permission below decides
+  // whether the screen opens at all, and the server separately checks that
+  // the caller's role matches the flow step and that the customer sits inside
+  // their stock locations. Holding approvalsApprove alone approves nothing.
+  static const String approvals = 'approvals';
+  static const String approvalsView = 'approvals_view';
+  static const String approvalsApprove = 'approvals_approve';
+  static const String approvalsReject = 'approvals_reject';
+
+  static const String oneTimeDiscounts = 'one_time_discounts';
+  static const String oneTimeDiscountsView = 'one_time_discounts_view';
+
+  /// Gates raising a discount request. Note this is `_add`, not `_request` --
+  /// every real requester on the live system holds `_add`, and the web form
+  /// gates on the same one.
+  static const String oneTimeDiscountsAdd = 'one_time_discounts_add';
+
+  /// Lets the requester pick a day other than today.
+  static const String oneTimeDiscountsValidDate = 'one_time_discounts_valid_date';
+
+  static const String customerCreditLimits = 'customer_credit_limits';
+  static const String customerCreditLimitsView = 'customer_credit_limits_view';
+  static const String customerCreditLimitsAdd = 'customer_credit_limits_add';
+
   static const String salesUnsuspended = 'sales_unsuspended';
   static const String salesUnsuspendPrint = 'sales_unsuspend_print';
   static const String salesPrintedLogs = 'sales_printed_logs';

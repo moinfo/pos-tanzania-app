@@ -22,6 +22,13 @@ import 'sales_screen.dart';
 import 'sales_history_screen.dart';
 import 'suspended_sales_screen.dart';
 import 'payment_summary_screen.dart';
+import 'dart:async';
+
+import '../models/app_notification.dart';
+import 'approvals_screen.dart';
+import 'create_discount_request_screen.dart';
+import 'notifications_screen.dart';
+import '../providers/notification_provider.dart';
 import 'receivings/receivings_list_screen.dart';
 import 'banking/banking_list_screen.dart';
 import 'financial_banking/financial_banking_screen.dart';
@@ -65,6 +72,8 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   int _totalNavItems = 0; // Will be set on first build to trigger sync
   bool _initialPositionSet = false; // Track if initial position has been set
 
+  StreamSubscription<AppNotification>? _notificationSub;
+
   @override
   void initState() {
     super.initState();
@@ -77,10 +86,62 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
     );
     _checkAuthStatus();
+    _listenForNotifications();
+  }
+
+  /// Raise an in-app banner the moment a notification arrives.
+  ///
+  /// This is what stands in for a push. The provider polls a count endpoint;
+  /// when the unread total rises it pulls only what is new (via the stored
+  /// cursor) and pushes it onto this stream. A seller who is still in the shop
+  /// sees "your discount was approved" without opening anything.
+  void _listenForNotifications() {
+    final provider = context.read<NotificationProvider>();
+    _notificationSub = provider.arrivals.listen((notification) {
+      if (!mounted) return;
+
+      final approvalId = notification.approvalId;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                notification.title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(notification.body, style: const TextStyle(fontSize: 12)),
+            ],
+          ),
+          backgroundColor: notification.notificationType == 'error'
+              ? AppColors.error
+              : notification.notificationType == 'success'
+                  ? AppColors.success
+                  : AppColors.info,
+          duration: const Duration(seconds: 6),
+          action: approvalId == null
+              ? null
+              : SnackBarAction(
+                  label: 'FUNGUA',
+                  textColor: Colors.white,
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ApprovalsScreen(initialApprovalId: approvalId),
+                    ),
+                  ),
+                ),
+        ),
+      );
+    });
   }
 
   @override
   void dispose() {
+    _notificationSub?.cancel();
     _rotationController.dispose();
     super.dispose();
   }
@@ -313,6 +374,54 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                           ),
                         ],
                       ),
+              ),
+              // Notifications. Sits in the app bar rather than the drawer
+              // because its whole value is being seen without being looked
+              // for -- a discount approval is only useful while the seller is
+              // still standing in the shop.
+              Consumer<NotificationProvider>(
+                builder: (context, notifications, _) {
+                  final count = notifications.badgeCount;
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none,
+                            color: Colors.white, size: 26),
+                        tooltip: 'Taarifa',
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen()),
+                        ),
+                      ),
+                      if (count > 0)
+                        Positioned(
+                          top: 8,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            constraints: const BoxConstraints(minWidth: 17),
+                            decoration: BoxDecoration(
+                              color: AppColors.error,
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(color: appBarColor, width: 1.5),
+                            ),
+                            child: Text(
+                              count > 99 ? '99+' : '$count',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
               // Dark mode toggle
               IconButton(
@@ -621,6 +730,59 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ),
             // 1. Customers Menu
             const _DrawerGroupTitle('SELL'),
+            // Requests and approvals lead the section: raising a discount
+            // request happens mid-sale, and an approval waiting on you is the
+            // most time-sensitive thing in this menu.
+            PermissionWrapper(
+              permissionId: PermissionIds.oneTimeDiscountsView,
+              child: Consumer<NotificationProvider>(
+                builder: (context, notifications, _) => ListTile(
+                  leading: Icon(Icons.approval, color: AppColors.brandPrimary),
+                  title: const Text('Maombi na Idhini'),
+                  trailing: notifications.pendingApprovals > 0
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${notifications.pendingApprovals}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ApprovalsScreen()),
+                    );
+                  },
+                ),
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.oneTimeDiscountsAdd,
+              child: ListTile(
+                leading: Icon(Icons.local_offer_outlined,
+                    color: AppColors.brandPrimary),
+                title: const Text('Omba Punguzo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CreateDiscountRequestScreen()),
+                  );
+                },
+              ),
+            ),
             ExpansionTile(
               leading: Icon(Icons.people, color: AppColors.brandPrimary),
               title: const Text('Customers'),

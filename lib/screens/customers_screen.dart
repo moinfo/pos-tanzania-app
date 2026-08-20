@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import 'create_credit_limit_request_screen.dart';
 import '../services/nfc_service.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
@@ -221,6 +222,24 @@ class _CustomersScreenState extends State<CustomersScreen> {
           Navigator.pop(context);
           _loadCustomers();
         },
+      ),
+    );
+  }
+
+
+  /// Open the credit-increase request for this customer.
+  ///
+  /// What comes back if approved is a ONE-TIME allowance consumed by the next
+  /// credit sale, not a permanent raise of their limit -- the request screen
+  /// says so, because the two are easy to confuse.
+  void _requestCreditLimit(Customer customer) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateCreditLimitRequestScreen(
+          customerId: customer.personId,
+          customerName: customer.displayName,
+        ),
       ),
     );
   }
@@ -692,6 +711,19 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         icon: const Icon(Icons.delete, size: 18),
                         tooltip: 'Delete Customer',
                         color: AppColors.error,
+                        showDisabled: false,
+                      ),
+                      // Ask for extra credit headroom for this customer. Kept
+                      // beside the customer rather than at checkout: the
+                      // approval takes a manager's attention, so it is worth
+                      // raising before the seller is standing at the till.
+                      const SizedBox(width: 8),
+                      PermissionIconButton(
+                        permissionId: PermissionIds.customerCreditLimitsAdd,
+                        onPressed: () => _requestCreditLimit(customer),
+                        icon: const Icon(Icons.request_quote_outlined, size: 18),
+                        tooltip: 'Omba Mkopo wa Ziada',
+                        color: AppColors.warning,
                         showDisabled: false,
                       ),
                       // NFC Card button - Leruma only, different action based on whether card exists
