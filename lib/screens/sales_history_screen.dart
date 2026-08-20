@@ -9,6 +9,7 @@ import '../providers/location_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
+import '../utils/receipt_sms.dart';
 import '../widgets/app_bottom_navigation.dart';
 import 'package:intl/intl.dart';
 import 'return_sale_screen.dart';
@@ -893,17 +894,19 @@ class SaleDetailsSheet extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        // Print button
-                        IconButton(
-                          icon: Icon(Icons.print, color: AppColors.primary),
-                          tooltip: 'Print Receipt',
-                          onPressed: () => _printReceipt(context, sale),
-                        ),
                         // Share button
                         IconButton(
                           icon: Icon(Icons.share, color: AppColors.primary),
                           tooltip: 'Share Receipt',
                           onPressed: () => _shareReceipt(context, sale),
+                        ),
+                        // SMS button -- same pair as the checkout dialog, so
+                        // a receipt can be re-sent later from history.
+                        IconButton(
+                          icon: Icon(Icons.sms_outlined, color: AppColors.primary),
+                          tooltip: 'SMS Receipt',
+                          onPressed: () => ReceiptSms.send(context, sale,
+                              phone: sale.customerPhone),
                         ),
                         // Return items button
                         if (sale.saleId != null && sale.saleType == 0)
@@ -1227,44 +1230,6 @@ class SaleDetailsSheet extends StatelessWidget {
         );
       },
     );
-  }
-
-  void _printReceipt(BuildContext context, Sale sale) async {
-    try {
-      // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              ),
-              SizedBox(width: 12),
-              Text('Preparing receipt...'),
-            ],
-          ),
-          duration: Duration(seconds: 1),
-        ),
-      );
-
-      await PdfService.printSaleReceipt(
-        sale,
-        companyName: ApiService.currentClient?.name ?? 'POS Tanzania',
-        companyAddress: null,
-        companyPhone: null,
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to print receipt: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
   }
 
   void _shareReceipt(BuildContext context, Sale sale) async {

@@ -3,6 +3,9 @@ class Sale {
   final String saleTime;
   final int? customerId;
   final String? customerName;
+
+  /// Where the receipt SMS goes, when the list endpoint supplies it.
+  final String? customerPhone;
   final int employeeId;
   final String? employeeName;
   final String? comment;
@@ -30,6 +33,7 @@ class Sale {
     required this.saleTime,
     this.customerId,
     this.customerName,
+    this.customerPhone,
     required this.employeeId,
     this.employeeName,
     this.comment,
@@ -53,6 +57,7 @@ class Sale {
       saleTime: json['sale_time'] as String,
       customerId: json['customer_id'] as int?,
       customerName: json['customer_name'] as String?,
+      customerPhone: json['customer_phone'] as String?,
       employeeId: json['employee_id'] as int,
       employeeName: json['employee_name'] as String?,
       comment: json['comment'] as String?,
