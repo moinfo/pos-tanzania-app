@@ -66,6 +66,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
       _error = null;
     });
 
+    try {
     // Summary and route order are independent -- fetched together, exactly
     // like the suspended list does.
     final results = await Future.wait([
@@ -89,8 +90,9 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     final summary = results[0] as dynamic;
     if (summary.isSuccess && summary.data != null) {
       final data = summary.data! as Map<String, dynamic>;
-      final totals = (data['totals'] as List? ?? [])
-          .map((t) => (t as Map).cast<String, dynamic>())
+      final totals = (data['totals'] is List ? data['totals'] as List : const [])
+          .whereType<Map>()
+          .map((t) => t.cast<String, dynamic>())
           .toList();
       // Cash, Bank, Credit Card first (the ones sellers reconcile), anything
       // else after, largest first.
@@ -105,15 +107,21 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
         return ((b['total'] ?? 0) as num).compareTo((a['total'] ?? 0) as num);
       });
 
-      final rawCustomers = (data['customers'] as Map? ?? {});
+      // An older server (or PHP encoding an empty array) hands back [] here
+      // instead of {} -- treat anything that is not a map as "no customers".
+      final rawCustomers = data['customers'];
       final customers = <String, List<Map<String, dynamic>>>{};
-      rawCustomers.forEach((type, list) {
-        final rows = (list as List)
-            .map((c) => (c as Map).cast<String, dynamic>())
-            .toList();
-        _sortByRoute(rows);
-        customers[type as String] = rows;
-      });
+      if (rawCustomers is Map) {
+        rawCustomers.forEach((type, list) {
+          if (list is! List) return;
+          final rows = list
+              .whereType<Map>()
+              .map((c) => c.cast<String, dynamic>())
+              .toList();
+          _sortByRoute(rows);
+          customers[type.toString()] = rows;
+        });
+      }
 
       setState(() {
         _totals = totals;
@@ -125,6 +133,16 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
         _error = summary.message ?? 'Failed to load payment summary';
         _isLoading = false;
       });
+    }
+    } catch (e) {
+      // Never strand the spinner: show what went wrong instead.
+      debugPrint('Payment summary load failed: $e');
+      if (mounted) {
+        setState(() {
+          _error = 'Could not load the payment summary. Pull to retry.';
+          _isLoading = false;
+        });
+      }
     }
   }
 
