@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
@@ -67,7 +68,32 @@ class _SalesScreenState extends State<SalesScreen> {
   /// same attempt is retried after a failure -- the server then replays the
   /// original result instead of writing twice -- and cleared only on success.
   String? _checkoutRequestId;
+  String? _checkoutRequestKey;
   String? _suspendRequestId;
+  String? _suspendRequestKey;
+
+  /// Identity of a cart for idempotency purposes.
+  ///
+  /// An id minted once and reused for every attempt is only safe while the
+  /// payload cannot change between them. It can: a checkout that times out
+  /// leaves the seller in the cart, where they may add a line or change the
+  /// payment split before tapping again. Same id, same user, same endpoint --
+  /// so the server replays the FIRST sale's response and the app prints a
+  /// receipt for contents that were never sent, with the discrepancy showing
+  /// up only in the Z report.
+  ///
+  /// sale_date is excluded on purpose: the same cart retried a minute later is
+  /// the same sale, and keying on it would mint a fresh id every attempt --
+  /// which is the double-post this exists to prevent.
+  String _cartKey(Sale sale) {
+    final payload = Map<String, dynamic>.from(sale.toCreateJson())
+      ..remove('sale_date');
+    return jsonEncode(payload);
+  }
+
+  /// Mint a new id only when the payload differs from the last attempt.
+  String _idFor(String key, String? currentKey, String? currentId) =>
+      (currentKey == key && currentId != null) ? currentId : const Uuid().v4();
 
   /// Whether the inline cart preview shows its item list.
   ///
@@ -1663,7 +1689,20 @@ class _SalesScreenState extends State<SalesScreen> {
       debugPrint('Suspend sale: customer_id=$customerId, customer_name=${saleProvider.selectedCustomer?.fullName}');
       debugPrint('Suspend sale: ${saleProvider.cartItems.length} items in cart');
 
-      _suspendRequestId ??= const Uuid().v4();
+      // Same reasoning as checkout: a suspend that timed out leaves the seller
+      // in a cart they can still edit before trying again.
+      final suspendKey = jsonEncode({
+        'customer': customerId,
+        'comment': comment,
+        'sale_id': saleProvider.resumedFromSaleId,
+        'location': saleProvider.stockLocation,
+        'items': saleProvider.cartItems.map((i) => i.toCreateJson()).toList(),
+        'payments': saleProvider.payments.map((p) => p.toJson()).toList(),
+      });
+      _suspendRequestId =
+          _idFor(suspendKey, _suspendRequestKey, _suspendRequestId);
+      _suspendRequestKey = suspendKey;
+
       final response = await _apiService.suspendSale(
         items: saleProvider.cartItems,
         customerId: customerId,
@@ -1680,6 +1719,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
       if (response.isSuccess) {
         _suspendRequestId = null; // consumed; the next suspend is new
+        _suspendRequestKey = null;
         // Grab the phone before the cart goes: the success dialog's SMS
         // action needs it and the provider is about to be emptied.
         _lastSaleCustomerPhone = saleProvider.selectedCustomer?.phoneNumber;
@@ -2301,7 +2341,11 @@ class _SalesScreenState extends State<SalesScreen> {
 
       // A resumed cart completes its own suspended row in place -- same
       // sale_id, status flipped -- so nothing needs deleting afterwards.
-      _checkoutRequestId ??= const Uuid().v4();
+      final checkoutKey = _cartKey(sale);
+      _checkoutRequestId =
+          _idFor(checkoutKey, _checkoutRequestKey, _checkoutRequestId);
+      _checkoutRequestKey = checkoutKey;
+
       final response = await _apiService.createSale(
         sale,
         resumedFromSaleId: saleProvider.resumedFromSaleId,
@@ -2319,6 +2363,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
       if (response.isSuccess) {
         _checkoutRequestId = null; // consumed; the next checkout is new
+        _checkoutRequestKey = null;
         // Process NFC Card payment - deduct from wallet
         double? nfcAmountUsed;
         double? nfcBalanceAfter;

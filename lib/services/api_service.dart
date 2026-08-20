@@ -7461,17 +7461,25 @@ class ApiService {
     }
   }
 
-  Future<ApiResponse<int>> getUnreadNotificationCount() async {
+  /// Unread count plus the timestamp of the newest notification.
+  ///
+  /// Both, because the count alone cannot detect an arrival: one landing while
+  /// the user marks another read on the web leaves the total unchanged.
+  Future<ApiResponse<({int unread, String? latestAt})>>
+      getUnreadNotificationCount() async {
     try {
       final response = await _http.get(
         Uri.parse('$baseUrlSync/notifications/count'),
         headers: await _getHeaders(),
       );
-      return _handleResponse<int>(
+      return _handleResponse<({int unread, String? latestAt})>(
         response,
-        (data) => (data['unread_count'] as num?)?.toInt() ??
-            int.tryParse(data['unread_count']?.toString() ?? '') ??
-            0,
+        (data) => (
+          unread: (data['unread_count'] as num?)?.toInt() ??
+              int.tryParse(data['unread_count']?.toString() ?? '') ??
+              0,
+          latestAt: data['latest_at']?.toString(),
+        ),
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');

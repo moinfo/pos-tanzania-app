@@ -40,6 +40,13 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// firing a guaranteed refusal all day. One is enough to learn from.
   bool _approvalsForbidden = false;
 
+  /// created_at of the newest notification the server reported.
+  ///
+  /// The trigger for pulling arrivals, in place of the unread count: one
+  /// notification arriving while the user marks another read elsewhere leaves
+  /// the count flat, and a count-watching poll concludes nothing happened.
+  String? _latestSeenAt;
+
   /// Set when a pull was due but failed.
   ///
   /// The unread count is committed as soon as it arrives, so the badge stays
@@ -134,6 +141,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     final newest = response.data;
     if (newest != null && newest.isNotEmpty) {
       await _saveCursor(newest.first.createdAt);
+      _latestSeenAt = newest.first.createdAt;
     }
     // An empty feed is a legitimate answer: there is nothing to seed from and
     // nothing that could be replayed.
@@ -150,6 +158,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer = null;
     _primed = false;
     _pullOwed = false;
+    _latestSeenAt = null;
     _approvalsForbidden = false;
     WidgetsBinding.instance.removeObserver(this);
     _announced.clear();
@@ -191,34 +200,42 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     final epoch = _epoch;
 
     try {
-      final results = await Future.wait([
-        _api.getUnreadNotificationCount(),
-        if (!_approvalsForbidden)
-          _api.getPendingApprovalsCount()
-        else
-          Future.value(ApiResponse<int>.success(data: 0)),
-      ]);
+      // Started together, awaited separately: the two calls return different
+      // types, so Future.wait would erase both to Object.
+      final unreadFuture = _api.getUnreadNotificationCount();
+      final pendingFuture = _approvalsForbidden
+          ? Future.value(ApiResponse<int>.success(data: 0))
+          : _api.getPendingApprovalsCount();
+
+      final unread = await unreadFuture;
+      final pending = await pendingFuture;
 
       // Signed out while these were in flight: drop everything.
       if (epoch != _epoch) return;
 
       var changed = false;
 
-      final unread = results[0];
       if (unread.isSuccess && unread.data != null) {
-        final moved = unread.data != _unreadCount;
-        if (moved) {
-          _unreadCount = unread.data!;
+        final count = unread.data!.unread;
+        final latestAt = unread.data!.latestAt;
+
+        if (count != _unreadCount) {
+          _unreadCount = count;
           changed = true;
         }
 
-        // Any change, not just a rise. If the user reads one notification on
-        // the web and a new one lands between two polls, the total is
-        // unchanged or lower and the arrival would never be announced at all.
-        // The cursor and the announced-id set are what prevent a repeat, so
-        // pulling more often is safe; missing a pull is not.
-        if (_primed && (moved || _pullOwed)) {
-          _pullOwed = !await _pullArrivals();
+        // Pull when something ARRIVED, which the timestamp reports exactly,
+        // rather than when the count moved, which it does not.
+        final arrived = latestAt != null && latestAt != _latestSeenAt;
+        _latestSeenAt = latestAt;
+
+        if (_primed && (arrived || _pullOwed)) {
+          final pulled = await _pullArrivals();
+          _pullOwed = !pulled;
+          // A pull driven by the debt flag rather than by a count change
+          // still merges rows into _notifications; without this an open feed
+          // would not repaint until the next poll.
+          if (pulled) changed = true;
         }
       }
 
@@ -230,7 +247,6 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
         _primed = await _seedCursor();
       }
 
-      final pending = results[1];
       // A 403 here is normal and not an error to surface: plenty of sellers
       // have no approvals permission at all, so the badge simply stays at
       // whatever the notification count contributes.
