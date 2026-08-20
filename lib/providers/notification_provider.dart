@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/api_response.dart';
 import '../models/app_notification.dart';
 import '../services/api_service.dart';
 
@@ -31,6 +32,13 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _timer;
   bool _disposed = false;
   bool _polling = false;
+
+  /// Set once the approvals count comes back 403.
+  ///
+  /// Most sellers hold no approvals grant, so that call can never succeed for
+  /// them — and polling it every 90 seconds means twenty-one sellers each
+  /// firing a guaranteed refusal all day. One is enough to learn from.
+  bool _approvalsForbidden = false;
 
   /// False until the first poll of a session has landed.
   ///
@@ -124,6 +132,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer?.cancel();
     _timer = null;
     _primed = false;
+    _approvalsForbidden = false;
     WidgetsBinding.instance.removeObserver(this);
     _announced.clear();
 
@@ -166,7 +175,10 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final results = await Future.wait([
         _api.getUnreadNotificationCount(),
-        _api.getPendingApprovalsCount(),
+        if (!_approvalsForbidden)
+          _api.getPendingApprovalsCount()
+        else
+          Future.value(ApiResponse<int>.success(data: 0)),
       ]);
 
       // Signed out while these were in flight: drop everything.
@@ -200,9 +212,13 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (pending.isSuccess && pending.data != null && pending.data != _pendingApprovals) {
         _pendingApprovals = pending.data!;
         changed = true;
-      } else if (!pending.isSuccess && pending.statusCode == 403 && _pendingApprovals != 0) {
-        _pendingApprovals = 0;
-        changed = true;
+      } else if (!pending.isSuccess && pending.statusCode == 403) {
+        // No approvals grant. Stop asking.
+        _approvalsForbidden = true;
+        if (_pendingApprovals != 0) {
+          _pendingApprovals = 0;
+          changed = true;
+        }
       }
 
       if (changed) _safeNotify();

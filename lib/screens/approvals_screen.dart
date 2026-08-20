@@ -42,6 +42,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
   final _money = NumberFormat('#,##0', 'en_US');
 
   late final TabController _tabs;
+  late final int _tabCount;
 
   List<Approval> _inbox = [];
   List<Approval> _mine = [];
@@ -59,7 +60,10 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     super.initState();
     // A seller with no approvals permission only ever has one tab worth
     // showing, so start them on their own requests.
-    _tabs = TabController(length: 2, vsync: this, initialIndex: _canApprove ? 0 : 1);
+    // One tab for someone who cannot approve. A locked "Zinazonisubiri" they
+    // can swipe to every time adds nothing but a dead end.
+    _tabCount = _canApprove ? 2 : 1;
+    _tabs = TabController(length: _tabCount, vsync: this);
     // No listener on purpose: nothing in build() reads _tabs.index, and a
     // TabController notifies on every frame of a swipe, so a setState here
     // would rebuild both lists for the length of every gesture. The tab counts
@@ -141,25 +145,30 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
         title: const Text('Maombi na Idhini'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabs,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
-          unselectedLabelStyle:
-              const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
-          tabs: [
-            Tab(child: _tabLabel('Zinazonisubiri', _inbox.length, AppColors.error)),
-            Tab(child: _tabLabel('Maombi Yangu', _mineOpen, AppColors.warning)),
-          ],
-        ),
+        bottom: _tabCount == 1
+            ? null
+            : TabBar(
+                controller: _tabs,
+                indicatorColor: Colors.white,
+                indicatorWeight: 3,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                labelStyle:
+                    const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                unselectedLabelStyle:
+                    const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                tabs: [
+                  Tab(
+                      child: _tabLabel(
+                          'Zinazonisubiri', _inbox.length, AppColors.error)),
+                  Tab(child: _tabLabel('Maombi Yangu', _mineOpen, AppColors.warning)),
+                ],
+              ),
       ),
       body: TabBarView(
         controller: _tabs,
         children: [
-          _buildInbox(isDark),
+          if (_canApprove) _buildInbox(isDark),
           _buildMine(isDark),
         ],
       ),
@@ -307,21 +316,12 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     );
 
     if (created == true && mounted) {
-      _tabs.animateTo(1);
+      if (_tabCount > 1) _tabs.animateTo(1);
       _loadMine();
     }
   }
 
   Widget _buildInbox(bool isDark) {
-    if (!_canApprove) {
-      return EmptyStateView(
-        icon: Icons.lock_outline,
-        title: 'Huna ruhusa ya kuidhinisha',
-        message: 'Maombi yako mwenyewe yapo kwenye tabu ya pili.',
-        isDark: isDark,
-      );
-    }
-
     if (_loadingInbox) return SkeletonRowList(isDark: isDark);
 
     if (_inboxError != null) {
@@ -973,6 +973,29 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                   decoration: const InputDecoration(
                     labelText: 'Maoni',
                     helperText: 'Lazima ukikataa',
+                  ),
+                ),
+              ] else if (data.approval.isOpen) ...[
+                // Open, but not on this person's step. Without a line saying
+                // so, the reader just sees a full record with no buttons.
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppColors.info, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Ombi hili linasubiri mtu mwingine kwa sasa.',
+                          style: TextStyle(color: AppColors.info, fontSize: 12),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
