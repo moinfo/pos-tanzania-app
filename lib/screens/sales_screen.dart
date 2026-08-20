@@ -20,6 +20,7 @@ import '../models/stock_location.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
+import 'create_discount_request_screen.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/offline_indicator.dart';
 import 'suspended_sheet_screen.dart';
@@ -866,6 +867,30 @@ class _SalesScreenState extends State<SalesScreen> {
           ],
         ),
         actions: [
+          // The dialog silently clamps anything above the item's limit, which
+          // left a seller who genuinely needs more with no route at all --
+          // they had to abandon the cart, open the drawer, and find the
+          // customer and item again from scratch. This carries all three
+          // straight into the request form.
+          PermissionWrapper(
+            permissionId: PermissionIds.oneTimeDiscountsAdd,
+            child: TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateDiscountRequestScreen(
+                      customerId: saleProvider.selectedCustomer?.personId,
+                      itemId: item.itemId,
+                      quantity: item.quantity,
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Omba zaidi'),
+            ),
+          ),
           TextButton(
               onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(

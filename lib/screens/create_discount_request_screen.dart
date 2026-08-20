@@ -24,10 +24,19 @@ import '../widgets/state_views.dart';
 /// for one customer, on one item, on one day, consumed by a single sale whose
 /// quantity matches.
 class CreateDiscountRequestScreen extends StatefulWidget {
-  const CreateDiscountRequestScreen({super.key, this.customerId});
+  const CreateDiscountRequestScreen({
+    super.key,
+    this.customerId,
+    this.itemId,
+    this.quantity,
+  });
 
-  /// Pre-select a customer, for when this is opened from a sale in progress.
+  /// Pre-fill from a sale in progress, so a seller who hits the item's
+  /// discount limit with the customer in front of them can ask for more
+  /// without abandoning the cart and re-finding both.
   final int? customerId;
+  final int? itemId;
+  final double? quantity;
 
   @override
   State<CreateDiscountRequestScreen> createState() =>
@@ -130,9 +139,26 @@ class _CreateDiscountRequestScreenState
           }
         }
       }
+
+      if (widget.quantity != null && widget.quantity! > 0) {
+        _quantity.text = widget.quantity! == widget.quantity!.roundToDouble()
+            ? widget.quantity!.toStringAsFixed(0)
+            : widget.quantity!.toString();
+      }
     });
 
-    _loadItems();
+    await _loadItems();
+
+    // The item can only be matched once the catalogue is in.
+    final presetItem = widget.itemId;
+    if (presetItem != null && mounted) {
+      for (final candidate in _items) {
+        if (candidate.itemId == presetItem) {
+          setState(() => _item = candidate);
+          break;
+        }
+      }
+    }
   }
 
   Future<void> _loadItems() async {
