@@ -32,14 +32,28 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _disposed = false;
   bool _polling = false;
 
+  /// Bumped by [stop]. A poll that was already in flight when the user signed
+  /// out captures the old value and drops its result instead of writing the
+  /// previous seller's badge and notifications back over a cleared state.
+  int _epoch = 0;
+
+  /// Ids already announced as banners, so a cursor tie (two notifications in
+  /// the same second) cannot show the same one twice. Bounded — see [_remember].
+  final _announced = <String>{};
+
   List<AppNotification> _notifications = [];
   int _unreadCount = 0;
   int _pendingApprovals = 0;
   bool _isLoading = false;
   String? _error;
 
-  /// Newest notification id already seen, persisted so a cold start does not
-  /// replay the whole feed as if it were new.
+  /// created_at of the newest notification already seen, persisted so a cold
+  /// start does not replay the whole feed as if it were new.
+  ///
+  /// A TIMESTAMP, not an id. The server applies this as `created_at > ?` and
+  /// ids in that table are UUIDs; sending one makes MySQL coerce it to a zero
+  /// date and match every row. The API now rejects a non-timestamp outright,
+  /// but the reason the field is a timestamp is worth keeping written down.
   String? _cursor;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
@@ -69,15 +83,39 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     _cursor = prefs.getString(_cursorKey);
 
+    // With no cursor, every existing notification looks new. Seed from the
+    // current newest WITHOUT announcing, or signing in would fire a banner per
+    // unread row — twenty stacked snackbars on the first screen.
+    if (_cursor == null) {
+      await _seedCursor();
+    }
+
     await refreshCounts();
     _startTimer();
   }
 
+  /// Record where the feed currently ends, announcing nothing.
+  Future<void> _seedCursor() async {
+    final epoch = _epoch;
+    final response = await _api.getNotifications(limit: 1);
+    if (epoch != _epoch) return;
+
+    final newest = response.data;
+    if (response.isSuccess && newest != null && newest.isNotEmpty) {
+      await _saveCursor(newest.first.createdAt);
+    }
+  }
+
   /// Call on logout. Clears state so the next user does not inherit a badge.
   Future<void> stop() async {
+    // Bump first: any poll already awaiting a response is now stale and will
+    // discard itself rather than repopulate the badge after sign-out.
+    _epoch++;
+
     _timer?.cancel();
     _timer = null;
     WidgetsBinding.instance.removeObserver(this);
+    _announced.clear();
 
     _notifications = [];
     _unreadCount = 0;
@@ -113,11 +151,16 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_polling) return;
     _polling = true;
 
+    final epoch = _epoch;
+
     try {
       final results = await Future.wait([
         _api.getUnreadNotificationCount(),
         _api.getPendingApprovalsCount(),
       ]);
+
+      // Signed out while these were in flight: drop everything.
+      if (epoch != _epoch) return;
 
       var changed = false;
 
@@ -157,27 +200,46 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The `after` cursor is what keeps this from re-announcing the same row on
   /// every poll, and from replaying the entire backlog on a cold start.
   Future<void> _pullArrivals() async {
+    final epoch = _epoch;
+
     final response = await _api.getNotifications(after: _cursor, limit: 20);
+    if (epoch != _epoch) return;
+
     if (!response.isSuccess || response.data == null || response.data!.isEmpty) {
       return;
     }
 
     final fresh = response.data!;
 
+    // The cursor has second resolution, so two notifications landing in the
+    // same second could both sit on the boundary. Dedupe by id rather than
+    // trusting the timestamp alone.
+    final unseen = fresh.where((n) => !_announced.contains(n.id)).toList();
+    if (unseen.isEmpty) return;
+
     // Newest first from the API; announce oldest first so the most recent
     // banner is the one left on screen.
-    for (final notification in fresh.reversed) {
+    for (final notification in unseen.reversed) {
+      _remember(notification.id);
       if (!_arrivals.isClosed) _arrivals.add(notification);
     }
 
     // Merge into the held list so a screen already open updates too.
     final existing = _notifications.map((n) => n.id).toSet();
     _notifications = [
-      ...fresh.where((n) => !existing.contains(n.id)),
+      ...unseen.where((n) => !existing.contains(n.id)),
       ..._notifications,
     ];
 
-    await _saveCursor(fresh.first.id);
+    await _saveCursor(fresh.first.createdAt);
+  }
+
+  /// Keep the announced-id set from growing without bound on a long shift.
+  void _remember(String id) {
+    if (_announced.length >= 200) {
+      _announced.remove(_announced.first);
+    }
+    _announced.add(id);
   }
 
   /// Pull the full feed for the notifications screen.
@@ -193,7 +255,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (response.isSuccess && response.data != null) {
       _notifications = response.data!;
       if (_notifications.isNotEmpty) {
-        await _saveCursor(_notifications.first.id);
+        await _saveCursor(_notifications.first.createdAt);
       }
     } else {
       _error = response.message;

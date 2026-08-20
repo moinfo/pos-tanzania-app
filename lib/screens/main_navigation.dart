@@ -26,6 +26,7 @@ import 'dart:async';
 
 import '../models/app_notification.dart';
 import 'approvals_screen.dart';
+import 'create_credit_limit_request_screen.dart';
 import 'create_discount_request_screen.dart';
 import 'notifications_screen.dart';
 import '../providers/notification_provider.dart';
@@ -733,8 +734,18 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Requests and approvals lead the section: raising a discount
             // request happens mid-sale, and an approval waiting on you is the
             // most time-sensitive thing in this menu.
+            // Either side of this screen is worth reaching on its own: the
+            // inbox needs approvals_view, "my requests" needs only the
+            // discount or credit-limit view grant. Gating on the discount
+            // grant alone would hide the queue from a credit-limit-only
+            // approver, who could then reach it solely by tapping a
+            // notification.
             PermissionWrapper(
-              permissionId: PermissionIds.oneTimeDiscountsView,
+              anyPermissions: const [
+                PermissionIds.approvalsView,
+                PermissionIds.oneTimeDiscountsView,
+                PermissionIds.customerCreditLimitsView,
+              ],
               child: Consumer<NotificationProvider>(
                 builder: (context, notifications, _) => ListTile(
                   leading: Icon(Icons.approval, color: AppColors.brandPrimary),
@@ -779,6 +790,27 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     context,
                     MaterialPageRoute(
                         builder: (_) => const CreateDiscountRequestScreen()),
+                  );
+                },
+              ),
+            ),
+            // The third of the three request modules the web carries. It is
+            // also reachable per-customer from the customers list; opened from
+            // here it asks which customer first, because a seller who has just
+            // been refused at the till thinks "ask for credit", not "find the
+            // customer row again".
+            PermissionWrapper(
+              permissionId: PermissionIds.customerCreditLimitsAdd,
+              child: ListTile(
+                leading: Icon(Icons.request_quote_outlined,
+                    color: AppColors.brandPrimary),
+                title: const Text('Omba Mkopo wa Ziada'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CreateCreditLimitRequestScreen()),
                   );
                 },
               ),

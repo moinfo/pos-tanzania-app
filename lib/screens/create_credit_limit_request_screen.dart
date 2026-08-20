@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../models/approval.dart';
+import '../models/customer.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 
@@ -22,11 +25,13 @@ import '../utils/constants.dart';
 class CreateCreditLimitRequestScreen extends StatefulWidget {
   const CreateCreditLimitRequestScreen({
     super.key,
-    required this.customerId,
+    this.customerId,
     this.customerName,
   });
 
-  final int customerId;
+  /// The customer to ask for. Omitted when the screen is opened from the
+  /// drawer rather than from a customer row, in which case it asks first.
+  final int? customerId;
   final String? customerName;
 
   @override
@@ -43,28 +48,92 @@ class _CreateCreditLimitRequestScreenState
   final _amount = TextEditingController();
   final _reason = TextEditingController();
   final _notes = TextEditingController();
+  final _customerSearch = TextEditingController();
+
+  /// Resolved once a customer is known — either passed in or picked here.
+  int? _customerId;
+  String? _customerName;
+
+  List<Customer> _candidates = [];
+  bool _searchingCustomers = false;
+  Timer? _searchDebounce;
 
   CustomerCreditPosition? _position;
   bool _loading = true;
   bool _submitting = false;
   String? _error;
 
+  /// True while the screen is still asking which customer this is about.
+  bool get _picking => _customerId == null;
+
   @override
   void initState() {
     super.initState();
-    _load();
+    _customerId = widget.customerId;
+    _customerName = widget.customerName;
+
+    if (_picking) {
+      _loading = false;
+      _searchCustomers('');
+    } else {
+      _load();
+    }
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _amount.dispose();
     _reason.dispose();
     _notes.dispose();
+    _customerSearch.dispose();
     super.dispose();
   }
 
+  void _onCustomerSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => _searchCustomers(value),
+    );
+  }
+
+  Future<void> _searchCustomers(String search) async {
+    setState(() => _searchingCustomers = true);
+
+    final response = await _api.getCustomers(
+      search: search.isEmpty ? null : search,
+      limit: 50,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _searchingCustomers = false;
+      if (response.isSuccess && response.data != null) {
+        _candidates = response.data!;
+      } else {
+        _error = response.message;
+      }
+    });
+  }
+
+  /// Commit to a customer and pull their live position.
+  void _selectCustomer(Customer customer) {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _customerId = customer.personId;
+      _customerName = customer.displayName;
+      _loading = true;
+      _error = null;
+    });
+    _load();
+  }
+
   Future<void> _load() async {
-    final response = await _api.getCustomerCreditPosition(widget.customerId);
+    final customerId = _customerId;
+    if (customerId == null) return;
+
+    final response = await _api.getCustomerCreditPosition(customerId);
     if (!mounted) return;
 
     setState(() {
@@ -86,7 +155,7 @@ class _CreateCreditLimitRequestScreenState
     });
 
     final response = await _api.createCreditLimitRequest(
-      customerId: widget.customerId,
+      customerId: _customerId!,
       creditAmount: double.parse(_amount.text),
       reason: _reason.text.trim(),
       notes: _notes.text.trim(),
@@ -127,10 +196,117 @@ class _CreateCreditLimitRequestScreenState
         title: const Text('Omba Mkopo wa Ziada'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          // Only when this screen owns the choice. Coming from a customer row
+          // the customer is the whole point of the navigation, so there is
+          // nothing to switch to -- and 403 or an already-pending request
+          // would otherwise strand the seller on a dead end.
+          if (widget.customerId == null && !_picking)
+            IconButton(
+              icon: const Icon(Icons.person_search),
+              tooltip: 'Badilisha mteja',
+              onPressed: () => setState(() {
+                _customerId = null;
+                _customerName = null;
+                _position = null;
+                _error = null;
+                _loading = false;
+              }),
+            ),
+        ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildBody(isDark),
+      body: _picking
+          ? _buildCustomerPicker(isDark)
+          : _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _buildBody(isDark),
+    );
+  }
+
+  /// Which customer is this about? Only shown when the screen was opened from
+  /// the drawer; coming from a customer row skips straight to the form.
+  Widget _buildCustomerPicker(bool isDark) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCard : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextField(
+              controller: _customerSearch,
+              decoration: InputDecoration(
+                labelText: 'Tafuta mteja',
+                border: InputBorder.none,
+                suffixIcon: _searchingCustomers
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : const Icon(Icons.search),
+              ),
+              onChanged: _onCustomerSearchChanged,
+            ),
+          ),
+        ),
+        if (_candidates.isEmpty && !_searchingCustomers)
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  _error ?? 'Hakuna mteja aliyepatikana',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _candidates.length,
+              itemBuilder: (context, index) {
+                final customer = _candidates[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  color: isDark ? AppColors.darkCard : Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ListTile(
+                    leading: Icon(Icons.person_outline,
+                        color: AppColors.brandPrimary),
+                    title: Text(
+                      customer.displayName,
+                      style: const TextStyle(fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      'Kikomo: ${_money.format(customer.creditLimit)} TSh',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, size: 20),
+                    onTap: () => _selectCustomer(customer),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 
@@ -343,7 +519,7 @@ class _CreateCreditLimitRequestScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.customerName ?? 'Mteja',
+            _customerName ?? 'Mteja',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
