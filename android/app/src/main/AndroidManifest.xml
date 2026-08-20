@@ -78,6 +78,16 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="http" />
         </intent>
+        <!-- SMS composer: without this Android 11+ reports "no app can handle
+             this" for sms: and the receipt SMS action silently does nothing -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="sms" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
+        </intent>
         <!-- WhatsApp -->
         <package android:name="com.whatsapp" />
         <package android:name="com.whatsapp.w4b" />

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -27,6 +29,7 @@ import 'customer_care_screen.dart';
 import 'map_route_screen.dart';
 import 'suspended_summary_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../services/nfc_service.dart';
 import '../models/item_quantity_offer.dart';
@@ -54,6 +57,10 @@ class _SalesScreenState extends State<SalesScreen> {
   List<Item> _filteredItems = [];
   bool _isLoading = false;
   bool _isProcessing = false;
+
+  /// Customer phone captured at checkout: the cart is cleared before the
+  /// success dialog opens, so the SMS action cannot read it from the provider.
+  String? _lastSaleCustomerPhone;
 
   /// Idempotency keys, one per intended checkout / suspend. Reused when the
   /// same attempt is retried after a failure -- the server then replays the
@@ -1648,6 +1655,10 @@ class _SalesScreenState extends State<SalesScreen> {
 
       if (response.isSuccess) {
         _suspendRequestId = null; // consumed; the next suspend is new
+        // Grab the phone before the cart goes: the success dialog's SMS
+        // action needs it and the provider is about to be emptied.
+        _lastSaleCustomerPhone = saleProvider.selectedCustomer?.phoneNumber;
+
         // Clear cart
         saleProvider.clearCart();
 
@@ -1679,6 +1690,57 @@ class _SalesScreenState extends State<SalesScreen> {
           ),
         );
       }
+    }
+  }
+
+  /// The order as plain text for SMS -- deliberately short: many phones split
+  /// anything over 160 characters into several charged messages, and a seller
+  /// sends these all day.
+  String _receiptSms(Sale sale) {
+    final money = NumberFormat('#,##0');
+    final shop = ApiService.currentClient?.displayName ?? 'POS';
+    final lines = <String>['$shop - Risiti #${sale.saleId}'];
+
+    for (final item in sale.items ?? const <SaleItem>[]) {
+      final qty = money.format(item.quantity);
+      // Free lines carry a zero price; say so rather than printing "0".
+      final amount = item.unitPrice == 0
+          ? 'BURE'
+          : money.format(item.lineTotal);
+      lines.add('${item.itemName} $qty x $amount');
+    }
+
+    lines.add('JUMLA: ${money.format(sale.total)} TSh');
+    lines.add('Asante!');
+    return lines.join('\n');
+  }
+
+  /// Hands the order to the phone's SMS app, pre-addressed to the customer.
+  ///
+  /// Deliberately the normal SMS composer rather than sending in the
+  /// background: the seller sees the text, can edit it, and the message is
+  /// charged to their own line as they expect.
+  Future<void> _sendReceiptSms(Sale sale) async {
+    final phone = (_lastSaleCustomerPhone ?? '').replaceAll(RegExp(r'[^0-9+]'), '');
+    final body = Uri.encodeComponent(_receiptSms(sale));
+
+    // iOS wants '&' to start the query, Android accepts '?'.
+    final separator = Platform.isIOS ? '&' : '?';
+    final uri = Uri.parse('sms:$phone${separator}body=$body');
+
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) throw 'no SMS app';
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(phone.isEmpty
+              ? 'This customer has no phone number saved'
+              : 'Could not open the SMS app'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
     }
   }
 
@@ -1775,7 +1837,7 @@ class _SalesScreenState extends State<SalesScreen> {
             ],
             const SizedBox(height: 16),
             const Text(
-              'Would you like to print or share the receipt?',
+              'Would you like to print, share or SMS the receipt?',
               style: TextStyle(fontSize: 14),
             ),
           ],
@@ -1809,6 +1871,14 @@ class _SalesScreenState extends State<SalesScreen> {
             },
             icon: const Icon(Icons.share),
             label: const Text('Share'),
+          ),
+          TextButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _sendReceiptSms(sale);
+            },
+            icon: const Icon(Icons.sms_outlined),
+            label: const Text('SMS'),
           ),
           ElevatedButton.icon(
             onPressed: () async {
