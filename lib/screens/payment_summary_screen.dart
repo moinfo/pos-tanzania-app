@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/stock_location.dart';
+import '../models/permission_model.dart';
 import '../providers/location_provider.dart';
+import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -72,7 +74,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     final results = await Future.wait([
       _apiService.getPaymentSummary(
         locationId: location.locationId,
-        date: DateFormat('yyyy-MM-dd').format(_date),
+        date: _effectiveDate,
       ),
       _apiService.getMapRoute(locationId: location.locationId),
     ]);
@@ -164,6 +166,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
   }
 
   Future<void> _pickDate() async {
+    if (!_canPickDate) return;
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
@@ -181,6 +184,19 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
 
   (IconData, Color) _styleFor(String type) =>
       _typeStyles[type] ?? (Icons.payment, const Color(0xFF5C6675));
+
+  /// Whether this user may look at a day other than today.
+  ///
+  /// Same rule as the sales history: without sales_transaction_date a seller
+  /// sees today's collections only. Hiding the picker is not enough on its
+  /// own -- the request below is pinned to today too, so the restriction
+  /// holds however the screen is reached.
+  bool get _canPickDate => context
+      .read<PermissionProvider>()
+      .hasPermission(PermissionIds.salesTransactionDate);
+
+  String get _effectiveDate => DateFormat('yyyy-MM-dd')
+      .format(_canPickDate ? _date : DateTime.now());
 
   String _plural(num count, String singular) =>
       '${_money.format(count)} $singular${count == 1 ? '' : 's'}';
@@ -219,8 +235,9 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                       ))
                   .toList(),
             ),
-          IconButton(
-              icon: const Icon(Icons.calendar_today), onPressed: _pickDate),
+          if (_canPickDate)
+            IconButton(
+                icon: const Icon(Icons.calendar_today), onPressed: _pickDate),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],
       ),
@@ -232,7 +249,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             color: isDark ? AppColors.darkCard : Colors.grey.shade100,
             child: Text(
-              '${DateFormat('EEE, d MMM yyyy').format(_date)}'
+              '${DateFormat('EEE, d MMM yyyy').format(_canPickDate ? _date : DateTime.now())}'
               ' · ${locationProvider.selectedLocation?.locationName ?? '—'}',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
