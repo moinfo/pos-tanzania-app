@@ -722,7 +722,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         permissionId: PermissionIds.customerCreditLimitsAdd,
                         onPressed: () => _requestCreditLimit(customer),
                         icon: const Icon(Icons.request_quote_outlined, size: 18),
-                        tooltip: 'Omba Mkopo wa Ziada',
+                        tooltip: 'Request Extra Credit',
                         color: AppColors.warning,
                         showDisabled: false,
                       ),

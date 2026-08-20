@@ -914,7 +914,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   ),
                 );
               },
-              child: const Text('Omba zaidi'),
+              child: const Text('Request more'),
             ),
           ),
           TextButton(

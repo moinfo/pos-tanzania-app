@@ -37,7 +37,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Taarifa'),
+        title: const Text('Notifications'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
@@ -48,7 +48,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 onPressed: provider.markAllRead,
                 icon: const Icon(Icons.done_all, size: 17, color: Colors.white),
                 label: const Text(
-                  'Soma zote',
+                  'Mark all read',
                   style: TextStyle(color: Colors.white, fontSize: 12.5),
                 ),
               );
@@ -66,8 +66,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (provider.notifications.isEmpty) {
             return EmptyStateView(
               icon: Icons.notifications_none,
-              title: 'Hakuna taarifa',
-              message: 'Maombi yanapotumwa au kuidhinishwa utaona hapa.',
+              title: 'No notifications',
+              message: 'You will see requests and decisions here.',
               isDark: isDark,
               onRefresh: () => provider.loadNotifications(refresh: true),
             );
@@ -143,7 +143,7 @@ class _UnreadStrip extends StatelessWidget {
               size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           Text(
-            count == 1 ? 'Taarifa 1 mpya' : 'Taarifa $count mpya',
+            count == 1 ? '1 new notification' : '$count new notifications',
             style: const TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
@@ -265,7 +265,7 @@ class _NotificationCard extends StatelessWidget {
                         if (opens) ...[
                           const Spacer(),
                           Text(
-                            'FUNGUA OMBI',
+                            'OPEN REQUEST',
                             style: TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w800,

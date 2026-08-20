@@ -214,8 +214,8 @@ class _CreateCreditLimitRequestScreenState
         SnackBar(
           content: Text(
             needsApproval
-                ? 'Ombi limetumwa kwa idhini'
-                : 'Kikomo kimekubaliwa moja kwa moja',
+                ? 'Request sent for approval'
+                : 'Limit approved automatically',
           ),
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 4),
@@ -238,7 +238,7 @@ class _CreateCreditLimitRequestScreenState
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: Text(_picking ? 'Chagua Mteja' : 'Omba Mkopo wa Ziada'),
+        title: Text(_picking ? 'Choose a Customer' : 'Request Extra Credit'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
@@ -249,7 +249,7 @@ class _CreateCreditLimitRequestScreenState
           if (widget.customerId == null && !_picking)
             IconButton(
               icon: const Icon(Icons.person_search),
-              tooltip: 'Badilisha mteja',
+              tooltip: 'Change customer',
               onPressed: _clearCustomer,
             ),
         ],
@@ -267,7 +267,7 @@ class _CreateCreditLimitRequestScreenState
           child: TextField(
             controller: _customerSearch,
             decoration: InputDecoration(
-              hintText: 'Tafuta kwa jina au namba ya simu...',
+              hintText: 'Search by name or phone number...',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchingCustomers
                   ? const Padding(
@@ -313,11 +313,11 @@ class _CreateCreditLimitRequestScreenState
       return EmptyStateView(
         icon: Icons.person_off_outlined,
         title: _customerSearch.text.isEmpty
-            ? 'Hakuna mteja kwenye maeneo yako'
-            : 'Hakuna mteja anayelingana',
+            ? 'No customers in your stock locations'
+            : 'No matching customer',
         message: _customerSearch.text.isEmpty
-            ? 'Wateja wa maeneo uliyopangiwa ndio wataonekana hapa.'
-            : 'Jaribu jina au namba nyingine.',
+            ? 'Only customers in the locations assigned to you appear here.'
+            : 'Try another name or number.',
         isDark: isDark,
       );
     }
@@ -348,7 +348,7 @@ class _CreateCreditLimitRequestScreenState
 
     if (position == null) {
       return ErrorStateView(
-        message: _error ?? 'Imeshindikana kupakia',
+        message: _error ?? 'Could not load',
         onRetry: FriendlyError.isPermanent(_error) ? null : _load,
         isDark: isDark,
       );
@@ -360,7 +360,7 @@ class _CreateCreditLimitRequestScreenState
       final pending = position.pendingRequest!;
       return EmptyStateView(
         icon: Icons.hourglass_top,
-        title: 'Tayari kuna ombi linalosubiri',
+        title: 'A request is already pending',
         message: '${pending.documentNumber}\n'
             '${_money.format(pending.creditAmount)} TSh',
         isDark: isDark,
@@ -368,7 +368,7 @@ class _CreateCreditLimitRequestScreenState
             ? OutlinedButton.icon(
                 onPressed: _clearCustomer,
                 icon: const Icon(Icons.person_search, size: 18),
-                label: const Text('Chagua mteja mwingine'),
+                label: const Text('Choose another customer'),
               )
             : null,
       );
@@ -387,8 +387,8 @@ class _CreateCreditLimitRequestScreenState
               child: _notice(
                 icon: Icons.block,
                 colour: AppColors.error,
-                text: 'Mteja huyu hajaruhusiwa kununua kwa mkopo kabisa. '
-                    'Kikomo cha ziada hakitasaidia hadi ruhusa itolewe.',
+                text: 'This customer is not allowed to buy on credit at all. '
+                    'Extra headroom will not help until that is granted.',
               ),
             ),
 
@@ -402,13 +402,13 @@ class _CreateCreditLimitRequestScreenState
               ],
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(
-                labelText: 'Kiasi kinachoombwa (TSh)',
+                labelText: 'Amount requested (TSh)',
                 border: InputBorder.none,
-                helperText: 'Kikomo cha mara moja, si ongezeko la kudumu',
+                helperText: 'A one-time allowance, not a permanent increase',
               ),
               validator: (value) {
                 final parsed = double.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) return 'Weka kiasi';
+                if (parsed == null || parsed <= 0) return 'Enter an amount';
                 return null;
               },
             ),
@@ -420,11 +420,11 @@ class _CreateCreditLimitRequestScreenState
               controller: _reason,
               maxLines: 2,
               decoration: const InputDecoration(
-                labelText: 'Sababu',
+                labelText: 'Reason',
                 border: InputBorder.none,
               ),
               validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Andika sababu' : null,
+                  (value == null || value.trim().isEmpty) ? 'Give a reason' : null,
             ),
           ),
 
@@ -434,7 +434,7 @@ class _CreateCreditLimitRequestScreenState
               controller: _notes,
               maxLines: 2,
               decoration: const InputDecoration(
-                labelText: 'Maelezo ya ziada (hiari)',
+                labelText: 'Extra notes (optional)',
                 border: InputBorder.none,
               ),
             ),
@@ -462,7 +462,7 @@ class _CreateCreditLimitRequestScreenState
                     ),
                   )
                 : const Icon(Icons.send),
-            label: const Text('Tuma Ombi'),
+            label: const Text('Send Request'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -511,7 +511,7 @@ class _CreateCreditLimitRequestScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            (_customerName ?? 'MTEJA').toUpperCase(),
+            (_customerName ?? 'CUSTOMER').toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -536,7 +536,7 @@ class _CreateCreditLimitRequestScreenState
           ),
           const SizedBox(height: 2),
           Text(
-            'kimebaki kwenye kikomo cha sasa',
+            'left on the current limit',
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
@@ -556,14 +556,14 @@ class _CreateCreditLimitRequestScreenState
             ),
           ),
           const SizedBox(height: 12),
-          _line('Kikomo cha sasa', position.creditLimit),
-          _line('Deni la sasa', position.currentBalance),
+          _line('Current limit', position.creditLimit),
+          _line('Owed now', position.currentBalance),
           if (position.hasOneTimeCredit) ...[
             const SizedBox(height: 10),
             _notice(
               icon: Icons.info_outline,
               colour: Colors.white,
-              text: 'Ana kikomo cha mara moja kilichobaki: '
+              text: 'Has an unused one-time allowance of '
                   '${_money.format(position.oneTimeRemaining)} TSh',
               onGradient: true,
             ),
@@ -737,7 +737,7 @@ class _CustomerRow extends StatelessWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
-                              'HARUHUSIWI MKOPO',
+                              'NO CREDIT',
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w800,
@@ -756,7 +756,7 @@ class _CustomerRow extends StatelessWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
-                              'ANA CHA ZIADA',
+                              'HAS ALLOWANCE',
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w800,
@@ -783,7 +783,7 @@ class _CustomerRow extends StatelessWidget {
                       color: isDark ? AppColors.darkText : AppColors.text,
                     ),
                   ),
-                  Text('kikomo', style: TextStyle(fontSize: 10, color: muted)),
+                  Text('limit', style: TextStyle(fontSize: 10, color: muted)),
                 ],
               ),
               Icon(Icons.chevron_right,

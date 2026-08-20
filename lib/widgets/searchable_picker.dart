@@ -17,8 +17,8 @@ class SearchablePicker<T> extends StatefulWidget {
     required this.labelOf,
     this.subtitleOf,
     this.trailingOf,
-    this.searchHint = 'Tafuta...',
-    this.emptyMessage = 'Hakuna kinacholingana',
+    this.searchHint = 'Search...',
+    this.emptyMessage = 'No matches',
     this.numbered = true,
   });
 
@@ -41,8 +41,8 @@ class SearchablePicker<T> extends StatefulWidget {
     required String Function(T) labelOf,
     String? Function(T)? subtitleOf,
     String? Function(T)? trailingOf,
-    String searchHint = 'Tafuta...',
-    String emptyMessage = 'Hakuna kinacholingana',
+    String searchHint = 'Search...',
+    String emptyMessage = 'No matches',
     bool numbered = true,
   }) {
     return showModalBottomSheet<T>(

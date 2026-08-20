@@ -125,7 +125,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           action: approvalId == null
               ? null
               : SnackBarAction(
-                  label: 'FUNGUA',
+                  label: 'OPEN',
                   textColor: Colors.white,
                   onPressed: () => Navigator.push(
                     context,
@@ -389,7 +389,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       IconButton(
                         icon: const Icon(Icons.notifications_none,
                             color: Colors.white, size: 26),
-                        tooltip: 'Taarifa',
+                        tooltip: 'Notifications',
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -749,7 +749,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               child: Consumer<NotificationProvider>(
                 builder: (context, notifications, _) => ListTile(
                   leading: Icon(Icons.approval, color: AppColors.brandPrimary),
-                  title: const Text('Maombi na Idhini'),
+                  title: const Text('Requests & Approvals'),
                   trailing: notifications.pendingApprovals > 0
                       ? Container(
                           padding: const EdgeInsets.symmetric(
@@ -783,7 +783,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               child: ListTile(
                 leading: Icon(Icons.local_offer_outlined,
                     color: AppColors.brandPrimary),
-                title: const Text('Omba Punguzo'),
+                title: const Text('Request a Discount'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -804,7 +804,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               child: ListTile(
                 leading: Icon(Icons.request_quote_outlined,
                     color: AppColors.brandPrimary),
-                title: const Text('Omba Mkopo wa Ziada'),
+                title: const Text('Request Extra Credit'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(

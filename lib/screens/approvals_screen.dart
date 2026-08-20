@@ -130,6 +130,11 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     });
   }
 
+  /// "1 request" / "3 requests" — the counts in the queue header read as a
+  /// sentence, so they have to agree in number.
+  String _plural(int count, String singular) =>
+      '$count $singular${count == 1 ? '' : 's'}';
+
   double get _inboxValue =>
       _inbox.fold(0.0, (sum, a) => sum + (a.detail?.headlineAmount ?? 0));
 
@@ -142,7 +147,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Maombi na Idhini'),
+        title: const Text('Requests & Approvals'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         bottom: _tabCount == 1
@@ -160,8 +165,8 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
                 tabs: [
                   Tab(
                       child: _tabLabel(
-                          'Zinazonisubiri', _inbox.length, AppColors.error)),
-                  Tab(child: _tabLabel('Maombi Yangu', _mineOpen, AppColors.warning)),
+                          'Waiting on Me', _inbox.length, AppColors.error)),
+                  Tab(child: _tabLabel('My Requests', _mineOpen, AppColors.warning)),
                 ],
               ),
       ),
@@ -227,7 +232,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.local_offer_outlined),
-        label: const Text('Omba Punguzo'),
+        label: const Text('Request a Discount'),
       );
     }
 
@@ -237,7 +242,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.request_quote_outlined),
-        label: const Text('Omba Mkopo'),
+        label: const Text('Request Credit'),
       );
     }
 
@@ -275,7 +280,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Unaomba nini?',
+                'What are you requesting?',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -286,8 +291,8 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.local_offer_outlined, color: AppColors.warning),
-              title: const Text('Punguzo la bei'),
-              subtitle: const Text('Kwa bidhaa moja, mteja mmoja, siku moja'),
+              title: const Text('A price discount'),
+              subtitle: const Text('One item, one customer, one day'),
               onTap: () {
                 Navigator.pop(context);
                 _openCreate(discount: true);
@@ -295,8 +300,8 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
             ),
             ListTile(
               leading: const Icon(Icons.request_quote_outlined, color: AppColors.info),
-              title: const Text('Mkopo wa ziada'),
-              subtitle: const Text('Kikomo cha mara moja kwa mteja'),
+              title: const Text('Extra credit'),
+              subtitle: const Text('A one-time allowance for a customer'),
               onTap: () {
                 Navigator.pop(context);
                 _openCreate(discount: false);
@@ -335,8 +340,8 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     if (_inbox.isEmpty) {
       return EmptyStateView(
         icon: Icons.task_alt,
-        title: 'Hakuna linalosubiri',
-        message: 'Maombi yote yaliyo ndani ya maeneo yako yameshughulikiwa.',
+        title: 'Nothing waiting',
+        message: 'Every request in your stock locations has been dealt with.',
         isDark: isDark,
         onRefresh: _loadInbox,
       );
@@ -387,7 +392,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'ZINAZOKUSUBIRI',
+              'WAITING ON YOU',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -410,11 +415,15 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              [
-                '${_inbox.length} ombi',
-                if (discounts > 0) '$discounts punguzo',
-                if (credits > 0) '$credits mkopo',
-              ].join(' · '),
+              // Break the total down only when there is actually a mix;
+              // "27 requests · 27 discounts" says the same thing twice.
+              (discounts > 0 && credits > 0)
+                  ? [
+                      _plural(discounts, 'discount'),
+                      _plural(credits, 'credit request'),
+                    ].join(' · ')
+                  : _plural(
+                      _inbox.length, credits > 0 ? 'credit request' : 'discount'),
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
@@ -437,8 +446,8 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     if (_mine.isEmpty) {
       return EmptyStateView(
         icon: Icons.outbox_outlined,
-        title: 'Bado hujatuma ombi',
-        message: 'Maombi ya punguzo au kikomo cha mkopo yataonekana hapa.',
+        title: 'You have not raised a request yet',
+        message: 'Discount and credit limit requests will appear here.',
         isDark: isDark,
         onRefresh: _loadMine,
       );
@@ -546,7 +555,7 @@ class _ApprovalCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          detail?.customerName ?? 'Mteja hajulikani',
+                          detail?.customerName ?? 'Unknown customer',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -567,8 +576,8 @@ class _ApprovalCard extends StatelessWidget {
                             Flexible(
                               child: Text(
                                 isDiscount
-                                    ? (detail?.itemName ?? 'Punguzo')
-                                    : 'Kikomo cha mkopo',
+                                    ? (detail?.itemName ?? 'Discount')
+                                    : 'Credit limit',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -610,10 +619,13 @@ class _ApprovalCard extends StatelessWidget {
                         money.format(detail!.quantity!), isDark),
                     const SizedBox(width: 12),
                   ],
-                  if (detail?.locationName != null) ...[
+                  // The requester, not the location: a manager's queue is
+                  // usually one location repeated down the page, truncated and
+                  // identical on every row.
+                  if (approval.submittedByName != null) ...[
                     Flexible(
-                      child: _meta(
-                          Icons.place_outlined, detail!.locationName!, isDark),
+                      child: _meta(Icons.person_outline,
+                          approval.submittedByName!, isDark),
                     ),
                     const SizedBox(width: 12),
                   ],
@@ -719,7 +731,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     // The server enforces this too, but catching it here saves a round trip
     // and leaves the reason field on screen instead of a red snackbar.
     if (!approve && comment.isEmpty) {
-      setState(() => _error = 'Andika sababu ya kukataa');
+      setState(() => _error = 'Give a reason for rejecting');
       return;
     }
 
@@ -754,10 +766,10 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
         SnackBar(
           content: Text(
             !approve
-                ? 'Ombi limekataliwa'
+                ? 'Request rejected'
                 : isFinal
-                    ? 'Ombi limeidhinishwa'
-                    : 'Umeidhinisha - sasa linasubiri idhini ya mwisho',
+                    ? 'Request approved'
+                    : 'Approved by you - now waiting on final approval',
           ),
           backgroundColor: approve ? AppColors.success : AppColors.error,
           duration: const Duration(seconds: 4),
@@ -811,7 +823,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     final data = _data;
     if (data == null) {
       return ErrorStateView(
-        message: _error ?? 'Imeshindikana kupakia',
+        message: _error ?? 'Could not load',
         onRetry: FriendlyError.isPermanent(_error) ? null : _load,
         isDark: isDark,
       );
@@ -850,7 +862,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isDiscount ? 'Ombi la Punguzo' : 'Ombi la Mkopo',
+                          isDiscount ? 'Discount Request' : 'Credit Request',
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
@@ -887,7 +899,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isDiscount ? 'JUMLA YA PUNGUZO' : 'KIKOMO KINACHOOMBWA',
+                      isDiscount ? 'TOTAL DISCOUNT' : 'AMOUNT REQUESTED',
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
@@ -925,33 +937,38 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
               ),
               const SizedBox(height: 16),
 
-              _Field(label: 'Mteja', value: detail?.customerName ?? '-', isDark: isDark),
+              _Field(label: 'Customer', value: detail?.customerName ?? '-', isDark: isDark),
               if (isDiscount) ...[
-                _Field(label: 'Bidhaa', value: detail?.itemName ?? '-', isDark: isDark),
-                _Field(label: 'Eneo', value: detail?.locationName ?? '-', isDark: isDark),
+                _Field(label: 'Item', value: detail?.itemName ?? '-', isDark: isDark),
+                _Field(label: 'Location', value: detail?.locationName ?? '-', isDark: isDark),
                 _Field(
-                  label: 'Tarehe ya kutumika',
+                  label: 'Requested by',
+                  value: data.approval.submittedByName ?? '-',
+                  isDark: isDark,
+                ),
+                _Field(
+                  label: 'Valid on',
                   value: Formatters.formatDate(detail?.validDate),
                   isDark: isDark,
                 ),
               ] else ...[
                 if (detail?.previousAmount != null)
                   _Field(
-                    label: 'Kikomo cha awali',
+                    label: 'Previous limit',
                     value: '${widget.money.format(detail!.previousAmount!)} TSh',
                     isDark: isDark,
                   ),
                 if (detail?.currentBalance != null)
                   _Field(
-                    label: 'Deni la sasa',
+                    label: 'Owed now',
                     value: '${widget.money.format(detail!.currentBalance!)} TSh',
                     isDark: isDark,
                   ),
               ],
               if (detail?.reason != null)
-                _Field(label: 'Sababu', value: detail!.reason!, isDark: isDark),
+                _Field(label: 'Reason', value: detail!.reason!, isDark: isDark),
               _Field(
-                label: 'Iliwasilishwa',
+                label: 'Submitted',
                 value: Formatters.formatDate(data.approval.submittedAt,
                     format: 'dd MMM yyyy HH:mm'),
                 isDark: isDark,
@@ -959,7 +976,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
 
               const SizedBox(height: 20),
               Text(
-                'MWENENDO',
+                'HISTORY',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -982,8 +999,8 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                   controller: _comment,
                   maxLines: 2,
                   decoration: const InputDecoration(
-                    labelText: 'Maoni',
-                    helperText: 'Lazima ukikataa',
+                    labelText: 'Comment',
+                    helperText: 'Required if you reject',
                   ),
                 ),
               ] else if (data.approval.isOpen) ...[
@@ -1002,7 +1019,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Ombi hili linasubiri mtu mwingine kwa sasa.',
+                          'This request is waiting on someone else right now.',
                           style: TextStyle(color: AppColors.info, fontSize: 12),
                         ),
                       ),
@@ -1042,7 +1059,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                     child: OutlinedButton.icon(
                       onPressed: _submitting ? null : () => _act(false),
                       icon: const Icon(Icons.close, size: 18),
-                      label: const Text('Kataa'),
+                      label: const Text('Reject'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.error,
                         side: const BorderSide(color: AppColors.error),
@@ -1065,7 +1082,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                               ),
                             )
                           : const Icon(Icons.check, size: 18),
-                      label: const Text('Idhinisha'),
+                      label: const Text('Approve'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
                         foregroundColor: Colors.white,
@@ -1178,7 +1195,7 @@ class _HistoryTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    entry.actorName ?? 'Mtumiaji',
+                    entry.actorName ?? 'User',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
@@ -1231,17 +1248,17 @@ class _StatusBadge extends StatelessWidget {
       // The engine's terminal success value is `completed`; it never writes
       // `approved`, despite that being in the column's enum.
       case 'completed':
-        return ('IMEIDHINISHWA', AppColors.success);
+        return ('APPROVED', AppColors.success);
       case 'rejected':
-        return ('IMEKATALIWA', AppColors.error);
+        return ('REJECTED', AppColors.error);
       case 'returned':
-        return ('IMERUDISHWA', AppColors.warning);
+        return ('RETURNED', AppColors.warning);
       case 'discarded':
-        return ('IMEFUTWA', AppColors.textLight);
+        return ('DISCARDED', AppColors.textLight);
       case 'in_progress':
-        return ('INAENDELEA', AppColors.info);
+        return ('IN PROGRESS', AppColors.info);
       default:
-        return ('INASUBIRI', AppColors.warning);
+        return ('PENDING', AppColors.warning);
     }
   }
 

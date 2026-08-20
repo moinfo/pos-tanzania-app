@@ -186,17 +186,17 @@ class _CreateDiscountRequestScreenState
   /// before submitting rather than after.
   String? _validateDiscount(String? raw) {
     final value = double.tryParse(raw ?? '');
-    if (value == null || value <= 0) return 'Weka kiasi cha punguzo';
+    if (value == null || value <= 0) return 'Enter a discount amount';
 
     final item = _item;
     if (item == null) return null;
 
     if (value >= item.unitPrice) {
-      return 'Punguzo haliwezi kufikia bei ya bidhaa '
+      return 'The discount cannot reach the item price '
           '(${_money.format(item.unitPrice)})';
     }
     if (item.costPrice > 0 && value >= item.costPrice) {
-      return 'Punguzo haliwezi kufikia bei ya gharama '
+      return 'The discount cannot reach the cost price '
           '(${_money.format(item.costPrice)})';
     }
     return null;
@@ -213,15 +213,15 @@ class _CreateDiscountRequestScreenState
     if (!_formKey.currentState!.validate()) return;
 
     if (_customer == null) {
-      setState(() => _error = 'Chagua mteja');
+      setState(() => _error = 'Choose a customer');
       return;
     }
     if (_location == null) {
-      setState(() => _error = 'Chagua eneo');
+      setState(() => _error = 'Choose a location');
       return;
     }
     if (_item == null) {
-      setState(() => _error = 'Chagua bidhaa');
+      setState(() => _error = 'Choose an item');
       return;
     }
 
@@ -262,8 +262,8 @@ class _CreateDiscountRequestScreenState
         SnackBar(
           content: Text(
             needsApproval
-                ? 'Ombi $document limetumwa kwa idhini'
-                : 'Punguzo $document limekubaliwa moja kwa moja',
+                ? 'Request $document sent for approval'
+                : 'Discount $document approved automatically',
           ),
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 4),
@@ -284,7 +284,7 @@ class _CreateDiscountRequestScreenState
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Omba Punguzo'),
+        title: const Text('Request a Discount'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -310,7 +310,7 @@ class _CreateDiscountRequestScreenState
 
     if (options == null) {
       return ErrorStateView(
-        message: FriendlyError.of(_error ?? 'Imeshindikana kupakia'),
+        message: FriendlyError.of(_error ?? 'Could not load'),
         onRetry: FriendlyError.isPermanent(_error) ? null : _load,
         isDark: isDark,
       );
@@ -319,8 +319,8 @@ class _CreateDiscountRequestScreenState
     if (!options.canRequest) {
       return EmptyStateView(
         icon: Icons.lock_outline,
-        title: 'Huna ruhusa ya kuomba punguzo',
-        message: 'Wasiliana na msimamizi wako kama unahitaji ruhusa hii.',
+        title: 'You cannot raise discount requests',
+        message: 'Ask your supervisor if you need this permission.',
         isDark: isDark,
       );
     }
@@ -340,7 +340,7 @@ class _CreateDiscountRequestScreenState
                 value: _location,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: 'Eneo',
+                  labelText: 'Location',
                   border: InputBorder.none,
                 ),
                 items: options.locations
@@ -368,14 +368,14 @@ class _CreateDiscountRequestScreenState
                     : AppColors.primary,
               ),
               title: Text(
-                'Mteja',
+                'Customer',
                 style: TextStyle(
                   fontSize: 12,
                   color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                 ),
               ),
               subtitle: Text(
-                _customer?.customerName ?? 'Gusa kuchagua',
+                _customer?.customerName ?? 'Tap to choose',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -390,12 +390,12 @@ class _CreateDiscountRequestScreenState
               onTap: () async {
                 final picked = await SearchablePicker.show<ScopedCustomer>(
                   context,
-                  title: 'Chagua Mteja',
+                  title: 'Choose a Customer',
                   items: options.customers,
                   labelOf: (c) => c.customerName,
                   subtitleOf: (c) => c.phoneNumber,
-                  searchHint: 'Tafuta kwa jina au namba ya simu...',
-                  emptyMessage: 'Hakuna mteja anayelingana',
+                  searchHint: 'Search by name or phone number...',
+                  emptyMessage: 'No matching customer',
                 );
                 if (picked != null) setState(() => _customer = picked);
               },
@@ -419,16 +419,16 @@ class _CreateDiscountRequestScreenState
                     style:
                         const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     decoration: const InputDecoration(
-                      labelText: 'Idadi',
+                      labelText: 'Quantity',
                       // Both number fields carry a helper so they end up the
                       // same height; one with and one without leaves the pair
                       // visibly misaligned.
-                      helperText: 'kwenye mauzo',
+                      helperText: 'on the sale',
                       border: InputBorder.none,
                     ),
                     validator: (value) {
                       final parsed = double.tryParse(value ?? '');
-                      if (parsed == null || parsed <= 0) return 'Weka idadi';
+                      if (parsed == null || parsed <= 0) return 'Enter a quantity';
                       return null;
                     },
                   ),
@@ -448,8 +448,8 @@ class _CreateDiscountRequestScreenState
                     style:
                         const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     decoration: const InputDecoration(
-                      labelText: 'Punguzo',
-                      helperText: 'kwa kimoja',
+                      labelText: 'Discount',
+                      helperText: 'per item',
                       border: InputBorder.none,
                     ),
                     validator: _validateDiscount,
@@ -464,7 +464,7 @@ class _CreateDiscountRequestScreenState
           Padding(
             padding: const EdgeInsets.only(bottom: 12, left: 4),
             child: Text(
-              'Punguzo litatumika tu kwenye mauzo yenye idadi hii hasa.',
+              'The discount only applies to a sale with exactly this quantity.',
               style: TextStyle(
                 fontSize: 11.5,
                 color: isDark ? AppColors.darkTextLight : AppColors.textLight,
@@ -478,7 +478,7 @@ class _CreateDiscountRequestScreenState
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(
-                  'Tarehe ya kutumika',
+                  'Valid on',
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
@@ -511,11 +511,11 @@ class _CreateDiscountRequestScreenState
               controller: _reason,
               maxLines: 2,
               decoration: const InputDecoration(
-                labelText: 'Sababu',
+                labelText: 'Reason',
                 border: InputBorder.none,
               ),
               validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Andika sababu' : null,
+                  (value == null || value.trim().isEmpty) ? 'Give a reason' : null,
             ),
           ),
 
@@ -553,7 +553,7 @@ class _CreateDiscountRequestScreenState
                     ),
                   )
                 : const Icon(Icons.send),
-            label: const Text('Tuma Ombi'),
+            label: const Text('Send Request'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -588,7 +588,7 @@ class _CreateDiscountRequestScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'JUMLA YA PUNGUZO',
+            'TOTAL DISCOUNT',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -637,9 +637,9 @@ class _CreateDiscountRequestScreenState
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: Icon(Icons.inventory_2_outlined, color: muted),
-          title: Text('Bidhaa', style: TextStyle(fontSize: 12, color: muted)),
+          title: Text('Item', style: TextStyle(fontSize: 12, color: muted)),
           subtitle: Text(
-            _searchingItems ? 'Inapakia...' : 'Gusa kuchagua',
+            _searchingItems ? 'Loading...' : 'Tap to choose',
             style: TextStyle(
                 fontSize: 14, fontWeight: FontWeight.w700, color: muted),
           ),
@@ -655,7 +655,7 @@ class _CreateDiscountRequestScreenState
     }
 
     final headroom = selected.discountLimit > 0
-        ? 'Kikomo: ${_money.format(selected.discountLimit)}'
+        ? 'Limit: ${_money.format(selected.discountLimit)}'
         : null;
 
     return _field(
@@ -692,7 +692,7 @@ class _CreateDiscountRequestScreenState
                   const SizedBox(height: 2),
                   Text(
                     [
-                      'Bei: ${_money.format(selected.unitPrice)} TSh',
+                      'Price: ${_money.format(selected.unitPrice)} TSh',
                       if (headroom != null) headroom,
                     ].join(' · '),
                     style: TextStyle(fontSize: 11.5, color: muted),
@@ -702,7 +702,7 @@ class _CreateDiscountRequestScreenState
             ),
             IconButton(
               icon: const Icon(Icons.swap_horiz, size: 20),
-              tooltip: 'Badilisha bidhaa',
+              tooltip: 'Change item',
               onPressed: _pickItem,
             ),
           ],
@@ -714,13 +714,13 @@ class _CreateDiscountRequestScreenState
   Future<void> _pickItem() async {
     final picked = await SearchablePicker.show<DiscountEligibleItem>(
       context,
-      title: 'Chagua Bidhaa',
+      title: 'Choose an Item',
       items: _items,
       labelOf: (i) => i.name,
       subtitleOf: (i) => i.itemNumber,
       trailingOf: (i) => _money.format(i.unitPrice),
-      searchHint: 'Tafuta bidhaa...',
-      emptyMessage: 'Hakuna bidhaa inayolingana',
+      searchHint: 'Search items...',
+      emptyMessage: 'No matching item',
       numbered: false,
     );
     if (picked != null) setState(() => _item = picked);

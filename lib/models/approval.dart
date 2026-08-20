@@ -61,6 +61,11 @@ class Approval {
   final String? flowName;
   final int? currentStepId;
   final int? submittedBy;
+
+  /// Who raised it. On a manager's queue the location is usually the same on
+  /// every row; the seller's name is what tells them apart.
+  final String? submittedByName;
+
   final String? submittedAt;
   final String? completedAt;
   final ApprovalDetail? detail;
@@ -73,6 +78,7 @@ class Approval {
     this.flowName,
     this.currentStepId,
     this.submittedBy,
+    this.submittedByName,
     this.submittedAt,
     this.completedAt,
     this.detail,
@@ -94,6 +100,7 @@ class Approval {
       flowName: _asString(json['flow_name']),
       currentStepId: _asIntOrNull(json['current_step_id']),
       submittedBy: _asIntOrNull(json['submitted_by']),
+      submittedByName: _asString(json['submitted_by_name']),
       submittedAt: _asString(json['submitted_at']),
       completedAt: _asString(json['completed_at']),
       detail: rawDetail is Map<String, dynamic>

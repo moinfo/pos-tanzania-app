@@ -23,16 +23,15 @@ class FriendlyError {
     return raw.startsWith('You do not have permission') ||
         raw.contains('outside your assigned stock locations') ||
         raw.contains('stock location is not assigned to you') ||
-        raw.contains('Huna ruhusa') ||
-        raw.contains('hayuko kwenye maeneo') ||
-        raw.contains('Eneo hilo hukupangiwa');
+        raw.contains('do not have permission to do this') ||
+        raw.contains('not in the stock locations assigned to you');
   }
 
   /// A short Swahili line for [raw], which may be an API message or an
   /// exception's toString.
   static String of(String? raw) {
     if (raw == null || raw.trim().isEmpty) {
-      return 'Kuna hitilafu. Jaribu tena.';
+      return 'Something went wrong. Try again.';
     }
 
     final lower = raw.toLowerCase();
@@ -43,13 +42,13 @@ class FriendlyError {
         lower.contains('network is unreachable') ||
         lower.contains('connection refused') ||
         lower.contains('connection closed')) {
-      return 'Hakuna mtandao. Angalia intaneti kisha ujaribu tena.';
+      return 'No connection. Check your internet and try again.';
     }
     if (lower.contains('timeoutexception') || lower.contains('future not completed')) {
-      return 'Mtandao ni wa polepole. Jaribu tena.';
+      return 'The connection is too slow. Try again.';
     }
     if (lower.contains('handshakeexception') || lower.contains('certificate')) {
-      return 'Imeshindikana kuunganisha kwa usalama. Jaribu tena.';
+      return 'Could not connect securely. Try again.';
     }
 
     // The server answered, but not with JSON — almost always a PHP error page
@@ -57,39 +56,39 @@ class FriendlyError {
     if (lower.contains('failed to parse response') ||
         lower.contains('formatexception') ||
         lower.contains('<!doctype')) {
-      return 'Seva imejibu vibaya. Mjulishe msimamizi.';
+      return 'The server sent back something unexpected. Tell your supervisor.';
     }
 
     // Server-side messages worth translating rather than dropping.
     if (raw.contains('outside your assigned stock locations')) {
-      return 'Huyu mteja hayuko kwenye maeneo uliyopangiwa.';
+      return 'That customer is not in the stock locations assigned to you.';
     }
     if (raw.contains('stock location is not assigned to you')) {
-      return 'Eneo hilo hukupangiwa.';
+      return 'That stock location is not assigned to you.';
     }
     if (raw.startsWith('You do not have permission')) {
-      return 'Huna ruhusa ya kufanya hili.';
+      return 'You do not have permission to do this.';
     }
     if (raw.contains('already has a credit limit request awaiting approval')) {
-      return 'Mteja huyu tayari ana ombi linalosubiri idhini.';
+      return 'This customer already has a request awaiting approval.';
     }
     if (raw.contains('already exists for this customer')) {
-      return 'Tayari kuna ombi la bidhaa hii kwa mteja huyu leo.';
+      return 'There is already a request for this item and customer today.';
     }
     if (raw.contains('Could not create the discount request')) {
-      return 'Imeshindikana. Huenda tayari kuna ombi la bidhaa hii kwa mteja huyu leo.';
+      return 'Could not send. There may already be a request for this item and customer today.';
     }
     if (raw.contains('no longer open')) {
-      return 'Ombi hili limeshashughulikiwa na mtu mwingine.';
+      return 'Someone else has already dealt with this request.';
     }
     if (raw.contains('role cannot act on the current step')) {
-      return 'Hatua hii inasubiri mtu mwingine, si wewe.';
+      return 'This step is waiting on someone else, not you.';
     }
 
     // Anything else the server said in its own words is likely useful, but a
     // Dart exception is not. Distinguish by the tell-tale prefix.
     if (lower.startsWith('connection error:')) {
-      return 'Imeshindikana kuunganisha. Jaribu tena.';
+      return 'Could not connect. Try again.';
     }
 
     return raw;
