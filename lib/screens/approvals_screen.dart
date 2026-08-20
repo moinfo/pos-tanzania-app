@@ -58,7 +58,10 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     // A seller with no approvals permission only ever has one tab worth
     // showing, so start them on their own requests.
     _tabs = TabController(length: 2, vsync: this, initialIndex: _canApprove ? 0 : 1);
-    _tabs.addListener(() => setState(() {}));
+    // No listener on purpose: nothing in build() reads _tabs.index, and a
+    // TabController notifies on every frame of a swipe, so a setState here
+    // would rebuild both lists for the length of every gesture. The tab counts
+    // come from _inbox/_mine, which already setState when they load.
 
     _loadInbox();
     _loadMine();

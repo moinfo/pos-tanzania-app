@@ -77,9 +77,6 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Call once the user is signed in. Safe to call again; it restarts cleanly.
   Future<void> start() async {
-    WidgetsBinding.instance.removeObserver(this);
-    WidgetsBinding.instance.addObserver(this);
-
     final prefs = await SharedPreferences.getInstance();
     _cursor = prefs.getString(_cursorKey);
 
@@ -89,6 +86,13 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_cursor == null) {
       await _seedCursor();
     }
+
+    // Registered only now. As an observer, a resume event arriving mid-seed
+    // would call refreshCounts() while _cursor is still null, and
+    // _pullArrivals would then announce the entire backlog — the exact thing
+    // seeding exists to prevent.
+    WidgetsBinding.instance.removeObserver(this);
+    WidgetsBinding.instance.addObserver(this);
 
     await refreshCounts();
     _startTimer();
