@@ -771,23 +771,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     },
                   ),
                 ),
-                // Payment Summary -- the day's takings per payment type
-                PermissionWrapper(
-                  permissionId: PermissionIds.sales,
-                  child: ListTile(
-                    leading:
-                        const Icon(Icons.payments, color: AppColors.primary),
-                    title: const Text('Payment Summary'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const PaymentSummaryScreen()),
-                      );
-                    },
-                  ),
-                ),
               ],
             ),
             // 4. Suppliers Menu
@@ -996,6 +979,24 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   },
                 ),
               ),
+            // Payment Summary sits with Seller Report, not under Sales: it is
+            // a reconciliation view (what came in, by type, per route stop),
+            // not an action a seller takes while selling.
+            PermissionWrapper(
+              permissionId: PermissionIds.sales,
+              child: ListTile(
+                leading: Icon(Icons.payments, color: AppColors.brandPrimary),
+                title: const Text('Payment Summary'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PaymentSummaryScreen()),
+                  );
+                },
+              ),
+            ),
             // Reports and Summary live here for Leruma -- they were moved out of
             // the bottom bar to make room for Customer Credits.
             if (ApiService.currentClient?.id == 'leruma') ...[
