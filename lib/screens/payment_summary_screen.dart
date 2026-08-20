@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/stock_location.dart';
 import '../models/permission_model.dart';
+import '../models/sale.dart';
 import '../providers/location_provider.dart';
 import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
@@ -272,6 +273,182 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
         ],
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  /// APP / WEB / MIXED, from the channels a customer's sales carry.
+  (String, Color)? _channelBadge(List<dynamic>? channels) {
+    if (channels == null || channels.isEmpty) return null;
+    final set = channels.map((c) => c.toString()).toSet();
+    if (set.length > 1) return ('MIXED', const Color(0xFF7A5AF8));
+    return set.first == 'mobile'
+        ? ('APP', const Color(0xFF12833C))
+        : ('WEB', const Color(0xFF5C6675));
+  }
+
+  /// What was sold to this customer on this day: the sales behind the amount,
+  /// with their lines. Fetched on open (usually one sale) rather than bundled
+  /// into the summary, which would carry every line of every customer.
+  Future<void> _showCustomerSales(Map<String, dynamic> row) async {
+    final ids = (row['sale_ids'] as List?)?.whereType<int>().toList() ?? [];
+    if (ids.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.35,
+          maxChildSize: 0.92,
+          expand: false,
+          builder: (context, scrollController) => Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        row['customer_name'] as String? ?? 'Walk-in Customer',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? AppColors.darkText : AppColors.text,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${_money.format((row['amount'] ?? 0) as num)} TSh'
+                        ' · ${_plural((row['sales'] ?? 0) as num, 'sale')}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 20),
+                Expanded(
+                  child: FutureBuilder<List<Sale>>(
+                    future: Future.wait(ids.map((id) async {
+                      final r = await _apiService.getSaleDetails(id);
+                      return r.isSuccess && r.data != null ? r.data! : null;
+                    })).then((list) => list.whereType<Sale>().toList()),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const Center(
+                            child: CircularProgressIndicator());
+                      }
+                      final sales = snapshot.data ?? const <Sale>[];
+                      if (sales.isEmpty) {
+                        return const Center(
+                            child: Text('Could not load these sales'));
+                      }
+
+                      return ListView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                        children: [
+                          for (final sale in sales) ...[
+                            Row(
+                              children: [
+                                Text('Sale #${sale.saleId}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.primary,
+                                    )),
+                                const Spacer(),
+                                Text(
+                                  '${_money.format(sale.total)} TSh',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark
+                                        ? AppColors.darkText
+                                        : AppColors.text,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ...(sale.items ?? const <SaleItem>[]).map(
+                              (item) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(item.itemName,
+                                              style: const TextStyle(
+                                                  fontSize: 13.5,
+                                                  fontWeight:
+                                                      FontWeight.w600)),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${_money.format(item.quantity)}'
+                                            ' × ${_money.format(item.unitPrice)}'
+                                            '${item.discount > 0 ? '  −${_money.format(item.discount)}' : ''}',
+                                            style: TextStyle(
+                                              fontSize: 11.5,
+                                              color: isDark
+                                                  ? AppColors.darkTextLight
+                                                  : AppColors.textLight,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      _money.format(item.lineTotal),
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Divider(height: 22),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -563,11 +740,19 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
               final onRoute = row['customer_id'] != null &&
                   _routeOrder.containsKey(row['customer_id']);
 
-              return Container(
+              final badge = _channelBadge(row['channels'] as List?);
+
+              return Material(
+                color: isDark ? AppColors.darkCard : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  // Tap to see what was actually sold to this customer.
+                  onTap: () => _showCustomerSales(row),
+                  child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                       color: isDark ? Colors.white10 : Colors.grey.shade200),
@@ -614,14 +799,39 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                   isDark ? AppColors.darkText : AppColors.text,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(_plural((row['sales'] ?? 0) as num, 'sale'),
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: isDark
-                                    ? AppColors.darkTextLight
-                                    : AppColors.textLight,
-                              )),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Text(
+                                  _plural((row['sales'] ?? 0) as num, 'sale'),
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: isDark
+                                        ? AppColors.darkTextLight
+                                        : AppColors.textLight,
+                                  )),
+                              if (badge != null) ...[
+                                const SizedBox(width: 6),
+                                // Which register completed it -- the same
+                                // APP/WEB the web's Source column shows.
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: badge.$2.withOpacity(0.14),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(badge.$1,
+                                      style: TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.4,
+                                        color: badge.$2,
+                                      )),
+                                ),
+                              ],
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -632,7 +842,15 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                           fontWeight: FontWeight.w800,
                           color: color,
                         )),
+                    const SizedBox(width: 2),
+                    Icon(Icons.chevron_right,
+                        size: 18,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : Colors.grey.shade400),
                   ],
+                ),
+                  ),
                 ),
               );
             },
