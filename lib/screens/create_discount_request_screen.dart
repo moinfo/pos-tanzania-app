@@ -140,12 +140,16 @@ class _CreateDiscountRequestScreenState
         }
       }
 
-      if (widget.quantity != null && widget.quantity! > 0) {
-        _quantity.text = widget.quantity! == widget.quantity!.roundToDouble()
-            ? widget.quantity!.toStringAsFixed(0)
-            : widget.quantity!.toString();
-      }
     });
+
+    // Outside the setState above: assigning to the controller fires the
+    // listener that calls setState, and nesting the two is asking for trouble.
+    final presetQuantity = widget.quantity;
+    if (presetQuantity != null && presetQuantity > 0) {
+      _quantity.text = presetQuantity == presetQuantity.roundToDouble()
+          ? presetQuantity.toStringAsFixed(0)
+          : presetQuantity.toString();
+    }
 
     await _loadItems();
 
