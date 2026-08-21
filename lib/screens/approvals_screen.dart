@@ -12,6 +12,7 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
+import '../widgets/date_range_filter_bar.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
 import 'create_discount_request_screen.dart';
@@ -47,13 +48,83 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
   List<Approval> _inbox = [];
   List<Approval> _mine = [];
 
+  /// The last response from each tab, kept for the range it applied and for
+  /// the count it is holding back. Both tabs share one range, so whichever
+  /// answered last is as good as the other for the bar.
+  ApprovalPage? _inboxPage;
+  ApprovalPage? _minePage;
+
   bool _loadingInbox = true;
   bool _loadingMine = true;
   String? _inboxError;
   String? _mineError;
 
+  /// Batch mode, and what is ticked. Only the inbox tab has it -- "My
+  /// Requests" is a list of things I asked for, not things I decide.
+  bool _selecting = false;
+  final Set<int> _selected = <int>{};
+  bool _bulkBusy = false;
+
+  /// The server refuses more than this in one call. Enforced here too so the
+  /// user finds out while ticking rather than after pressing Approve.
+  static const int _bulkMax = 50;
+
+  /// null means "the default", which the server reads as today. Both tabs are
+  /// filtered together: this screen is one question ("what is happening with
+  /// requests on these days"), asked from two sides.
+  DateTimeRange? _range;
+
   bool get _canApprove =>
       context.read<PermissionProvider>().hasPermission(PermissionIds.approvalsView);
+
+  /// Batch mode is a separate grant from approving one request, and the server
+  /// checks it independently. Only two people hold it today, so most users
+  /// must never see any of this -- not a disabled control, nothing at all.
+  bool get _canBulkApprove =>
+      context.read<PermissionProvider>().hasPermission(PermissionIds.bulkApprove);
+
+  bool get _canBulkReject =>
+      context.read<PermissionProvider>().hasPermission(PermissionIds.bulkReject);
+
+  bool get _canBulk => _canBulkApprove || _canBulkReject;
+
+  String? get _dateFrom => _range == null
+      ? null
+      : DateFormat('yyyy-MM-dd').format(_range!.start);
+
+  String? get _dateTo =>
+      _range == null ? null : DateFormat('yyyy-MM-dd').format(_range!.end);
+
+  /// The page the filter bar describes. Prefer whichever tab has answered.
+  ApprovalPage? get _datePage => _inboxPage ?? _minePage;
+
+  /// The server settles this and repeats it on every response. The permission
+  /// read is only so the bar is right on the first frame, before anything has
+  /// come back. Either grant unlocks the picker; which kinds of request it
+  /// actually widens is per model, and the bar says so when they differ.
+  bool get _canFilterDate {
+    final page = _datePage;
+    if (page != null) return page.canFilterDate;
+
+    final permissions = context.read<PermissionProvider>();
+    return permissions.hasPermission(PermissionIds.customerCreditLimitsFilterDate) ||
+        permissions.hasPermission(PermissionIds.oneTimeDiscountsDate);
+  }
+
+  /// When one kind of request was widened and the other was left on today,
+  /// say which and why. Silence here would look like rows going missing.
+  String? get _dateNote {
+    final page = _datePage;
+    if (page == null || page.dateScopeUniform || !page.canFilterDate) {
+      return null;
+    }
+
+    final pinned = page.pinnedToToday;
+    if (pinned.isEmpty) return null;
+
+    final names = pinned.map((s) => s.label.toLowerCase()).join(' and ');
+    return 'Showing today only for $names — that needs a separate permission.';
+  }
 
   @override
   void initState() {
@@ -64,6 +135,15 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     // can swipe to every time adds nothing but a dead end.
     _tabCount = _canApprove ? 2 : 1;
     _tabs = TabController(length: _tabCount, vsync: this);
+    // One exception to the no-listener rule below: batch mode belongs to the
+    // inbox, and swiping to "My Requests" with the bar still up would offer
+    // to approve rows that are not approvals. Only fires on a settled index
+    // change, and only does anything when something is actually selected.
+    _tabs.addListener(() {
+      if (!_tabs.indexIsChanging && _tabs.index != 0 && _selecting) {
+        _exitSelection();
+      }
+    });
     // No listener on purpose: nothing in build() reads _tabs.index, and a
     // TabController notifies on every frame of a swipe, so a setState here
     // would rebuild both lists for the length of every gesture. The tab counts
@@ -98,13 +178,17 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       _inboxError = null;
     });
 
-    final response = await _api.getPendingApprovals();
+    final response = await _api.getPendingApprovals(
+      dateFrom: _dateFrom,
+      dateTo: _dateTo,
+    );
     if (!mounted) return;
 
     setState(() {
       _loadingInbox = false;
       if (response.isSuccess && response.data != null) {
-        _inbox = response.data!;
+        _inboxPage = response.data;
+        _inbox = response.data!.approvals;
       } else {
         _inboxError = FriendlyError.of(response.message);
       }
@@ -117,17 +201,41 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       _mineError = null;
     });
 
-    final response = await _api.getMySubmittedRequests();
+    final response = await _api.getMySubmittedRequests(
+      dateFrom: _dateFrom,
+      dateTo: _dateTo,
+    );
     if (!mounted) return;
 
     setState(() {
       _loadingMine = false;
       if (response.isSuccess && response.data != null) {
-        _mine = response.data!;
+        _minePage = response.data;
+        _mine = response.data!.approvals;
       } else {
         _mineError = FriendlyError.of(response.message);
       }
     });
+  }
+
+  /// Both tabs reload together: they share the range, and a bar that says
+  /// "3 Aug – 20 Aug" over a tab still holding today's rows would be lying
+  /// about one of them.
+  Future<void> _pickRange() async {
+    if (!_canFilterDate) return;
+
+    final picked = await showListDateRangePicker(context, initial: _range);
+    if (picked == null || !mounted) return;
+
+    setState(() => _range = picked);
+    _loadInbox();
+    _loadMine();
+  }
+
+  void _resetRangeToToday() {
+    setState(() => _range = null);
+    _loadInbox();
+    _loadMine();
   }
 
   /// "1 request" / "3 requests" — the counts in the queue header read as a
@@ -150,6 +258,20 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
         title: const Text('Requests & Approvals'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          // Long press on a card starts batch mode too, but a gesture nobody
+          // is told about is not a feature. This is the discoverable way in,
+          // and it is absent entirely for the people without the grant.
+          if (_canBulk && _tabCount > 1 && !_selecting && _inbox.isNotEmpty)
+            IconButton(
+              tooltip: 'Select several',
+              icon: const Icon(Icons.checklist_rtl),
+              onPressed: () => setState(() {
+                _selecting = true;
+                _selected.clear();
+              }),
+            ),
+        ],
         bottom: _tabCount == 1
             ? null
             : TabBar(
@@ -170,19 +292,149 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
                 ],
               ),
       ),
-      body: TabBarView(
-        controller: _tabs,
-        // _tabCount, not a fresh _canApprove read. Logout clears permissions
-        // and notifies before the auth change swaps in the login screen, so a
-        // live read here would rebuild one child against a two-tab controller
-        // and assert.
+      body: Column(
         children: [
-          if (_tabCount > 1) _buildInbox(isDark),
-          _buildMine(isDark),
+          // Above the tabs, not inside them: one range governs both, and two
+          // bars saying the same thing would invite the reader to believe
+          // they could differ.
+          DateRangeFilterBar(
+            dateFrom: _datePage?.dateFrom ?? _dateFrom ?? DateRangeFilterBar.today(),
+            dateTo: _datePage?.dateTo ?? _dateTo ?? DateRangeFilterBar.today(),
+            canFilterDate: _canFilterDate,
+            onChange: _pickRange,
+            onResetToToday: _resetRangeToToday,
+            note: _dateNote,
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabs,
+              // _tabCount, not a fresh _canApprove read. Logout clears
+              // permissions and notifies before the auth change swaps in the
+              // login screen, so a live read here would rebuild one child
+              // against a two-tab controller and assert.
+              children: [
+                if (_tabCount > 1) _buildInbox(isDark),
+                _buildMine(isDark),
+              ],
+            ),
+          ),
+          if (_selecting) _buildSelectionBar(isDark),
         ],
       ),
-      floatingActionButton: _buildFab(),
+      // The batch bar sits where the FAB does. Showing both would put "New
+      // request" on top of "Approve 12", which is not a mistake worth making
+      // available.
+      floatingActionButton: _selecting ? null : _buildFab(),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  /// What is ticked, and what can be done with it.
+  ///
+  /// Sits above the bottom navigation rather than floating over the list, so
+  /// it never covers the row the user is deciding about.
+  Widget _buildSelectionBar(bool isDark) {
+    final count = _selected.length;
+    final overCap = count > _bulkMax;
+    final allVisibleSelected =
+        _inbox.isNotEmpty && count >= _inbox.take(_bulkMax).length;
+
+    return Material(
+      elevation: 8,
+      color: AppColors.surface(context),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Cancel',
+                    onPressed: _bulkBusy ? null : _exitSelection,
+                    icon: const Icon(Icons.close),
+                    color: AppColors.muted(context),
+                  ),
+                  Expanded(
+                    child: Text(
+                      '$count selected',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: AppColors.ink(context),
+                      ),
+                    ),
+                  ),
+                  if (_inbox.isNotEmpty)
+                    TextButton(
+                      onPressed: _bulkBusy
+                          ? null
+                          : (allVisibleSelected
+                              ? () => setState(_selected.clear)
+                              : _selectAllVisible),
+                      child: Text(allVisibleSelected ? 'Clear' : 'Select all'),
+                    ),
+                ],
+              ),
+              if (overCap)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 15, color: AppColors.warning),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Only $_bulkMax can go at once. Untick ${count - _bulkMax}.',
+                          style: const TextStyle(fontSize: 12.5, color: AppColors.warning),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Row(
+                children: [
+                  if (_canBulkReject)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: (_bulkBusy || overCap) ? null : () => _runBulk(false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        icon: const Icon(Icons.close, size: 18),
+                        label: const Text('Reject'),
+                      ),
+                    ),
+                  if (_canBulkReject && _canBulkApprove) const SizedBox(width: 10),
+                  if (_canBulkApprove)
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: (_bulkBusy || overCap) ? null : () => _runBulk(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        icon: _bulkBusy
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.check, size: 18),
+                        label: Text(_bulkBusy ? 'Working...' : 'Approve'),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -334,6 +586,223 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     }
   }
 
+  /* ---------------- batch mode ---------------- */
+
+  void _enterSelection(int approvalId) {
+    if (!_canBulk) return;
+    setState(() {
+      _selecting = true;
+      _selected
+        ..clear()
+        ..add(approvalId);
+    });
+  }
+
+  void _exitSelection() {
+    setState(() {
+      _selecting = false;
+      _selected.clear();
+    });
+  }
+
+  void _toggleSelect(int approvalId) {
+    setState(() {
+      if (!_selected.remove(approvalId)) {
+        _selected.add(approvalId);
+      }
+      // Unticking the last one leaves the bar sitting there with nothing to
+      // act on, which reads as broken. Drop straight back to the normal list.
+      if (_selected.isEmpty) _selecting = false;
+    });
+  }
+
+  void _selectAllVisible() {
+    setState(() {
+      _selected
+        ..clear()
+        ..addAll(_inbox.take(_bulkMax).map((a) => a.approvalId));
+    });
+  }
+
+  /// Ask for a rejection reason. Required, and required by the server too --
+  /// a rejection with no reason leaves the requester with nothing to fix.
+  Future<String?> _askRejectReason(int count) async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(count == 1 ? 'Reject this request' : 'Reject $count requests'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              count == 1
+                  ? 'The requester will see this reason.'
+                  : 'Every one of the $count requesters will see this same reason.',
+              style: TextStyle(fontSize: 13, color: AppColors.muted(dialogContext)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText: 'Why are these being rejected?',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isEmpty) return;
+              Navigator.pop(dialogContext, text);
+            },
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return reason;
+  }
+
+  Future<void> _runBulk(bool approve) async {
+    final ids = _selected.toList();
+    if (ids.isEmpty || _bulkBusy) return;
+
+    String comment = '';
+    if (!approve) {
+      final reason = await _askRejectReason(ids.length);
+      if (reason == null) return;
+      comment = reason;
+    }
+
+    setState(() => _bulkBusy = true);
+
+    final response = await _api.bulkActOnApprovals(
+      approvalIds: ids,
+      approve: approve,
+      comment: comment,
+      requestId: const Uuid().v4(),
+    );
+
+    if (!mounted) return;
+    setState(() => _bulkBusy = false);
+
+    if (!response.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(FriendlyError.of(response.message)),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final data = response.data ?? const <String, dynamic>{};
+    final succeeded = (data['succeeded'] as num?)?.toInt() ?? 0;
+    final skipped = (data['skipped'] as num?)?.toInt() ?? 0;
+    final results = (data['results'] as List?) ?? const [];
+
+    _exitSelection();
+    await _loadInbox();
+    if (!mounted) return;
+
+    // Refresh the badge: the count the drawer shows is now wrong by however
+    // many went through.
+    context.read<NotificationProvider>().refreshCounts();
+
+    if (skipped == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message),
+          backgroundColor: approve ? AppColors.success : AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    // Some were skipped. A snackbar would scroll away before it is read, and
+    // the reasons are the whole point -- most of them mean "somebody else got
+    // there first", which the user needs to see to trust the list.
+    await _showBulkOutcome(
+      approve: approve,
+      succeeded: succeeded,
+      results: results.whereType<Map>().where((r) => r['ok'] != true).toList(),
+    );
+  }
+
+  Future<void> _showBulkOutcome({
+    required bool approve,
+    required int succeeded,
+    required List<Map> results,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          succeeded == 0
+              ? 'Nothing went through'
+              : '$succeeded ${approve ? 'approved' : 'rejected'}, ${results.length} skipped',
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'These were left alone:',
+                style: TextStyle(fontSize: 13, color: AppColors.muted(dialogContext)),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: results.length,
+                  separatorBuilder: (_, __) => const Divider(height: 12),
+                  itemBuilder: (_, i) {
+                    final row = results[i];
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.remove_circle_outline,
+                            size: 16, color: AppColors.muted(dialogContext)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '#${row['approval_id']} - ${row['reason'] ?? 'Skipped'}',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInbox(bool isDark) {
     if (_loadingInbox) return SkeletonRowList(isDark: isDark);
 
@@ -342,12 +811,15 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     }
 
     if (_inbox.isEmpty) {
-      return EmptyStateView(
-        icon: Icons.task_alt,
-        title: 'Nothing waiting',
-        message: 'Every request in your stock locations has been dealt with.',
+      return _emptyForRange(
         isDark: isDark,
+        page: _inboxPage,
         onRefresh: _loadInbox,
+        emptyIcon: Icons.task_alt,
+        emptyTitle: 'Nothing waiting',
+        emptyMessage:
+            'Every request in your stock locations has been dealt with.',
+        filteredMessage: 'Nothing was submitted to you in this date range.',
       );
     }
 
@@ -366,7 +838,17 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
             index: index,
             money: _money,
             isDark: isDark,
-            onTap: () => _openDetail(approval.approvalId),
+            selecting: _selecting,
+            selected: _selected.contains(approval.approvalId),
+            // A tap means "open this" normally and "tick this" in batch mode.
+            // Long press is what starts batch mode, the same gesture a photo
+            // gallery uses, so nothing has to be discovered from a toolbar.
+            onTap: _selecting
+                ? () => _toggleSelect(approval.approvalId)
+                : () => _openDetail(approval.approvalId),
+            onLongPress: _canBulk && !_selecting
+                ? () => _enterSelection(approval.approvalId)
+                : null,
           );
         },
       ),
@@ -434,10 +916,33 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
                 color: Colors.white.withValues(alpha: 0.9),
               ),
             ),
+            // The figure above is now a filtered figure. Saying which days it
+            // covers, and how many it leaves out, is the difference between a
+            // total and a total that quietly means something narrower.
+            const SizedBox(height: 4),
+            Text(
+              _rangeCaption(_inboxPage),
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  String _rangeCaption(ApprovalPage? page) {
+    final label = DateRangeFilterBar.describe(
+      page?.dateFrom ?? _dateFrom,
+      page?.dateTo ?? _dateTo,
+    );
+
+    final hidden = page?.hiddenByDate ?? 0;
+    if (hidden == 0) return label;
+
+    return '$label · $hidden more on other days';
   }
 
   Widget _buildMine(bool isDark) {
@@ -448,12 +953,14 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     }
 
     if (_mine.isEmpty) {
-      return EmptyStateView(
-        icon: Icons.outbox_outlined,
-        title: 'You have not raised a request yet',
-        message: 'Discount and credit limit requests will appear here.',
+      return _emptyForRange(
         isDark: isDark,
+        page: _minePage,
         onRefresh: _loadMine,
+        emptyIcon: Icons.outbox_outlined,
+        emptyTitle: 'You have not raised a request yet',
+        emptyMessage: 'Discount and credit limit requests will appear here.',
+        filteredMessage: 'You raised nothing in this date range.',
       );
     }
 
@@ -472,6 +979,74 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
           onTap: () => _openDetail(_mine[index].approvalId),
         ),
       ),
+    );
+  }
+
+  /// An empty list has two quite different causes now, and saying the wrong
+  /// one is worse than saying nothing.
+  ///
+  /// There is genuinely nothing — or there is plenty, on days this range does
+  /// not cover. The server reports both numbers, so this can tell them apart
+  /// instead of guessing, and offer the way out to whoever is allowed to take
+  /// it. For everyone else it states the limit rather than showing a button
+  /// that would be refused.
+  Widget _emptyForRange({
+    required bool isDark,
+    required ApprovalPage? page,
+    required Future<void> Function() onRefresh,
+    required IconData emptyIcon,
+    required String emptyTitle,
+    required String emptyMessage,
+    required String filteredMessage,
+  }) {
+    final hidden = page?.hiddenByDate ?? 0;
+
+    if (hidden == 0) {
+      return EmptyStateView(
+        icon: emptyIcon,
+        title: emptyTitle,
+        message: emptyMessage,
+        isDark: isDark,
+        onRefresh: onRefresh,
+      );
+    }
+
+    final rangeLabel =
+        DateRangeFilterBar.describe(page?.dateFrom, page?.dateTo).toLowerCase();
+    final outside = hidden == 1
+        ? '1 request sits outside it'
+        : '$hidden requests sit outside it';
+
+    return EmptyStateView(
+      icon: Icons.event_busy_outlined,
+      title: 'Nothing in this date range',
+      message: _canFilterDate
+          ? '$filteredMessage The range is $rangeLabel, and $outside.'
+          : '$filteredMessage This view is limited to today, and $outside. '
+              'Ask for the date filter permission to look at other days.',
+      isDark: isDark,
+      onRefresh: onRefresh,
+      action: !_canFilterDate
+          ? null
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _pickRange,
+                  icon: const Icon(Icons.date_range, size: 18),
+                  label: const Text('Change date range'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                if (_range != null)
+                  TextButton(
+                    onPressed: _resetRangeToToday,
+                    child: const Text('Back to today'),
+                  ),
+              ],
+            ),
     );
   }
 
@@ -500,6 +1075,9 @@ class _ApprovalCard extends StatelessWidget {
     required this.money,
     required this.isDark,
     required this.onTap,
+    this.selecting = false,
+    this.selected = false,
+    this.onLongPress,
   });
 
   final Approval approval;
@@ -507,6 +1085,9 @@ class _ApprovalCard extends StatelessWidget {
   final NumberFormat money;
   final bool isDark;
   final VoidCallback onTap;
+  final bool selecting;
+  final bool selected;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -521,11 +1102,19 @@ class _ApprovalCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+            // A ticked card reads as ticked from the border alone, so the
+            // selection survives being skimmed rather than counted.
+            border: Border.all(
+              color: selected
+                  ? AppColors.primary
+                  : (isDark ? Colors.white10 : Colors.grey.shade200),
+              width: selected ? 1.6 : 1,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,24 +1123,39 @@ class _ApprovalCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Serial number, the same circled style the suspended,
-                  // items and customers lists use.
+                  // items and customers lists use. In batch mode the same
+                  // circle becomes the tick: one control in one place, rather
+                  // than a checkbox appearing beside a number that no longer
+                  // means anything.
                   Container(
                     width: 28,
                     height: 28,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.15),
+                      color: selecting && selected
+                          ? AppColors.primary
+                          : accent.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
-                      border: Border.all(color: accent.withValues(alpha: 0.5)),
-                    ),
-                    child: Text(
-                      '$index',
-                      style: TextStyle(
-                        color: accent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                      border: Border.all(
+                        color: selecting && selected
+                            ? AppColors.primary
+                            : accent.withValues(alpha: 0.5),
                       ),
                     ),
+                    child: selecting
+                        ? Icon(
+                            selected ? Icons.check : Icons.circle_outlined,
+                            size: 16,
+                            color: selected ? Colors.white : accent,
+                          )
+                        : Text(
+                            '$index',
+                            style: TextStyle(
+                              color: accent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

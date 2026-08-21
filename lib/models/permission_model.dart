@@ -154,6 +154,12 @@ class PermissionIds {
   static const String approvalsApprove = 'approvals_approve';
   static const String approvalsReject = 'approvals_reject';
 
+  /// Deciding a whole batch at once. Deliberately separate from
+  /// [approvalsApprove]: being trusted to approve one request is not the same
+  /// as being trusted to wave through fifty, and the server checks both.
+  static const String bulkApprove = 'bulk_approve';
+  static const String bulkReject = 'bulk_reject';
+
   static const String oneTimeDiscounts = 'one_time_discounts';
   static const String oneTimeDiscountsView = 'one_time_discounts_view';
 
@@ -162,8 +168,18 @@ class PermissionIds {
   /// gates on the same one.
   static const String oneTimeDiscountsAdd = 'one_time_discounts_add';
 
-  /// Lets the requester pick a day other than today.
+  /// Lets the requester pick a day other than today when RAISING a discount
+  /// (the record's own valid_date). Nothing to do with filtering a list --
+  /// seven people hold it, and the web uses it on the form, not the table:
+  /// One_time_discounts.php:160 and api/One_time_discounts.php:605.
   static const String oneTimeDiscountsValidDate = 'one_time_discounts_valid_date';
+
+  /// Lets the holder LIST discounts outside today. The web shows the range
+  /// picker on the discount table only to holders
+  /// (views/one_time_discounts/manage.php:334) but then honours date_from and
+  /// date_to from anybody (One_time_discounts.php:54-66), so on the web it is
+  /// decoration. The mobile API enforces it.
+  static const String oneTimeDiscountsDate = 'one_time_discounts_date';
 
   static const String customerCreditLimits = 'customer_credit_limits';
   static const String customerCreditLimitsView = 'customer_credit_limits_view';
