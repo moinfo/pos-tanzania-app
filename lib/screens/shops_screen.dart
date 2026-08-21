@@ -91,7 +91,9 @@ class _ShopsScreenState extends State<ShopsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Shops'),
-        backgroundColor: AppColors.primary,
+        // Left to appBarTheme, which is brand blue in light and the dark
+        // surface in dark -- hardcoding blue kept this bar lit up on an
+        // otherwise black page.
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -113,7 +115,7 @@ class _ShopsScreenState extends State<ShopsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: AppColors.sunken(context),
               ),
               onChanged: (value) {
                 _searchQuery = value;
@@ -207,9 +209,9 @@ class _ShopsScreenState extends State<ShopsScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+                            Icon(Icons.error_outline, size: 64, color: AppColors.faded(context)),
                             const SizedBox(height: 16),
-                            Text(_errorMessage!, style: TextStyle(color: Colors.grey[600])),
+                            Text(_errorMessage!, style: TextStyle(color: AppColors.muted(context))),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadShops,
@@ -223,16 +225,16 @@ class _ShopsScreenState extends State<ShopsScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.store_outlined, size: 64, color: Colors.grey[400]),
+                                Icon(Icons.store_outlined, size: 64, color: AppColors.faded(context)),
                                 const SizedBox(height: 16),
                                 Text(
                                   'No shops registered',
-                                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                                  style: TextStyle(color: AppColors.muted(context), fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Tap + to register a new shop',
-                                  style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                                  style: TextStyle(color: AppColors.faded(context), fontSize: 14),
                                 ),
                               ],
                             ),
@@ -318,11 +320,11 @@ class _ShopListItem extends StatelessWidget {
                     if (shop.customer != null)
                       Row(
                         children: [
-                          Icon(Icons.person, size: 14, color: Colors.grey[600]),
+                          Icon(Icons.person, size: 14, color: AppColors.muted(context)),
                           const SizedBox(width: 4),
                           Text(
                             shop.customer!.displayName,
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: TextStyle(color: AppColors.muted(context)),
                           ),
                         ],
                       ),
@@ -330,12 +332,12 @@ class _ShopListItem extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                          Icon(Icons.location_on, size: 14, color: AppColors.muted(context)),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               shop.address!,
-                              style: TextStyle(color: Colors.grey[600]),
+                              style: TextStyle(color: AppColors.muted(context)),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -398,7 +400,7 @@ class _ShopListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.grey[400]),
+              Icon(Icons.chevron_right, color: AppColors.faded(context)),
             ],
           ),
         ),
@@ -549,7 +551,7 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
                     if (shop.customer != null)
                       Text(
                         'Customer: ${shop.customer!.displayName}',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(color: AppColors.muted(context)),
                       ),
                   ],
                 ),
@@ -599,7 +601,7 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
                   label: const Text('View Map'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.green[700],
-                    side: BorderSide(color: shop.hasLocation ? Colors.green : Colors.grey),
+                    side: BorderSide(color: shop.hasLocation ? Colors.green : AppColors.faded(context)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -704,11 +706,11 @@ class _DetailRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
+          Icon(icon, size: 20, color: AppColors.muted(context)),
           const SizedBox(width: 12),
           SizedBox(
             width: 100,
-            child: Text(label, style: TextStyle(color: Colors.grey[600])),
+            child: Text(label, style: TextStyle(color: AppColors.muted(context))),
           ),
           Expanded(
             child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -885,7 +887,9 @@ class _AddShopScreenState extends State<AddShopScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Register Shop'),
-        backgroundColor: AppColors.primary,
+        // Left to appBarTheme, which is brand blue in light and the dark
+        // surface in dark -- hardcoding blue kept this bar lit up on an
+        // otherwise black page.
         foregroundColor: Colors.white,
       ),
       body: Form(
@@ -930,18 +934,30 @@ class _AddShopScreenState extends State<AddShopScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.orange[50],
+                          color: AppColors.isDark(context)
+                              ? AppColors.warning.withOpacity(0.12)
+                              : Colors.orange[50],
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange[200]!),
+                          border: Border.all(
+                              color: AppColors.warning.withOpacity(
+                                  AppColors.isDark(context) ? 0.4 : 0.35)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.warning, color: Colors.orange[700], size: 20),
+                            Icon(Icons.warning,
+                                color: AppColors.isDark(context)
+                                    ? AppColors.warning
+                                    : Colors.orange[700],
+                                size: 20),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 _locationError!,
-                                style: TextStyle(color: Colors.orange[700], fontSize: 13),
+                                style: TextStyle(
+                                    color: AppColors.isDark(context)
+                                        ? AppColors.warning
+                                        : Colors.orange[700],
+                                    fontSize: 13),
                               ),
                             ),
                           ],
@@ -951,31 +967,51 @@ class _AddShopScreenState extends State<AddShopScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.green[50],
+                          color: AppColors.isDark(context)
+                              ? AppColors.success.withOpacity(0.12)
+                              : Colors.green[50],
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.green[200]!),
+                          border: Border.all(
+                              color: AppColors.success.withOpacity(
+                                  AppColors.isDark(context) ? 0.4 : 0.35)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.check_circle, color: Colors.green[700], size: 20),
+                                Icon(Icons.check_circle,
+                                    color: AppColors.isDark(context)
+                                        ? AppColors.success
+                                        : Colors.green[700],
+                                    size: 20),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Location captured',
-                                  style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                      color: AppColors.isDark(context)
+                                          ? AppColors.success
+                                          : Colors.green[700],
+                                      fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Lat: ${_latitude!.toStringAsFixed(8)}',
-                              style: TextStyle(color: Colors.green[700], fontFamily: 'monospace'),
+                              style: TextStyle(
+                                  color: AppColors.isDark(context)
+                                      ? AppColors.success
+                                      : Colors.green[700],
+                                  fontFamily: 'monospace'),
                             ),
                             Text(
                               'Lng: ${_longitude!.toStringAsFixed(8)}',
-                              style: TextStyle(color: Colors.green[700], fontFamily: 'monospace'),
+                              style: TextStyle(
+                                  color: AppColors.isDark(context)
+                                      ? AppColors.success
+                                      : Colors.green[700],
+                                  fontFamily: 'monospace'),
                             ),
                           ],
                         ),
@@ -984,7 +1020,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: AppColors.sunken(context),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Row(
@@ -1025,13 +1061,13 @@ class _AddShopScreenState extends State<AddShopScreen> {
                   _selectedCustomer?.displayName ?? 'Select Customer',
                   style: TextStyle(
                     fontWeight: FontWeight.w500,
-                    color: _selectedCustomer == null ? Colors.grey : null,
+                    color: _selectedCustomer == null ? AppColors.muted(context) : null,
                   ),
                 ),
                 subtitle: _selectedCustomer != null
                     ? Text(_selectedCustomer!.phoneNumber)
                     : const Text('Tap to select a customer'),
-                trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+                trailing: Icon(Icons.chevron_right, color: AppColors.faded(context)),
                 onTap: _selectCustomer,
               ),
             ),
@@ -1046,7 +1082,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
                 prefixIcon: const Icon(Icons.store),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.sunken(context),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -1066,7 +1102,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
                 prefixIcon: const Icon(Icons.location_on),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.sunken(context),
               ),
               maxLines: 2,
             ),
@@ -1240,7 +1276,9 @@ class _EditShopScreenState extends State<EditShopScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Shop'),
-        backgroundColor: AppColors.primary,
+        // Left to appBarTheme, which is brand blue in light and the dark
+        // surface in dark -- hardcoding blue kept this bar lit up on an
+        // otherwise black page.
         foregroundColor: Colors.white,
       ),
       body: Form(
@@ -1285,18 +1323,30 @@ class _EditShopScreenState extends State<EditShopScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.orange[50],
+                          color: AppColors.isDark(context)
+                              ? AppColors.warning.withOpacity(0.12)
+                              : Colors.orange[50],
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange[200]!),
+                          border: Border.all(
+                              color: AppColors.warning.withOpacity(
+                                  AppColors.isDark(context) ? 0.4 : 0.35)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.warning, color: Colors.orange[700], size: 20),
+                            Icon(Icons.warning,
+                                color: AppColors.isDark(context)
+                                    ? AppColors.warning
+                                    : Colors.orange[700],
+                                size: 20),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 _locationError!,
-                                style: TextStyle(color: Colors.orange[700], fontSize: 13),
+                                style: TextStyle(
+                                    color: AppColors.isDark(context)
+                                        ? AppColors.warning
+                                        : Colors.orange[700],
+                                    fontSize: 13),
                               ),
                             ),
                           ],
@@ -1306,31 +1356,51 @@ class _EditShopScreenState extends State<EditShopScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.green[50],
+                          color: AppColors.isDark(context)
+                              ? AppColors.success.withOpacity(0.12)
+                              : Colors.green[50],
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.green[200]!),
+                          border: Border.all(
+                              color: AppColors.success.withOpacity(
+                                  AppColors.isDark(context) ? 0.4 : 0.35)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.check_circle, color: Colors.green[700], size: 20),
+                                Icon(Icons.check_circle,
+                                    color: AppColors.isDark(context)
+                                        ? AppColors.success
+                                        : Colors.green[700],
+                                    size: 20),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Location set',
-                                  style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                      color: AppColors.isDark(context)
+                                          ? AppColors.success
+                                          : Colors.green[700],
+                                      fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Lat: ${_latitude!.toStringAsFixed(8)}',
-                              style: TextStyle(color: Colors.green[700], fontFamily: 'monospace'),
+                              style: TextStyle(
+                                  color: AppColors.isDark(context)
+                                      ? AppColors.success
+                                      : Colors.green[700],
+                                  fontFamily: 'monospace'),
                             ),
                             Text(
                               'Lng: ${_longitude!.toStringAsFixed(8)}',
-                              style: TextStyle(color: Colors.green[700], fontFamily: 'monospace'),
+                              style: TextStyle(
+                                  color: AppColors.isDark(context)
+                                      ? AppColors.success
+                                      : Colors.green[700],
+                                  fontFamily: 'monospace'),
                             ),
                           ],
                         ),
@@ -1339,14 +1409,14 @@ class _EditShopScreenState extends State<EditShopScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: AppColors.sunken(context),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.location_off, size: 20, color: Colors.grey),
-                            SizedBox(width: 8),
-                            Text('No location set'),
+                            Icon(Icons.location_off, size: 20, color: AppColors.muted(context)),
+                            const SizedBox(width: 8),
+                            const Text('No location set'),
                           ],
                         ),
                       ),
@@ -1367,10 +1437,10 @@ class _EditShopScreenState extends State<EditShopScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: AppColors.sunken(context),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.person, color: Colors.grey[600]),
+                  child: Icon(Icons.person, color: AppColors.muted(context)),
                 ),
                 title: Text(
                   widget.shop.customer?.displayName ?? 'Customer #${widget.shop.customerId}',
@@ -1390,7 +1460,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
                 prefixIcon: const Icon(Icons.store),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.sunken(context),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -1410,7 +1480,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
                 prefixIcon: const Icon(Icons.location_on),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.sunken(context),
               ),
               maxLines: 2,
             ),
@@ -1504,7 +1574,9 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
             ),
           ],
         ),
-        backgroundColor: AppColors.primary,
+        // Left to appBarTheme, which is brand blue in light and the dark
+        // surface in dark -- hardcoding blue kept this bar lit up on an
+        // otherwise black page.
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -1520,9 +1592,9 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+                      Icon(Icons.error_outline, size: 64, color: AppColors.faded(context)),
                       const SizedBox(height: 16),
-                      Text(_errorMessage!, style: TextStyle(color: Colors.grey[600])),
+                      Text(_errorMessage!, style: TextStyle(color: AppColors.muted(context))),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadHistory,
@@ -1536,16 +1608,16 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.history, size: 64, color: Colors.grey[400]),
+                          Icon(Icons.history, size: 64, color: AppColors.faded(context)),
                           const SizedBox(height: 16),
                           Text(
                             'No service history',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                            style: TextStyle(color: AppColors.muted(context), fontSize: 16),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'This shop has never been serviced',
-                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                            style: TextStyle(color: AppColors.faded(context), fontSize: 14),
                           ),
                         ],
                       ),
@@ -1588,7 +1660,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     dateFormat.format(sale.saleTime),
-                                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                    style: TextStyle(color: AppColors.muted(context), fontSize: 13),
                                   ),
                                   if (sale.servedBy != null) ...[
                                     const SizedBox(height: 2),
@@ -1606,7 +1678,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     '${sale.items.length} items',
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                    style: TextStyle(color: AppColors.faded(context), fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -1614,7 +1686,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                                 // Items list
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
+                                    color: AppColors.sunken(context),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Column(
@@ -1624,7 +1696,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                                         decoration: BoxDecoration(
                                           border: Border(
                                             bottom: BorderSide(
-                                              color: Colors.grey[200]!,
+                                              color: AppColors.hairline(context),
                                               width: sale.items.last == item ? 0 : 1,
                                             ),
                                           ),
@@ -1641,7 +1713,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                                                   ),
                                                   Text(
                                                     '${item.quantity.toStringAsFixed(0)} x ${_currencyFormat.format(item.unitPrice)} TSh',
-                                                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                                    style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                                                   ),
                                                 ],
                                               ),
@@ -1710,7 +1782,9 @@ class _CustomerSelectorScreenState extends State<CustomerSelectorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Customer'),
-        backgroundColor: AppColors.primary,
+        // Left to appBarTheme, which is brand blue in light and the dark
+        // surface in dark -- hardcoding blue kept this bar lit up on an
+        // otherwise black page.
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -1723,7 +1797,7 @@ class _CustomerSelectorScreenState extends State<CustomerSelectorScreen> {
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: AppColors.sunken(context),
               ),
               onChanged: (value) {
                 _searchQuery = value;

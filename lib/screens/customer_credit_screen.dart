@@ -447,7 +447,9 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
         ),
       ),
       body: _isLoading
-          ? _buildSkeletonList(false)
+          // Not `false`: a light-mode skeleton shimmer over a black page shows
+          // as pale grey bars that do not belong to either theme.
+          ? _buildSkeletonList(creditDark(context))
           : _errorMessage != null
               ? Center(
                   child: Column(
@@ -1081,8 +1083,14 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                       color: creditTrack(context),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: const Icon(Icons.call,
-                        size: 21, color: Color(0xFF334155)),
+                    // The design's slate icon sits on a pale track. In dark
+                    // mode the track is a white wash over near-black, and a
+                    // slate icon on it disappears completely.
+                    child: Icon(Icons.call,
+                        size: 21,
+                        color: creditDark(context)
+                            ? creditInkStrong(context)
+                            : const Color(0xFF334155)),
                   ),
                 ),
                 const SizedBox(width: 9),

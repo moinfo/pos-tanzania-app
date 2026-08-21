@@ -181,7 +181,7 @@ class _NfcScanDialogState extends State<NfcScanDialog>
                 widget.subtitle!,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: AppColors.muted(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -235,7 +235,7 @@ class _NfcScanDialogState extends State<NfcScanDialog>
               _statusMessage ?? 'Initializing NFC...',
               style: TextStyle(
                 fontSize: 16,
-                color: _hasError ? AppColors.error : Colors.grey[700],
+                color: _hasError ? AppColors.error : AppColors.muted(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -244,9 +244,10 @@ class _NfcScanDialogState extends State<NfcScanDialog>
 
             // Progress indicator when scanning
             if (_isScanning)
-              const LinearProgressIndicator(
-                backgroundColor: Colors.grey,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              LinearProgressIndicator(
+                backgroundColor: AppColors.track(context),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
 
             const SizedBox(height: 24),
@@ -448,11 +449,11 @@ class _NfcRegisterCardDialogState extends State<NfcRegisterCardDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Card UID',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey,
+                              color: AppColors.muted(context),
                             ),
                           ),
                           Text(
@@ -502,7 +503,7 @@ class _NfcRegisterCardDialogState extends State<NfcRegisterCardDialog> {
               Text(
                 _statusMessage!,
                 style: TextStyle(
-                  color: _hasError ? AppColors.error : Colors.grey[700],
+                  color: _hasError ? AppColors.error : AppColors.muted(context),
                 ),
                 textAlign: TextAlign.center,
               ),

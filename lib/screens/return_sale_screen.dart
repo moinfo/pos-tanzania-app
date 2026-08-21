@@ -131,7 +131,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
               'Refund Breakdown',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+                color: AppColors.muted(context),
                 fontSize: 13,
               ),
             ),
@@ -190,7 +190,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(color: Colors.grey[600])),
+            Text(label, style: TextStyle(color: AppColors.muted(context))),
             Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
           ],
         ),
@@ -239,7 +239,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
           const Spacer(),
           Text(
             'Original sale #${widget.saleId}',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 12, color: AppColors.muted(context)),
           ),
         ],
       ),
@@ -299,11 +299,11 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
       decoration: BoxDecoration(
         color: isSelected
             ? AppColors.error.withOpacity(0.06)
-            : Colors.white,
+            : AppColors.surface(context),
         border: Border.all(
           color: isSelected
               ? AppColors.error.withOpacity(0.4)
-              : Colors.grey.shade200,
+              : AppColors.hairline(context),
           width: isSelected ? 1.5 : 1,
         ),
         borderRadius: BorderRadius.circular(10),
@@ -329,7 +329,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
                       Text(
                         '${item.quantity.toStringAsFixed(0)} sold  ·  '
                         '${_currencyFormat.format(item.price)} TSh each',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 13, color: AppColors.muted(context)),
                       ),
                       if (item.alreadyReturned > 0)
                         Padding(
@@ -356,7 +356,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
               children: [
                 Text(
                   'Return qty  (max $maxQty):',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                  style: TextStyle(fontSize: 13, color: AppColors.muted(context)),
                 ),
                 const Spacer(),
                 _QtyStepper(
@@ -392,7 +392,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.raised(context),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -435,7 +435,6 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.grey.shade300,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -479,14 +478,14 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SkeletonLoader(width: 180, height: 16, isDark: false),
+              SkeletonLoader(width: 180, height: 16, isDark: AppColors.isDark(context)),
               const SizedBox(height: 8),
-              SkeletonLoader(width: 120, height: 12, isDark: false),
+              SkeletonLoader(width: 120, height: 12, isDark: AppColors.isDark(context)),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  SkeletonLoader(width: 120, height: 36, borderRadius: 8, isDark: false),
+                  SkeletonLoader(width: 120, height: 36, borderRadius: 8, isDark: AppColors.isDark(context)),
                 ],
               ),
             ],
@@ -520,7 +519,7 @@ class _QtyStepper extends StatelessWidget {
       children: [
         _StepBtn(
           icon: Icons.remove,
-          color: value > 0 ? AppColors.error : Colors.grey.shade300,
+          color: value > 0 ? AppColors.error : AppColors.faded(context),
           onTap: value > 0 ? onDecrement : null,
         ),
         GestureDetector(
@@ -531,7 +530,7 @@ class _QtyStepper extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               border: Border.symmetric(
-                horizontal: BorderSide(color: Colors.grey.shade300),
+                horizontal: BorderSide(color: AppColors.hairline(context)),
               ),
             ),
             child: Text(
@@ -542,7 +541,7 @@ class _QtyStepper extends StatelessWidget {
         ),
         _StepBtn(
           icon: Icons.add,
-          color: value < max ? AppColors.primary : Colors.grey.shade300,
+          color: value < max ? AppColors.primary : AppColors.faded(context),
           onTap: value < max ? onIncrement : null,
         ),
       ],

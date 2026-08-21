@@ -98,12 +98,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
+            // Forcing ColorScheme.light here painted the picker's header,
+            // weekday letters and month labels black on the dark theme's black
+            // sheet. Tint the theme's own scheme instead, so dark mode keeps
+            // its ink and light mode looks exactly as it did.
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.primary,
+                  onPrimary: Colors.white,
+                ),
           ),
           child: child!,
         );
@@ -214,7 +216,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Expenses'),
-        backgroundColor: AppColors.primary,
+        // Left to appBarTheme, which is brand blue in light and the dark
+        // surface in dark -- hardcoding blue kept this bar lit up on an
+        // otherwise black page.
         foregroundColor: Colors.white,
         actions: [
           // Location selector with proper menu positioning
@@ -358,17 +362,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.receipt_long,
                               size: 64,
-                              color: AppColors.textLight,
+                              color: AppColors.muted(context),
                             ),
                             const SizedBox(height: 16),
-                            const Text(
+                            Text(
                               'No expenses found',
                               style: TextStyle(
                                 fontSize: 18,
-                                color: AppColors.textLight,
+                                color: AppColors.muted(context),
                               ),
                             ),
                             const SizedBox(height: 24),

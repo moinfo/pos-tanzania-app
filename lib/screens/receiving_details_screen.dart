@@ -51,7 +51,9 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Receiving #${widget.receivingId}'),
-        backgroundColor: AppColors.primary,
+        // Left to appBarTheme, which is brand blue in light and the dark
+        // surface in dark -- hardcoding blue kept this bar lit up on an
+        // otherwise black page.
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -95,9 +97,9 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
           children: [
             Text(
               'Supplier',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey,
+                color: AppColors.muted(context),
               ),
             ),
             const SizedBox(height: 4),
@@ -111,9 +113,9 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
             const SizedBox(height: 12),
             Text(
               'Date',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey,
+                color: AppColors.muted(context),
               ),
             ),
             const SizedBox(height: 4),
@@ -124,9 +126,9 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
             const SizedBox(height: 12),
             Text(
               'Payment Type',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey,
+                color: AppColors.muted(context),
               ),
             ),
             const SizedBox(height: 4),
@@ -138,9 +140,9 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
               const SizedBox(height: 12),
               Text(
                 'Reference',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: AppColors.muted(context),
                 ),
               ),
               const SizedBox(height: 4),
@@ -154,9 +156,9 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
               const SizedBox(height: 12),
               Text(
                 'Comment',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: AppColors.muted(context),
                 ),
               ),
               const SizedBox(height: 4),
@@ -195,9 +197,9 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Item #: ${item.itemNumber}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey,
+                      color: AppColors.muted(context),
                     ),
                   ),
                 ],
@@ -205,9 +207,9 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                   const SizedBox(height: 4),
                   Text(
                     item.description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey,
+                      color: AppColors.muted(context),
                     ),
                   ),
                 ],

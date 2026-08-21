@@ -479,18 +479,37 @@ class ReturnableItem {
     required this.quantityOfferFree,
   });
 
+  /// Parse a returnable line.
+  ///
+  /// Every numeric field goes through a helper rather than a bare cast. The
+  /// MySQL driver stringifies INT and DECIMAL, so `line` and `item_id` arrive
+  /// as "2" and "513" while `quantity` arrives as a real number in the same
+  /// response. The bare `as int` casts this replaced threw on every sale,
+  /// which meant the return screen only ever showed
+  /// "type 'String' is not a subtype of type 'int'".
   factory ReturnableItem.fromJson(Map<String, dynamic> json) {
+    int asInt(dynamic v) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v?.toString() ?? '') ?? 0;
+    }
+
+    double asDouble(dynamic v) {
+      if (v is num) return v.toDouble();
+      return double.tryParse(v?.toString() ?? '') ?? 0.0;
+    }
+
     return ReturnableItem(
-      line: json['line'] as int,
-      itemId: json['item_id'] as int,
-      name: json['name'] as String,
-      quantity: (json['quantity'] as num).toDouble(),
-      alreadyReturned: (json['already_returned'] as num).toDouble(),
-      remainingQty: (json['remaining_qty'] as num).toDouble(),
-      price: (json['price'] as num).toDouble(),
-      discount: (json['discount'] as num).toDouble(),
-      discountType: json['discount_type'] as int,
-      lineTotal: (json['line_total'] as num).toDouble(),
+      line: asInt(json['line']),
+      itemId: asInt(json['item_id']),
+      name: json['name']?.toString() ?? '',
+      quantity: asDouble(json['quantity']),
+      alreadyReturned: asDouble(json['already_returned']),
+      remainingQty: asDouble(json['remaining_qty']),
+      price: asDouble(json['price']),
+      discount: asDouble(json['discount']),
+      discountType: asInt(json['discount_type']),
+      lineTotal: asDouble(json['line_total']),
       quantityOfferFree: json['quantity_offer_free'] == true,
     );
   }
@@ -513,8 +532,11 @@ class ReturnModalData {
 
   factory ReturnModalData.fromJson(Map<String, dynamic> json) {
     return ReturnModalData(
-      saleId: json['sale_id'] as int,
-      customerName: json['customer_name'] as String,
+      // Same driver-stringifies-numbers hazard as ReturnableItem above.
+      saleId: json['sale_id'] is int
+          ? json['sale_id'] as int
+          : int.tryParse(json['sale_id']?.toString() ?? '') ?? 0,
+      customerName: json['customer_name']?.toString() ?? '',
       hasAnyReturn: json['has_any_return'] == true,
       items: (json['items'] as List)
           .map((i) => ReturnableItem.fromJson(i as Map<String, dynamic>))

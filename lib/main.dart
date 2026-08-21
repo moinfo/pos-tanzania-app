@@ -37,6 +37,11 @@ Future<void> main() async {
   // simply unavailable and the app runs on polling, exactly as it did before.
   final firebaseReady = await PushService.initializeFirebase();
 
+  // Read the saved theme before the first frame. Loading it inside the
+  // provider's constructor meant the app painted light, then flipped -- a
+  // white flash on every launch for anyone using dark mode.
+  await ThemeProvider.preload();
+
   runApp(MyApp(firebaseReady: firebaseReady));
 }
 

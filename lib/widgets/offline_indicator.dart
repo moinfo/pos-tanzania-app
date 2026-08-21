@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_provider.dart';
 import '../services/api_service.dart';
+import '../utils/constants.dart';
 
 /// Widget to display offline/online status in the app bar
 class OfflineIndicator extends StatefulWidget {
@@ -237,7 +238,9 @@ class SyncStatusSheet extends StatelessWidget {
                 connectivityProvider.isOnline
                     ? Icons.cloud_done
                     : Icons.cloud_off,
-                color: connectivityProvider.isOnline ? Colors.green : Colors.grey,
+                color: connectivityProvider.isOnline
+                    ? Colors.green
+                    : AppColors.muted(context),
                 size: 28,
               ),
               const SizedBox(width: 12),
@@ -256,7 +259,7 @@ class SyncStatusSheet extends StatelessWidget {
                       'Connection: ${connectivityProvider.connectionTypeString}',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: AppColors.muted(context),
                       ),
                     ),
                   ],
@@ -272,6 +275,7 @@ class SyncStatusSheet extends StatelessWidget {
 
           // Sync Status
           _buildStatusRow(
+            context,
             icon: Icons.hourglass_empty,
             label: 'Pending Sync',
             value: '${offlineProvider.pendingSyncCount} items',
@@ -279,6 +283,7 @@ class SyncStatusSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildStatusRow(
+            context,
             icon: Icons.error_outline,
             label: 'Failed Sync',
             value: '${offlineProvider.failedSyncCount} items',
@@ -286,12 +291,13 @@ class SyncStatusSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildStatusRow(
+            context,
             icon: Icons.access_time,
             label: 'Last Sync',
             value: offlineProvider.lastSyncTime != null
                 ? _formatTime(offlineProvider.lastSyncTime!)
                 : 'Never',
-            color: Colors.grey.shade700,
+            color: AppColors.muted(context),
           ),
 
           const SizedBox(height: 20),
@@ -345,18 +351,18 @@ class SyncStatusSheet extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: AppColors.sunken(context),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.grey.shade600),
+                  Icon(Icons.info_outline, color: AppColors.muted(context)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Connect to the internet to sync your data',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: AppColors.muted(context),
                         fontSize: 14,
                       ),
                     ),
@@ -376,13 +382,13 @@ class SyncStatusSheet extends StatelessWidget {
                   offlineProvider.masterDataSyncStatus ?? 'Syncing...',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade600,
+                    color: AppColors.muted(context),
                   ),
                 ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: offlineProvider.masterDataSyncProgress,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: AppColors.track(context),
                 ),
               ],
             ),
@@ -394,7 +400,8 @@ class SyncStatusSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusRow({
+  Widget _buildStatusRow(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
@@ -408,7 +415,7 @@ class SyncStatusSheet extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey.shade700,
+            color: AppColors.muted(context),
           ),
         ),
         const Spacer(),

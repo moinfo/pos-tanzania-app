@@ -699,7 +699,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                             'Customer',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey[600],
+                                              color: AppColors.muted(context),
                                             ),
                                           ),
                                           const SizedBox(height: 4),
@@ -721,7 +721,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                             'Employee',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey[600],
+                                              color: AppColors.muted(context),
                                             ),
                                           ),
                                           const SizedBox(height: 4),
@@ -742,13 +742,13 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                 // Date & Time
                                 Row(
                                   children: [
-                                    Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                                    Icon(Icons.access_time, size: 14, color: AppColors.muted(context)),
                                     const SizedBox(width: 4),
                                     Text(
                                       _dateFormat.format(DateTime.parse(sale.saleTime)),
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey[600],
+                                        color: AppColors.muted(context),
                                       ),
                                     ),
                                   ],
@@ -760,19 +760,19 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey[100],
+                                      color: AppColors.ground(context),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(Icons.comment, size: 14, color: Colors.grey[600]),
+                                        Icon(Icons.comment, size: 14, color: AppColors.muted(context)),
                                         const SizedBox(width: 4),
                                         Expanded(
                                           child: Text(
                                             sale.comment!,
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey[700],
+                                              color: AppColors.muted(context),
                                               fontStyle: FontStyle.italic,
                                             ),
                                           ),
@@ -790,13 +790,13 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        Icon(Icons.shopping_cart, size: 16, color: Colors.grey[600]),
+                                        Icon(Icons.shopping_cart, size: 16, color: AppColors.muted(context)),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${sale.itemCount} item${sale.itemCount > 1 ? 's' : ''}',
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Colors.grey[700],
+                                            color: AppColors.muted(context),
                                           ),
                                         ),
                                       ],
@@ -809,7 +809,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                             '${_currencyFormat.format(sale.subtotal)} TSh',
                                             style: TextStyle(
                                               fontSize: 14,
-                                              color: Colors.grey[500],
+                                              color: AppColors.faded(context),
                                               decoration: TextDecoration.lineThrough,
                                             ),
                                           ),
@@ -847,7 +847,6 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       foregroundColor: Colors.white,
-                                      disabledBackgroundColor: Colors.grey.shade400,
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
                                   ),

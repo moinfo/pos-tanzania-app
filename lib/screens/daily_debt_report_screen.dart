@@ -735,7 +735,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                     children: [
                       Text(debt.customerName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                       Row(children: [
-                        Icon(Icons.calendar_today, size: 11, color: Colors.grey.shade500),
+                        Icon(Icons.calendar_today, size: 11, color: AppColors.muted(context)),
                         const SizedBox(width: 4),
                         Text(debt.date, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
                       ]),
@@ -814,9 +814,9 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
 
   Widget _buildEmptyView() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade400),
+      Icon(Icons.receipt_long_outlined, size: 64, color: AppColors.faded(context)),
       const SizedBox(height: 16),
-      Text(_searchQuery.isEmpty ? 'No debt collections for this period' : 'No results found', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
+      Text(_searchQuery.isEmpty ? 'No debt collections for this period' : 'No results found', style: TextStyle(fontSize: 16, color: AppColors.muted(context))),
     ]));
   }
 }

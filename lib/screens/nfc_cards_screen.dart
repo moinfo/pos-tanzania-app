@@ -120,7 +120,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
               'Card UID',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: AppColors.muted(context),
               ),
             ),
             Text(
@@ -163,7 +163,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
               'Card UID',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: AppColors.muted(context),
               ),
             ),
             Text(
@@ -911,7 +911,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(label, style: TextStyle(color: AppColors.muted(context))),
           Text(
             value,
             style: TextStyle(

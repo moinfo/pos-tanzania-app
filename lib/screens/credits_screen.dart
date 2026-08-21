@@ -199,7 +199,10 @@ class _CreditsScreenState extends State<CreditsScreen> {
                 ),
                 child: PopupMenuButton<StockLocation>(
                   offset: const Offset(0, 40),
-                  color: Colors.white,
+                  // The menu drops onto the page, not onto the app bar, so it
+                  // has to follow the page's theme. Pinning it white put a
+                  // white sheet in the middle of a black screen.
+                  color: AppColors.raised(context),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -232,7 +235,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                                   size: 20,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
                                       ? AppColors.primary
-                                      : Colors.grey,
+                                      : AppColors.muted(context),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
@@ -240,7 +243,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                                   style: TextStyle(
                                     color: location.locationId == locationProvider.selectedLocation?.locationId
                                         ? AppColors.primary
-                                        : Colors.black87,
+                                        : AppColors.ink(context),
                                     fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                         ? FontWeight.bold
                                         : FontWeight.normal,
@@ -871,7 +874,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.credit_card_off, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.credit_card_off, size: 64, color: AppColors.faded(context)),
           const SizedBox(height: 16),
           Text(
             _searchQuery.isEmpty
@@ -879,7 +882,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                 : 'No results found for "$_searchQuery"',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey.shade600,
+              color: AppColors.muted(context),
             ),
             textAlign: TextAlign.center,
           ),
@@ -1527,7 +1530,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.people_outline, size: 64, color: AppColors.faded(context)),
           const SizedBox(height: 16),
           Text(
             _searchQuery.isEmpty
@@ -1535,7 +1538,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
                 : 'No results found for "$_searchQuery"',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey.shade600,
+              color: AppColors.muted(context),
             ),
             textAlign: TextAlign.center,
           ),

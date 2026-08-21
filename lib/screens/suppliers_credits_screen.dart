@@ -214,7 +214,9 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
         ),
         child: PopupMenuButton<StockLocation>(
           offset: const Offset(0, 40),
-          color: Colors.white,
+          // The menu drops onto the page, not onto the app bar, so it follows
+          // the page's theme; pinned white it was a white sheet on a black page.
+          color: AppColors.raised(context),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -247,7 +249,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
                           size: 20,
                           color: location.locationId == locationProvider.selectedLocation?.locationId
                               ? AppColors.primary
-                              : Colors.grey,
+                              : AppColors.muted(context),
                         ),
                         const SizedBox(width: 12),
                         Text(
@@ -255,7 +257,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
                           style: TextStyle(
                             color: location.locationId == locationProvider.selectedLocation?.locationId
                                 ? AppColors.primary
-                                : Colors.black87,
+                                : AppColors.ink(context),
                             fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                 ? FontWeight.bold
                                 : FontWeight.normal,
@@ -725,7 +727,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.local_shipping_outlined, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.local_shipping_outlined, size: 64, color: AppColors.faded(context)),
           const SizedBox(height: 16),
           Text(
             _searchQuery.isEmpty
@@ -733,7 +735,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
                 : 'No results found for "$_searchQuery"',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey.shade600,
+              color: AppColors.muted(context),
             ),
             textAlign: TextAlign.center,
           ),
@@ -1324,7 +1326,9 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
         ),
         child: PopupMenuButton<StockLocation>(
           offset: const Offset(0, 40),
-          color: Colors.white,
+          // Follows the page's theme rather than being pinned white, which put
+          // a white sheet in the middle of a black screen.
+          color: AppColors.raised(context),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1504,7 +1508,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
                     children: [
                       Text(credit.displayName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                       Row(children: [
-                        Icon(Icons.calendar_today, size: 11, color: Colors.grey.shade500),
+                        Icon(Icons.calendar_today, size: 11, color: AppColors.muted(context)),
                         const SizedBox(width: 4),
                         Text(credit.date, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
                       ]),
@@ -1581,9 +1585,9 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
 
   Widget _buildEmptyView() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade400),
+      Icon(Icons.receipt_long_outlined, size: 64, color: AppColors.faded(context)),
       const SizedBox(height: 16),
-      Text(_searchQuery.isEmpty ? 'No credit purchases for this period' : 'No results found', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
+      Text(_searchQuery.isEmpty ? 'No credit purchases for this period' : 'No results found', style: TextStyle(fontSize: 16, color: AppColors.muted(context))),
     ]));
   }
 }
@@ -1725,7 +1729,9 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
         ),
         child: PopupMenuButton<StockLocation>(
           offset: const Offset(0, 40),
-          color: Colors.white,
+          // Follows the page's theme rather than being pinned white, which put
+          // a white sheet in the middle of a black screen.
+          color: AppColors.raised(context),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1905,7 +1911,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
                     children: [
                       Text(debt.supplierName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                       Row(children: [
-                        Icon(Icons.calendar_today, size: 11, color: Colors.grey.shade500),
+                        Icon(Icons.calendar_today, size: 11, color: AppColors.muted(context)),
                         const SizedBox(width: 4),
                         Text(debt.date, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
                       ]),
@@ -1982,9 +1988,9 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
 
   Widget _buildEmptyView() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade400),
+      Icon(Icons.receipt_long_outlined, size: 64, color: AppColors.faded(context)),
       const SizedBox(height: 16),
-      Text(_searchQuery.isEmpty ? 'No payments for this period' : 'No results found', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
+      Text(_searchQuery.isEmpty ? 'No payments for this period' : 'No results found', style: TextStyle(fontSize: 16, color: AppColors.muted(context))),
     ]));
   }
 }
@@ -2090,7 +2096,11 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  // An inset block inside the dialog. Pinned to grey.shade100
+                  // it stayed a pale strip on a dark dialog, and the supplier
+                  // name -- which takes its colour from the theme -- was then
+                  // near-white on near-white.
+                  color: AppColors.sunken(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -2107,7 +2117,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
                           ),
                           Text(
                             'Balance: ${_formatter.format(widget.currentBalance)}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            style: TextStyle(fontSize: 12, color: AppColors.muted(context)),
                           ),
                         ],
                       ),

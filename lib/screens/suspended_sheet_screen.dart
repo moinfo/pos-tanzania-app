@@ -536,7 +536,9 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
               margin: const EdgeInsets.only(left: 12, right: 12, bottom: 8),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.amber.shade100,
+                color: isDark
+                    ? Colors.amber.shade700.withOpacity(0.18)
+                    : Colors.amber.shade100,
                 borderRadius: BorderRadius.circular(4),
                 border: Border(
                   left: BorderSide(color: Colors.amber.shade700, width: 3),
@@ -551,7 +553,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                       sale.comment!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.amber.shade900,
+                        color: isDark ? Colors.amber.shade200 : Colors.amber.shade900,
                       ),
                     ),
                   ),
@@ -708,7 +710,6 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange.shade600,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: Colors.grey.shade400,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),

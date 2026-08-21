@@ -197,8 +197,16 @@ class AppTheme {
       ),
 
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: fieldFill,
+        // Deliberately NOT `filled: true`.
+        //
+        // A fill reads well on a plain form, but this app has fields sitting
+        // on gradients and inside custom containers that draw their own box
+        // with `border: InputBorder.none` -- the login card and the client
+        // selector among them. Forcing a fill paints a slab over those, and
+        // in dark mode it is a black rectangle over a white pill. Thirty
+        // files already set `filled` themselves where they want it; the rest
+        // keep the transparent field they were designed with, and still pick
+        // up the borders, label, hint and focus colours below.
         hintStyle: TextStyle(color: muted),
         labelStyle: TextStyle(color: muted),
         floatingLabelStyle: const TextStyle(color: AppColors.primary),

@@ -171,7 +171,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                 ),
                 child: PopupMenuButton<StockLocation>(
                   offset: const Offset(0, 40),
-                  color: Colors.white,
+                  color: AppColors.raised(context),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -201,7 +201,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                                   size: 20,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
                                       ? AppColors.primary
-                                      : Colors.grey,
+                                      : AppColors.muted(context),
                                 ),
                                 const SizedBox(width: 12),
                                 Flexible(
@@ -211,7 +211,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                                     style: TextStyle(
                                       color: location.locationId == locationProvider.selectedLocation?.locationId
                                           ? AppColors.primary
-                                          : Colors.black87,
+                                          : AppColors.ink(context),
                                       fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                           ? FontWeight.bold
                                           : FontWeight.normal,
@@ -907,6 +907,11 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             TabBar(
               controller: _tabController,
               labelColor: AppColors.primary,
+              // The global tabBarTheme is tuned for a TabBar sitting on the
+              // blue AppBar, so its white unselected label and white indicator
+              // vanish inside this dialog on a white page.
+              unselectedLabelColor: AppColors.muted(context),
+              indicatorColor: AppColors.primary,
               tabs: const [
                 Tab(text: 'Basic Info'),
                 Tab(text: 'Details'),
@@ -1273,13 +1278,13 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                             placeholder: (context, url) => Container(
                               height: 150,
                               width: 150,
-                              color: Colors.grey[200],
+                              color: AppColors.sunken(context),
                               child: const Center(child: CircularProgressIndicator()),
                             ),
                             errorWidget: (context, url, error) => Container(
                               height: 150,
                               width: 150,
-                              color: Colors.grey[200],
+                              color: AppColors.sunken(context),
                               child: const Icon(Icons.broken_image, size: 40),
                             ),
                           ),
@@ -1338,13 +1343,13 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                           placeholder: (context, url) => Container(
                             height: 80,
                             width: 80,
-                            color: Colors.grey[200],
+                            color: AppColors.sunken(context),
                             child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                           ),
                           errorWidget: (context, url, error) => Container(
                             height: 80,
                             width: 80,
-                            color: Colors.grey[200],
+                            color: AppColors.sunken(context),
                             child: const Icon(Icons.broken_image, size: 24),
                           ),
                         ),
@@ -1451,13 +1456,13 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                           placeholder: (context, url) => Container(
                             height: 80,
                             width: 80,
-                            color: Colors.grey[200],
+                            color: AppColors.sunken(context),
                             child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                           ),
                           errorWidget: (context, url, error) => Container(
                             height: 80,
                             width: 80,
-                            color: Colors.grey[200],
+                            color: AppColors.sunken(context),
                             child: const Icon(Icons.broken_image, size: 24),
                           ),
                         ),

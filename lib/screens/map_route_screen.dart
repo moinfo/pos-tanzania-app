@@ -171,7 +171,9 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade200,
       appBar: AppBar(
-        backgroundColor: _headerColor,
+        // _headerColor is the brand accent used by the icons and reorder
+        // arrows below; as an AppBar background it also kept this bar blue in
+        // dark mode. appBarTheme already resolves it per mode.
         foregroundColor: Colors.white,
         title: const Text('Map Route', style: TextStyle(fontSize: 18)),
         actions: [
@@ -561,7 +563,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                     size: 20,
                     color: canReorder && index > 0
                         ? _headerColor
-                        : Colors.grey.shade400,
+                        : AppColors.faded(context),
                   ),
                   onPressed: canReorder && index > 0
                       ? () => _moveUp(index)
@@ -578,7 +580,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                     size: 20,
                     color: canReorder && index < _filteredCustomers.length - 1
                         ? _headerColor
-                        : Colors.grey.shade400,
+                        : AppColors.faded(context),
                   ),
                   onPressed: canReorder && index < _filteredCustomers.length - 1
                       ? () => _moveDown(index)

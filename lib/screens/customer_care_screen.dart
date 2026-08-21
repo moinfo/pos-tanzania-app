@@ -199,7 +199,9 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade200,
       appBar: AppBar(
-        backgroundColor: _headerColor,
+        // Every other screen darkens its bar in dark mode; this one alone kept
+        // the brand blue, so it read as a different app.
+        backgroundColor: isDark ? AppColors.darkSurface : _headerColor,
         foregroundColor: Colors.white,
         title: const Text('Customer Care', style: TextStyle(fontSize: 18)),
         actions: [

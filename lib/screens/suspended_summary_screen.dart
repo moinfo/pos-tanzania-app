@@ -1114,7 +1114,7 @@ class _CommentDialogState extends State<_CommentDialog> {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Icon(Icons.history, size: 18, color: Colors.grey.shade600),
+                                Icon(Icons.history, size: 18, color: AppColors.muted(context)),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Comment History',

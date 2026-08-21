@@ -113,12 +113,14 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.success,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
+            // Forcing ColorScheme.light here painted the picker's header,
+            // weekday letters and month labels black on the dark theme's black
+            // sheet. Tint the theme's own scheme instead, so dark mode keeps
+            // its ink and light mode looks exactly as it did.
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.success,
+                  onPrimary: Colors.white,
+                ),
           ),
           child: child!,
         );

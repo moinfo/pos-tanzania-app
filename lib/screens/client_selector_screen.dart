@@ -130,12 +130,22 @@ class _ClientSelectorScreenState extends State<ClientSelectorScreen> {
                     style: TextStyle(color: Colors.blue.shade900),
                     decoration: InputDecoration(
                       hintText: 'Search clients...',
+                      // The page is a fixed brand gradient in both modes, and
+                      // GlassmorphicCard already draws the light pill behind
+                      // this field. Letting the theme's fill paint over it
+                      // turned the field into a black hole in dark mode.
+                      filled: false,
                       hintStyle: TextStyle(color: Colors.blue.shade800.withOpacity(0.5)),
                       prefixIcon: Icon(
                         Icons.search,
                         color: Colors.blue.shade800.withOpacity(0.7),
                       ),
                       border: InputBorder.none,
+                      // border: alone leaves the theme's enabled/focused
+                      // borders in place, which drew a dark ring around the
+                      // pill in dark mode that light mode never had.
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,

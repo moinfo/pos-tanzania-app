@@ -216,13 +216,13 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
                                 Icon(
                                   Icons.verified_outlined,
                                   size: 64,
-                                  color: Colors.grey[400],
+                                  color: AppColors.faded(context),
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
                                   'No confirmations found',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: AppColors.ink(context),
                                     fontSize: 16,
                                   ),
                                 ),
@@ -230,7 +230,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
                                 Text(
                                   'NFC confirmations will appear here',
                                   style: TextStyle(
-                                    color: Colors.grey[500],
+                                    color: AppColors.muted(context),
                                     fontSize: 14,
                                   ),
                                 ),

@@ -131,7 +131,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
               _buildCardDetailRow('Card UID', cardUid),
               const Divider(height: 24),
               _buildCardDetailRow('Balance', currencyFormat.format(balance.balance),
-                  valueColor: balance.balance > 0 ? Colors.green : Colors.grey),
+                  valueColor: balance.balance > 0
+                      ? Colors.green
+                      : AppColors.faded(context)),
               _buildCardDetailRow('Total Deposited', currencyFormat.format(balance.totalDeposited)),
               _buildCardDetailRow('Total Spent', currencyFormat.format(balance.totalSpent)),
               const Divider(height: 24),
@@ -163,7 +165,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(label, style: TextStyle(color: AppColors.muted(context))),
           // The value is customer data, not a fixed label: a full display
           // name runs 200px past the edge of the dialog unless it is given
           // the leftover width and allowed to wrap.
@@ -1176,7 +1178,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
           ),
           Text(
             hint,
-            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 11, color: AppColors.muted(context)),
           ),
           const SizedBox(height: 6),
           TextField(
@@ -1478,7 +1480,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.grey[300]!)),
+                  border: Border(top: BorderSide(color: AppColors.hairline(context))),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
