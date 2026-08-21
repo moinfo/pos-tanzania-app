@@ -87,7 +87,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
             children: [
               const Icon(Icons.nfc, color: Colors.white),
               const SizedBox(width: 8),
-              Text('Card registered to ${customer.firstName}'),
+              // First names here reach 36 characters, which is 89px wider
+              // than the bar; let the message wrap instead.
+              Expanded(
+                child: Text('Card registered to ${customer.firstName}'),
+              ),
             ],
           ),
           backgroundColor: AppColors.success,
@@ -160,11 +164,20 @@ class _CustomersScreenState extends State<CustomersScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: valueColor,
+          // The value is customer data, not a fixed label: a full display
+          // name runs 200px past the edge of the dialog unless it is given
+          // the leftover width and allowed to wrap.
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: valueColor,
+                ),
+              ),
             ),
           ),
         ],
@@ -722,7 +735,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         permissionId: PermissionIds.customerCreditLimitsAdd,
                         onPressed: () => _requestCreditLimit(customer),
                         icon: const Icon(Icons.request_quote_outlined, size: 18),
-                        tooltip: 'Request Extra Credit',
+                        tooltip: 'Customer Credit Limit',
                         color: AppColors.warning,
                         showDisabled: false,
                       ),

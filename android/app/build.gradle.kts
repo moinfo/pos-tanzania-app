@@ -6,6 +6,26 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Version comes from the `apply false` declaration in settings.gradle.kts.
+    id("com.google.gms.google-services")
+}
+
+// ---------------------------------------------------------------------------
+// Only the `leruma` flavor has a google-services.json (at src/leruma/).
+//
+// By default this plugin FAILS THE BUILD when it cannot find one, which would
+// break sada, comeAndSave, kariakooShops and saichi -- four shipping clients
+// that have nothing to do with push. WARN downgrades that to a build warning,
+// so those flavors compile exactly as before and simply carry no Firebase
+// config. The Dart side treats "Firebase unavailable" as a normal state and
+// falls back to polling, so they behave correctly at runtime too.
+//
+// If another client is onboarded to push later, drop their google-services.json
+// into android/app/src/<flavor>/ and nothing here needs to change.
+// ---------------------------------------------------------------------------
+configure<com.google.gms.googleservices.GoogleServicesPlugin.GoogleServicesPluginConfig> {
+    missingGoogleServicesStrategy =
+        com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy.WARN
 }
 
 val keystorePropertiesFile = rootProject.file("key.properties")
@@ -22,6 +42,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // flutter_local_notifications needs the desugared java.time classes.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -82,6 +104,10 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {

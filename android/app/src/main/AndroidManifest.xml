@@ -6,6 +6,13 @@
     <!-- Biometric authentication permission -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
+    <!-- Approval push notifications. Declaring this is not enough on Android
+         13+ (API 33): it is a runtime permission and must also be requested
+         from the user, which PushService does after login. targetSdk is 36, so
+         without the runtime grant the notification is dropped silently, with
+         no error and nothing in the tray. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Camera and storage permissions for document scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

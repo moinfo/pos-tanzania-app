@@ -16,15 +16,34 @@ import 'screens/main_navigation.dart';
 import 'screens/client_selector_screen.dart';
 import 'screens/landing/landing_screen.dart';
 import 'services/api_service.dart';
+import 'services/push_service.dart';
 import 'config/clients_config.dart';
 import 'utils/constants.dart';
 
-void main() {
-  runApp(const MyApp());
+/// Lets a tapped push notification navigate without a widget's BuildContext.
+///
+/// A tap can arrive when the app was not running at all, so there is no mounted
+/// screen whose context could be used — which is how every other navigation in
+/// this app works. PushService pushes through this key instead.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+Future<void> main() async {
+  // Required before any plugin call, and Firebase is a plugin call.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Only the leruma flavor ships a google-services.json, so this returns false
+  // for the other four clients and for iOS. That is a supported state: push is
+  // simply unavailable and the app runs on polling, exactly as it did before.
+  final firebaseReady = await PushService.initializeFirebase();
+
+  runApp(MyApp(firebaseReady: firebaseReady));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.firebaseReady = false});
+
+  /// Whether Firebase came up for this flavor. Threaded down to PushService.
+  final bool firebaseReady;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +101,7 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) => MaterialApp(
+          navigatorKey: navigatorKey,
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
@@ -202,11 +222,56 @@ class MyApp extends StatelessWidget {
             titleLarge: TextStyle(color: AppColors.darkText, fontWeight: FontWeight.bold),
           ),
         ),
-        home: const SplashScreen(),
+        home: PushBootstrap(firebaseReady: firebaseReady, child: const SplashScreen()),
         ),
       ),
     );
   }
+}
+
+/// Starts FCM once, as soon as there is a provider tree to feed it into.
+///
+/// This cannot happen in main(): PushService needs the NotificationProvider so
+/// a push can be deduped against the poll, and that provider does not exist
+/// until MultiProvider has built. Wrapping the home screen is the earliest
+/// point where both are true.
+///
+/// It renders its child unchanged — it exists purely for the initState hook.
+class PushBootstrap extends StatefulWidget {
+  const PushBootstrap({
+    super.key,
+    required this.firebaseReady,
+    required this.child,
+  });
+
+  final bool firebaseReady;
+  final Widget child;
+
+  @override
+  State<PushBootstrap> createState() => _PushBootstrapState();
+}
+
+class _PushBootstrapState extends State<PushBootstrap> {
+  @override
+  void initState() {
+    super.initState();
+
+    if (!widget.firebaseReady) return;
+
+    // After the first frame, so navigatorKey.currentState is populated for a
+    // notification tap that launched the app from cold.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      PushService.instance.start(
+        notifications: context.read<NotificationProvider>(),
+        navigatorKey: navigatorKey,
+        firebaseReady: widget.firebaseReady,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class SplashScreen extends StatefulWidget {

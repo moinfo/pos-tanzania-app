@@ -242,15 +242,19 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.request_quote_outlined),
-        label: const Text('Request Credit'),
+        label: const Text('Customer Credit Limit'),
       );
     }
 
-    return FloatingActionButton(
+    // Labelled, not a bare "+". Someone holding both grants was shown an
+    // unlabelled plus that said nothing about what it created, so the credit
+    // limit request looked as though it had never been built.
+    return FloatingActionButton.extended(
       onPressed: _chooseRequestType,
       backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
-      child: const Icon(Icons.add),
+      icon: const Icon(Icons.add),
+      label: const Text('New request'),
     );
   }
 
@@ -280,7 +284,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'What are you requesting?',
+                'What do you want to request?',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -291,8 +295,8 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.local_offer_outlined, color: AppColors.warning),
-              title: const Text('A price discount'),
-              subtitle: const Text('One item, one customer, one day'),
+              title: const Text('Discount on items'),
+              subtitle: const Text('One customer, one day, any number of items'),
               onTap: () {
                 Navigator.pop(context);
                 _openCreate(discount: true);
@@ -300,8 +304,8 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
             ),
             ListTile(
               leading: const Icon(Icons.request_quote_outlined, color: AppColors.info),
-              title: const Text('Extra credit'),
-              subtitle: const Text('A one-time allowance for a customer'),
+              title: const Text('Customer credit limit'),
+              subtitle: const Text('A one-time allowance for one customer'),
               onTap: () {
                 Navigator.pop(context);
                 _openCreate(discount: false);

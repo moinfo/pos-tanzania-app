@@ -26,8 +26,7 @@ import 'dart:async';
 
 import '../models/app_notification.dart';
 import 'approvals_screen.dart';
-import 'create_credit_limit_request_screen.dart';
-import 'create_discount_request_screen.dart';
+import 'credit_limits_screen.dart';
 import 'notifications_screen.dart';
 import '../providers/notification_provider.dart';
 import 'receivings/receivings_list_screen.dart';
@@ -740,11 +739,21 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // grant alone would hide the queue from a credit-limit-only
             // approver, who could then reach it solely by tapping a
             // notification.
+            // One entry, not three. The screen's own button raises a request --
+            // and asks which kind when the user can raise both -- so separate
+            // "Request a Discount" and "Request Extra Credit" rows just said
+            // the same thing twice.
+            //
+            // The create grants are listed too so that anyone who can raise a
+            // request can always reach the screen, even if the view grants are
+            // changed later.
             PermissionWrapper(
               anyPermissions: const [
                 PermissionIds.approvalsView,
                 PermissionIds.oneTimeDiscountsView,
+                PermissionIds.oneTimeDiscountsAdd,
                 PermissionIds.customerCreditLimitsView,
+                PermissionIds.customerCreditLimitsAdd,
               ],
               child: Consumer<NotificationProvider>(
                 builder: (context, notifications, _) => ListTile(
@@ -778,39 +787,34 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ),
               ),
             ),
+            // "Request a Discount" is deliberately NOT here: the approvals
+            // screen's own button already raises one. This one stays, because
+            // it is the only place the credit limit module is named.
+            //
+            // It opens the LIST, not the create form. Opening the form
+            // directly meant the only thing the app could do with this module
+            // was add to it -- no way to see what had been asked for, what was
+            // granted, or who is holding an unspent allowance. Creating is now
+            // the list's own action, as it is on the web.
+            //
+            // Gated on _view, not _add: reading the module is the common case
+            // (nine people hold _view, two hold _add), and the list's button
+            // handles whether this user may raise one.
             PermissionWrapper(
-              permissionId: PermissionIds.oneTimeDiscountsAdd,
-              child: ListTile(
-                leading: Icon(Icons.local_offer_outlined,
-                    color: AppColors.brandPrimary),
-                title: const Text('Request a Discount'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const CreateDiscountRequestScreen()),
-                  );
-                },
-              ),
-            ),
-            // The third of the three request modules the web carries. It is
-            // also reachable per-customer from the customers list; opened from
-            // here it asks which customer first, because a seller who has just
-            // been refused at the till thinks "ask for credit", not "find the
-            // customer row again".
-            PermissionWrapper(
-              permissionId: PermissionIds.customerCreditLimitsAdd,
+              anyPermissions: const [
+                PermissionIds.customerCreditLimitsView,
+                PermissionIds.customerCreditLimitsAdd,
+              ],
               child: ListTile(
                 leading: Icon(Icons.request_quote_outlined,
                     color: AppColors.brandPrimary),
-                title: const Text('Request Extra Credit'),
+                title: const Text('Customer Credit Limit'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => const CreateCreditLimitRequestScreen()),
+                        builder: (_) => const CreditLimitsScreen()),
                   );
                 },
               ),

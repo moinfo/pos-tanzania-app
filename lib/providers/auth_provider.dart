@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/push_service.dart';
 import 'permission_provider.dart';
 import 'location_provider.dart';
 import 'connectivity_provider.dart';
@@ -97,6 +98,15 @@ class AuthProvider with ChangeNotifier {
         // wait on it.
         _notificationProvider?.start();
 
+        // Same seam, same reason: the device token must belong to whoever is
+        // signed in now. Not awaited -- it asks for a notification permission
+        // and makes a network call, and login must not wait on either.
+        PushService.instance.onLogin().then((_) {
+          // A push tapped while the app was dead has been parked until there
+          // was somewhere to send it. Now there is.
+          PushService.instance.flushPendingTap();
+        });
+
         // Load permissions from local storage or fetch
         if (_permissionProvider != null) {
           await _permissionProvider!.loadPermissionsFromLocal();
@@ -159,6 +169,15 @@ class AuthProvider with ChangeNotifier {
         await _persistActiveUserId();
 
         _notificationProvider?.start();
+
+        // Same seam, same reason: the device token must belong to whoever is
+        // signed in now. Not awaited -- it asks for a notification permission
+        // and makes a network call, and login must not wait on either.
+        PushService.instance.onLogin().then((_) {
+          // A push tapped while the app was dead has been parked until there
+          // was somewhere to send it. Now there is.
+          PushService.instance.flushPendingTap();
+        });
 
         // Cache credentials for offline login (only if offline mode enabled)
         if (client.features.hasOfflineMode) {
@@ -310,6 +329,12 @@ class AuthProvider with ChangeNotifier {
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();
+
+    // BEFORE _apiService.logout(), which clears the JWT. Unregistering is
+    // itself an authenticated call, so doing it afterwards would 401 and leave
+    // this handset registered to the person signing out -- meaning the next
+    // seller on a shared shop phone receives their approvals.
+    await PushService.instance.onLogout();
 
     await _apiService.logout();
 

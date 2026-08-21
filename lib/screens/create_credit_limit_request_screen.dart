@@ -9,6 +9,7 @@ import '../models/approval.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
+import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 
@@ -238,7 +239,7 @@ class _CreateCreditLimitRequestScreenState
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: Text(_picking ? 'Choose a Customer' : 'Request Extra Credit'),
+        title: Text(_picking ? 'Choose a Customer' : 'Customer Credit Limit'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
@@ -255,6 +256,9 @@ class _CreateCreditLimitRequestScreenState
         ],
       ),
       body: _picking ? _buildPicker(isDark) : _buildRequest(isDark),
+      // On the Scaffold, not inside a branch: the bar has to be there in every
+      // state this screen can render -- picker, skeleton, error and form alike.
+      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
     );
   }
 
@@ -491,10 +495,19 @@ class _CreateCreditLimitRequestScreenState
   }
 
   /// The numbers the approver will weigh, shown before the ask is written.
+  ///
+  /// It leads with what the customer OWES, not with what is "left on their
+  /// limit". people.credit_limit is 0 for 3,307 of the 3,677 customers here,
+  /// and this module never raises it — so "left on the limit" read as a
+  /// negative number on most customers and described a limit that has nothing
+  /// to do with what is being requested.
   Widget _positionCard(CustomerCreditPosition position, bool isDark) {
-    final used = position.creditLimit <= 0
-        ? 0.0
-        : (position.currentBalance / position.creditLimit).clamp(0.0, 1.0);
+    final hasStandingLimit = position.creditLimit > 0;
+    final used = hasStandingLimit
+        ? (position.currentBalance / position.creditLimit).clamp(0.0, 1.0)
+        : 0.0;
+    final holdsAllowance =
+        position.hasOneTimeCredit && position.oneTimeLimit > 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -526,7 +539,7 @@ class _CreateCreditLimitRequestScreenState
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              '${_money.format(position.remainingCredit)} TSh',
+              '${_money.format(position.currentBalance)} TSh',
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
@@ -536,35 +549,40 @@ class _CreateCreditLimitRequestScreenState
           ),
           const SizedBox(height: 2),
           Text(
-            'left on the current limit',
+            'owed on credit right now',
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
               color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: used,
-              minHeight: 5,
-              backgroundColor: Colors.white.withValues(alpha: 0.22),
-              valueColor: AlwaysStoppedAnimation(
-                used > 0.9 ? AppColors.warning : Colors.white,
+          // Only when there is a standing limit to be a fraction of. Drawing
+          // an empty bar against a limit of zero suggested plenty of room.
+          if (hasStandingLimit) ...[
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: used,
+                minHeight: 5,
+                backgroundColor: Colors.white.withValues(alpha: 0.22),
+                valueColor: AlwaysStoppedAnimation(
+                  used > 0.9 ? AppColors.warning : Colors.white,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          _line('Current limit', position.creditLimit),
-          _line('Owed now', position.currentBalance),
-          if (position.hasOneTimeCredit) ...[
+            const SizedBox(height: 12),
+            _line('Standing limit', position.creditLimit),
+            _line('Left on it', position.remainingCredit),
+          ],
+          if (holdsAllowance) ...[
             const SizedBox(height: 10),
             _notice(
               icon: Icons.info_outline,
               colour: Colors.white,
-              text: 'Has an unused one-time allowance of '
-                  '${_money.format(position.oneTimeRemaining)} TSh',
+              text: 'Already holding an unspent one-time allowance of '
+                  '${_money.format(position.oneTimeLimit)} TSh. The next '
+                  'credit sale will use it up.',
               onGradient: true,
             ),
           ],
@@ -666,6 +684,7 @@ class _CustomerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = isDark ? AppColors.darkTextLight : AppColors.textLight;
     final allowed = customer.creditAllowed;
+    final holds = customer.holdsAllowance;
 
     return Material(
       color: isDark ? AppColors.darkCard : Colors.white,
@@ -727,43 +746,19 @@ class _CustomerRow extends StatelessWidget {
                           customer.phoneNumber ?? '-',
                           style: TextStyle(fontSize: 11.5, color: muted),
                         ),
+                        // Two facts that bear on a one-time request. The
+                        // customer's STANDING limit does not: this module
+                        // never raises it, and it is zero for nine customers
+                        // in ten, so a row built around it said nothing.
                         if (!allowed) ...[
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'NO CREDIT',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.4,
-                                color: AppColors.error,
-                              ),
-                            ),
-                          ),
-                        ] else if (customer.hasOneTimeCredit) ...[
+                          _badge('CANNOT BUY ON CREDIT', AppColors.error),
+                        ],
+                        if (holds) ...[
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'HAS ALLOWANCE',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.4,
-                                color: AppColors.warning,
-                              ),
-                            ),
+                          _badge(
+                            'HOLDS ${money.format(customer.oneTimeCreditLimit)}',
+                            AppColors.warning,
                           ),
                         ],
                       ],
@@ -772,18 +767,21 @@ class _CustomerRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
+              // What they owe now, not what their standing limit is: it is
+              // the number the approver weighs, and the only one of the two
+              // that is non-zero on most rows.
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    money.format(customer.creditLimit),
+                    money.format(customer.currentBalance),
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: isDark ? AppColors.darkText : AppColors.text,
                     ),
                   ),
-                  Text('limit', style: TextStyle(fontSize: 10, color: muted)),
+                  Text('owed', style: TextStyle(fontSize: 10, color: muted)),
                 ],
               ),
               Icon(Icons.chevron_right,
@@ -791,6 +789,25 @@ class _CustomerRow extends StatelessWidget {
                   color: isDark ? AppColors.darkTextLight : Colors.grey.shade400),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _badge(String text, Color colour) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: colour.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.4,
+          color: colour,
         ),
       ),
     );

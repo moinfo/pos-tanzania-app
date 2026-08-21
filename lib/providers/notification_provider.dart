@@ -314,6 +314,38 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     return true;
   }
 
+  /// Announce a notification that arrived by push rather than by polling.
+  ///
+  /// Push and polling are two deliveries of ONE event, and both will usually
+  /// fire: FCM wakes the app, and the next 90-second poll finds the same row.
+  /// Routing push through this method instead of straight to the UI is what
+  /// stops the user seeing it twice — [_announced] is keyed on the server's
+  /// notification id, which the push payload carries, so whichever channel
+  /// arrives first wins and the second is dropped on the floor here.
+  ///
+  /// Returns true if this was genuinely new.
+  bool notifyArrival(AppNotification notification) {
+    if (notification.id.isEmpty) return false;
+    if (_announced.contains(notification.id)) return false;
+
+    _remember(notification.id);
+    if (!_arrivals.isClosed) _arrivals.add(notification);
+
+    if (!_notifications.any((n) => n.id == notification.id)) {
+      _notifications = [notification, ..._notifications];
+    }
+
+    // A push means at least one unread row exists that the badge does not know
+    // about yet. Nudge it now rather than leaving the count stale until the
+    // next poll — but do not advance _cursor: this single payload is not proof
+    // that everything older has been seen, and moving the cursor past an
+    // unfetched row would lose it permanently.
+    _unreadCount++;
+    _safeNotify();
+
+    return true;
+  }
+
   /// Keep the announced-id set from growing without bound on a long shift.
   void _remember(String id) {
     if (_announced.length >= 200) {

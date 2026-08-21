@@ -44,6 +44,7 @@ class SalesHistoryScreen extends StatefulWidget {
 class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   final ApiService _apiService = ApiService();
   final NumberFormat _currencyFormat = NumberFormat('#,##0', 'en_US');
+  final DateFormat _cardDateFormat = DateFormat('MMM dd, hh:mm a');
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy hh:mm a');
   final TextEditingController _searchController = TextEditingController();
 
@@ -634,21 +635,89 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                 ),
                               ),
                             ),
-                            title: Row(
+                            title: Text(
+                              sale.customerName ?? 'Walk-in',
+                              // Without a cap a long name wraps inside the
+                              // narrow space left by `trailing` -- measured
+                              // at 336px of height for a 76px-wide row.
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkText : AppColors.text,
+                              ),
+                            ),
+                            // The amount lives here, not in `trailing`.
+                            //
+                            // ListTile lays `trailing` out with constraints
+                            // loosened on width, so it takes its natural size
+                            // and the title gets whatever is left -- meaning the
+                            // digit count of the total decided how much of the
+                            // customer's name you could read. Moving it down
+                            // gives the name the full title width and costs
+                            // nothing: the amount is just as legible here.
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    sale.customerName ?? 'Walk-in',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? AppColors.darkText : AppColors.text,
+                                // The amount gets its own line with the status.
+                                // Sharing a line with the date left the date
+                                // ~68px against the ~110px it needs, so one of
+                                // the two was always ellipsised.
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${_currencyFormat.format(sale.total)} TSh',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: AppColors.primary,
+                                      ),
                                     ),
+                                    if (sale.totalDiscount > 0) ...[
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          'Disc -${_currencyFormat.format(sale.totalDiscount)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.success,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    const Spacer(),
+                                    _getSaleStatusBadge(sale.saleStatus),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  // Short form: the year is already stated by
+                                  // the date filter above the list.
+                                  [
+                                    _cardDateFormat
+                                        .format(DateTime.parse(sale.saleTime)),
+                                    if (sale.paymentType != null) sale.paymentType!,
+                                  ].join('  ·  '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? AppColors.darkTextLight
+                                        : Colors.grey[600],
                                   ),
                                 ),
+                                // The badge sits here, not beside the name: it
+                                // wants ~80px of a title that would then have
+                                // nothing left for the customer.
                                 if (hasOfferItems)
                                   Container(
-                                    margin: const EdgeInsets.only(left: 8),
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    margin: const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: AppColors.success,
                                       borderRadius: BorderRadius.circular(12),
@@ -656,11 +725,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                     child: const Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(
-                                          Icons.card_giftcard,
-                                          size: 14,
-                                          color: Colors.white,
-                                        ),
+                                        Icon(Icons.card_giftcard,
+                                            size: 14, color: Colors.white),
                                         SizedBox(width: 4),
                                         Text(
                                           'OFFER',
@@ -675,76 +741,18 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                   ),
                               ],
                             ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _dateFormat.format(DateTime.parse(sale.saleTime)),
-                                  style: TextStyle(
-                                    color: isDark ? AppColors.darkTextLight : Colors.grey[600],
-                                  ),
-                                ),
-                                if (sale.paymentType != null)
-                                  Text(
-                                    sale.paymentType!,
-                                    style: TextStyle(
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // ListTile caps the trailing at 56px; three
-                                // stacked lines exceed that on discounted
-                                // sales, so scale down instead of overflowing.
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerRight,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        '${_currencyFormat.format(sale.total)} TSh',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                      // A discounted sale says so at a glance --
-                                      // the total alone hides that anything was
-                                      // taken off.
-                                      if (sale.totalDiscount > 0)
-                                        Text(
-                                          'Disc -${_currencyFormat.format(sale.totalDiscount)}',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.success,
-                                          ),
-                                        ),
-                                      _getSaleStatusBadge(sale.saleStatus),
-                                    ],
-                                  ),
-                                ),
-                                // A visible control: long-press alone is not
-                                // discoverable, and a seller should not have to
-                                // guess that deleting is possible.
-                                if (_canDelete)
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline,
-                                        size: 20),
+                            // Only the delete control now. Everything else
+                            // moved into the subtitle so the name gets the full
+                            // title width -- see the note above.
+                            trailing: _canDelete
+                                ? IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 20),
                                     color: AppColors.error,
                                     tooltip: 'Delete sale',
                                     visualDensity: VisualDensity.compact,
                                     onPressed: () => _confirmDelete(sale),
-                                  ),
-                              ],
-                            ),
+                                  )
+                                : null,
                             onTap: () => _viewSaleDetails(sale),
                             onLongPress: _canDelete
                                 ? () => _confirmDelete(sale)

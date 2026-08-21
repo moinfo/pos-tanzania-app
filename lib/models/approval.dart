@@ -483,9 +483,24 @@ class CreditScopedCustomer {
   final String customerName;
   final String? phoneNumber;
   final int sortOrder;
+
+  /// The standing, recurring limit. Carried but deliberately NOT led with:
+  /// this module never writes it, and it is 0 for 3,307 of the 3,677
+  /// customers here, so a picker built around it says "0" on nine rows in
+  /// ten. Use [currentBalance] and [oneTimeCreditLimit] instead.
   final double creditLimit;
+
+  /// What the customer owes right now — the figure the approver weighs.
+  final double currentBalance;
+
+  /// The one-time allowance amount on the customer record.
   final double oneTimeCreditLimit;
+
+  /// True while an allowance is granted and not yet spent. Both halves have
+  /// to hold: 57 customers carry the flag with a zero amount, which grants
+  /// nothing.
   final bool hasOneTimeCredit;
+
   final String isAllowedCredit;
 
   CreditScopedCustomer({
@@ -493,6 +508,7 @@ class CreditScopedCustomer {
     required this.customerName,
     required this.sortOrder,
     required this.creditLimit,
+    required this.currentBalance,
     required this.oneTimeCreditLimit,
     required this.hasOneTimeCredit,
     required this.isAllowedCredit,
@@ -501,6 +517,9 @@ class CreditScopedCustomer {
 
   bool get creditAllowed => isAllowedCredit.toUpperCase() == 'ACTIVE';
 
+  /// An allowance that is actually worth something.
+  bool get holdsAllowance => hasOneTimeCredit && oneTimeCreditLimit > 0;
+
   factory CreditScopedCustomer.fromJson(Map<String, dynamic> json) =>
       CreditScopedCustomer(
         customerId: _asInt(json['customer_id']),
@@ -508,6 +527,7 @@ class CreditScopedCustomer {
         phoneNumber: _asString(json['phone_number']),
         sortOrder: _asInt(json['sort_order']),
         creditLimit: _asDouble(json['credit_limit']),
+        currentBalance: _asDouble(json['current_balance']),
         oneTimeCreditLimit: _asDouble(json['one_time_credit_limit']),
         hasOneTimeCredit: _asInt(json['one_time_credit']) == 1,
         isAllowedCredit: json['is_allowed_credit']?.toString() ?? '',
@@ -541,4 +561,479 @@ class DiscountEligibleItem {
         costPrice: _asDouble(json['cost_price']),
         discountLimit: _asDouble(json['discount_limit']),
       );
+}
+
+/* -------------------------------------------------------------------------
+ * Customer credit limits: the module, not just the request form
+ * ---------------------------------------------------------------------- */
+
+/// What actually happened to a credit-limit record.
+///
+/// NOT the `status` column. That column cannot be trusted on this database:
+/// until 21 Aug 2026 two triggers stopped the approval from ever writing
+/// `active` back, and its enum has no `rejected` member at all — so 1,891 of
+/// 1,892 records read "pending" whatever became of them. The server derives
+/// this from the approval row instead and sends it as `effective_status`.
+enum CreditLimitOutcome {
+  /// Granted — the one-time allowance was written to the customer.
+  approved,
+
+  /// Sitting in someone's approval queue right now.
+  awaiting,
+
+  rejected,
+
+  /// Sent back to the requester for a change.
+  returned,
+
+  cancelled,
+
+  /// Raised before the approval workflow existed (nothing before December
+  /// 2025 has an approval record). Never reviewed by anyone.
+  unreviewed,
+}
+
+CreditLimitOutcome creditLimitOutcomeFrom(String? raw) {
+  switch (raw) {
+    case 'approved':
+      return CreditLimitOutcome.approved;
+    case 'awaiting':
+      return CreditLimitOutcome.awaiting;
+    case 'rejected':
+      return CreditLimitOutcome.rejected;
+    case 'returned':
+      return CreditLimitOutcome.returned;
+    case 'cancelled':
+      return CreditLimitOutcome.cancelled;
+    default:
+      return CreditLimitOutcome.unreviewed;
+  }
+}
+
+extension CreditLimitOutcomeLabel on CreditLimitOutcome {
+  String get label {
+    switch (this) {
+      case CreditLimitOutcome.approved:
+        return 'GRANTED';
+      case CreditLimitOutcome.awaiting:
+        return 'WAITING';
+      case CreditLimitOutcome.rejected:
+        return 'REJECTED';
+      case CreditLimitOutcome.returned:
+        return 'RETURNED';
+      case CreditLimitOutcome.cancelled:
+        return 'CANCELLED';
+      case CreditLimitOutcome.unreviewed:
+        return 'NEVER REVIEWED';
+    }
+  }
+
+  /// The filter value the server expects, and the one the chips send back.
+  String get wire {
+    switch (this) {
+      case CreditLimitOutcome.approved:
+        return 'approved';
+      case CreditLimitOutcome.awaiting:
+        return 'awaiting';
+      case CreditLimitOutcome.rejected:
+        return 'rejected';
+      case CreditLimitOutcome.returned:
+        return 'returned';
+      case CreditLimitOutcome.cancelled:
+        return 'cancelled';
+      case CreditLimitOutcome.unreviewed:
+        return 'unreviewed';
+    }
+  }
+}
+
+/// One credit-limit record, as it appears in the list and in a customer's
+/// timeline.
+class CreditLimitRow {
+  final int creditLimitId;
+  final String documentNumber;
+  final int customerId;
+  final String? customerName;
+  final String? phoneNumber;
+  final double creditAmount;
+  final double? previousAmount;
+  final double currentBalance;
+  final String? effectiveDate;
+  final String? expiryDate;
+  final String? reason;
+  final String? notes;
+  final String? createdAt;
+  final String? approvedAt;
+  final String? createdByName;
+  final String? approvedByName;
+
+  /// Who actually took the decision, read from the approval trail. The
+  /// record's own `approved_by` is NULL on every historical row — the step
+  /// that would have written it is the one the triggers broke.
+  final String? decidedByName;
+  final String? decidedAt;
+
+  final CreditLimitOutcome outcome;
+
+  /// True when the stored `status` column contradicts the outcome above.
+  /// 450 records in this database do; the screen says so rather than showing
+  /// a finished request as though it were still pending.
+  final bool statusIsStale;
+
+  final String storedStatus;
+  final bool isCurrent;
+  final int? approvalId;
+
+  CreditLimitRow({
+    required this.creditLimitId,
+    required this.documentNumber,
+    required this.customerId,
+    required this.creditAmount,
+    required this.currentBalance,
+    required this.outcome,
+    required this.statusIsStale,
+    required this.storedStatus,
+    required this.isCurrent,
+    this.customerName,
+    this.phoneNumber,
+    this.previousAmount,
+    this.effectiveDate,
+    this.expiryDate,
+    this.reason,
+    this.notes,
+    this.createdAt,
+    this.approvedAt,
+    this.createdByName,
+    this.approvedByName,
+    this.decidedByName,
+    this.decidedAt,
+    this.approvalId,
+  });
+
+  factory CreditLimitRow.fromJson(Map<String, dynamic> json) => CreditLimitRow(
+        creditLimitId: _asInt(json['credit_limit_id']),
+        documentNumber: json['document_number']?.toString() ?? '',
+        customerId: _asInt(json['customer_id']),
+        customerName: _asString(json['customer_name']),
+        phoneNumber: _asString(json['phone_number']),
+        creditAmount: _asDouble(json['credit_amount']),
+        previousAmount: json['previous_amount'] == null
+            ? null
+            : _asDouble(json['previous_amount']),
+        currentBalance: _asDouble(json['current_balance']),
+        effectiveDate: _asString(json['effective_date']),
+        expiryDate: _asString(json['expiry_date']),
+        reason: _asString(json['reason']),
+        notes: _asString(json['notes']),
+        createdAt: _asString(json['created_at']),
+        approvedAt: _asString(json['approved_at']),
+        createdByName: _asString(json['created_by_name']),
+        approvedByName: _asString(json['approved_by_name']),
+        decidedByName: _asString(json['decided_by_name']),
+        decidedAt: _asString(json['decided_at']),
+        outcome: creditLimitOutcomeFrom(json['effective_status']?.toString()),
+        statusIsStale: json['status_is_stale'] == true,
+        storedStatus: json['stored_status']?.toString() ?? '',
+        isCurrent: _asInt(json['is_current']) == 1,
+        approvalId: _asIntOrNull(json['approval_id']),
+      );
+}
+
+/// The four figures above the list, plus the two that explain them.
+class CreditLimitStatistics {
+  final int total;
+  final int awaiting;
+  final int approved;
+  final int rejected;
+  final int returned;
+  final int cancelled;
+  final int unreviewed;
+  final double totalAmount;
+  final double approvedAmount;
+
+  /// How many records store `pending` while the approval trail says the
+  /// request was settled long ago.
+  final int staleStatusRows;
+
+  const CreditLimitStatistics({
+    this.total = 0,
+    this.awaiting = 0,
+    this.approved = 0,
+    this.rejected = 0,
+    this.returned = 0,
+    this.cancelled = 0,
+    this.unreviewed = 0,
+    this.totalAmount = 0,
+    this.approvedAmount = 0,
+    this.staleStatusRows = 0,
+  });
+
+  factory CreditLimitStatistics.fromJson(Map<String, dynamic> json) =>
+      CreditLimitStatistics(
+        total: _asInt(json['total']),
+        awaiting: _asInt(json['awaiting']),
+        approved: _asInt(json['approved']),
+        rejected: _asInt(json['rejected']),
+        returned: _asInt(json['returned']),
+        cancelled: _asInt(json['cancelled']),
+        unreviewed: _asInt(json['unreviewed']),
+        totalAmount: _asDouble(json['total_amount']),
+        approvedAmount: _asDouble(json['approved_amount']),
+        staleStatusRows: _asInt(json['stale_status_rows']),
+      );
+
+  int countFor(CreditLimitOutcome outcome) {
+    switch (outcome) {
+      case CreditLimitOutcome.approved:
+        return approved;
+      case CreditLimitOutcome.awaiting:
+        return awaiting;
+      case CreditLimitOutcome.rejected:
+        return rejected;
+      case CreditLimitOutcome.returned:
+        return returned;
+      case CreditLimitOutcome.cancelled:
+        return cancelled;
+      case CreditLimitOutcome.unreviewed:
+        return unreviewed;
+    }
+  }
+}
+
+/// One page of the list, with the filters the server actually applied.
+///
+/// The dates come back from the server rather than being assumed, because
+/// without `customer_credit_limits_filter_date` the range is forced to today
+/// however the request was made — the screen has to show the range it got,
+/// not the one it asked for.
+class CreditLimitPage {
+  final List<CreditLimitRow> rows;
+  final int total;
+  final int limit;
+  final int offset;
+  final String? dateFrom;
+  final String? dateTo;
+  final bool canFilterDate;
+  final String status;
+  final String search;
+
+  /// The stock locations this data is filtered to — the web shows the same
+  /// list in a banner above the table.
+  final List<String> locations;
+
+  CreditLimitPage({
+    required this.rows,
+    required this.total,
+    required this.limit,
+    required this.offset,
+    required this.canFilterDate,
+    required this.locations,
+    this.dateFrom,
+    this.dateTo,
+    this.status = '',
+    this.search = '',
+  });
+
+  factory CreditLimitPage.fromJson(Map<String, dynamic> json) {
+    final list = json['requests'];
+    return CreditLimitPage(
+      rows: list is List
+          ? list
+              .whereType<Map<String, dynamic>>()
+              .map(CreditLimitRow.fromJson)
+              .toList()
+          : <CreditLimitRow>[],
+      total: _asInt(json['total']),
+      limit: _asInt(json['limit'], 50),
+      offset: _asInt(json['offset']),
+      dateFrom: _asString(json['date_from']),
+      dateTo: _asString(json['date_to']),
+      canFilterDate: json['can_filter_date'] == true,
+      status: json['status']?.toString() ?? '',
+      search: json['search']?.toString() ?? '',
+      locations: json['locations'] is List
+          ? (json['locations'] as List).map((e) => e.toString()).toList()
+          : const <String>[],
+    );
+  }
+}
+
+/// The customer a history screen is about.
+class CreditHistoryCustomer {
+  final int customerId;
+  final String customerName;
+  final String? phoneNumber;
+  final String? supervisorName;
+  final String dormant;
+  final String isAllowedCredit;
+  final int sortOrder;
+
+  /// Carried for completeness only. This module never writes it, and it is 0
+  /// for 3,307 of the 3,677 customers on this system.
+  final double creditLimit;
+
+  final double currentBalance;
+
+  /// The figures this module actually moves.
+  final bool hasOneTimeCredit;
+  final double oneTimeLimit;
+
+  CreditHistoryCustomer({
+    required this.customerId,
+    required this.customerName,
+    required this.dormant,
+    required this.isAllowedCredit,
+    required this.sortOrder,
+    required this.creditLimit,
+    required this.currentBalance,
+    required this.hasOneTimeCredit,
+    required this.oneTimeLimit,
+    this.phoneNumber,
+    this.supervisorName,
+  });
+
+  bool get creditAllowed => isAllowedCredit.toUpperCase() == 'ACTIVE';
+
+  factory CreditHistoryCustomer.fromJson(Map<String, dynamic> json) =>
+      CreditHistoryCustomer(
+        customerId: _asInt(json['customer_id']),
+        customerName: (json['customer_name']?.toString() ?? '').trim(),
+        phoneNumber: _asString(json['phone_number']),
+        supervisorName: _asString(json['supervisor_name']),
+        dormant: json['dormant']?.toString() ?? '',
+        isAllowedCredit: json['is_allowed_credit']?.toString() ?? '',
+        sortOrder: _asInt(json['sort_order']),
+        creditLimit: _asDouble(json['credit_limit']),
+        currentBalance: _asDouble(json['current_balance']),
+        hasOneTimeCredit: json['has_one_time_credit'] == true,
+        oneTimeLimit: _asDouble(json['one_time_limit']),
+      );
+}
+
+/// The record currently marked as the customer's standing one, if any.
+class CurrentCreditLimit {
+  final int creditLimitId;
+  final String documentNumber;
+  final double creditAmount;
+  final String? effectiveDate;
+  final String? expiryDate;
+  final String status;
+  final String? approvedAt;
+
+  CurrentCreditLimit({
+    required this.creditLimitId,
+    required this.documentNumber,
+    required this.creditAmount,
+    required this.status,
+    this.effectiveDate,
+    this.expiryDate,
+    this.approvedAt,
+  });
+
+  factory CurrentCreditLimit.fromJson(Map<String, dynamic> json) =>
+      CurrentCreditLimit(
+        creditLimitId: _asInt(json['credit_limit_id']),
+        documentNumber: json['document_number']?.toString() ?? '',
+        creditAmount: _asDouble(json['credit_amount']),
+        effectiveDate: _asString(json['effective_date']),
+        expiryDate: _asString(json['expiry_date']),
+        status: json['status']?.toString() ?? '',
+        approvedAt: _asString(json['approved_at']),
+      );
+}
+
+/// Everything the module knows about one customer.
+class CustomerCreditHistory {
+  final CreditHistoryCustomer customer;
+  final CurrentCreditLimit? current;
+  final CreditLimitStatistics statistics;
+  final List<CreditLimitRow> history;
+
+  /// True when the customer has more records than the timeline carries.
+  final bool truncated;
+
+  CustomerCreditHistory({
+    required this.customer,
+    required this.statistics,
+    required this.history,
+    required this.truncated,
+    this.current,
+  });
+
+  factory CustomerCreditHistory.fromJson(Map<String, dynamic> json) {
+    final current = json['current'];
+    final list = json['history'];
+    return CustomerCreditHistory(
+      customer: CreditHistoryCustomer.fromJson(
+          (json['customer'] as Map?)?.cast<String, dynamic>() ?? const {}),
+      current: current is Map<String, dynamic>
+          ? CurrentCreditLimit.fromJson(current)
+          : null,
+      statistics: CreditLimitStatistics.fromJson(
+          (json['statistics'] as Map?)?.cast<String, dynamic>() ?? const {}),
+      history: list is List
+          ? list
+              .whereType<Map<String, dynamic>>()
+              .map(CreditLimitRow.fromJson)
+              .toList()
+          : <CreditLimitRow>[],
+      truncated: json['history_truncated'] == true,
+    );
+  }
+}
+
+/// A customer still holding a one-time allowance they have not spent.
+class UnusedAllowance {
+  final int customerId;
+  final String customerName;
+  final String? phoneNumber;
+  final double oneTimeLimit;
+  final int sortOrder;
+  final String? supervisorName;
+  final String? lastDocumentNumber;
+  final String? lastRequestedAt;
+
+  UnusedAllowance({
+    required this.customerId,
+    required this.customerName,
+    required this.oneTimeLimit,
+    required this.sortOrder,
+    this.phoneNumber,
+    this.supervisorName,
+    this.lastDocumentNumber,
+    this.lastRequestedAt,
+  });
+
+  factory UnusedAllowance.fromJson(Map<String, dynamic> json) =>
+      UnusedAllowance(
+        customerId: _asInt(json['customer_id']),
+        customerName: (json['customer_name']?.toString() ?? '').trim(),
+        phoneNumber: _asString(json['phone_number']),
+        oneTimeLimit: _asDouble(json['one_time_limit']),
+        sortOrder: _asInt(json['sort_order']),
+        supervisorName: _asString(json['supervisor_name']),
+        lastDocumentNumber: _asString(json['last_document_number']),
+        lastRequestedAt: _asString(json['last_requested_at']),
+      );
+}
+
+/// The unused-allowance list and what it adds up to.
+class UnusedAllowanceList {
+  final List<UnusedAllowance> customers;
+  final double totalAmount;
+
+  UnusedAllowanceList({required this.customers, required this.totalAmount});
+
+  factory UnusedAllowanceList.fromJson(Map<String, dynamic> json) {
+    final list = json['customers'];
+    return UnusedAllowanceList(
+      customers: list is List
+          ? list
+              .whereType<Map<String, dynamic>>()
+              .map(UnusedAllowance.fromJson)
+              .toList()
+          : <UnusedAllowance>[],
+      totalAmount: _asDouble(json['total_amount']),
+    );
+  }
 }

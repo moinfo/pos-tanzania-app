@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "826125409832",
+    "project_id": "leruma-pos",
+    "storage_bucket": "leruma-pos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:826125409832:android:b6088c23e3a14e318c5f1d",
+        "android_client_info": {
+          "package_name": "co.tz.leruma.pos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8RaGNL1TF1ATCmTEjblgveIlMNpJyn_0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

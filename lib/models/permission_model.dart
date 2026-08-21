@@ -169,6 +169,12 @@ class PermissionIds {
   static const String customerCreditLimitsView = 'customer_credit_limits_view';
   static const String customerCreditLimitsAdd = 'customer_credit_limits_add';
 
+  /// Lets the holder look at a date range other than today. Without it the
+  /// server pins every read of the module to today, whatever the app asks
+  /// for -- see Customer_credit_limits.php:52-61 on the web side.
+  static const String customerCreditLimitsFilterDate =
+      'customer_credit_limits_filter_date';
+
   static const String salesUnsuspended = 'sales_unsuspended';
   static const String salesUnsuspendPrint = 'sales_unsuspend_print';
   static const String salesPrintedLogs = 'sales_printed_logs';

@@ -7260,12 +7260,18 @@ class ApiService {
   /// it into the approval flow — or activates it outright if the amount falls
   /// under the bypass threshold, in which case requiresApproval comes back
   /// false and the discount is usable immediately.
+  /// Raise one discount request per item, all for the same customer, location,
+  /// reason and date.
+  ///
+  /// `items` is a list of `{item_id, quantity, discount_amount}`. The server
+  /// turns each into its own record, approved on its own, and answers with a
+  /// `results` list saying what happened to every one of them — a batch can
+  /// come back partly created, so the caller has to read it rather than assume
+  /// success covered everything.
   Future<ApiResponse<Map<String, dynamic>>> createOneTimeDiscountRequest({
     required int customerId,
-    required int itemId,
     required int stockLocationId,
-    required double quantity,
-    required double discountAmount,
+    required List<Map<String, dynamic>> items,
     required String reason,
     String? validDate,
     String? requestId,
@@ -7276,15 +7282,14 @@ class ApiService {
         headers: await _getHeaders(),
         body: jsonEncode({
           'customer_id': customerId,
-          'item_id': itemId,
           'stock_location_id': stockLocationId,
-          'quantity': quantity,
-          'discount_amount': discountAmount,
+          'items': items,
           'reason': reason,
           if (validDate != null) 'valid_date': validDate,
           // Retrying after a timeout must not raise a second request. The
           // server replays the original response for a request_id it has
-          // already seen.
+          // already seen — for the whole batch, which is why the id has to be
+          // minted against the whole item list.
           if (requestId != null) 'request_id': requestId,
         }),
       );
@@ -7425,6 +7430,99 @@ class ApiService {
     }
   }
 
+  // ---- customer credit limits: the module ----
+
+  /// The scoped list of credit-limit records.
+  ///
+  /// [dateFrom]/[dateTo] are requests, not instructions: without
+  /// `customer_credit_limits_filter_date` the server pins the range to today
+  /// whatever is sent. Read the range back off the returned page rather than
+  /// assuming the one that was asked for.
+  Future<ApiResponse<CreditLimitPage>> getCreditLimitRequests({
+    String? dateFrom,
+    String? dateTo,
+    String? status,
+    String? search,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/customer_credit_limits/requests')
+          .replace(queryParameters: {
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+        if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
+        if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
+        if (status != null && status.isNotEmpty) 'status': status,
+        if (search != null && search.isNotEmpty) 'search': search,
+      });
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<CreditLimitPage>(response, CreditLimitPage.fromJson);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// The figures above the list. Takes the same filters so the cards and the
+  /// rows underneath them cannot disagree.
+  Future<ApiResponse<CreditLimitStatistics>> getCreditLimitStatistics({
+    String? dateFrom,
+    String? dateTo,
+    String? status,
+    String? search,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/customer_credit_limits/statistics')
+          .replace(queryParameters: {
+        if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
+        if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
+        if (status != null && status.isNotEmpty) 'status': status,
+        if (search != null && search.isNotEmpty) 'search': search,
+      });
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<CreditLimitStatistics>(response, (data) {
+        final stats = data['statistics'];
+        return CreditLimitStatistics.fromJson(
+            stats is Map ? stats.cast<String, dynamic>() : const {});
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Every credit-limit record one customer has ever had, plus what they are
+  /// holding right now.
+  Future<ApiResponse<CustomerCreditHistory>> getCustomerCreditHistory(
+      int customerId) async {
+    try {
+      final response = await _http.get(
+        Uri.parse('$baseUrlSync/customer_credit_limits/history/$customerId'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<CustomerCreditHistory>(
+          response, CustomerCreditHistory.fromJson);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Customers holding a one-time allowance they have not spent yet.
+  Future<ApiResponse<UnusedAllowanceList>> getUnusedCreditAllowances({
+    String? search,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/customer_credit_limits/unused')
+          .replace(queryParameters: {
+        if (search != null && search.isNotEmpty) 'search': search,
+      });
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<UnusedAllowanceList>(
+          response, UnusedAllowanceList.fromJson);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ---- notifications ----
 
   /// Notifications for the signed-in user.
@@ -7506,6 +7604,52 @@ class ApiService {
         Uri.parse('$baseUrlSync/notifications/mark_all_read'),
         headers: await _getHeaders(),
         body: jsonEncode({}),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- push device tokens ----
+
+  /// Tie this handset's FCM token to the signed-in user.
+  ///
+  /// The server takes the person from the JWT, never from the body, and the
+  /// token is the primary key — so registering it again under a different
+  /// login replaces the row instead of adding one. That is what stops the
+  /// afternoon seller on a shared shop phone receiving the morning seller's
+  /// approvals.
+  Future<ApiResponse<Map<String, dynamic>>> registerDeviceToken({
+    required String token,
+    required String platform,
+    String? appVersion,
+  }) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/device_tokens/register'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'token': token,
+          'platform': platform,
+          if (appVersion != null) 'app_version': appVersion,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Release this handset's token on logout, so the next person to sign in
+  /// here does not inherit the last one's push notifications.
+  Future<ApiResponse<Map<String, dynamic>>> unregisterDeviceToken(
+      String token) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/device_tokens/unregister'),
+        headers: await _getHeaders(),
+        body: jsonEncode({'token': token}),
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
