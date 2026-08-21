@@ -11,6 +11,7 @@ import 'providers/location_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'providers/offline_provider.dart';
 import 'providers/landing_provider.dart';
+import 'providers/update_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/client_selector_screen.dart';
@@ -104,6 +105,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ReceivingProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LandingProvider()),
+        // Holds the answer to "is there a newer version?" for the session.
+        // Above MainNavigation rather than inside it so the drawer badge, the
+        // settings row and the update screen all read one answer instead of
+        // each running their own check.
+        ChangeNotifierProvider(create: (_) => UpdateProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) => MaterialApp(

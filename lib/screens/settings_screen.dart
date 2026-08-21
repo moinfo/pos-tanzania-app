@@ -5,12 +5,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
+import '../providers/update_provider.dart';
 import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
 import 'client_selector_screen.dart';
+import 'app_update_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -32,6 +34,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _initializeBiometric();
     _loadCurrentClient();
+    // Cheap and idempotent -- the provider returns immediately if the main
+    // navigation's check already loaded it. Without it, opening Settings
+    // inside the first few seconds of a session shows "Unknown".
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<UpdateProvider>().loadInstalledVersion();
+    });
   }
 
   Future<void> _loadCurrentClient() async {
@@ -436,6 +444,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
 
+          // App Update Section
+          //
+          // Sits in Settings as well as the drawer because this is the answer
+          // to "I said Later, where did it go?". The row is honest in both
+          // directions: when a newer build exists it says which one, and when
+          // there is not it says so rather than offering a button that leads
+          // nowhere.
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'APP UPDATE',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          GlassmorphicCard(
+            isDark: isDark,
+            child: Consumer<UpdateProvider>(
+              builder: (context, updates, _) {
+                final available = updates.updateAvailable;
+                return ListTile(
+                  leading: Icon(
+                    available ? Icons.system_update : Icons.verified_outlined,
+                    color: available ? AppColors.success : AppColors.primary,
+                    size: 28,
+                  ),
+                  title: Text(
+                    available ? 'Update Available' : 'App Version',
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkText : AppColors.text,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    available
+                        ? 'Installed ${updates.installedLabel} • '
+                            '${updates.latest?.versionName ?? ''} is in the store'
+                        : 'Installed ${updates.installedLabel}',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkTextLight
+                          : AppColors.textLight,
+                      fontSize: 13,
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.arrow_forward_ios,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    size: 16,
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AppUpdateScreen()),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+
           // Account Section
           const SizedBox(height: 24),
           Padding(
@@ -531,11 +607,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Center(
             child: Column(
               children: [
-                Text(
-                  'Version 1.0.0',
-                  style: TextStyle(
-                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                    fontSize: 12,
+                // Was hardcoded to 'Version 1.0.0' and had been since before
+                // build 36, so the one place a user could look to report which
+                // version they were on told everyone the same wrong thing.
+                Consumer<UpdateProvider>(
+                  builder: (context, updates, _) => Text(
+                    'Version ${updates.installedLabel}',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkTextLight
+                          : AppColors.textLight,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
