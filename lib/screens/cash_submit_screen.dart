@@ -8,6 +8,7 @@ import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
+import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -44,7 +45,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
     if (!mounted) return;
 
     final currentClient = ApiService.currentClient;
-    final clientId = currentClient?.id ?? 'sada';
+    final clientId = currentClient?.id ?? ClientsConfig.getDefaultClient().id;
 
     print('💼 Cash Submit Init - Client ID: $clientId');
 
@@ -69,7 +70,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
 
     // Get location only for Come & Save client
     final currentClient = ApiService.currentClient;
-    final clientId = currentClient?.id ?? 'sada';
+    final clientId = currentClient?.id ?? ClientsConfig.getDefaultClient().id;
 
     int? selectedLocationId;
     if (clientId == 'come_and_save') {

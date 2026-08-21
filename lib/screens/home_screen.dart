@@ -11,6 +11,7 @@ import '../providers/permission_provider.dart';
 import '../models/permission_model.dart';
 import '../models/transaction.dart';
 import '../services/api_service.dart';
+import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
@@ -144,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initializeDashboard() async {
     final currentClient = ApiService.currentClient;
     final hasCommissionDashboard = currentClient?.features.hasCommissionDashboard ?? false;
-    final clientId = currentClient?.id ?? 'sada';
+    final clientId = currentClient?.id ?? ClientsConfig.getDefaultClient().id;
 
     // Initialize location provider for Leruma and Come and Save
     if ((hasCommissionDashboard || clientId == 'come_and_save') && mounted) {
@@ -178,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final currentClient = ApiService.currentClient;
-      final clientId = currentClient?.id ?? 'sada';
+      final clientId = currentClient?.id ?? ClientsConfig.getDefaultClient().id;
 
       print('📊 Loading dashboard for client: $clientId');
 

@@ -4,6 +4,7 @@ import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
 import '../services/api_service.dart';
+import '../config/clients_config.dart';
 import '../models/permission_model.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
@@ -36,7 +37,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     if (!mounted) return;
 
     final currentClient = ApiService.currentClient;
-    final clientId = currentClient?.id ?? 'sada';
+    final clientId = currentClient?.id ?? ClientsConfig.getDefaultClient().id;
 
     // Initialize location provider for Come & Save and Leruma
     if (clientId == 'come_and_save' || clientId == 'leruma') {
@@ -57,7 +58,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
 
     // Get location for Come & Save and Leruma clients
     final currentClient = ApiService.currentClient;
-    final clientId = currentClient?.id ?? 'sada';
+    final clientId = currentClient?.id ?? ClientsConfig.getDefaultClient().id;
 
     int? selectedLocationId;
     if ((clientId == 'come_and_save' || clientId == 'leruma') && mounted) {
