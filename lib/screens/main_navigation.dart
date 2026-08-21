@@ -22,9 +22,6 @@ import 'sales_screen.dart';
 import 'sales_history_screen.dart';
 import 'suspended_sales_screen.dart';
 import 'payment_summary_screen.dart';
-import 'dart:async';
-
-import '../models/app_notification.dart';
 import 'approvals_screen.dart';
 import 'credit_limits_screen.dart';
 import 'notifications_screen.dart';
@@ -49,6 +46,9 @@ import 'tra/tra_main_screen.dart';
 import 'shops_screen.dart';
 import 'discount_requests_screen.dart';
 import 'borrowed_money/borrowed_money_list_screen.dart';
+import 'app_update_screen.dart';
+import '../providers/update_provider.dart';
+import '../widgets/update_prompt.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -72,8 +72,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   int _totalNavItems = 0; // Will be set on first build to trigger sync
   bool _initialPositionSet = false; // Track if initial position has been set
 
-  StreamSubscription<AppNotification>? _notificationSub;
-
   @override
   void initState() {
     super.initState();
@@ -86,62 +84,28 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
     );
     _checkAuthStatus();
-    _listenForNotifications();
+    _checkForUpdate();
   }
 
-  /// Raise an in-app banner the moment a notification arrives.
+  /// Ask the server once per sign-in whether a newer build is published, and
+  /// offer it if so.
   ///
-  /// This is what stands in for a push. The provider polls a count endpoint;
-  /// when the unread total rises it pulls only what is new (via the stored
-  /// cursor) and pushes it onto this stream. A seller who is still in the shop
-  /// sees "your discount was approved" without opening anything.
-  void _listenForNotifications() {
-    final provider = context.read<NotificationProvider>();
-    _notificationSub = provider.arrivals.listen((notification) {
-      if (!mounted) return;
+  /// The delay is not cosmetic. This screen mounts the instant the user lands
+  /// after signing in, while the first tab is still fetching; raising a sheet
+  /// into that is how an update prompt ends up on top of a half-drawn screen,
+  /// and how it gets dismissed by a tap that was aimed at something else.
+  /// Three seconds is enough for the landing tab to settle.
+  Future<void> _checkForUpdate() async {
+    if (!mounted) return;
+    await context.read<UpdateProvider>().check();
 
-      final approvalId = notification.approvalId;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                notification.title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(notification.body, style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-          backgroundColor: notification.notificationType == 'error'
-              ? AppColors.error
-              : notification.notificationType == 'success'
-                  ? AppColors.success
-                  : AppColors.info,
-          duration: const Duration(seconds: 6),
-          action: approvalId == null
-              ? null
-              : SnackBarAction(
-                  label: 'OPEN',
-                  textColor: Colors.white,
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          ApprovalsScreen(initialApprovalId: approvalId),
-                    ),
-                  ),
-                ),
-        ),
-      );
-    });
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+    await maybeShowUpdatePrompt(context);
   }
 
   @override
   void dispose() {
-    _notificationSub?.cancel();
     _rotationController.dispose();
     super.dispose();
   }
@@ -1321,6 +1285,45 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ),
             const Divider(),
+            // Sits beside Settings, not buried in it, because this is also
+            // where a deferred update has to remain findable. The dot is the
+            // only nagging that survives "Later" -- it is passive, it blocks
+            // nothing, and it is how the user knows the update did not vanish.
+            Consumer<UpdateProvider>(
+              builder: (context, updates, _) => ListTile(
+                leading: Icon(Icons.system_update,
+                    color: AppColors.brandPrimary),
+                title: const Text('App Update'),
+                subtitle: Text(
+                  updates.updateAvailable
+                      ? 'Version ${updates.latest?.versionName ?? ''} available'
+                      : 'Version ${updates.installedLabel}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: updates.updateAvailable
+                        ? AppColors.success
+                        : AppColors.muted(context),
+                  ),
+                ),
+                trailing: updates.updateAvailable
+                    ? Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                    : null,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AppUpdateScreen()),
+                  );
+                },
+              ),
+            ),
             ListTile(
               leading: Icon(Icons.settings, color: AppColors.brandPrimary),
               title: const Text('Settings'),
