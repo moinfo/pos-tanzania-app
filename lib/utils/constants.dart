@@ -57,6 +57,60 @@ class AppColors {
   static const Color text = lightText;
   static const Color textLight = lightTextLight;
   static const Color divider = lightDivider;
+
+  // ---------------------------------------------------------------------
+  // Theme-resolving helpers.
+  //
+  // The aliases above (text, textLight, divider, background, white) are the
+  // LIGHT values. Using them directly is what produced dark-on-dark text --
+  // they read correctly on a white page and vanish on a black one. These
+  // resolve against the theme instead, so a widget stops having to thread an
+  // `isDark` bool down just to pick a colour.
+  //
+  //     Text(name, style: TextStyle(color: AppColors.ink(context)))
+  //
+  // Reach for these in new code; the isDark ternaries already in the screens
+  // are equivalent and do not need rewriting wholesale.
+  // ---------------------------------------------------------------------
+
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  /// Page background.
+  static Color ground(BuildContext context) =>
+      isDark(context) ? darkBackground : lightBackground;
+
+  /// A card or row sitting on [ground].
+  static Color surface(BuildContext context) =>
+      isDark(context) ? darkCard : lightCard;
+
+  /// A sheet, dialog or menu -- one step above [surface].
+  static Color raised(BuildContext context) =>
+      isDark(context) ? darkSurface : Colors.white;
+
+  /// A recessed strip: search bars, sticky context headers, inset blocks.
+  static Color sunken(BuildContext context) =>
+      isDark(context) ? darkCard : const Color(0xFFF1F5F8);
+
+  /// Primary text.
+  static Color ink(BuildContext context) =>
+      isDark(context) ? darkText : lightText;
+
+  /// Secondary text: labels, captions, timestamps.
+  static Color muted(BuildContext context) =>
+      isDark(context) ? darkTextLight : lightTextLight;
+
+  /// Hairline borders and rules.
+  static Color hairline(BuildContext context) =>
+      isDark(context) ? const Color(0x1AFFFFFF) : const Color(0xFFE2E8EE);
+
+  /// The track behind a progress bar or meter.
+  static Color track(BuildContext context) =>
+      isDark(context) ? const Color(0x1FFFFFFF) : const Color(0xFFE9EDF1);
+
+  /// A disabled or absent value -- greyed, but still legible in both modes.
+  static Color faded(BuildContext context) =>
+      isDark(context) ? const Color(0xFF6B7A88) : const Color(0xFFA8B4BF);
 }
 
 class AppConstants {

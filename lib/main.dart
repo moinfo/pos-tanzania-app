@@ -18,6 +18,7 @@ import 'screens/landing/landing_screen.dart';
 import 'services/api_service.dart';
 import 'services/push_service.dart';
 import 'config/clients_config.dart';
+import 'utils/app_theme.dart';
 import 'utils/constants.dart';
 
 /// Lets a tapped push notification navigate without a widget's BuildContext.
@@ -105,123 +106,8 @@ class MyApp extends StatelessWidget {
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
-          theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            primary: AppColors.primary,
-            secondary: AppColors.secondary,
-            error: AppColors.error,
-            background: AppColors.background,
-          ),
-          scaffoldBackgroundColor: AppColors.background,
-          appBarTheme: AppBarTheme(
-            elevation: 0,
-            centerTitle: true,
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 2,
-            ),
-          ),
-          floatingActionButtonTheme: FloatingActionButtonThemeData(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 4,
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-          textTheme: const TextTheme(
-            bodyLarge: TextStyle(color: AppColors.lightText),
-            bodyMedium: TextStyle(color: AppColors.lightText),
-            titleLarge: TextStyle(color: AppColors.lightText, fontWeight: FontWeight.bold),
-          ),
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.dark(
-            primary: AppColors.primary,
-            secondary: AppColors.secondary,
-            error: AppColors.error,
-            background: AppColors.darkBackground,
-            surface: AppColors.darkSurface,
-          ),
-          scaffoldBackgroundColor: AppColors.darkBackground,
-          appBarTheme: AppBarTheme(
-            elevation: 0,
-            centerTitle: true,
-            backgroundColor: AppColors.darkSurface,
-            foregroundColor: Colors.white,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 2,
-            color: AppColors.darkCard,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 2,
-            ),
-          ),
-          floatingActionButtonTheme: FloatingActionButtonThemeData(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 4,
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-          textTheme: const TextTheme(
-            bodyLarge: TextStyle(color: AppColors.darkText),
-            bodyMedium: TextStyle(color: AppColors.darkText),
-            titleLarge: TextStyle(color: AppColors.darkText, fontWeight: FontWeight.bold),
-          ),
-        ),
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
         home: PushBootstrap(firebaseReady: firebaseReady, child: const SplashScreen()),
         ),
       ),
