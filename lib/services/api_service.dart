@@ -73,7 +73,14 @@ class ApiService {
   static String? _token;
 
   // Make currentClient public so it can be accessed from main_navigation
-  static ClientConfig? currentClient;
+  // Initialised eagerly from the compile-time flavor rather than left null.
+  // getDefaultClient() reads String.fromEnvironment('FLAVOR'), a const, so
+  // there is nothing to await; Dart evaluates this lazily on first access, so
+  // it costs nothing at startup but guarantees the first reader — whoever it
+  // is — sees the right client. Left null, the token check below ran before
+  // the first getCurrentClient() call, fell through to a hardcoded default,
+  // and wiped a valid token as a "client mismatch" on cold start.
+  static ClientConfig? currentClient = ClientsConfig.getDefaultClient();
 
   // In-memory cache for dashboard data (with 60 second TTL)
   static Map<String, dynamic>? _dashboardCache;
@@ -183,7 +190,8 @@ class ApiService {
 
     // Validate token belongs to current client
     if (storedToken != null && storedClientId != null) {
-      final currentClientId = currentClient?.id ?? 'sada';
+      final currentClientId =
+          currentClient?.id ?? ClientsConfig.getDefaultClient().id;
 
       if (storedClientId != currentClientId) {
         print('⚠️ Token client mismatch: stored=$storedClientId, current=$currentClientId');
@@ -200,7 +208,10 @@ class ApiService {
 
   // Save token with client ID
   Future<void> saveToken(String token) async {
-    final clientId = currentClient?.id ?? 'sada';
+    // Same landmine as the read path: a literal 'sada' written into a leruma
+    // build stamps the token with the wrong client and mismatches it on the
+    // next start. Fall back to the compile-time flavor, not a fixed string.
+    final clientId = currentClient?.id ?? ClientsConfig.getDefaultClient().id;
 
     _token = token;
     await _storage.write(key: 'auth_token', value: token);
@@ -7095,8 +7106,16 @@ class ApiService {
 
   /// Approvals waiting on me. Already narrowed server-side to requests whose
   /// customer sits under a supervisor running one of my locations.
-  Future<ApiResponse<List<Approval>>> getPendingApprovals({
+  ///
+  /// [dateFrom]/[dateTo] are requests, not instructions. The range defaults to
+  /// today and widening it needs the date grant for the kind of request in
+  /// question; without it the server pins the range to today whatever is sent.
+  /// Read the range back off the returned page rather than assuming the one
+  /// that was asked for.
+  Future<ApiResponse<ApprovalPage>> getPendingApprovals({
     String? modelType,
+    String? dateFrom,
+    String? dateTo,
     int limit = 200,
     int offset = 0,
   }) async {
@@ -7106,17 +7125,15 @@ class ApiService {
           'limit': limit.toString(),
           'offset': offset.toString(),
           if (modelType != null) 'model_type': modelType,
+          if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
+          if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
         },
       );
       final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<List<Approval>>(response, (data) {
-        final list = data['approvals'];
-        if (list is! List) return <Approval>[];
-        return list
-            .whereType<Map<String, dynamic>>()
-            .map(Approval.fromJson)
-            .toList();
-      });
+      return _handleResponse<ApprovalPage>(
+        response,
+        (data) => ApprovalPage.fromJson(data, 'approvals'),
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -7184,9 +7201,45 @@ class ApiService {
     }
   }
 
+  /// Decide a batch of requests in one call.
+  ///
+  /// Returns per-item outcomes, not a single verdict. Some of a batch failing
+  /// is the ordinary case rather than the exotic one: between this list being
+  /// drawn and the batch being sent, another approver can easily have dealt
+  /// with one of them. The server skips those, names the reason against the
+  /// id, and still answers 200 -- so callers must read `results` rather than
+  /// treating success as "all of them went through".
+  Future<ApiResponse<Map<String, dynamic>>> bulkActOnApprovals({
+    required List<int> approvalIds,
+    required bool approve,
+    String comment = '',
+    String? requestId,
+  }) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/approvals/${approve ? 'bulk_approve' : 'bulk_reject'}'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'approval_ids': approvalIds,
+          'comment': comment,
+          if (requestId != null) 'request_id': requestId,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Everything I have submitted, both kinds, newest first.
-  Future<ApiResponse<List<Approval>>> getMySubmittedRequests({
+  ///
+  /// Date-ranged on the same terms as [getPendingApprovals]: these rows are
+  /// mine either way, but the range still defaults to today and widening it is
+  /// still the server's decision, not this method's.
+  Future<ApiResponse<ApprovalPage>> getMySubmittedRequests({
     String? modelType,
+    String? dateFrom,
+    String? dateTo,
     int limit = 100,
     int offset = 0,
   }) async {
@@ -7196,17 +7249,15 @@ class ApiService {
           'limit': limit.toString(),
           'offset': offset.toString(),
           if (modelType != null) 'model_type': modelType,
+          if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
+          if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
         },
       );
       final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<List<Approval>>(response, (data) {
-        final list = data['requests'];
-        if (list is! List) return <Approval>[];
-        return list
-            .whereType<Map<String, dynamic>>()
-            .map(Approval.fromJson)
-            .toList();
-      });
+      return _handleResponse<ApprovalPage>(
+        response,
+        (data) => ApprovalPage.fromJson(data, 'requests'),
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
