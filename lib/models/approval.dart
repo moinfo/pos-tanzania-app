@@ -1037,3 +1037,116 @@ class UnusedAllowanceList {
     );
   }
 }
+
+/// The date window one approvable model was granted on an approvals list.
+///
+/// The two lists mix discounts and credit limits, and the two are governed by
+/// different web permissions (`one_time_discounts_date` and
+/// `customer_credit_limits_filter_date`). Someone holding one and not the
+/// other widens one half of the list and leaves the other on today, so the
+/// server reports the outcome per model rather than pretending it is uniform.
+class ApprovalDateScope {
+  final String modelType;
+
+  /// What to call this model when explaining itself, e.g. "Discount requests".
+  final String label;
+
+  final String? dateFrom;
+  final String? dateTo;
+  final bool canFilterDate;
+
+  const ApprovalDateScope({
+    required this.modelType,
+    required this.label,
+    required this.canFilterDate,
+    this.dateFrom,
+    this.dateTo,
+  });
+
+  factory ApprovalDateScope.fromJson(Map<String, dynamic> json) {
+    return ApprovalDateScope(
+      modelType: json['model_type']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      dateFrom: _asString(json['date_from']),
+      dateTo: _asString(json['date_to']),
+      canFilterDate: json['can_filter_date'] == true,
+    );
+  }
+}
+
+/// One page of an approvals list, with the range the server actually applied.
+///
+/// [dateFrom]/[dateTo] are read off the response, never assumed from what was
+/// asked for: without the governing grant the server pins the range to today
+/// however the request was made.
+///
+/// [totalAllDates] is the same list with the dates taken off. It is what lets
+/// a screen say "nothing today, 26 waiting on other days" instead of showing
+/// an empty list with no explanation.
+class ApprovalPage {
+  final List<Approval> approvals;
+  final int total;
+  final int totalAllDates;
+  final int limit;
+  final int offset;
+  final String? dateFrom;
+  final String? dateTo;
+  final bool canFilterDate;
+  final bool dateScopeUniform;
+  final List<ApprovalDateScope> dateScope;
+
+  const ApprovalPage({
+    this.approvals = const [],
+    this.total = 0,
+    this.totalAllDates = 0,
+    this.limit = 0,
+    this.offset = 0,
+    this.dateFrom,
+    this.dateTo,
+    this.canFilterDate = false,
+    this.dateScopeUniform = true,
+    this.dateScope = const [],
+  });
+
+  /// How many rows the date filter is holding back right now.
+  int get hiddenByDate =>
+      totalAllDates > total ? totalAllDates - total : 0;
+
+  /// The kinds of request still stuck on today because this employee does not
+  /// hold that kind's date grant, while the rest of the range was widened.
+  List<ApprovalDateScope> get pinnedToToday => dateScope
+      .where((s) => !s.canFilterDate)
+      .toList(growable: false);
+
+  /// [listKey] differs between the two endpoints: the queue returns
+  /// "approvals", my own requests return "requests".
+  factory ApprovalPage.fromJson(Map<String, dynamic> json, String listKey) {
+    final list = json[listKey];
+    final scope = json['date_scope'];
+
+    return ApprovalPage(
+      approvals: list is List
+          ? list
+              .whereType<Map<String, dynamic>>()
+              .map(Approval.fromJson)
+              .toList()
+          : const <Approval>[],
+      total: _asInt(json['total']),
+      totalAllDates: _asInt(json['total_all_dates']),
+      limit: _asInt(json['limit']),
+      offset: _asInt(json['offset']),
+      dateFrom: _asString(json['date_from']),
+      dateTo: _asString(json['date_to']),
+      canFilterDate: json['can_filter_date'] == true,
+      // Absent means uniform: an older server that does not send the field is
+      // not filtering per model at all.
+      dateScopeUniform: json['date_scope_uniform'] != false,
+      dateScope: scope is List
+          ? scope
+              .whereType<Map<String, dynamic>>()
+              .map(ApprovalDateScope.fromJson)
+              .toList()
+          : const <ApprovalDateScope>[],
+    );
+  }
+}

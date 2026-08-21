@@ -12,6 +12,7 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
+import '../widgets/date_range_filter_bar.dart';
 import '../widgets/searchable_picker.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
@@ -69,6 +70,9 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
 
   /// null means "every status"; otherwise one of the six outcomes.
   CreditLimitOutcome? _statusFilter;
+
+  /// null means "the default", which the server reads as TODAY. It used to
+  /// mean all time, which is why this screen opened on 1,892 records.
   DateTimeRange? _range;
   String _search = '';
   Timer? _searchDebounce;
@@ -235,18 +239,17 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
 
   Future<void> _pickRange() async {
     if (!_canFilterDate) return;
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2024),
-      lastDate: DateTime.now(),
-      initialDateRange: _range,
-    );
-    if (picked == null) return;
+
+    final picked = await showListDateRangePicker(context, initial: _range);
+    if (picked == null || !mounted) return;
+
     setState(() => _range = picked);
     _load();
   }
 
-  void _clearRange() {
+  /// Back to the default. Not "clear the filter" any more -- there is no
+  /// unfiltered state to go back to; today is the floor.
+  void _resetRangeToToday() {
     setState(() => _range = null);
     _load();
   }
@@ -334,20 +337,12 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
             tooltip: 'Customer history',
             onPressed: _chooseCustomerForHistory,
           ),
-          if (_canFilterDate)
-            IconButton(
-              icon: Icon(_range == null
-                  ? Icons.calendar_today
-                  : Icons.event_available),
-              tooltip: 'Date range',
-              onPressed: _pickRange,
-            ),
-          if (_canFilterDate && _range != null)
-            IconButton(
-              icon: const Icon(Icons.event_busy),
-              tooltip: 'Clear date range',
-              onPressed: _clearRange,
-            ),
+          // The calendar and clear-range icons that used to sit here opened
+          // the same picker this screen still uses, but they said nothing
+          // about the range in force and appeared only for grant holders --
+          // so nobody else could tell why they were seeing what they saw.
+          // Both are now the DateRangeFilterBar over the Requests tab, which
+          // is always visible and always states the range.
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
@@ -403,6 +398,7 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
     if (_loading) {
       return Column(
         children: [
+          _dateBar(),
           _searchField(isDark),
           Expanded(child: SkeletonRowList(isDark: isDark)),
         ],
@@ -410,15 +406,23 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
     }
 
     if (_error != null && _rows.isEmpty) {
-      return ErrorStateView(
-        message: _error!,
-        onRetry: FriendlyError.isPermanent(_error) ? null : _load,
-        isDark: isDark,
+      return Column(
+        children: [
+          _dateBar(),
+          Expanded(
+            child: ErrorStateView(
+              message: _error!,
+              onRetry: FriendlyError.isPermanent(_error) ? null : _load,
+              isDark: isDark,
+            ),
+          ),
+        ],
       );
     }
 
     return Column(
       children: [
+        _dateBar(),
         _searchField(isDark),
         Expanded(
           child: RefreshIndicator(
@@ -450,6 +454,19 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
           ),
         ),
       ],
+    );
+  }
+
+  /// Only over the Requests tab. The unused-allowance list is a snapshot of
+  /// who is holding an allowance right now, not a list of dated records, so a
+  /// date range over it would mean nothing.
+  Widget _dateBar() {
+    return DateRangeFilterBar(
+      dateFrom: _page?.dateFrom ?? _dateFrom ?? DateRangeFilterBar.today(),
+      dateTo: _page?.dateTo ?? _dateTo ?? DateRangeFilterBar.today(),
+      canFilterDate: _canFilterDate,
+      onChange: _pickRange,
+      onResetToToday: _resetRangeToToday,
     );
   }
 
@@ -607,28 +624,16 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
     );
   }
 
-  String _rangeLabel() {
-    final page = _page;
-    if (page?.dateFrom == null && page?.dateTo == null) return 'all time';
-
-    final from = page?.dateFrom;
-    final to = page?.dateTo;
-    if (from == to) {
-      return from == DateFormat('yyyy-MM-dd').format(DateTime.now())
-          ? 'today'
-          : _prettyDate(from);
-    }
-    return '${_prettyDate(from)} – ${_prettyDate(to)}';
-  }
-
-  String _prettyDate(String? raw) {
-    if (raw == null || raw.isEmpty) return '—';
-    try {
-      return DateFormat('d MMM yyyy').format(DateTime.parse(raw));
-    } catch (_) {
-      return raw;
-    }
-  }
+  /// The days this headline covers, in the same words the filter bar uses.
+  ///
+  /// It used to be able to say "all time", because an omitted range meant
+  /// every record ever raised. It cannot any more: the server always applies
+  /// a range, so this always names one, and the figure above it can no longer
+  /// be mistaken for a company-wide total.
+  String _rangeLabel() => DateRangeFilterBar.describe(
+        _page?.dateFrom ?? _dateFrom ?? DateRangeFilterBar.today(),
+        _page?.dateTo ?? _dateTo ?? DateRangeFilterBar.today(),
+      ).toLowerCase();
 
   String _plural(int count, String singular) =>
       '${_money.format(count)} $singular${count == 1 ? '' : 's'}';
@@ -743,15 +748,10 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
   Widget _notices(bool isDark) {
     final notices = <Widget>[];
 
-    if (!(_page?.canFilterDate ?? true)) {
-      notices.add(_notice(
-        isDark,
-        Icons.today,
-        AppColors.info,
-        'You can only see today. Ask for the date filter permission to look '
-        'at other days.',
-      ));
-    }
+    // The "you can only see today" line that used to open this stack is now
+    // in the filter bar directly above, where it is permanent rather than
+    // scrolling away with the list. Repeating it here said the same thing
+    // twice on the same screen.
 
     if (_stats.staleStatusRows > 0) {
       notices.add(_notice(
@@ -815,16 +815,51 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
 
   Widget _footer(bool isDark) {
     if (_rows.isEmpty) {
+      // The range is named, not alluded to. This list defaults to today, so
+      // most people opening this screen land here where they used to see
+      // 1,892 rows, and the reason has to be on the screen rather than
+      // inferred.
+      final narrowed = _search.isNotEmpty || _statusFilter != null;
+
       return Padding(
         padding: const EdgeInsets.only(top: 40),
         child: EmptyStateView(
-          icon: Icons.request_quote_outlined,
-          title: 'No credit limit records',
-          message: _search.isNotEmpty || _statusFilter != null
-              ? 'Nothing matches this search in the range shown.'
-              : 'Nothing has been raised for your stock locations in the '
-                  'range shown.',
+          icon: Icons.event_busy_outlined,
+          title: 'Nothing for ${_rangeLabel()}',
+          message: _canFilterDate
+              ? (narrowed
+                  ? 'Nothing matches this search in ${_rangeLabel()}. '
+                      'Try a wider date range.'
+                  : 'Nothing was raised for your stock locations in '
+                      '${_rangeLabel()}.')
+              : (narrowed
+                  ? 'Nothing matches this search today. This view is limited '
+                      'to today.'
+                  : 'Nothing was raised for your stock locations today. This '
+                      'view is limited to today — ask for the date filter '
+                      'permission to look at other days.'),
           isDark: isDark,
+          action: !_canFilterDate
+              ? null
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _pickRange,
+                      icon: const Icon(Icons.date_range, size: 18),
+                      label: const Text('Change date range'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    if (_range != null)
+                      TextButton(
+                        onPressed: _resetRangeToToday,
+                        child: const Text('Back to today'),
+                      ),
+                  ],
+                ),
         ),
       );
     }
