@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/api_response.dart';
 import '../models/app_notification.dart';
 import '../services/api_service.dart';
+import '../services/app_badge_service.dart';
 
 /// Keeps the notification feed and the approval-inbox badge fresh.
 ///
@@ -99,9 +100,11 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Notifications that arrived while the app was open, newest first.
   ///
-  /// A screen listens to this to raise an in-app banner the moment an approval
-  /// lands, which is as close to a push as this gets without a Firebase
-  /// project, an APNs certificate and a device-token table to maintain.
+  /// Nothing subscribes to this today: the in-app banner it used to feed was
+  /// removed because it sat over the bottom navigation bar. It is a broadcast
+  /// stream, so announcing with no listener is a no-op -- the badge count, the
+  /// held feed and the cursor are all maintained by the poll itself and do not
+  /// depend on anyone listening here.
   final _arrivals = StreamController<AppNotification>.broadcast();
   Stream<AppNotification> get arrivals => _arrivals.stream;
 
@@ -444,6 +447,16 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _safeNotify() {
+    // The launcher icon is a second view of the SAME number the bell shows, so
+    // it is updated on the same seam rather than from a handful of call sites.
+    // Every path that can move the count -- a poll, a push arrival, a read, a
+    // mark-all-read, an approval acted on, sign-out -- already ends here, so
+    // hanging the badge off this one method is what makes it go DOWN as
+    // reliably as it goes up. AppBadgeService ignores a repeat of the value it
+    // last pushed, so the notifies that are really about _isLoading cost
+    // nothing.
+    AppBadgeService.instance.setCount(badgeCount);
+
     if (!_disposed) notifyListeners();
   }
 

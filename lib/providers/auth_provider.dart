@@ -316,6 +316,12 @@ class AuthProvider with ChangeNotifier {
       _user = null;
       _isAuthenticated = false;
 
+      // Same treatment as an explicit logout(). A session dropped by a 401 is
+      // still this person leaving the handset, and without this the poll kept
+      // running under a dead token AND the home-screen icon kept the previous
+      // seller's badge for whoever signs in next.
+      await _notificationProvider?.stop();
+
       // Clear permissions
       if (_permissionProvider != null) {
         await _permissionProvider!.clearPermissions();

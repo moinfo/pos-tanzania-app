@@ -94,6 +94,13 @@ dependencies:
   # this is what puts the notification in the tray in that case.
   flutter_local_notifications: ^22.3.0
 
+  # Launcher/home-screen icon badge, so a manager who is NOT in the app can
+  # still see that something is waiting. flutter_app_badger, the package most
+  # search results still point at, is marked discontinued on pub.dev and last
+  # shipped three years ago; this is the maintained successor and the only one
+  # of the alternatives with recent releases and real download numbers.
+  app_badge_plus: ^1.3.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
