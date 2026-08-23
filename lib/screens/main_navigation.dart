@@ -7,6 +7,7 @@ import '../providers/location_provider.dart';
 import '../models/stock_location.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
+import '../widgets/offline_indicator.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
 import 'home_screen.dart';
@@ -1420,9 +1421,20 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           ],
         ),
       ),
-      body: availableScreens.isNotEmpty
-          ? availableScreens[_selectedIndex]['screen'] as Widget
-          : const Center(child: Text('No access to any screens')),
+      // The connection strip sits above whichever screen is selected rather
+      // than inside each one, so a seller cannot navigate away from the news
+      // that sales are queued. It collapses to nothing when there is nothing
+      // to say, and the bottom navigation is untouched.
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: availableScreens.isNotEmpty
+                ? availableScreens[_selectedIndex]['screen'] as Widget
+                : const Center(child: Text('No access to any screens')),
+          ),
+        ],
+      ),
       bottomNavigationBar: availableScreens.length > 1
           ? (ApiService.currentClient?.id == 'leruma'
               // Leruma uses the flat bar from design_handoff_home_credit 1.7.

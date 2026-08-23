@@ -134,6 +134,21 @@ class LocationProvider with ChangeNotifier {
         await _cacheLocations(requestedModule);
 
         debugPrint('📍 [LocationProvider] Loaded ${_allowedLocations.length} locations from API');
+      } else if (response.statusCode == null) {
+        // The server never answered. ApiService turns a dead connection into
+        // an error RESPONSE rather than an exception, so the catch below --
+        // which is where the cache fallback used to live, alone -- never ran,
+        // and a seller with no network was told to "select a stock location
+        // first" with an empty list to select from. Without a location the
+        // sales screen refuses to add a single line, so this one branch was
+        // enough to make offline selling impossible.
+        final loadedFromCache = await _loadFromCache(requestedModule);
+        if (loadedFromCache) {
+          _errorMessage = null;
+          debugPrint('📍 [LocationProvider] Server unreachable, using cached locations');
+        } else {
+          _errorMessage = 'Unable to load locations. Please connect to internet.';
+        }
       } else {
         _errorMessage = response.message;
         debugPrint('📍 [LocationProvider] API Error: ${response.message}');
@@ -227,6 +242,30 @@ class LocationProvider with ChangeNotifier {
   }
 
   /// Clear all location data (call on logout or user change)
+  /// Reset for a sign-in, keeping the per-user cache on disk.
+  ///
+  /// Cache keys already carry client + user + module, so a different person
+  /// signing in reads a different key and cannot see the previous seller's
+  /// locations. Wiping every key here as well -- which is what login used to
+  /// do -- destroyed the only copy of the locations an OFFLINE sign-in could
+  /// fall back to, and the seller landed on the till with an empty location
+  /// list and "Please select a stock location first" on every line they tried
+  /// to add. The selected-location pref is still dropped: that one is global,
+  /// so it genuinely would carry over between users.
+  Future<void> clearForLogin() async {
+    _allowedLocations = [];
+    _selectedLocation = null;
+    _currentModuleId = null;
+    _loadedForUserId = null;
+    _errorMessage = null;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('selected_location_id');
+
+    debugPrint('📍 [LocationProvider] Cleared location state for sign-in (cache kept)');
+    notifyListeners();
+  }
+
   Future<void> clear() async {
     _allowedLocations = [];
     _selectedLocation = null;

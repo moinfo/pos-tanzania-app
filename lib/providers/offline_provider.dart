@@ -1,11 +1,11 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import '../services/database_service.dart';
 import '../services/sync_service.dart';
 import '../services/api_service.dart';
 import 'connectivity_provider.dart';
 
 /// Provider to manage offline functionality and data synchronization
-class OfflineProvider extends ChangeNotifier {
+class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
   final ConnectivityProvider _connectivityProvider;
   final ApiService _apiService;
 
@@ -17,6 +17,9 @@ class OfflineProvider extends ChangeNotifier {
   bool _isSyncing = false;
   int _pendingSyncCount = 0;
   int _failedSyncCount = 0;
+  int _pendingSaleCount = 0;
+  int _failedSaleCount = 0;
+  bool _serverReachable = true;
   String? _currentClientId;
   String? _lastSyncError;
   DateTime? _lastSyncTime;
@@ -37,6 +40,14 @@ class OfflineProvider extends ChangeNotifier {
 
   /// Number of failed sync items
   int get failedSyncCount => _failedSyncCount;
+
+  /// Sales specifically, as opposed to every queued entity.
+  ///
+  /// The seller-facing UI counts these, not the whole queue: telling someone
+  /// "3 sales waiting" when two of them are expenses sends them looking for
+  /// receipts that were never missing.
+  int get pendingSaleCount => _pendingSaleCount;
+  int get failedSaleCount => _failedSaleCount;
 
   /// Current client ID
   String? get currentClientId => _currentClientId;
@@ -68,6 +79,18 @@ class OfflineProvider extends ChangeNotifier {
   /// Get sync service
   SyncService? get syncService => _syncService;
 
+  /// Whether the last upload attempt got an answer from the server.
+  ///
+  /// Separate from [isOnline] on purpose. connectivity_plus reports the radio;
+  /// this reports the server. A phone joined to a shop's wifi whose uplink is
+  /// dead is "online" and unreachable at the same time, and that is precisely
+  /// the case a seller must be told about -- the alternative is a green icon
+  /// over a queue that is not moving.
+  bool get serverReachable => _serverReachable;
+
+  /// Whether sales can actually be sent right now.
+  bool get canReachServer => _connectivityProvider.isOnline && _serverReachable;
+
   /// Whether the app is in offline mode
   bool get isOfflineMode => _connectivityProvider.isOffline;
 
@@ -81,6 +104,17 @@ class OfflineProvider extends ChangeNotifier {
         _apiService = apiService {
     // Listen to connectivity changes
     _connectivityProvider.addListener(_onConnectivityChanged);
+    // Reopening the app is a sync trigger in its own right: iOS suspends
+    // timers in the background, so the periodic sweep cannot be trusted to
+    // have run while the seller was in another app.
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (!_isInitialized) return;
+    _syncService?.onAppResumed();
   }
 
   /// Initialize offline mode for a client
@@ -114,6 +148,10 @@ class OfflineProvider extends ChangeNotifier {
     _syncService!.onSyncStatusChanged = _onSyncStatusChanged;
     _syncService!.onSyncCountChanged = _onSyncCountChanged;
     _syncService!.onItemSynced = _onItemSynced;
+    _syncService!.onReachabilityChanged = (reachable) {
+      _serverReachable = reachable;
+      notifyListeners();
+    };
 
     await _syncService!.initialize();
 
@@ -189,7 +227,9 @@ class OfflineProvider extends ChangeNotifier {
   void _onSyncCountChanged(int pending, int failed) {
     _pendingSyncCount = pending;
     _failedSyncCount = failed;
-    notifyListeners();
+    // The sale-specific figures come from a different table, so refresh them
+    // together rather than letting the badge and the strip disagree.
+    _updateSyncCounts();
   }
 
   /// Handle individual item sync
@@ -204,6 +244,11 @@ class OfflineProvider extends ChangeNotifier {
       final counts = await _databaseService!.getSyncQueueCounts();
       _pendingSyncCount = counts['pending'] ?? 0;
       _failedSyncCount = counts['failed'] ?? 0;
+
+      final saleCounts = await _databaseService!.getUnsyncedSaleCounts();
+      _pendingSaleCount = saleCounts['pending'] ?? 0;
+      _failedSaleCount = saleCounts['failed'] ?? 0;
+
       notifyListeners();
     }
   }
@@ -277,7 +322,10 @@ class OfflineProvider extends ChangeNotifier {
 
       _masterDataSyncStatus = 'Sync complete';
       _masterDataSyncProgress = 1.0;
-      _lastSyncTime = DateTime.now();
+      // Deliberately does NOT touch _lastSyncTime: that is shown to the seller
+      // as "Last upload", and this method downloads items and customers. A
+      // master-data refresh stamping it made the sheet report a recent upload
+      // while sales sat in the queue unsent.
 
       debugPrint('OfflineProvider: Master data sync completed');
     } catch (e) {
@@ -373,7 +421,18 @@ class OfflineProvider extends ChangeNotifier {
         }
       }
 
-      await _databaseService!.updateLastSyncTimestamp('items');
+      // Only claim the cache is fresh if something actually landed in it.
+      //
+      // Stamping unconditionally is how the offline cache ended up empty in
+      // practice: this runs at startup, which on a cold launch is BEFORE the
+      // user has signed in, so every request 401s and saves nothing -- and the
+      // stamp then told _shouldSyncMasterData to skip for the next 24 hours.
+      // The seller went offline with no items to sell and no way to know why.
+      if (offset > 0) {
+        await _databaseService!.updateLastSyncTimestamp('items');
+      } else {
+        debugPrint('OfflineProvider: No items fetched, leaving cache stale so it retries');
+      }
     } catch (e) {
       debugPrint('OfflineProvider: Failed to sync items - $e');
     }
@@ -421,7 +480,10 @@ class OfflineProvider extends ChangeNotifier {
         }
       }
 
-      await _databaseService!.updateLastSyncTimestamp('customers');
+      // See _syncItems: a stamp with nothing behind it suppresses the retry.
+      if (offset > 0) {
+        await _databaseService!.updateLastSyncTimestamp('customers');
+      }
     } catch (e) {
       debugPrint('OfflineProvider: Failed to sync customers - $e');
     }
@@ -583,7 +645,7 @@ class OfflineProvider extends ChangeNotifier {
         limit: limit,
       );
       debugPrint('📦 Loaded ${items.length} items from offline database');
-      return items;
+      return items.map(_itemRowToApiShape).toList();
     } catch (e) {
       debugPrint('OfflineProvider: Error getting offline items - $e');
       return [];
@@ -607,11 +669,81 @@ class OfflineProvider extends ChangeNotifier {
         limit: limit,
       );
       debugPrint('👥 Loaded ${customers.length} customers from offline database');
-      return customers;
+      return customers.map(_customerRowToApiShape).toList();
     } catch (e) {
       debugPrint('OfflineProvider: Error getting offline customers - $e');
       return [];
     }
+  }
+
+
+  // =====================================================
+  // LOCAL ROW -> API SHAPE
+  //
+  // The SQLite tables are not a mirror of the API's JSON; they were designed
+  // separately and they disagree in ways the model classes cannot absorb.
+  // Callers parse these rows with Item.fromJson / Customer.fromJson, so the
+  // translation has to happen here, once, rather than by loosening every
+  // model to accept both shapes.
+  //
+  // These are not cosmetic differences. Before this adapter, opening the till
+  // with no connection threw
+  //   type 'int' is not a subtype of type 'String'
+  // out of Item.fromJson and left the seller on an empty item list -- the
+  // offline read had evidently never been run.
+  // =====================================================
+
+  /// One cached item row, in the shape Item.fromJson expects.
+  Map<String, dynamic> _itemRowToApiShape(Map<String, dynamic> row) {
+    final item = Map<String, dynamic>.from(row);
+
+    // Stored as 0/1; the model holds a String and the app compares it to
+    // 'DORMANT'. Handing over the raw int is what threw.
+    item['dormant'] = _isTrue(row['dormant']) ? 'DORMANT' : 'ACTIVE';
+
+    // The local columns are tax1_*; the API sends tax_1_*. Left untranslated
+    // the tax name and rate silently arrive null on every offline line.
+    item['tax_1_name'] = row['tax1_name'];
+    item['tax_1_percent'] = row['tax1_percent'];
+    item['tax_2_name'] = row['tax2_name'];
+    item['tax_2_percent'] = row['tax2_percent'];
+
+    item['deleted'] = row['is_deleted'] ?? 0;
+
+    // getItemsWithQuantities joins the quantity for the requested location.
+    // Presenting it as quantity_by_location too keeps the stock lookups in the
+    // sales screen working the same way they do online.
+    final locationId = row['location_id'];
+    if (locationId != null && row['quantity'] != null) {
+      item['quantity_by_location'] = {locationId.toString(): row['quantity']};
+    }
+
+    return item;
+  }
+
+  /// One cached customer row, in the shape Customer.fromJson expects.
+  Map<String, dynamic> _customerRowToApiShape(Map<String, dynamic> row) {
+    final customer = Map<String, dynamic>.from(row);
+
+    customer['dormant'] = _isTrue(row['dormant']) ? 'DORMANT' : 'ACTIVE';
+
+    // Stored as discount_percent, read as discount. Without this every
+    // offline customer looks like a customer with no agreed discount.
+    customer['discount'] = row['discount_percent'];
+
+    return customer;
+  }
+
+  /// SQLite has no boolean; these columns arrive as 0/1, and older rows or a
+  /// hand-edited database can hold the string forms too.
+  static bool _isTrue(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final v = value.toLowerCase();
+      return v == '1' || v == 'true' || v == 'dormant';
+    }
+    return false;
   }
 
   /// Create a sale offline (saves to local database for later sync)
@@ -670,8 +802,23 @@ class OfflineProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Re-read the queue counts from SQLite and notify.
+  ///
+  /// Needed by callers that write to the database through [database] directly
+  /// rather than through this provider -- the sales screen's offline fallback
+  /// does, and without this the badge and the "N sales are waiting" line in
+  /// its own confirmation still read zero right after a sale was queued.
+  Future<void> refreshCounts() => _updateSyncCounts();
+
+  /// Sales that have not reached the server, with the reason each is stuck.
+  Future<List<Map<String, dynamic>>> getUnsyncedSales() async {
+    if (_databaseService == null) return [];
+    return _databaseService!.getUnsyncedSales();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivityProvider.removeListener(_onConnectivityChanged);
     close();
     super.dispose();

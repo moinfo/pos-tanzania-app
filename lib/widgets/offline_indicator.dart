@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_provider.dart';
 import '../services/api_service.dart';
+import '../services/database_service.dart';
 import '../utils/constants.dart';
 
 /// Widget to display offline/online status in the app bar
@@ -52,7 +53,10 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
 
     return Consumer2<ConnectivityProvider, OfflineProvider>(
       builder: (context, connectivity, offline, child) {
-        final isOnline = connectivity.isOnline;
+        // "Online" here means the server can actually be reached, not merely
+        // that a radio is up. A green pill over a queue that is not draining
+        // is the one thing this widget must never show.
+        final isOnline = offline.canReachServer;
         final pendingCount = offline.pendingSyncCount;
         final failedCount = offline.failedSyncCount;
         final isSyncing = offline.isSyncing;
@@ -77,21 +81,21 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
                     height: widget.compact ? 14 : 16,
                     child: const CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   )
                 else
                   Icon(
                     _getIcon(isOnline, failedCount),
                     size: widget.compact ? 14 : 16,
-                    color: Colors.white,
+                    color: AppColors.white,
                   ),
                 if (!widget.compact) ...[
                   const SizedBox(width: 6),
                   Text(
                     _getStatusText(isOnline, isSyncing, pendingCount, failedCount),
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.white,
                       fontSize: widget.compact ? 11 : 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -102,13 +106,13 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: AppColors.white.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '$pendingCount',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontSize: widget.compact ? 10 : 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -124,10 +128,10 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
   }
 
   Color _getBackgroundColor(bool isOnline, bool isSyncing, int failedCount) {
-    if (isSyncing) return Colors.blue;
-    if (failedCount > 0) return Colors.orange;
-    if (isOnline) return Colors.green;
-    return Colors.grey.shade700;
+    if (isSyncing) return AppColors.info;
+    if (failedCount > 0) return AppColors.error;
+    if (isOnline) return AppColors.success;
+    return AppColors.warning;
   }
 
   IconData _getIcon(bool isOnline, int failedCount) {
@@ -137,10 +141,12 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
   }
 
   String _getStatusText(bool isOnline, bool isSyncing, int pendingCount, int failedCount) {
-    if (isSyncing) return 'Syncing...';
-    if (failedCount > 0) return 'Sync Failed';
-    if (!isOnline) return 'Offline';
-    if (pendingCount > 0) return 'Pending';
+    if (isSyncing) return 'Uploading...';
+    // Failures come first: a sale the server refused needs a person, and it
+    // stays on screen whether or not the connection has since come back.
+    if (failedCount > 0) return failedCount == 1 ? '1 failed' : '$failedCount failed';
+    if (!isOnline) return pendingCount > 0 ? 'Offline - $pendingCount waiting' : 'Offline';
+    if (pendingCount > 0) return '$pendingCount waiting';
     return 'Online';
   }
 
@@ -158,7 +164,41 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
   }
 }
 
-/// Full-width offline banner for showing at the top of screens
+/// Open the sync detail sheet from anywhere that has an OfflineProvider above
+/// it. Kept as a function so a snackbar action or an app-bar tap does not each
+/// have to know how the sheet is built.
+void showSyncStatusSheet(BuildContext context) {
+  final offline = context.read<OfflineProvider>();
+  final connectivity = context.read<ConnectivityProvider>();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.raised(context),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) => SyncStatusSheet(
+      offlineProvider: offline,
+      connectivityProvider: connectivity,
+    ),
+  );
+}
+
+/// Full-width status strip for the top of a screen.
+///
+/// Shows whenever the seller is not in the plain everything-is-fine state, and
+/// it says which of three quite different situations they are in, because the
+/// right response differs:
+///
+///   * no network at all -- expected, sales are being kept, carry on selling;
+///   * network but the server is not answering -- also kept, but worth telling
+///     someone if it lasts, because from the phone's own icons it looks fine;
+///   * a sale the server refused -- nothing will fix itself, a person must look.
+///
+/// A queue nobody can see is worse than no queue: a seller who does not know a
+/// sale never uploaded will not chase it. So the strip stays up, with a count,
+/// for as long as anything is waiting -- online or not.
 class OfflineBanner extends StatelessWidget {
   const OfflineBanner({super.key});
 
@@ -170,46 +210,113 @@ class OfflineBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Consumer<ConnectivityProvider>(
-      builder: (context, connectivity, child) {
-        if (connectivity.isOnline) return const SizedBox.shrink();
+    return Consumer2<ConnectivityProvider, OfflineProvider>(
+      builder: (context, connectivity, offline, child) {
+        final pending = offline.pendingSaleCount;
+        final failed = offline.failedSaleCount;
+        final noNetwork = connectivity.isOffline;
+        final noServer = !noNetwork && !offline.serverReachable;
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: Colors.orange.shade700,
-          child: Row(
-            children: [
-              const Icon(Icons.cloud_off, color: Colors.white, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        // Everything is online, reachable and empty: say nothing.
+        if (!noNetwork && !noServer && pending == 0 && failed == 0) {
+          return const SizedBox.shrink();
+        }
+
+        final Color background;
+        final IconData icon;
+        final String title;
+        final String detail;
+
+        if (failed > 0) {
+          background = AppColors.error;
+          icon = Icons.report_problem_outlined;
+          title = failed == 1
+              ? '1 sale could not be uploaded'
+              : '$failed sales could not be uploaded';
+          detail = 'The server refused it. Tap to see why.';
+        } else if (noNetwork) {
+          background = AppColors.warning;
+          icon = Icons.cloud_off;
+          title = 'No connection - you can keep selling';
+          detail = pending == 0
+              ? 'Sales are saved here and upload by themselves later.'
+              : '${_saleWord(pending)} saved here, uploading by itself when the network returns.';
+        } else if (noServer) {
+          background = AppColors.warning;
+          icon = Icons.cloud_off;
+          title = 'Cannot reach the server';
+          detail = pending == 0
+              ? 'You have a connection but the server is not answering.'
+              : '${_saleWord(pending)} waiting. Retrying by itself.';
+        } else {
+          background = AppColors.info;
+          icon = Icons.cloud_upload_outlined;
+          title = '${_saleWord(pending)} still uploading';
+          detail = offline.isSyncing
+              ? 'Uploading now.'
+              : 'This happens by itself - nothing to press.';
+        }
+
+        return Material(
+          color: background,
+          child: InkWell(
+            onTap: () => showSyncStatusSheet(context),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
                   children: [
-                    const Text(
-                      'You are offline',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                    Icon(icon, color: AppColors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            detail,
+                            style: TextStyle(
+                              color: AppColors.white.withValues(alpha: 0.9),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    Text(
-                      'Changes will sync when connection is restored',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 12,
+                    if (offline.isSyncing)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.white,
+                        ),
+                      )
+                    else
+                      Icon(
+                        Icons.chevron_right,
+                        color: AppColors.white.withValues(alpha: 0.9),
+                        size: 20,
                       ),
-                    ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         );
       },
     );
   }
+
+  static String _saleWord(int n) => n == 1 ? '1 sale' : '$n sales';
 }
 
 /// Bottom sheet showing sync status and controls
@@ -235,12 +342,12 @@ class SyncStatusSheet extends StatelessWidget {
           Row(
             children: [
               Icon(
-                connectivityProvider.isOnline
+                offlineProvider.canReachServer
                     ? Icons.cloud_done
                     : Icons.cloud_off,
-                color: connectivityProvider.isOnline
-                    ? Colors.green
-                    : AppColors.muted(context),
+                color: offlineProvider.canReachServer
+                    ? AppColors.success
+                    : AppColors.warning,
                 size: 28,
               ),
               const SizedBox(width: 12),
@@ -249,7 +356,11 @@ class SyncStatusSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      connectivityProvider.isOnline ? 'Connected' : 'Offline Mode',
+                      offlineProvider.canReachServer
+                          ? 'Connected'
+                          : connectivityProvider.isOffline
+                              ? 'No connection'
+                              : 'Server not answering',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -277,23 +388,27 @@ class SyncStatusSheet extends StatelessWidget {
           _buildStatusRow(
             context,
             icon: Icons.hourglass_empty,
-            label: 'Pending Sync',
-            value: '${offlineProvider.pendingSyncCount} items',
-            color: offlineProvider.pendingSyncCount > 0 ? Colors.orange : Colors.green,
+            label: 'Waiting to upload',
+            value: '${offlineProvider.pendingSyncCount}',
+            color: offlineProvider.pendingSyncCount > 0
+                ? AppColors.warning
+                : AppColors.success,
           ),
           const SizedBox(height: 12),
           _buildStatusRow(
             context,
             icon: Icons.error_outline,
-            label: 'Failed Sync',
-            value: '${offlineProvider.failedSyncCount} items',
-            color: offlineProvider.failedSyncCount > 0 ? Colors.red : Colors.green,
+            label: 'Refused by server',
+            value: '${offlineProvider.failedSyncCount}',
+            color: offlineProvider.failedSyncCount > 0
+                ? AppColors.error
+                : AppColors.success,
           ),
           const SizedBox(height: 12),
           _buildStatusRow(
             context,
             icon: Icons.access_time,
-            label: 'Last Sync',
+            label: 'Last upload',
             value: offlineProvider.lastSyncTime != null
                 ? _formatTime(offlineProvider.lastSyncTime!)
                 : 'Never',
@@ -318,11 +433,13 @@ class SyncStatusSheet extends StatelessWidget {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppColors.white,
                         ),
                       )
                     : const Icon(Icons.sync),
-                label: Text(offlineProvider.isSyncing ? 'Syncing...' : 'Sync Now'),
+                label: Text(
+                  offlineProvider.isSyncing ? 'Uploading...' : 'Upload now',
+                ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -339,7 +456,7 @@ class SyncStatusSheet extends StatelessWidget {
                           await offlineProvider.retryFailedSync();
                         },
                   icon: const Icon(Icons.replay),
-                  label: const Text('Retry Failed Items'),
+                  label: const Text('Try refused sales again'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -360,7 +477,9 @@ class SyncStatusSheet extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Connect to the internet to sync your data',
+                      'Sales are safe on this device. They upload by '
+                      'themselves as soon as the network returns - there is '
+                      'nothing you need to press.',
                       style: TextStyle(
                         color: AppColors.muted(context),
                         fontSize: 14,
@@ -394,10 +513,119 @@ class SyncStatusSheet extends StatelessWidget {
             ),
           ],
 
+          // The sales themselves, not just a number. A seller chasing a
+          // missing receipt needs to know WHICH sale is stuck and what the
+          // server said about it -- a bare count sends them to the office
+          // with nothing to go on.
+          const SizedBox(height: 20),
+          Text(
+            'Sales not yet on the server',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.muted(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 240),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: offlineProvider.getUnsyncedSales(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: LinearProgressIndicator(),
+                  );
+                }
+
+                final sales = snapshot.data ?? const [];
+                if (sales.isEmpty) {
+                  return Text(
+                    'Everything has been uploaded.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.muted(context),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: sales.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 12,
+                    color: AppColors.hairline(context),
+                  ),
+                  itemBuilder: (context, i) => _buildQueuedSaleRow(context, sales[i]),
+                );
+              },
+            ),
+          ),
+
           const SizedBox(height: 16),
         ],
       ),
     );
+  }
+
+  /// One queued sale: when it was rung up, what it came to, and -- when it is
+  /// stuck -- the server's own words for why.
+  Widget _buildQueuedSaleRow(BuildContext context, Map<String, dynamic> sale) {
+    final isFailed = sale['sync_status'] == DatabaseService.syncStatusFailed;
+    final total = (sale['total'] as num?)?.toDouble() ?? 0;
+    final error = (sale['sync_error'] ?? sale['error_message']) as String?;
+    final saleTime = sale['sale_time'] as String?;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          isFailed ? Icons.error_outline : Icons.schedule,
+          size: 18,
+          color: isFailed ? AppColors.error : AppColors.warning,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_formatSaleTime(saleTime)}  -  ${total.toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.ink(context),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                isFailed
+                    ? (error?.trim().isNotEmpty == true
+                        ? error!.trim()
+                        : 'The server refused this sale.')
+                    : 'Waiting to upload.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isFailed ? AppColors.error : AppColors.muted(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Sale time as the seller would recognise it, falling back to the raw value
+  /// rather than hiding a row we could not parse.
+  static String _formatSaleTime(String? raw) {
+    if (raw == null || raw.isEmpty) return 'Unknown time';
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    final local = parsed.toLocal();
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)} ${two(local.hour)}:${two(local.minute)}';
   }
 
   Widget _buildStatusRow(
@@ -468,7 +696,9 @@ class SyncBadge extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: offline.failedSyncCount > 0 ? Colors.red : Colors.orange,
+            color: offline.failedSyncCount > 0
+                ? AppColors.error
+                : AppColors.warning,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -479,13 +709,13 @@ class SyncBadge extends StatelessWidget {
                     ? Icons.sync
                     : (offline.failedSyncCount > 0 ? Icons.error : Icons.cloud_upload),
                 size: 14,
-                color: Colors.white,
+                color: AppColors.white,
               ),
               const SizedBox(width: 4),
               Text(
                 '$count',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),

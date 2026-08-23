@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/sale_provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
@@ -182,6 +183,13 @@ class _SalesScreenState extends State<SalesScreen> {
               builder: (context, saleProvider, child) {
                 return Column(
                   children: [
+                    // Repeated here rather than relied on from MainNavigation:
+                    // on Leruma the till is opened as a pushed route, so the
+                    // strip above the navigator's body never covers it -- and
+                    // this is the one screen where the seller most needs to
+                    // know that what they are about to ring up is going into
+                    // a queue rather than to the server.
+                    const OfflineBanner(),
                     // Fixed context block under the app bar
                     DecoratedBox(
                       decoration: const BoxDecoration(
@@ -2480,7 +2488,21 @@ class _SalesScreenState extends State<SalesScreen> {
             ),
           );
         }
+      } else if (response.statusCode == null) {
+        // No status code means ApiService never got an answer -- no network,
+        // no route to the server, or a timeout. The sale itself is fine and
+        // the customer has already paid, so it is kept locally and uploaded
+        // later rather than thrown away with a red snackbar.
+        //
+        // Note this attempt may in fact have reached the server and been
+        // written; we simply never heard back. _queueSaleOffline carries this
+        // attempt's request_id into the queue so the upload replays that sale
+        // instead of creating a second one.
+        await _queueSaleOffline(sale, saleProvider);
       } else {
+        // The server answered and refused. Queueing would only replay the
+        // refusal, so the seller sees it now while the cart is still on screen
+        // and can do something about it.
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2506,6 +2528,97 @@ class _SalesScreenState extends State<SalesScreen> {
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
+  }
+
+  /// Keep a sale that could not be uploaded, and tell the seller plainly.
+  ///
+  /// Called only when the server never answered. The sale goes into SQLite
+  /// carrying THIS attempt's request_id, which is what makes the later upload
+  /// exactly-once: if the attempt did land server-side, the upload replays it;
+  /// if it did not, the upload creates it. Either way, one sale.
+  Future<void> _queueSaleOffline(Sale sale, SaleProvider saleProvider) async {
+    final offlineProvider = context.read<OfflineProvider>();
+    final requestId = _checkoutRequestId;
+
+    if (!offlineProvider.isInitialized || requestId == null) {
+      // No local database (offline mode off for this client) or no key to
+      // queue under. Either way the sale cannot be kept safely, and saying so
+      // is far better than pretending it went through.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No connection and this sale could not be saved on the device. '
+              'It was NOT recorded - please try again.',
+            ),
+            backgroundColor: AppColors.error,
+            duration: Duration(seconds: 8),
+          ),
+        );
+      }
+      return;
+    }
+
+    final employeeId = int.tryParse(
+          context.read<AuthProvider>().user?.id ?? '',
+        ) ??
+        0;
+
+    final result = await saleProvider.saveSaleOffline(
+      sale: sale,
+      offlineProvider: offlineProvider,
+      employeeId: employeeId,
+      requestId: requestId,
+    );
+
+    if (!mounted) return;
+
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'This sale could not be saved on the device and was NOT '
+            'recorded. ${result.message}',
+          ),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 8),
+        ),
+      );
+      return;
+    }
+
+    // The key now belongs to the queued sale row. Clearing it here means the
+    // next cart mints its own -- without this, an identical repeat order would
+    // reuse the key and be swallowed as a replay of the sale just queued.
+    _checkoutRequestId = null;
+    _checkoutRequestKey = null;
+
+    saleProvider.clearCart();
+
+    // The sale was written through the database directly, so the provider's
+    // cached counts are a beat behind. Refresh before quoting a number at the
+    // seller -- telling them "0 sales are waiting" immediately after queueing
+    // one is exactly the sort of thing that stops them trusting the queue.
+    await offlineProvider.refreshCounts();
+    if (!mounted) return;
+
+    final pending = offlineProvider.pendingSaleCount;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Saved on this device - no connection. It will upload by itself '
+          'when the network returns. '
+          '${pending == 1 ? '1 sale is' : '$pending sales are'} waiting.',
+        ),
+        backgroundColor: AppColors.warning,
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(
+          label: 'Details',
+          textColor: AppColors.white,
+          onPressed: () => showSyncStatusSheet(context),
+        ),
+      ),
+    );
   }
 
   // Quick action button for app bar (compact, light colors on dark background)
@@ -2614,6 +2727,12 @@ class _SalesScreenState extends State<SalesScreen> {
           ? _buildSkeletonGrid(isDark)
           : Column(
               children: [
+                // Repeated here rather than relied on from MainNavigation: on
+                // Leruma the till is opened as a pushed route, so the strip
+                // that sits above the navigator's body never covers it -- and
+                // this is the one screen where the seller most needs to know
+                // that what they are about to ring up is going into a queue.
+                const OfflineBanner(),
                 // Toolbar row - Location and Sheet only
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

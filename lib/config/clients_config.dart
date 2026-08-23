@@ -165,7 +165,12 @@ class ClientsConfig {
         hasSupervisorByLocation: true,
         hasReceivingCreditCardOnly: true,
         hasNfcCard: true,
-        hasOfflineMode: false,
+        // Leruma's sellers work out of a distribution centre and off vans
+        // where coverage comes and goes. With this off, a checkout with no
+        // network simply failed and the sale was gone; with it on, the sale is
+        // written to SQLite and uploaded by itself under the same request_id,
+        // so it reaches the server exactly once.
+        hasOfflineMode: true,
         // Off for Leruma: the drawer is the one place a seller looks when
         // they cannot find something, and two entries nobody on this
         // deployment opens make the ones they do want harder to see.

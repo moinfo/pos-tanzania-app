@@ -20,6 +20,13 @@ class AuthProvider with ChangeNotifier {
   NotificationProvider? _notificationProvider;
 
   User? _user;
+
+  /// Whether this session was established from cached credentials with no
+  /// server round trip. Such a session must not be torn down by the token
+  /// poll: there is no network to re-authenticate over, and the seller still
+  /// has sales to ring up.
+  bool _isOfflineSession = false;
+  bool get isOfflineSession => _isOfflineSession;
   bool _isLoading = false;
   String? _error;
   bool _isAuthenticated = false;
@@ -135,7 +142,10 @@ class AuthProvider with ChangeNotifier {
       // Clear previous user's cached data before login
       ApiService.clearDashboardCache();
       if (_locationProvider != null) {
-        await _locationProvider!.clear();
+        // Session state only. The full clear() also erases the cached
+        // locations, which an offline sign-in immediately needs -- see
+        // LocationProvider.clearForLogin. Logout still wipes everything.
+        await _locationProvider!.clearForLogin();
       }
 
       // Check if we're offline and offline mode is enabled
@@ -165,6 +175,7 @@ class AuthProvider with ChangeNotifier {
       if (result.isSuccess && result.data != null) {
         _user = result.data;
         _isAuthenticated = true;
+        _isOfflineSession = false;
         _error = null;
         await _persistActiveUserId();
 
@@ -193,6 +204,24 @@ class AuthProvider with ChangeNotifier {
         _isLoading = false;
         notifyListeners();
         return true;
+      } else if (result.statusCode == null && client.features.hasOfflineMode) {
+        // No status code means nobody answered -- the server is unreachable,
+        // which is NOT the same as bad credentials. The connectivity check
+        // above only catches a downed radio; a phone on a shop's wifi with a
+        // dead uplink gets here instead, and without this it is simply refused
+        // entry with "login failed" and cannot sell at all.
+        debugPrint('📴 Server unreachable, attempting offline login');
+        if (await _tryOfflineLogin(username, password)) {
+          debugPrint('✅ Offline login successful (server unreachable)');
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        }
+        _error = 'Cannot reach the server, and there are no saved credentials '
+            'for this user on this device. Connect once to sign in.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
       } else {
         _error = result.message;
         _isLoading = false;
@@ -290,8 +319,28 @@ class AuthProvider with ChangeNotifier {
       final userData = jsonDecode(userJson) as Map<String, dynamic>;
       _user = User.fromJson(userData);
       _isAuthenticated = true;
+      _isOfflineSession = true;
       _error = null;
       await _persistActiveUserId();
+
+      // Put the last online session's JWT back where ApiService looks for it.
+      //
+      // Without this an offline sign-in leaves no token at all, and the
+      // 30-second checkTokenValidity poll reads that as "session revoked" and
+      // signs the seller straight back out -- half a minute after letting them
+      // in, with no network to sign in again with. It also means that the
+      // moment the server comes back, the queued sales have credentials to
+      // upload with instead of waiting for someone to notice.
+      //
+      // The token may well be expired. That is fine and is handled: the server
+      // answers 401, SyncService classifies that as retryable rather than as
+      // the sale's fault, the sale stays queued, and the 401 handler asks the
+      // seller to sign in properly -- by which time they demonstrably have a
+      // connection to do it over.
+      final cachedToken = _user?.token;
+      if (cachedToken != null && cachedToken.isNotEmpty) {
+        await _apiService.saveToken(cachedToken);
+      }
 
       // Load permissions from local storage
       if (_permissionProvider != null) {
@@ -309,6 +358,14 @@ class AuthProvider with ChangeNotifier {
   /// Check if token is still valid (called periodically)
   Future<void> checkTokenValidity() async {
     final token = await _apiService.getToken();
+
+    // An offline session has whatever token the last online sign-in left, or
+    // none at all. Either way the absence of one here is not evidence that the
+    // session was revoked -- only a 401 from a server that actually answered
+    // is that, and _handleUnauthorized covers it.
+    if (token == null && _isOfflineSession) {
+      return;
+    }
 
     // If token was cleared (by 401 handler), log out user
     if (token == null && _isAuthenticated) {

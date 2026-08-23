@@ -1205,61 +1205,31 @@ class SaleProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Submit sale - handles both online and offline scenarios
-  /// Returns a SaleSubmitResult with sale info and offline status
-  Future<SaleSubmitResult> submitSale({
+  /// Record the current cart as a sale that has not reached the server.
+  ///
+  /// [requestId] MUST be the same key the online attempt used (sales_screen
+  /// mints one per cart payload and holds it across retries). That attempt may
+  /// have been received and processed by the server before the connection died
+  /// -- we simply never heard the answer. Carrying its key into the queue is
+  /// what turns the eventual upload into a replay of that sale rather than a
+  /// second one. Minting a new key here would be the duplicate.
+  ///
+  /// The caller is responsible for having decided that the failure was a
+  /// transport failure. A sale the server actively rejected must not be queued.
+  Future<SaleSubmitResult> saveSaleOffline({
+    required Sale sale,
     required OfflineProvider offlineProvider,
     required int employeeId,
-    String? comment,
-    int saleType = 0,
-  }) async {
-    // Create sale
-    final sale = Sale(
-      saleTime: DateTime.now().toIso8601String(),
-      customerId: _selectedCustomer?.personId,
-      employeeId: employeeId,
-      comment: comment,
-      saleStatus: 0,
-      saleType: saleType,
-      subtotal: subtotal,
-      taxTotal: 0,
-      total: total,
-      items: _cartItems,
-      payments: _payments,
-    );
-
-    // Check if online
-    if (offlineProvider.isOnline) {
-      // Online - submit to API
-      try {
-        final response = await _apiService.createSale(sale);
-        if (response.isSuccess && response.data != null) {
-          return SaleSubmitResult(
-            success: true,
-            isOffline: false,
-            saleId: response.data!.saleId,
-            message: 'Sale completed successfully',
-          );
-        } else {
-          // API failed, try to save offline
-          return await _saveOfflineSale(sale, offlineProvider, employeeId);
-        }
-      } catch (e) {
-        // Network error, save offline
-        debugPrint('SaleProvider: Online sale failed, saving offline - $e');
-        return await _saveOfflineSale(sale, offlineProvider, employeeId);
-      }
-    } else {
-      // Offline - save locally
-      return await _saveOfflineSale(sale, offlineProvider, employeeId);
-    }
-  }
+    required String requestId,
+  }) =>
+      _saveOfflineSale(sale, offlineProvider, employeeId, requestId);
 
   /// Save sale to local database when offline
   Future<SaleSubmitResult> _saveOfflineSale(
     Sale sale,
     OfflineProvider offlineProvider,
     int employeeId,
+    String requestId,
   ) async {
     final database = offlineProvider.database;
     if (database == null) {
@@ -1327,7 +1297,12 @@ class SaleProvider with ChangeNotifier {
       }).toList();
 
       // Create local sale with all details
-      final localSaleId = await database.createLocalSale(saleData, items, payments);
+      final localSaleId = await database.createLocalSale(
+        saleData,
+        items,
+        payments,
+        requestId: requestId,
+      );
 
       // Mark one-time discounts as used locally
       for (final discountId in getAppliedDiscountIds()) {

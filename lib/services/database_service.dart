@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 /// Database service for offline data storage
 /// Handles all SQLite operations for the POS Tanzania mobile app
@@ -9,7 +10,7 @@ class DatabaseService {
   static Database? _database;
 
   // Database version - increment when schema changes
-  static const int _databaseVersion = 2;
+  static const int _databaseVersion = 4;
 
   // Private constructor for singleton
   DatabaseService._();
@@ -295,6 +296,13 @@ class DatabaseService {
       CREATE TABLE sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         server_sale_id INTEGER,
+        -- Idempotency key, minted ONCE when the sale is first recorded and
+        -- never again. Every upload attempt for this sale carries it, so
+        -- API_Controller::claim_request_id() replays the original response
+        -- instead of writing a second sale. UNIQUE so a bug that tried to
+        -- reuse one id across two sales fails here, locally, rather than
+        -- silently making the second sale vanish into the first one's replay.
+        request_id TEXT UNIQUE,
         customer_id INTEGER,
         employee_id INTEGER NOT NULL,
         sale_time TEXT NOT NULL,
@@ -341,6 +349,12 @@ class DatabaseService {
         quantity_offer_free REAL DEFAULT 0,
         parent_line INTEGER,
         one_time_discount_id INTEGER,
+        -- The approved discount request this line was priced under. Stored so
+        -- a queued sale keeps the same paperwork an online one has; like the
+        -- online path, it is not transmitted -- the server resolves approvals
+        -- itself -- but without the column the INSERT fails outright and the
+        -- sale cannot be saved at all.
+        approved_request_id INTEGER,
         FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE
       )
     ''');
@@ -898,6 +912,59 @@ class DatabaseService {
         await db.execute('ALTER TABLE customers ADD COLUMN nfc_confirm_required_cash INTEGER DEFAULT 0');
       }
     }
+
+    if (oldVersion < 3) {
+      // v3: sales carry the idempotency key they are uploaded with.
+      //
+      // Not UNIQUE here, unlike the fresh-install schema: SQLite cannot add a
+      // UNIQUE column with ALTER TABLE, and rebuilding the sales table on an
+      // upgrade would put un-uploaded sales at risk for a constraint that only
+      // guards against a bug we do not have. A partial unique INDEX gives the
+      // same protection without touching the existing rows; NULLs are exempt,
+      // which is what we want for the rows migrated below.
+      final existing = await db.rawQuery('PRAGMA table_info(sales)');
+      final cols = existing.map((r) => r['name'] as String).toSet();
+      if (!cols.contains('request_id')) {
+        await db.execute('ALTER TABLE sales ADD COLUMN request_id TEXT');
+        await db.execute(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_request_id '
+          'ON sales (request_id) WHERE request_id IS NOT NULL',
+        );
+
+        // Any sale already queued on an older build has no key. Backfill one
+        // each so it can be uploaded exactly once, rather than leaving it to
+        // upload unguarded. These sales have never reached the server (they
+        // are still queued), so a fresh key is correct for them.
+        const uuid = Uuid();
+        final unkeyed = await db.query(
+          'sales',
+          columns: ['id'],
+          where: 'request_id IS NULL',
+        );
+        for (final row in unkeyed) {
+          await db.update(
+            'sales',
+            {'request_id': uuid.v4()},
+            where: 'id = ?',
+            whereArgs: [row['id']],
+          );
+        }
+        debugPrint('DatabaseService: v3 backfilled ${unkeyed.length} sale request ids');
+      }
+
+    }
+
+    if (oldVersion < 4) {
+      // v4: the offline sale writer has always written this column; the table
+      // never had it, so every attempt to save a sale offline died with
+      // "table sale_items has no column named approved_request_id" and the
+      // sale was lost. Adding it is what makes that path run at all.
+      final itemCols = await db.rawQuery('PRAGMA table_info(sale_items)');
+      final itemColNames = itemCols.map((r) => r['name'] as String).toSet();
+      if (!itemColNames.contains('approved_request_id')) {
+        await db.execute('ALTER TABLE sale_items ADD COLUMN approved_request_id INTEGER');
+      }
+    }
   }
 
   /// Delete database (for testing or reset)
@@ -1205,13 +1272,27 @@ class DatabaseService {
   // SALES OPERATIONS
   // =====================================================
 
-  /// Create a local sale (offline)
-  Future<int> createLocalSale(Map<String, dynamic> sale, List<Map<String, dynamic>> items, List<Map<String, dynamic>> payments) async {
+  /// Create a local sale (offline).
+  ///
+  /// [requestId] is the idempotency key this sale will be uploaded under. Pass
+  /// the one the failed online attempt already used -- that attempt may have
+  /// reached the server and been answered into a dead socket, and reusing its
+  /// key is what makes the upload return that same sale instead of creating a
+  /// second one. Omitted only when the sale never had an online attempt, in
+  /// which case a fresh key is minted here. Either way the key is written once
+  /// and every later attempt reads it back from this row.
+  Future<int> createLocalSale(
+    Map<String, dynamic> sale,
+    List<Map<String, dynamic>> items,
+    List<Map<String, dynamic>> payments, {
+    String? requestId,
+  }) async {
     if (_database == null) throw Exception('Database not initialized');
 
     return await _database!.transaction((txn) async {
       // Insert sale
       sale['sync_status'] = syncStatusPending;
+      sale['request_id'] = requestId ?? const Uuid().v4();
       sale['created_at'] = DateTime.now().toIso8601String();
       sale['updated_at'] = DateTime.now().toIso8601String();
 
@@ -1231,6 +1312,32 @@ class DatabaseService {
         paymentData['sale_id'] = saleId;
         paymentData['payment_time'] = DateTime.now().toIso8601String();
         await txn.insert('sale_payments', paymentData);
+      }
+
+      // Draw the sold quantity down in the local cache, in the same
+      // transaction as the sale.
+      //
+      // This does NOT reserve anything -- the server is the only authority on
+      // stock and it cannot be told about this sale yet. What it does is keep
+      // THIS device honest: without it a seller looking at a cached quantity
+      // could ring up the last carton five times in a row and be shown stock
+      // in hand every time. Across devices nothing can be done offline, and
+      // the server settles that at upload time by refusing the losers.
+      //
+      // Deliberately not restored if the upload later fails: the next master
+      // data sync overwrites these rows with the server's real numbers, which
+      // is the only figure worth trusting anyway.
+      for (final item in items) {
+        final itemId = item['item_id'];
+        final locationId = item['item_location'] ?? sale['stock_location_id'];
+        final quantity = (item['quantity_purchased'] as num?)?.toDouble() ?? 0;
+        if (itemId == null || locationId == null || quantity == 0) continue;
+
+        await txn.rawUpdate(
+          'UPDATE item_quantities SET quantity = quantity - ? '
+          'WHERE item_id = ? AND location_id = ?',
+          [quantity, itemId, locationId],
+        );
       }
 
       // Add to sync queue
@@ -1323,7 +1430,10 @@ class DatabaseService {
       'sync_queue',
       where: where,
       whereArgs: whereArgs,
-      orderBy: 'priority DESC, created_at ASC',
+      // id breaks the tie: created_at has one-second resolution, and two sales
+      // rung up in the same second must still upload in the order they were
+      // made -- the receipt sequence the seller handed out depends on it.
+      orderBy: 'priority DESC, created_at ASC, id ASC',
       limit: limit,
     );
   }
@@ -1352,6 +1462,27 @@ class DatabaseService {
     }
   }
 
+  /// Note an attempt that failed without the server ever answering.
+  ///
+  /// Deliberately does NOT touch retry_count. A phone that spends a week out
+  /// of coverage would otherwise burn through max_retries against a server it
+  /// never spoke to and mark perfectly good sales as permanently failed. Only
+  /// a real answer from the server is evidence worth counting against a sale.
+  Future<void> recordSyncQueueAttempt(int id, String error) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    await _database!.update(
+      'sync_queue',
+      {
+        'sync_status': syncStatusPending,
+        'last_attempted_at': DateTime.now().toIso8601String(),
+        'error_message': error,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   /// Remove from sync queue (after successful sync)
   Future<void> removeSyncQueueItem(int id) async {
     if (_database == null) throw Exception('Database not initialized');
@@ -1369,6 +1500,48 @@ class DatabaseService {
     final failed = Sqflite.firstIntValue(
       await _database!.rawQuery('SELECT COUNT(*) FROM sync_queue WHERE sync_status = ?', [syncStatusFailed])
     ) ?? 0;
+
+    return {'pending': pending, 'failed': failed};
+  }
+
+  /// Sales that have not reached the server yet, newest first, with the queue
+  /// state joined on so the seller can see WHY one is stuck rather than only
+  /// that it is. Drives the sync sheet's list.
+  ///
+  /// Sales whose queue row is gone but which are still marked unsynced would
+  /// be invisible to a plain join, so this reads from `sales` and pulls the
+  /// queue row in on the left.
+  Future<List<Map<String, dynamic>>> getUnsyncedSales({int limit = 100}) async {
+    if (_database == null) return [];
+
+    return await _database!.rawQuery('''
+      SELECT s.id, s.request_id, s.sale_time, s.total, s.customer_id,
+             s.sync_status, s.sync_error, s.server_sale_id,
+             q.retry_count, q.error_message, q.last_attempted_at,
+             q.sync_status AS queue_status
+      FROM sales s
+      LEFT JOIN sync_queue q
+        ON q.entity_type = 'sale' AND q.entity_id = s.id
+      WHERE s.sync_status != ?
+      ORDER BY s.created_at DESC, s.id DESC
+      LIMIT ?
+    ''', [syncStatusSynced, limit]);
+  }
+
+  /// Count of sales the seller is still owed an upload for, split by whether
+  /// the queue has given up on them. Cheaper than loading the list for a badge.
+  Future<Map<String, int>> getUnsyncedSaleCounts() async {
+    if (_database == null) return {'pending': 0, 'failed': 0};
+
+    final pending = Sqflite.firstIntValue(await _database!.rawQuery(
+      'SELECT COUNT(*) FROM sales WHERE sync_status = ?',
+      [syncStatusPending],
+    )) ?? 0;
+
+    final failed = Sqflite.firstIntValue(await _database!.rawQuery(
+      'SELECT COUNT(*) FROM sales WHERE sync_status = ?',
+      [syncStatusFailed],
+    )) ?? 0;
 
     return {'pending': pending, 'failed': failed};
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../providers/offline_provider.dart';
 import '../widgets/offline_indicator.dart';
 import '../config/clients_config.dart';
 import '../models/client_config.dart';
@@ -97,6 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState?.validate() == false) return;
 
     final authProvider = context.read<AuthProvider>();
+    // Captured before the await: it is needed after sign-in, and reading it
+    // off `context` there would be a read across an async gap.
+    final offlineProvider = context.read<OfflineProvider>();
     final success = await authProvider.login(
       _usernameController.text.trim(),
       _passwordController.text,
@@ -118,6 +123,15 @@ class _LoginScreenState extends State<LoginScreen> {
         userLocationId: context.read<AuthProvider>().user?.locationId,
       );
 
+      // The offline cache is only fillable once there is a token: the sync at
+      // app start runs before sign-in and every request it makes is refused.
+      // Filling it now is what gives a seller items and customers to work with
+      // when they later lose the network. Not awaited -- it is a background
+      // top-up, and the seller should not be held on the login screen for it.
+      if (offlineProvider.isInitialized) {
+        unawaited(offlineProvider.syncMasterData());
+      }
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainNavigation()),
@@ -135,6 +149,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// Handle biometric login
   Future<void> _loginWithBiometric() async {
+    // Read before the first await: everything below this point sits after an
+    // async gap, where reading providers off `context` is not safe.
+    final offlineProvider = context.read<OfflineProvider>();
+
     try {
       // 1. Authenticate with biometric
       final authenticated = await _biometricService.authenticate(
@@ -184,6 +202,15 @@ class _LoginScreenState extends State<LoginScreen> {
         moduleId: 'sales',
         userLocationId: context.read<AuthProvider>().user?.locationId,
       );
+
+        // The offline cache is only fillable once there is a token: the sync at
+        // app start runs before sign-in and every request it makes is refused.
+        // Filling it now is what gives a seller items and customers to work with
+        // when they later lose the network. Not awaited -- it is a background
+        // top-up, and the seller should not be held on the login screen for it.
+        if (offlineProvider.isInitialized) {
+          unawaited(offlineProvider.syncMasterData());
+        }
 
         if (mounted) {
           Navigator.of(context).pushReplacement(
