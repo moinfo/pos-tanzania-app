@@ -1928,6 +1928,19 @@ class _SalesScreenState extends State<SalesScreen> {
             icon: const Icon(Icons.share),
             label: const Text('Share'),
           ),
+          // The dialog has always said "share or SMS" but offered only Share.
+          // The import for this was still at the top of the file, so the
+          // button was removed at some point and nothing noticed. Restored as
+          // the same pair the sales history screen carries, which is what its
+          // own comment claims to match.
+          TextButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              ReceiptSms.send(context, sale, phone: sale.customerPhone);
+            },
+            icon: const Icon(Icons.sms_outlined),
+            label: const Text('SMS'),
+          ),
         ],
       ),
     );
