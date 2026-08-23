@@ -46,7 +46,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
         _modalData = response.data;
         // Default all returnable items to 0
         for (final item in _modalData!.items) {
-          if (!item.isAutoReturned && item.remainingQty > 0) {
+          if (!item.isAutoReturnedIn(_modalData!.items) && item.remainingQty > 0) {
             _selectedQty[item.line] = 0;
           }
         }
@@ -59,11 +59,16 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
   /// The paid lines. Free offer lines are not chosen by the operator -- they
   /// come back automatically with whatever earned them, see [_freeLinesFor].
   ///
-  /// isAutoReturned, not quantityOfferFree: a free line with a known trigger
-  /// comes back on its own, but a free line with NO trigger -- sale 81215 has
-  /// one -- has to stay selectable or its stock could never come back at all.
+  /// isAutoReturnedIn, not quantityOfferFree: a free line whose trigger is
+  /// still returnable comes back on its own, but one with NO trigger (sale
+  /// 81215) or whose trigger is already fully returned has to stay selectable,
+  /// or its stock could never come back at all.
   List<ReturnableItem> get _returnableItems =>
-      _modalData?.items.where((i) => !i.isAutoReturned && i.remainingQty > 0).toList() ?? [];
+      _modalData?.items
+          .where((i) =>
+              !i.isAutoReturnedIn(_modalData!.items) && i.remainingQty > 0)
+          .toList() ??
+      [];
 
   /// Free lines that must go back because a line that earned them is going
   /// back.
@@ -77,8 +82,9 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
   /// give back half a reward.
   Map<int, int> _freeLinesFor(Set<int> returningLines) {
     final extra = <int, int>{};
-    for (final item in _modalData?.items ?? const <ReturnableItem>[]) {
-      if (!item.isAutoReturned || item.remainingQty <= 0) continue;
+    final items = _modalData?.items ?? const <ReturnableItem>[];
+    for (final item in items) {
+      if (!item.isAutoReturnedIn(items) || item.remainingQty <= 0) continue;
 
       final triggers = <int>{
         if (item.parentLine != null) item.parentLine!,

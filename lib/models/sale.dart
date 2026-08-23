@@ -499,7 +499,22 @@ class ReturnableItem {
   bool get hasOfferTrigger => parentLine != null || groupTriggerLines.isNotEmpty;
 
   /// Comes back on its own, so it must not appear in the picker.
-  bool get isAutoReturned => isFreeLine && hasOfferTrigger;
+  ///
+  /// Needs the sale's other lines, because "has a trigger" is not enough: if
+  /// the line that earned this one has ALREADY been returned in full, nothing
+  /// can ever trigger it again, and hiding it would strand its stock forever.
+  /// The web makes the same distinction (views/sales/manage.php:133) --
+  /// selectable when the parent is missing OR already at zero remaining.
+  bool isAutoReturnedIn(List<ReturnableItem> all) {
+    if (!isFreeLine || !hasOfferTrigger) return false;
+
+    final triggers = <int>{
+      if (parentLine != null) parentLine!,
+      ...groupTriggerLines,
+    };
+
+    return all.any((i) => triggers.contains(i.line) && i.remainingQty > 0);
+  }
 
   const ReturnableItem({
     required this.line,
