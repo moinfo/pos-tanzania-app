@@ -171,6 +171,7 @@ class ClientsConfig {
         // deployment opens make the ones they do want harder to see.
         hasTRA: false,
         hasFinancialBanking: false,
+        hasBanking: false,
         hasOutOfStockSelling: true, // Leruma sells on credit, stock checked server-side
         hasSaleSheetButton: true, // Suspended sheet button in sales top bar
         hasInlineCartPreview: true, // Compact cart preview above item grid

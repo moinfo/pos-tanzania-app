@@ -145,6 +145,42 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   // - SADA: Home, Sales, Expenses, Summary, Contracts, Reports (or Transactions if no stock location)
   // - Leruma: Home, Sales, Expenses, Credits, Seller (Summary + Reports in drawer)
   // - Come & Save: Home, Sales, Expenses, Summary, Reports (or Transactions if no stock location)
+  /// Sign out, once the user has said so twice.
+  ///
+  /// Lifted out of the drawer list when the action moved into the header: an
+  /// icon is easier to hit by accident than a labelled row, so the
+  /// confirmation is doing more work than it used to.
+  Future<void> _confirmLogout(BuildContext context) async {
+    Navigator.pop(context);
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !context.mounted) return;
+
+    await context.read<AuthProvider>().logout();
+    if (!context.mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
+
   /// Put the seller in front of the till.
   ///
   /// Both ways into suspended sales end here, because resuming loads the cart
@@ -734,25 +770,80 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // Profile picture (Leruma feature) or default icon
-                  _buildDrawerAvatar(user, isDark),
-                  const SizedBox(height: 12),
+                  // Update, settings and sign-out live up here rather than as
+                  // three more rows at the bottom of a menu the seller already
+                  // has to scroll. They are things you do TO the app, not with
+                  // it, and they belong beside the account they apply to.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Profile picture (Leruma feature) or default icon
+                      _buildDrawerAvatar(user, isDark),
+                      const Spacer(),
+                      Consumer<UpdateProvider>(
+                        builder: (context, updates, _) => _DrawerHeaderAction(
+                          icon: Icons.system_update,
+                          tooltip: updates.updateAvailable
+                              ? 'Update available'
+                              : 'App update',
+                          // The dot is the only nagging that survives "Later".
+                          // It is passive, it blocks nothing, and it is how the
+                          // user knows the update did not simply vanish.
+                          showDot: updates.updateAvailable,
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const AppUpdateScreen()),
+                            );
+                          },
+                        ),
+                      ),
+                      _DrawerHeaderAction(
+                        icon: Icons.settings,
+                        tooltip: 'Settings',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                          );
+                        },
+                      ),
+                      _DrawerHeaderAction(
+                        icon: Icons.logout,
+                        tooltip: 'Log out',
+                        onTap: () => _confirmLogout(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                   Text(
                     user?.displayName ?? 'User',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isDark ? AppColors.darkText : Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (user?.email != null && user!.email!.isNotEmpty)
-                    Text(
-                      user.email!,
+                  // The installed version comes along with the update button,
+                  // so the number stays visible without costing a row.
+                  Consumer<UpdateProvider>(
+                    builder: (context, updates, _) => Text(
+                      updates.updateAvailable
+                          ? 'Version ${updates.installedLabel} · update available'
+                          : 'Version ${updates.installedLabel}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: isDark ? AppColors.darkTextLight : Colors.white70,
-                        fontSize: 14,
+                        fontSize: 12.5,
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -1064,8 +1155,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ),
               ),
             // 6. Banking - requires cash_submit_banking permission
-            // Hidden for leruma clients (they use Financial Banking instead)
-            if (!(ApiService.currentClient?.features.hasFinancialBanking ?? false))
+            //
+            // Keyed on its own flag, not on the absence of Financial Banking.
+            // That inverse was a proxy for "Leruma uses the other one", and it
+            // broke the moment Financial Banking was switched off for Leruma:
+            // hiding one entry silently un-hid the other.
+            if (ApiService.currentClient?.features.hasBanking ?? true)
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmitBanking,
                 child: ListTile(
@@ -1313,90 +1408,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   );
                 },
               ),
-            ),
-            const Divider(),
-            // Sits beside Settings, not buried in it, because this is also
-            // where a deferred update has to remain findable. The dot is the
-            // only nagging that survives "Later" -- it is passive, it blocks
-            // nothing, and it is how the user knows the update did not vanish.
-            Consumer<UpdateProvider>(
-              builder: (context, updates, _) => ListTile(
-                leading: Icon(Icons.system_update,
-                    color: AppColors.brandPrimary),
-                title: const Text('App Update'),
-                subtitle: Text(
-                  updates.updateAvailable
-                      ? 'Version ${updates.latest?.versionName ?? ''} available'
-                      : 'Version ${updates.installedLabel}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: updates.updateAvailable
-                        ? AppColors.success
-                        : AppColors.muted(context),
-                  ),
-                ),
-                trailing: updates.updateAvailable
-                    ? Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: AppColors.success,
-                          shape: BoxShape.circle,
-                        ),
-                      )
-                    : null,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AppUpdateScreen()),
-                  );
-                },
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.settings, color: AppColors.brandPrimary),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout, color: AppColors.error),
-              title: const Text('Logout'),
-              onTap: () async {
-                Navigator.pop(context);
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Logout'),
-                    content: const Text('Are you sure you want to logout?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Logout'),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm == true && context.mounted) {
-                  await context.read<AuthProvider>().logout();
-                  if (context.mounted) {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
-                  }
-                }
-              },
             ),
           ],
         ),
@@ -1789,6 +1800,63 @@ class _DrawerGroupTitle extends StatelessWidget {
           fontWeight: FontWeight.w800,
           letterSpacing: 1.1,
           color: Color(0xFF6B7684),
+        ),
+      ),
+    );
+  }
+}
+
+/// One of the small actions in the drawer header.
+///
+/// White on the header's own colour rather than the brand blue the list rows
+/// use -- these sit ON the header, not under it.
+class _DrawerHeaderAction extends StatelessWidget {
+  const _DrawerHeaderAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.showDot = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  /// A quiet marker, not a count. Used for "an update is waiting".
+  final bool showDot;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final colour = dark ? AppColors.darkText : Colors.white;
+
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 22,
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(icon, size: 21, color: colour),
+              if (showDot)
+                Positioned(
+                  right: -1,
+                  top: -1,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: AppColors.success,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colour, width: 1),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
