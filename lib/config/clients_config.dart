@@ -166,8 +166,11 @@ class ClientsConfig {
         hasReceivingCreditCardOnly: true,
         hasNfcCard: true,
         hasOfflineMode: false,
-        hasTRA: true,
-        hasFinancialBanking: true,
+        // Off for Leruma: the drawer is the one place a seller looks when
+        // they cannot find something, and two entries nobody on this
+        // deployment opens make the ones they do want harder to see.
+        hasTRA: false,
+        hasFinancialBanking: false,
         hasOutOfStockSelling: true, // Leruma sells on credit, stock checked server-side
         hasSaleSheetButton: true, // Suspended sheet button in sales top bar
         hasInlineCartPreview: true, // Compact cart preview above item grid

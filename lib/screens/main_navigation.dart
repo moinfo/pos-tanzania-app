@@ -946,13 +946,13 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     title: const Text('New Sales'),
                     onTap: () {
                       Navigator.pop(context);
-                      // Find the Sales screen index in availableScreens
-                      final salesIndex = availableScreens.indexWhere(
-                        (config) => config['label'] == 'Sales'
-                      );
-                      if (salesIndex != -1) {
-                        _onItemTapped(salesIndex);
-                      }
+                      // _openSales, not a tab lookup. Leruma has no Sales tab
+                      // any more -- Payment Summary took the slot -- so
+                      // indexWhere returned -1 and this entry silently did
+                      // nothing at all. The shared helper switches to the tab
+                      // where there is one and pushes the till where there is
+                      // not, so it works for every client.
+                      _openSales();
                     },
                   ),
                 ),
@@ -1181,25 +1181,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     ),
                   ),
                 ],
-              ),
-            // The till, for Leruma only. Every other client reaches it from
-            // the bottom bar; here Payment Summary holds that slot, so without
-            // this entry there would be no way to start a sale at all.
-            if (ApiService.currentClient?.id == 'leruma')
-              PermissionWrapper(
-                permissionId: PermissionIds.sales,
-                child: ListTile(
-                  leading: Icon(Icons.shopping_cart, color: AppColors.brandPrimary),
-                  title: const Text('Sales'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => SalesScreen(key: UniqueKey())),
-                    );
-                  },
-                ),
               ),
             const _DrawerGroupTitle('INSIGHTS'),
             // Payment Summary sits with Seller Report, not under Sales: it is
