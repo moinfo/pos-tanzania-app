@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -253,6 +255,19 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           saleProvider.addSaleItem(cleanItem);
         }
 
+        // A suspended sale records what was sold, not what is left, so the
+        // restored lines carry no stock figure and the cart shows none beside
+        // any of them. One lookup fills them all in, scoped to the location
+        // the sale is being resumed into.
+        //
+        // Deliberately not awaited: the seller should not wait on a number
+        // that is helpful rather than required, and applyStockLevels notifies
+        // once it lands.
+        final resumeLocationId = locationProvider.selectedLocation?.locationId;
+        if (resumeLocationId != null) {
+          unawaited(_fillCartStock(saleProvider, resumeLocationId));
+        }
+
         // Restore any partial payment taken before this sale was suspended --
         // api/Sales::suspend now records it, and dropping it here would make
         // it look like nothing had been paid, letting the seller collect the
@@ -331,6 +346,39 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           backgroundColor: AppColors.error,
         ),
       );
+    }
+  }
+
+  /// Look up current stock for whatever is now in the cart.
+  ///
+  /// One request for the whole cart rather than one per line: a resumed sale
+  /// of eight items should not cost eight round trips on a phone connection.
+  Future<void> _fillCartStock(SaleProvider saleProvider, int locationId) async {
+    try {
+      final ids = saleProvider.cartItems.map((i) => i.itemId).toSet();
+      if (ids.isEmpty) return;
+
+      final response = await _apiService.getItems(
+        locationId: locationId,
+        lean: true,
+        limit: 1000,
+      );
+
+      if (!response.isSuccess || response.data == null) return;
+
+      final stock = <int, double>{};
+      for (final item in response.data!) {
+        if (!ids.contains(item.itemId)) continue;
+        // Branch figure first: `quantity` is the total across every location.
+        stock[item.itemId] =
+            item.quantityByLocation?[locationId] ?? item.quantity;
+      }
+
+      saleProvider.applyStockLevels(stock);
+    } catch (e) {
+      // A missing stock figure is a cosmetic loss. It must never be the reason
+      // a resumed sale fails to open.
+      debugPrint('Could not fill cart stock: $e');
     }
   }
 

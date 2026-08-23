@@ -311,7 +311,12 @@ class SaleProvider with ChangeNotifier {
         discountType: 1, // Fixed (changed from 0=Percentage to 1=Fixed)
         discountLimit: item.discountLimit,
         stockLocationId: itemLocationId, // Use selected location
-        availableStock: item.quantity, // Store available stock for display
+        // The BRANCH figure, not the company one. `quantity` is the total
+        // across every location -- for one item on this deployment that reads
+        // 20 while the branch actually holds 0. Showing 20 beside a line the
+        // seller cannot fulfil is worse than showing nothing at all.
+        availableStock:
+            item.quantityByLocation?[itemLocationId] ?? item.quantity,
       );
       _cartItems.add(saleItem);
     }
@@ -330,6 +335,28 @@ class SaleProvider with ChangeNotifier {
   }
 
   // Add SaleItem directly to cart (used for resuming suspended sales)
+  /// Fill in what each cart line has on the shelf.
+  ///
+  /// Items added by the seller carry their stock from the search that found
+  /// them. Items restored from a suspended sale do not -- the server sends
+  /// what was sold, not what is left -- so every resumed line showed no stock
+  /// at all until this ran.
+  ///
+  /// Silent about ids it was not given: a line whose item has since been
+  /// deleted keeps its null and simply shows nothing, which is honest.
+  void applyStockLevels(Map<int, double> stockByItemId) {
+    var changed = false;
+
+    for (var i = 0; i < _cartItems.length; i++) {
+      final stock = stockByItemId[_cartItems[i].itemId];
+      if (stock == null) continue;
+      _cartItems[i] = _cartItems[i].copyWith(availableStock: stock);
+      changed = true;
+    }
+
+    if (changed) notifyListeners();
+  }
+
   void addSaleItem(SaleItem item) {
     final saleItem = item.copyWith(line: _cartItems.length + 1);
     _cartItems.add(saleItem);
