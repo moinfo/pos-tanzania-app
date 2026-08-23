@@ -126,6 +126,17 @@ class ApprovalDetail {
   final int? stockLocationId;
   final double? quantity;
   final double? discountAmount;
+
+  /// What the item sells for, and the most that may be taken off it.
+  ///
+  /// Here so an approver can judge a request rather than only read it: "200
+  /// off" means nothing until you know whether the item is 5,700 or 38,000.
+  ///
+  /// discountLimit is 0 on all but twelve of the 1,283 items, so 0 means "no
+  /// limit has been set", not "no discount allowed". Anything reading it must
+  /// treat those differently or it will flag every request on the system.
+  final double? unitPrice;
+  final double? discountLimit;
   final String? validDate;
 
   // Credit-limit-only
@@ -147,6 +158,8 @@ class ApprovalDetail {
     this.stockLocationId,
     this.quantity,
     this.discountAmount,
+    this.unitPrice,
+    this.discountLimit,
     this.validDate,
     this.creditAmount,
     this.previousAmount,
@@ -169,6 +182,28 @@ class ApprovalDetail {
   double? get perUnitAmount =>
       kind == ApprovalKind.discount ? discountAmount : null;
 
+  /// What the customer would pay per unit if this were approved.
+  double? get priceAfterDiscount => (unitPrice == null || unitPrice! <= 0)
+      ? null
+      : unitPrice! - (discountAmount ?? 0);
+
+  /// The discount as a share of the price -- the one number an approver can
+  /// judge at a glance. 3.5% and 8.8% are different decisions; "200 off" and
+  /// "500 off" on their own are not.
+  double? get discountPercent => (unitPrice == null || unitPrice! <= 0)
+      ? null
+      : (discountAmount ?? 0) / unitPrice! * 100;
+
+  /// A limit worth showing. Zero means nobody set one.
+  double? get effectiveDiscountLimit =>
+      (discountLimit != null && discountLimit! > 0) ? discountLimit : null;
+
+  /// True only when a limit exists AND this request is over it.
+  bool get exceedsDiscountLimit {
+    final limit = effectiveDiscountLimit;
+    return limit != null && (discountAmount ?? 0) > limit;
+  }
+
   factory ApprovalDetail.fromJson(Map<String, dynamic> json, String? modelType) {
     return ApprovalDetail(
       kind: approvalKindFrom(modelType),
@@ -183,6 +218,9 @@ class ApprovalDetail {
       quantity: json['quantity'] == null ? null : _asDouble(json['quantity']),
       discountAmount:
           json['discount_amount'] == null ? null : _asDouble(json['discount_amount']),
+      unitPrice: json['unit_price'] == null ? null : _asDouble(json['unit_price']),
+      discountLimit:
+          json['discount_limit'] == null ? null : _asDouble(json['discount_limit']),
       validDate: _asString(json['valid_date']),
       creditAmount:
           json['credit_amount'] == null ? null : _asDouble(json['credit_amount']),

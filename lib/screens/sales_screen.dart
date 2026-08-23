@@ -209,6 +209,12 @@ class _SalesScreenState extends State<SalesScreen> {
                 );
               },
             ),
+      // Only when pushed. As a tab MainNavigation draws this bar already, and
+      // drawing a second one is what put two stacked navigation bars on the
+      // suspended-sales screen. Pushed from the drawer there is none, and the
+      // seller was left with only the back arrow to get anywhere.
+      bottomNavigationBar:
+          widget.embedded ? null : const AppBottomNavigation(currentIndex: -1),
     );
   }
 
@@ -802,6 +808,23 @@ class _SalesScreenState extends State<SalesScreen> {
     final groupOffer = saleProvider.getGroupOfferForItem(item.itemId);
 
     final badges = <Widget>[
+      // What is left on the shelf. A badge rather than part of the price line:
+      // sharing that line meant "3 × 77,000 TSh" was truncated to "3 × 77,00..."
+      // to make room, and the unit price is the thing a seller checks most.
+      //
+      // Red once the cart exceeds the shelf, amber when it is close. That is
+      // the case worth interrupting for -- a seller needs to know while adding,
+      // not when Charge fails.
+      if (item.availableStock != null)
+        _saleBadge(
+          icon: Icons.inventory_2_outlined,
+          label: 'Stock ${item.availableStock!.toStringAsFixed(0)}',
+          color: item.availableStock! < item.quantity
+              ? _sale.danger
+              : item.availableStock! <= item.quantity * 2
+                  ? _sale.warning
+                  : _sale.textFaint,
+        ),
       // Per-item discount (tap to edit, capped at the item's discount limit)
       if (discountLimit > 0)
         _saleBadge(
@@ -986,50 +1009,18 @@ class _SalesScreenState extends State<SalesScreen> {
                       color: _sale.textPrimary),
                 ),
                 const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        isFree
-                            // Show how many units are free -- the reward line has
-                            // no quantity pill, so this is the only place it
-                            // appears
-                            ? '🎁 ${item.quantity.toStringAsFixed(0)} free · offer'
-                            : '${item.quantity.toStringAsFixed(0)} × ${_currencyFormat.format(item.unitPrice)} TSh',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isFree ? _sale.success : _sale.textMuted),
-                      ),
-                    ),
-                    // What is left on the shelf, on the same line rather than a
-                    // new one -- a cart of eight items should not get taller
-                    // just to carry a number that is usually reassuring.
-                    //
-                    // It earns its own colour because the one case that matters
-                    // is the cart already exceeding the shelf: the seller needs
-                    // to see that while adding, not at Charge.
-                    if (item.availableStock != null) ...[
-                      Text(
-                        '  ·  ',
-                        style: TextStyle(fontSize: 12, color: _sale.textMuted),
-                      ),
-                      Text(
-                        'Stock ${item.availableStock!.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: item.availableStock! < item.quantity
-                              ? _sale.danger
-                              : item.availableStock! <= item.quantity * 2
-                                  ? _sale.warning
-                                  : _sale.textMuted,
-                        ),
-                      ),
-                    ],
-                  ],
+                Text(
+                  isFree
+                      // Show how many units are free -- the reward line has no
+                      // quantity pill, so this is the only place it appears
+                      ? '🎁 ${item.quantity.toStringAsFixed(0)} free · offer'
+                      : '${item.quantity.toStringAsFixed(0)} × ${_currencyFormat.format(item.unitPrice)} TSh',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isFree ? _sale.success : _sale.textMuted),
                 ),
                 if (!isFree) _buildLerumaLineBadges(saleProvider, item, index),
               ],

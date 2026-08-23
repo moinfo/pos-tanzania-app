@@ -1548,6 +1548,33 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
               _Field(label: 'Customer', value: detail?.customerName ?? '-', isDark: isDark),
               if (isDiscount) ...[
                 _Field(label: 'Item', value: detail?.itemName ?? '-', isDark: isDark),
+                // The numbers the decision actually turns on. Without them an
+                // approver reads "300 x 200" with no way to tell whether 200
+                // off is generous or trivial -- it is 3.5% of an AFYA BERRY
+                // and 0.5% of a bag of AZAM NGANO.
+                if (detail?.unitPrice != null && detail!.unitPrice! > 0) ...[
+                  _Field(
+                    label: 'Selling price',
+                    value: '${widget.money.format(detail.unitPrice)} TSh',
+                    isDark: isDark,
+                  ),
+                  _Field(
+                    label: 'Customer pays',
+                    value: '${widget.money.format(detail.priceAfterDiscount)} TSh'
+                        '  ·  ${detail.discountPercent!.toStringAsFixed(1)}% off',
+                    isDark: isDark,
+                  ),
+                ],
+                // Only when somebody set one. It is unset on all but twelve of
+                // the 1,283 items, and a "Limit 0" on every other request would
+                // train the approver to ignore the line that matters.
+                if (detail?.effectiveDiscountLimit != null)
+                  _Field(
+                    label: 'Discount limit',
+                    value: '${widget.money.format(detail!.effectiveDiscountLimit)} TSh per unit'
+                        '${detail.exceedsDiscountLimit ? '  ·  EXCEEDED' : ''}',
+                    isDark: isDark,
+                  ),
                 _Field(label: 'Location', value: detail?.locationName ?? '-', isDark: isDark),
                 _Field(
                   label: 'Requested by',
