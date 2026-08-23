@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/connectivity_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
 import '../models/stock_location.dart';
@@ -510,6 +511,76 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   ///
   /// A seller with a single granted store gets a plain label -- there is nothing
   /// to switch to, and a chevron would imply otherwise.
+  /// What to show when not one screen survived the permission filter.
+  ///
+  /// This used to read "No access to any screens" -- true, unhelpful, and
+  /// wrong most of the time it appeared. A seller who installs the app and
+  /// signs in with no network has no cached permissions and no cached
+  /// locations, because both are written by a SUCCESSFUL ONLINE sign-in. The
+  /// screen list comes out empty and the drawer with it, and the app looks
+  /// broken rather than un-primed.
+  ///
+  /// Two genuinely different situations, so two different messages.
+  Widget _buildNoScreensState(bool isDark) {
+    final offline = context.watch<ConnectivityProvider>().isOffline;
+    final permissions = context.watch<PermissionProvider>();
+    final nothingCached = permissions.permissions.isEmpty;
+    final firstRunOffline = offline && nothingCached;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              firstRunOffline ? Icons.cloud_off : Icons.lock_outline,
+              size: 56,
+              color: AppColors.muted(context),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              firstRunOffline
+                  ? 'Connect once to set up this device'
+                  : 'No screens are available to you',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink(context),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              firstRunOffline
+                  ? 'Your permissions and stock locations are downloaded the '
+                      'first time you sign in with a connection. Until that has '
+                      'happened once, there is nothing saved on this phone to '
+                      'work from offline.'
+                  : 'Your account has no permission for any part of the app. '
+                      'Ask an administrator to grant you access.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13.5, color: AppColors.muted(context)),
+            ),
+            if (firstRunOffline) ...[
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () async {
+                  final permissionProvider = context.read<PermissionProvider>();
+                  final locationProvider = context.read<LocationProvider>();
+                  await permissionProvider.fetchPermissions();
+                  await locationProvider.initialize();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try again'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStoreSwitcher() {
     return Consumer<LocationProvider>(
       builder: (context, locationProvider, child) {
@@ -517,9 +588,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         final canSwitch = locationProvider.hasMultipleLocations;
 
         if (selected == null) {
-          return const Center(
+          // The client's own name, not the generic app name. A Leruma seller
+          // seeing "POS Tanzania" above an empty screen has no idea whether
+          // they opened the wrong app.
+          return Center(
             child: Text(
-              AppConstants.appName,
+              ApiService.currentClient?.displayName ?? AppConstants.appName,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -1431,7 +1505,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           Expanded(
             child: availableScreens.isNotEmpty
                 ? availableScreens[_selectedIndex]['screen'] as Widget
-                : const Center(child: Text('No access to any screens')),
+                : _buildNoScreensState(isDark),
           ),
         ],
       ),
