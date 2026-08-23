@@ -46,7 +46,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
         _modalData = response.data;
         // Default all returnable items to 0
         for (final item in _modalData!.items) {
-          if (!item.quantityOfferFree && item.remainingQty > 0) {
+          if (!item.isAutoReturned && item.remainingQty > 0) {
             _selectedQty[item.line] = 0;
           }
         }
@@ -56,9 +56,41 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
     });
   }
 
-  // Returnable items only (exclude free offer items)
+  /// The paid lines. Free offer lines are not chosen by the operator -- they
+  /// come back automatically with whatever earned them, see [_freeLinesFor].
+  ///
+  /// isAutoReturned, not quantityOfferFree: a free line with a known trigger
+  /// comes back on its own, but a free line with NO trigger -- sale 81215 has
+  /// one -- has to stay selectable or its stock could never come back at all.
   List<ReturnableItem> get _returnableItems =>
-      _modalData?.items.where((i) => !i.quantityOfferFree && i.remainingQty > 0).toList() ?? [];
+      _modalData?.items.where((i) => !i.isAutoReturned && i.remainingQty > 0).toList() ?? [];
+
+  /// Free lines that must go back because a line that earned them is going
+  /// back.
+  ///
+  /// The web does this at submit time (views/sales/manage.php:376-393) and the
+  /// app did not, so returning the paid item left the customer with the
+  /// giveaway and its stock never came back.
+  ///
+  /// A group offer lists every line that can trigger it; an individual offer
+  /// names one parent. Either way the free line returns in full -- you cannot
+  /// give back half a reward.
+  Map<int, int> _freeLinesFor(Set<int> returningLines) {
+    final extra = <int, int>{};
+    for (final item in _modalData?.items ?? const <ReturnableItem>[]) {
+      if (!item.isAutoReturned || item.remainingQty <= 0) continue;
+
+      final triggers = <int>{
+        if (item.parentLine != null) item.parentLine!,
+        ...item.groupTriggerLines,
+      };
+
+      if (triggers.any(returningLines.contains)) {
+        extra[item.line] = item.remainingQty.toInt();
+      }
+    }
+    return extra;
+  }
 
   bool get _hasSelection => _selectedQty.values.any((q) => q > 0);
 
@@ -83,6 +115,9 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
       ..removeWhere((_, v) => v == 0);
 
     if (lines.isEmpty) return;
+
+    // Whatever those lines earned goes back with them.
+    lines.addAll(_freeLinesFor(lines.keys.toSet()));
 
     setState(() => _isProcessing = true);
 

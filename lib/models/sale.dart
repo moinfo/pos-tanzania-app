@@ -464,6 +464,42 @@ class ReturnableItem {
   final int discountType;
   final double lineTotal;
   final bool quantityOfferFree;
+  final String? description;
+
+  /// Which paid line earned this free one, and which lines can trigger it.
+  ///
+  /// The server computes both specifically so a client can claw the giveaway
+  /// back when the line that earned it is returned. The app was discarding
+  /// them and hiding free lines instead, so the paid item came back while the
+  /// customer kept the free one and its stock never returned.
+  ///
+  /// [groupTriggerLines] is non-empty for group offers, where ANY member of
+  /// the group being returned should take the reward with it.
+  final int? parentLine;
+  final int? quantityOfferId;
+  final List<int> groupTriggerLines;
+
+  /// A free line, including the ones the server did not flag.
+  ///
+  /// Older rows carry price 0 and a description like
+  /// "FREE - Quantity Offer (Bought 100 Get 3 Free)" with quantity_offer_free
+  /// false -- sales 81215, 81210 and 80575 are live examples. Without this
+  /// they read as ordinary returnable lines offering units at zero refund.
+  bool get isFreeLine =>
+      quantityOfferFree ||
+      (price == 0 && (description ?? '').trimLeft().toUpperCase().startsWith('FREE'));
+
+  /// Whether this free line knows what earned it.
+  ///
+  /// Only a line with a trigger can be returned automatically. Sale 81215
+  /// carries a free line with no parent_line and no group, and guessing which
+  /// paid line earned it would be exactly the kind of inference that goes
+  /// quietly wrong -- such a line stays selectable by the operator instead, as
+  /// it is on the web, so its stock can still come back.
+  bool get hasOfferTrigger => parentLine != null || groupTriggerLines.isNotEmpty;
+
+  /// Comes back on its own, so it must not appear in the picker.
+  bool get isAutoReturned => isFreeLine && hasOfferTrigger;
 
   const ReturnableItem({
     required this.line,
@@ -477,6 +513,10 @@ class ReturnableItem {
     required this.discountType,
     required this.lineTotal,
     required this.quantityOfferFree,
+    this.description,
+    this.parentLine,
+    this.quantityOfferId,
+    this.groupTriggerLines = const [],
   });
 
   /// Parse a returnable line.
@@ -511,6 +551,36 @@ class ReturnableItem {
       discountType: asInt(json['discount_type']),
       lineTotal: asDouble(json['line_total']),
       quantityOfferFree: json['quantity_offer_free'] == true,
+      description: json['description']?.toString(),
+      // Nullable on purpose: an item with no offer has no parent, and 0 is a
+      // real line number, so it cannot stand in for "none".
+      parentLine: json['parent_line'] == null ? null : asInt(json['parent_line']),
+      quantityOfferId:
+          json['quantity_offer_id'] == null ? null : asInt(json['quantity_offer_id']),
+      groupTriggerLines: ((json['group_trigger_lines'] as List?) ?? const [])
+          .map(asInt)
+          .toList(),
+    );
+  }
+}
+
+/// One tender on the original sale, and what was taken on it.
+///
+/// The refund is split across these in proportion, so an operator deciding
+/// whether to return a part-credit sale needs to see them.
+class ReturnPaymentType {
+  const ReturnPaymentType({required this.paymentType, required this.paymentAmount});
+
+  final String paymentType;
+  final double paymentAmount;
+
+  factory ReturnPaymentType.fromJson(Map<String, dynamic> json) {
+    final raw = json['payment_amount'];
+    return ReturnPaymentType(
+      paymentType: json['payment_type']?.toString() ?? '',
+      paymentAmount: raw is num
+          ? raw.toDouble()
+          : double.tryParse(raw?.toString() ?? '') ?? 0.0,
     );
   }
 }
@@ -520,7 +590,7 @@ class ReturnModalData {
   final String customerName;
   final bool hasAnyReturn;
   final List<ReturnableItem> items;
-  final List<String> paymentTypes;
+  final List<ReturnPaymentType> paymentTypes;
 
   const ReturnModalData({
     required this.saleId,
@@ -541,7 +611,13 @@ class ReturnModalData {
       items: (json['items'] as List)
           .map((i) => ReturnableItem.fromJson(i as Map<String, dynamic>))
           .toList(),
-      paymentTypes: (json['payment_types'] as List).cast<String>(),
+      // A list of {payment_type, payment_amount} objects, not strings. The
+      // old cast<String>() survived only because Dart's cast is lazy and
+      // nothing ever read an element; the first read would have thrown.
+      paymentTypes: ((json['payment_types'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((p) => ReturnPaymentType.fromJson(Map<String, dynamic>.from(p)))
+          .toList(),
     );
   }
 }
