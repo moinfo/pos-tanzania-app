@@ -18,7 +18,13 @@ import '../widgets/app_bottom_navigation.dart';
 /// ordering (and the same map_route source) as the suspended list -- so the
 /// seller reads their collections in the order the shops were served.
 class PaymentSummaryScreen extends StatefulWidget {
-  const PaymentSummaryScreen({super.key});
+  const PaymentSummaryScreen({super.key, this.embedded = false});
+
+  /// True when this is a bottom-nav tab rather than a pushed route.
+  ///
+  /// MainNavigation supplies the app bar and the bottom navigation, so an
+  /// embedded instance must not draw its own or the user sees two of each.
+  final bool embedded;
 
   @override
   State<PaymentSummaryScreen> createState() => _PaymentSummaryScreenState();
@@ -211,7 +217,9 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: widget.embedded
+          ? null
+          : AppBar(
         title: Text(_selectedType ?? 'Payment Summary'),
         leading: _selectedType != null
             ? IconButton(
@@ -272,7 +280,8 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+      bottomNavigationBar:
+          widget.embedded ? null : const AppBottomNavigation(currentIndex: -1),
     );
   }
 

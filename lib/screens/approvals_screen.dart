@@ -255,7 +255,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Requests & Approvals'),
+        title: const Text('Discount & Approvals'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [

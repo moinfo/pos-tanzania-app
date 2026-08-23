@@ -13,7 +13,24 @@ import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
 
 class SuspendedSalesScreen extends StatefulWidget {
-  const SuspendedSalesScreen({super.key});
+  const SuspendedSalesScreen({super.key, this.onResumed, this.embedded = false});
+
+  /// True when this is a bottom-nav tab rather than a pushed route.
+  ///
+  /// MainNavigation already supplies the app bar and the bottom navigation, so
+  /// an embedded instance must not draw its own -- the user sees two of each,
+  /// and the title is squeezed to "Suspen...". Same flag CreditsScreen and
+  /// SellerReportScreen carry, for the same reason.
+  final bool embedded;
+
+  /// What to do once a sale has been resumed and the cart is loaded.
+  ///
+  /// Null when this screen was pushed (from the drawer), where popping with
+  /// `true` is how the caller hears about it. Non-null when it is a bottom-bar
+  /// tab, because a tab has nothing to pop -- popping there would tear down
+  /// the whole navigation shell. Either way the destination is the same: the
+  /// Sales tab, where the cart the seller just reloaded actually is.
+  final VoidCallback? onResumed;
 
   @override
   State<SuspendedSalesScreen> createState() => _SuspendedSalesScreenState();
@@ -282,10 +299,16 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           ),
         );
 
-        // Pop back with a "resumed" result: this screen sits on top of the
-        // main navigation, so the caller uses it to switch to the Sales tab --
-        // a bare pop landed on whichever tab the drawer was opened from.
-        Navigator.pop(context, true);
+        // Hand back to whoever opened this. Pushed from the drawer, that is a
+        // pop carrying "resumed" so the caller can switch tabs; as a tab there
+        // is no route of our own to pop, so the callback does the switching.
+        // Leaving the seller on this list either way would read as nothing
+        // having happened, when in fact their cart is now loaded.
+        if (widget.onResumed != null) {
+          widget.onResumed!();
+        } else {
+          Navigator.pop(context, true);
+        }
       } else {
         if (!mounted) return;
         Navigator.pop(context); // Close loading dialog
@@ -397,7 +420,9 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         int.tryParse(context.read<AuthProvider>().user?.id ?? '');
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: widget.embedded
+          ? null
+          : AppBar(
         title: const Text('Suspended Sales'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -862,7 +887,8 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+      bottomNavigationBar:
+          widget.embedded ? null : const AppBottomNavigation(currentIndex: -1),
     );
   }
 

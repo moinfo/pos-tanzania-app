@@ -36,7 +36,10 @@ class AppBottomNavigation extends StatelessWidget {
   /// Build navigation items matching MainNavigation structure exactly
   /// IMPORTANT: Must match MainNavigation._screenConfigs order for correct index mapping
   /// - SADA: Home, Sales, Expenses, Summary, Contracts, Reports
-  /// - Leruma: Home, Sales, Expenses, Credits, Seller (Summary + Reports in drawer)
+  /// - Leruma: Home, Payment, Expenses, Credits, Suspended, Seller (the till
+  ///   is a drawer item here, not a tab)
+  ///   (Summary + Reports in drawer). Built in that order, DISPLAYED in the
+  ///   order named in _buildLerumaBar.
   List<Map<String, dynamic>> _buildNavItems() {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
@@ -47,11 +50,20 @@ class AppBottomNavigation extends StatelessWidget {
         'label': 'Home',
         'permission': PermissionIds.home,
       },
-      {
-        'icon': Icons.point_of_sale,
-        'label': 'Sales',
-        'permission': PermissionIds.sales,
-      },
+      // Mirrors MainNavigation: Leruma swaps the till out of this slot for
+      // Payment Summary. Positional, so the two must agree exactly.
+      if (!isLeruma)
+        {
+          'icon': Icons.shopping_cart,
+          'label': 'Sales',
+          'permission': PermissionIds.sales,
+        }
+      else
+        {
+          'icon': Icons.payments,
+          'label': 'Payment',
+          'permission': PermissionIds.salesPaymentSummary,
+        },
       {
         'icon': Icons.receipt_long,
         'label': 'Expenses',
@@ -73,6 +85,17 @@ class AppBottomNavigation extends StatelessWidget {
         'icon': Icons.credit_card,
         'label': 'Credits',
         'permission': PermissionIds.credits,
+      });
+    }
+
+    // Suspended sales, Leruma only. Mirrors the config MainNavigation builds;
+    // the two lists are read positionally, so an entry here without one there
+    // sends every later tab to the wrong screen.
+    if (isLeruma) {
+      items.add({
+        'icon': Icons.pause_circle_outline,
+        'label': 'Suspended',
+        'permission': PermissionIds.salesSuspended,
       });
     }
 
@@ -186,7 +209,7 @@ class AppBottomNavigation extends StatelessWidget {
     required int activeDisplayIndex,
   }) {
     // Same order as MainNavigation._buildLerumaBottomNav; keep the two in step.
-    const order = ['Seller', 'Home', 'Sales', 'Credits', 'Expenses'];
+    const order = ['Home', 'Suspended', 'Payment', 'Credits', 'Seller', 'Expenses'];
 
     final ordered = [...items.asMap().entries]
       ..sort((a, b) {

@@ -32,7 +32,6 @@ import 'financial_banking/financial_banking_screen.dart';
 import 'profit_submit/profit_submit_list_screen.dart';
 import 'transactions/transactions_screen.dart';
 import 'reports/reports_screen.dart';
-import 'stock_tracking/stock_tracking_screen.dart';
 import 'positions/positions_screen.dart';
 import 'seller_report_screen.dart';
 import 'login_screen.dart';
@@ -146,6 +145,34 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   // - SADA: Home, Sales, Expenses, Summary, Contracts, Reports (or Transactions if no stock location)
   // - Leruma: Home, Sales, Expenses, Credits, Seller (Summary + Reports in drawer)
   // - Come & Save: Home, Sales, Expenses, Summary, Reports (or Transactions if no stock location)
+  /// Put the seller in front of the till.
+  ///
+  /// Both ways into suspended sales end here, because resuming loads the cart
+  /// and leaving the seller looking at the list reads as nothing having
+  /// happened.
+  ///
+  /// Two routes because the till is a tab for most clients and a drawer item
+  /// for Leruma, where Payment Summary took the bar slot. Falling back to a
+  /// push rather than doing nothing matters: without it, resuming a sale on
+  /// Leruma would silently leave the seller on the suspended list with a cart
+  /// they cannot see.
+  void _openSales() {
+    if (!mounted) return;
+
+    final salesIndex =
+        _lastAvailableScreens.indexWhere((s) => s['label'] == 'Sales');
+
+    if (salesIndex >= 0) {
+      setState(() => _selectedIndex = salesIndex);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SalesScreen(key: UniqueKey())),
+    );
+  }
+
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
@@ -170,12 +197,27 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         'label': 'Home',
         'permission': PermissionIds.home, // module: home
       },
-      {
-        'screen': SalesScreen(key: ValueKey('sales_$userId')),
-        'icon': Icons.shopping_cart,
-        'label': 'Sales',
-        'permission': PermissionIds.sales, // module: sales
-      },
+      // The till. Leruma takes it OUT of the bar and puts Payment Summary in
+      // its place -- reconciling what came in is the thing that gets opened
+      // between route stops, while a sale is started from the drawer. Every
+      // other client keeps Sales here; this slot is the only difference.
+      if (!isLeruma)
+        {
+          'screen': SalesScreen(key: ValueKey('sales_$userId'), embedded: true),
+          'icon': Icons.shopping_cart,
+          'label': 'Sales',
+          'permission': PermissionIds.sales, // module: sales
+        }
+      else
+        {
+          'screen': PaymentSummaryScreen(
+            key: ValueKey('payment_$userId'),
+            embedded: true,
+          ),
+          'icon': Icons.payments,
+          'label': 'Payment',
+          'permission': PermissionIds.salesPaymentSummary,
+        },
       {
         'screen': ExpensesScreen(key: ValueKey('expenses_$userId')),
         'icon': Icons.receipt_long,
@@ -211,6 +253,28 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         'icon': Icons.swap_horiz,
         'label': 'Transactions',
         'permission': PermissionIds.transactions, // module: transactions
+      });
+    }
+
+    // Suspended sales as a tab, Leruma only. It was reachable from the drawer
+    // alone, which is two taps and a scroll for something a seller does
+    // between customers all day -- a held basket is picked up again within
+    // minutes, not hours.
+    //
+    // onResumed rather than a pop: as a tab this screen owns no route, so
+    // popping would take the whole shell down. Resuming loads the cart, so the
+    // seller is sent to Sales where the cart is.
+    if (isLeruma) {
+      configs.add({
+        'screen': SuspendedSalesScreen(
+          key: ValueKey('suspended_$userId'),
+          onResumed: _openSales,
+          embedded: true,
+        ),
+        'icon': Icons.pause_circle_outline,
+        'label': 'Suspended',
+        'permission': PermissionIds.salesSuspended,
+        'lerumaOnly': true,
       });
     }
 
@@ -722,7 +786,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               child: Consumer<NotificationProvider>(
                 builder: (context, notifications, _) => ListTile(
                   leading: Icon(Icons.approval, color: AppColors.brandPrimary),
-                  title: const Text('Requests & Approvals'),
+                  title: const Text('Discount & Approvals'),
                   trailing: notifications.pendingApprovals > 0
                       ? Container(
                           padding: const EdgeInsets.symmetric(
@@ -772,7 +836,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               child: ListTile(
                 leading: Icon(Icons.request_quote_outlined,
                     color: AppColors.brandPrimary),
-                title: const Text('Customer Credit Limit'),
+                title: const Text('Credit Limit & Approvals'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -923,13 +987,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                         context,
                         MaterialPageRoute(builder: (_) => const SuspendedSalesScreen()),
                       );
-                      if (resumed == true && mounted) {
-                        final salesIndex = _lastAvailableScreens
-                            .indexWhere((s) => s['label'] == 'Sales');
-                        if (salesIndex >= 0) {
-                          setState(() => _selectedIndex = salesIndex);
-                        }
-                      }
+                      if (resumed == true) _openSales();
                     },
                   ),
                 ),
@@ -1124,26 +1182,32 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   ),
                 ],
               ),
-            // 9. Seller Report - Leruma only, requires cash_submit_seller_report permission
-            const _DrawerGroupTitle('INSIGHTS'),
+            // The till, for Leruma only. Every other client reaches it from
+            // the bottom bar; here Payment Summary holds that slot, so without
+            // this entry there would be no way to start a sale at all.
             if (ApiService.currentClient?.id == 'leruma')
               PermissionWrapper(
-                permissionId: PermissionIds.cashSubmitSellerReport,
+                permissionId: PermissionIds.sales,
                 child: ListTile(
-                  leading: Icon(Icons.person_outline, color: AppColors.brandPrimary),
-                  title: const Text('Seller Report'),
+                  leading: Icon(Icons.shopping_cart, color: AppColors.brandPrimary),
+                  title: const Text('Sales'),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const SellerReportScreen()),
+                      MaterialPageRoute(
+                          builder: (_) => SalesScreen(key: UniqueKey())),
                     );
                   },
                 ),
               ),
+            const _DrawerGroupTitle('INSIGHTS'),
             // Payment Summary sits with Seller Report, not under Sales: it is
             // a reconciliation view (what came in, by type, per route stop),
             // not an action a seller takes while selling.
+            // Leruma has this in the bottom bar now, so showing it here too
+            // would be the same screen twice in one menu.
+            if (ApiService.currentClient?.id != 'leruma')
             PermissionWrapper(
               permissionId: PermissionIds.salesPaymentSummary,
               child: ListTile(
@@ -1235,21 +1299,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ProfitSubmitListScreen()),
-                  );
-                },
-              ),
-            ),
-            // Stock Tracking - requires items_stock permission
-            PermissionWrapper(
-              permissionId: PermissionIds.stockTracking,
-              child: ListTile(
-                leading: Icon(Icons.track_changes, color: AppColors.brandPrimary),
-                title: const Text('Stock Tracking'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const StockTrackingScreen()),
                   );
                 },
               ),
@@ -1399,7 +1448,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   /// drawer on request and Credits was moved into the bar; only the order below
   /// needs changing if that decision is revisited.
   Widget _buildLerumaBottomNav(List<Map<String, dynamic>> screens) {
-    const order = ['Seller', 'Home', 'Sales', 'Credits', 'Expenses'];
+    // Home first, then the held baskets a seller reaches for between
+    // customers, then the till. Expenses is unnamed by the design and keeps
+    // its position at the end.
+    const order = ['Home', 'Suspended', 'Payment', 'Credits', 'Seller', 'Expenses'];
 
     final ordered = [...screens.asMap().entries]
       ..sort((a, b) {

@@ -41,7 +41,16 @@ import '../widgets/sale/sale_sheets.dart';
 import '../models/nfc_wallet.dart';
 
 class SalesScreen extends StatefulWidget {
-  const SalesScreen({super.key});
+  const SalesScreen({super.key, this.embedded = false});
+
+  /// True when this is a bottom-nav tab, which is how every client except
+  /// Leruma reaches the till.
+  ///
+  /// A tab sits under MainNavigation's app bar and needs none of its own. A
+  /// PUSHED till does: without one there is no back button and the first row
+  /// of the screen collides with the status bar, which on a screen the seller
+  /// enters mid-customer means being stuck in it.
+  final bool embedded;
 
   @override
   State<SalesScreen> createState() => _SalesScreenState();
@@ -149,8 +158,18 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   Widget _buildLerumaScaffold() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       backgroundColor: _sale.pageBackground,
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: const Text('Sales'),
+              backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
       // The keyboard must not squeeze the footer off screen; the middle region
       // scrolls instead.
       resizeToAvoidBottomInset: true,
@@ -2547,7 +2566,14 @@ class _SalesScreenState extends State<SalesScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
-      appBar: null,
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: const Text('Sales'),
+              backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
       body: _isLoading
           ? _buildSkeletonGrid(isDark)
           : Column(

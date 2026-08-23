@@ -328,7 +328,7 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
       backgroundColor:
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text('Customer Credit Limits'),
+        title: const Text('Credit Limit & Approvals'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
