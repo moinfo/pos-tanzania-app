@@ -986,18 +986,50 @@ class _SalesScreenState extends State<SalesScreen> {
                       color: _sale.textPrimary),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  isFree
-                      // Show how many units are free -- the reward line has no
-                      // quantity pill, so this is the only place it appears
-                      ? '🎁 ${item.quantity.toStringAsFixed(0)} free · offer'
-                      : '${item.quantity.toStringAsFixed(0)} × ${_currencyFormat.format(item.unitPrice)} TSh',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isFree ? _sale.success : _sale.textMuted),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        isFree
+                            // Show how many units are free -- the reward line has
+                            // no quantity pill, so this is the only place it
+                            // appears
+                            ? '🎁 ${item.quantity.toStringAsFixed(0)} free · offer'
+                            : '${item.quantity.toStringAsFixed(0)} × ${_currencyFormat.format(item.unitPrice)} TSh',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isFree ? _sale.success : _sale.textMuted),
+                      ),
+                    ),
+                    // What is left on the shelf, on the same line rather than a
+                    // new one -- a cart of eight items should not get taller
+                    // just to carry a number that is usually reassuring.
+                    //
+                    // It earns its own colour because the one case that matters
+                    // is the cart already exceeding the shelf: the seller needs
+                    // to see that while adding, not at Charge.
+                    if (item.availableStock != null) ...[
+                      Text(
+                        '  ·  ',
+                        style: TextStyle(fontSize: 12, color: _sale.textMuted),
+                      ),
+                      Text(
+                        'Stock ${item.availableStock!.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: item.availableStock! < item.quantity
+                              ? _sale.danger
+                              : item.availableStock! <= item.quantity * 2
+                                  ? _sale.warning
+                                  : _sale.textMuted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 if (!isFree) _buildLerumaLineBadges(saleProvider, item, index),
               ],
