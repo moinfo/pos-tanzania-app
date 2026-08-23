@@ -848,7 +848,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ),
             // 1. Customers Menu
-            const _DrawerGroupTitle('SELL'),
             // Requests and approvals lead the section: raising a discount
             // request happens mid-sale, and an approval waiting on you is the
             // most time-sensitive thing in this menu.
@@ -1008,7 +1007,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ),
               ),
             // 2. Items - requires items permission
-            const _DrawerGroupTitle('STOCK'),
+            // Group titles removed: four labelled rows of furniture in a
+            // menu that already needs scrolling. A hairline keeps the
+            // grouping legible for a pixel instead of forty.
+            const Divider(height: 9, thickness: 0.6, indent: 16, endIndent: 16),
             PermissionWrapper(
               permissionId: PermissionIds.items,
               child: ListTile(
@@ -1138,7 +1140,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ),
             // 5. Cash Submit - requires cash_submit module permission (hidden for Leruma)
-            const _DrawerGroupTitle('MONEY'),
+            // Group titles removed: four labelled rows of furniture in a
+            // menu that already needs scrolling. A hairline keeps the
+            // grouping legible for a pixel instead of forty.
+            const Divider(height: 9, thickness: 0.6, indent: 16, endIndent: 16),
             if (ApiService.currentClient?.id != 'leruma')
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
@@ -1277,7 +1282,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   ),
                 ],
               ),
-            const _DrawerGroupTitle('INSIGHTS'),
+            // Group titles removed: four labelled rows of furniture in a
+            // menu that already needs scrolling. A hairline keeps the
+            // grouping legible for a pixel instead of forty.
+            const Divider(height: 9, thickness: 0.6, indent: 16, endIndent: 16),
             // Payment Summary sits with Seller Report, not under Sales: it is
             // a reconciliation view (what came in, by type, per route stop),
             // not an action a seller takes while selling.
@@ -1785,26 +1793,6 @@ class _CurvedNavPainter extends CustomPainter {
 }
 
 /// Section heading in the drawer (design_handoff_home_credit, screen 2).
-class _DrawerGroupTitle extends StatelessWidget {
-  final String label;
-  const _DrawerGroupTitle(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 8, 6),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
-          color: Color(0xFF6B7684),
-        ),
-      ),
-    );
-  }
-}
 
 /// One of the small actions in the drawer header.
 ///
