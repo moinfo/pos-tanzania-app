@@ -63,7 +63,23 @@ class DatabaseService {
   ///
   /// Also enables foreign keys, which sqflite leaves off by default.
   static Future<void> _configure(Database db) async {
-    await db.execute('PRAGMA journal_mode = WAL');
+    // rawQuery, NOT execute: "PRAGMA journal_mode = WAL" ANSWERS with the mode
+    // it settled on ("wal"), and a statement that returns a row is not what
+    // execute() is for. sqflite's iOS implementation reports that row as
+    // DatabaseException(Code=0 "not an error"), which is thrown out of
+    // openDatabase -- so the offline database never opened, OfflineProvider's
+    // initialise never returned, and the app sat on the splash screen with a
+    // spinner forever. The other two pragmas below return nothing and are
+    // correct as execute().
+    //
+    // Wrapped because a journal mode is an optimisation, not a requirement: if
+    // the platform refuses WAL the right outcome is a slower database, never a
+    // device that cannot open the till.
+    try {
+      await db.rawQuery('PRAGMA journal_mode = WAL');
+    } catch (e) {
+      debugPrint('DatabaseService: could not enable WAL, continuing: $e');
+    }
     // NORMAL rather than FULL: with WAL this still survives an app crash, and
     // only loses the last commits if the DEVICE loses power mid-write. The
     // trade is one fsync per transaction instead of several, which on a till
