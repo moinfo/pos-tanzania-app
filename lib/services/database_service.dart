@@ -12,7 +12,7 @@ class DatabaseService {
   static Database? _database;
 
   // Database version - increment when schema changes
-  static const int _databaseVersion = 5;
+  static const int _databaseVersion = 6;
 
   // Private constructor for singleton
   DatabaseService._();
@@ -42,12 +42,36 @@ class DatabaseService {
     _database = await openDatabase(
       path,
       version: _databaseVersion,
+      onConfigure: _configure,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
 
     return _database!;
   }
+
+  /// Write-ahead logging, set before anything else touches the file.
+  ///
+  /// The default rollback journal takes an exclusive lock for the length of a
+  /// write, so while SyncService is uploading a queued sale every read blocks
+  /// behind it -- the cached lists, the pending counts, the till's own item
+  /// lookup. On a phone's flash with a queue of a few hundred rows that is
+  /// visible as jank, and under contention it surfaces as "database is
+  /// locked". WAL lets readers carry on against the last committed state while
+  /// one writer appends, which is exactly this app's shape: one background
+  /// writer, several foreground readers.
+  ///
+  /// Also enables foreign keys, which sqflite leaves off by default.
+  static Future<void> _configure(Database db) async {
+    await db.execute('PRAGMA journal_mode = WAL');
+    // NORMAL rather than FULL: with WAL this still survives an app crash, and
+    // only loses the last commits if the DEVICE loses power mid-write. The
+    // trade is one fsync per transaction instead of several, which on a till
+    // ringing up sales continuously is the difference the seller feels.
+    await db.execute('PRAGMA synchronous = NORMAL');
+    await db.execute('PRAGMA foreign_keys = ON');
+  }
+
 
   /// Open the database at an explicit path.
   ///
@@ -61,6 +85,7 @@ class DatabaseService {
     _database = await openDatabase(
       path,
       version: _databaseVersion,
+      onConfigure: _configure,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -342,6 +367,11 @@ class DatabaseService {
         sync_status INTEGER DEFAULT 0,
         sync_error TEXT,
         sync_timestamp TEXT,
+        -- When a person confirmed they have SEEN that the server refused this
+        -- sale. Null while the refusal is still unread, which is what keeps
+        -- the alert coming back after a force-quit. Never set by the sync
+        -- code -- only by a human tapping through to the record.
+        rejection_ack_at TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
@@ -852,6 +882,9 @@ class DatabaseService {
         sync_status INTEGER DEFAULT 0,
         sync_error TEXT,
         sync_timestamp TEXT,
+        -- See sales.rejection_ack_at: null means a refusal nobody has read
+        -- yet, and that is what survives the app being killed.
+        rejection_ack_at TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -1065,6 +1098,29 @@ class DatabaseService {
         );
       }
     }
+
+    if (oldVersion < 6) {
+      // v6: a refusal has to be READ by somebody, and the app has to know
+      // whether it has been.
+      //
+      // Until now a rejected record was only a red number. A number cannot
+      // tell you whether the person who needed to see it ever did, so the app
+      // had no basis for insisting -- and a refusal nobody reads is the exact
+      // shape of data dying quietly. This column is that basis: null means
+      // unread, and because it lives in SQLite rather than in memory, killing
+      // the app does not count as having read it.
+      //
+      // Deliberately per-record rather than one global "seen" flag: reading
+      // about yesterday's refused expense must not silence today's refused
+      // sale.
+      for (final table in const ['sales', 'pending_actions']) {
+        final cols = await db.rawQuery('PRAGMA table_info($table)');
+        final names = cols.map((r) => r['name'] as String).toSet();
+        if (!names.contains('rejection_ack_at')) {
+          await db.execute('ALTER TABLE $table ADD COLUMN rejection_ack_at TEXT');
+        }
+      }
+    }
   }
 
   /// Delete database (for testing or reset)
@@ -1107,6 +1163,17 @@ class DatabaseService {
   static const int syncStatusPending = 0;
   static const int syncStatusSynced = 1;
   static const int syncStatusFailed = 2;
+
+  /// A person looked at a record the server had refused and chose, explicitly,
+  /// to stop trying to upload it.
+  ///
+  /// This is NOT a delete. The row stays exactly where it is, with its payload
+  /// and the server's own words for the refusal, so a question asked next week
+  /// can still be answered. What changes is that it no longer appears in the
+  /// queue, is no longer counted, and is never uploaded again. Nothing in the
+  /// sync path ever sets this -- only a human, through a confirmation that
+  /// names what is being given up.
+  static const int syncStatusDiscarded = 3;
 
   // =====================================================
   // GENERIC CRUD OPERATIONS
@@ -1617,15 +1684,16 @@ class DatabaseService {
     return await _database!.rawQuery('''
       SELECT s.id, s.request_id, s.sale_time, s.total, s.customer_id,
              s.sync_status, s.sync_error, s.server_sale_id,
+             s.rejection_ack_at, s.created_at,
              q.retry_count, q.error_message, q.last_attempted_at,
              q.sync_status AS queue_status
       FROM sales s
       LEFT JOIN sync_queue q
         ON q.entity_type = 'sale' AND q.entity_id = s.id
-      WHERE s.sync_status != ?
+      WHERE s.sync_status NOT IN (?, ?)
       ORDER BY s.created_at DESC, s.id DESC
       LIMIT ?
-    ''', [syncStatusSynced, limit]);
+    ''', [syncStatusSynced, syncStatusDiscarded, limit]);
   }
 
   /// Count of sales the seller is still owed an upload for, split by whether
@@ -1748,15 +1816,16 @@ class DatabaseService {
     return await _database!.rawQuery('''
       SELECT a.id, a.action_type, a.label, a.summary, a.request_id,
              a.created_at, a.sync_status, a.sync_error, a.server_id,
+             a.rejection_ack_at,
              q.retry_count, q.error_message, q.last_attempted_at,
              q.sync_status AS queue_status
       FROM pending_actions a
       LEFT JOIN sync_queue q
         ON q.entity_type = ? AND q.entity_id = a.id
-      WHERE a.sync_status != ?
+      WHERE a.sync_status NOT IN (?, ?)
       ORDER BY a.created_at DESC, a.id DESC
       LIMIT ?
-    ''', [pendingActionEntity, syncStatusSynced, limit]);
+    ''', [pendingActionEntity, syncStatusSynced, syncStatusDiscarded, limit]);
   }
 
   /// Counts for the badge, split by whether the queue has given up.
@@ -1774,6 +1843,218 @@ class DatabaseService {
     )) ?? 0;
 
     return {'pending': pending, 'failed': failed};
+  }
+
+  // =====================================================
+  // REJECTED RECORDS
+  //
+  // A record the server LOOKED AT and refused. Retrying replays the same
+  // refusal, so nothing on this device will ever move it -- which makes it the
+  // one state where data dies quietly unless a person is told. Everything
+  // below exists to make sure a person is told, and to give them something to
+  // do about it other than shrug.
+  // =====================================================
+
+  /// Entity type the sync queue files a sale under.
+  static const String saleEntity = 'sale';
+
+  /// The two tables a queued record can live in, keyed by the entity type the
+  /// sync queue files it under. Keeping the mapping in one place is what lets
+  /// the acknowledge / retry / discard trio treat a refused sale and a refused
+  /// expense as the same problem, which for the person holding the phone they
+  /// are.
+  static const Map<String, String> _rejectableTables = {
+    saleEntity: 'sales',
+    pendingActionEntity: 'pending_actions',
+  };
+
+  /// How many refusals nobody has read yet.
+  ///
+  /// Drives the alert that will not go away. Counted across both tables,
+  /// because a seller does not care which table their money is stuck in.
+  Future<int> countUnreadRejections() async {
+    if (_database == null) return 0;
+
+    var total = 0;
+    for (final table in _rejectableTables.values) {
+      total += Sqflite.firstIntValue(await _database!.rawQuery(
+            'SELECT COUNT(*) FROM $table '
+            'WHERE sync_status = ? AND rejection_ack_at IS NULL',
+            [syncStatusFailed],
+          )) ??
+          0;
+    }
+    return total;
+  }
+
+  /// Every refusal, read or not, so a screen can list them.
+  ///
+  /// Returns the two tables' rows in one list under a common shape; the caller
+  /// gets `entity_type` to tell them apart.
+  Future<List<Map<String, dynamic>>> getRejections({int limit = 100}) async {
+    if (_database == null) return [];
+
+    final sales = await _database!.rawQuery('''
+      SELECT id, sale_time, total, sync_error, rejection_ack_at, created_at
+      FROM sales WHERE sync_status = ?
+      ORDER BY created_at DESC, id DESC LIMIT ?
+    ''', [syncStatusFailed, limit]);
+
+    final actions = await _database!.rawQuery('''
+      SELECT id, label, summary, sync_error, rejection_ack_at, created_at
+      FROM pending_actions WHERE sync_status = ?
+      ORDER BY created_at DESC, id DESC LIMIT ?
+    ''', [syncStatusFailed, limit]);
+
+    return [
+      for (final row in sales)
+        {...row, 'entity_type': saleEntity},
+      for (final row in actions)
+        {...row, 'entity_type': pendingActionEntity},
+    ];
+  }
+
+  /// Record that a person has SEEN this refusal.
+  ///
+  /// Only ever called from a human action. Nothing in the sync path may call
+  /// it: an app that marks its own bad news as read is back to losing data
+  /// quietly, which is the whole thing this is here to stop.
+  Future<void> acknowledgeRejection({
+    required String entityType,
+    required int id,
+  }) async {
+    final table = _rejectableTables[entityType];
+    if (_database == null || table == null) return;
+
+    await _database!.update(
+      table,
+      {'rejection_ack_at': DateTime.now().toIso8601String()},
+      where: 'id = ? AND sync_status = ?',
+      whereArgs: [id, syncStatusFailed],
+    );
+  }
+
+  /// Mark every refusal currently on the device as seen.
+  ///
+  /// Backs the one button on the alert that dismisses it for good, and it is
+  /// deliberately the only bulk form -- a person who has scrolled the list has
+  /// seen the list.
+  Future<void> acknowledgeAllRejections() async {
+    if (_database == null) return;
+
+    final now = DateTime.now().toIso8601String();
+    for (final table in _rejectableTables.values) {
+      await _database!.update(
+        table,
+        {'rejection_ack_at': now},
+        where: 'sync_status = ? AND rejection_ack_at IS NULL',
+        whereArgs: [syncStatusFailed],
+      );
+    }
+  }
+
+  /// Put a refused record back in the queue so the next sync tries it again.
+  ///
+  /// Safe to do by hand because the record keeps the request_id it was first
+  /// written under: if an earlier attempt did reach the server, the server
+  /// replays that answer rather than writing a second record. Some 4xx really
+  /// do become valid later -- a document number that has since been freed, a
+  /// stock location the seller has since been given back -- and the difference
+  /// between those and the permanent ones is a judgement only a person can
+  /// make, which is why nothing here happens on its own.
+  ///
+  /// Returns false when there was nothing in that state to reopen.
+  Future<bool> reopenRejected({
+    required String entityType,
+    required int id,
+  }) async {
+    final table = _rejectableTables[entityType];
+    if (_database == null || table == null) return false;
+
+    final rows = await _database!.query(
+      table,
+      where: 'id = ? AND sync_status = ?',
+      whereArgs: [id, syncStatusFailed],
+    );
+    if (rows.isEmpty) return false;
+
+    await _database!.update(
+      table,
+      {'sync_status': syncStatusPending, 'sync_error': null},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    // The queue row is what the uploader actually reads. It is normally still
+    // there, marked failed; the retry counter is cleared with it, because a
+    // person choosing to try again is not asking for the five attempts that
+    // already ran to be held against this one.
+    final queued = await _database!.update(
+      'sync_queue',
+      {
+        'sync_status': syncStatusPending,
+        'retry_count': 0,
+        'error_message': null,
+      },
+      where: 'entity_type = ? AND entity_id = ?',
+      whereArgs: [entityType, id],
+    );
+
+    if (queued == 0) {
+      // No queue row survived. Rebuild one rather than leave a record marked
+      // pending that no uploader will ever pick up -- invisible work is how a
+      // queue silently stops being a queue.
+      await _database!.insert('sync_queue', {
+        'entity_type': entityType,
+        'entity_id': id,
+        'action': 'create',
+        'priority': entityType == saleEntity ? 1 : 0,
+        'sync_status': syncStatusPending,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    }
+
+    debugPrint('DatabaseService: reopened rejected $entityType $id');
+    return true;
+  }
+
+  /// Stop trying to upload a refused record, on purpose.
+  ///
+  /// NOT a delete. The row keeps its payload, its key and the server's words
+  /// for the refusal; it simply leaves the queue and the counts. Support can
+  /// still read it off the device afterwards, which would be impossible if
+  /// this threw the row away -- and a person who discards the wrong thing has
+  /// not destroyed it.
+  ///
+  /// Returns false when there was nothing in that state to discard.
+  Future<bool> discardRejected({
+    required String entityType,
+    required int id,
+  }) async {
+    final table = _rejectableTables[entityType];
+    if (_database == null || table == null) return false;
+
+    final changed = await _database!.update(
+      table,
+      {
+        'sync_status': syncStatusDiscarded,
+        // Discarding is itself an act of having seen it.
+        'rejection_ack_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ? AND sync_status = ?',
+      whereArgs: [id, syncStatusFailed],
+    );
+    if (changed == 0) return false;
+
+    // The queue row goes, so nothing ever uploads it and nothing counts it.
+    await _database!.delete(
+      'sync_queue',
+      where: 'entity_type = ? AND entity_id = ?',
+      whereArgs: [entityType, id],
+    );
+
+    debugPrint('DatabaseService: discarded rejected $entityType $id');
+    return true;
   }
 
   /// Add to sync log
