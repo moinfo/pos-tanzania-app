@@ -63,6 +63,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 isDark: isDark, itemCount: 7, hasTrailingAmount: false);
           }
 
+          // Ahead of the empty state on purpose: "no notifications" is a claim
+          // about what the server holds, and it must not be made from a
+          // connection that never reached it.
+          if (provider.isOffline && provider.notifications.isEmpty) {
+            return OfflineEmptyView(
+              noun: 'notifications',
+              isDark: isDark,
+              onRefresh: () => provider.loadNotifications(refresh: true),
+            );
+          }
+
           if (provider.notifications.isEmpty) {
             return EmptyStateView(
               icon: Icons.notifications_none,
@@ -75,7 +86,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           final unread = provider.unreadCount;
 
-          return RefreshIndicator(
+          // Rows survived an outage: say how old they are rather than letting
+          // them pass for the current feed.
+          if (provider.isOffline && provider.loadedAt != null) {
+            return CachedBodyWrapper(
+              cachedAt: provider.loadedAt,
+              noun: 'notifications',
+              isDark: isDark,
+              onRetry: () => provider.loadNotifications(refresh: true),
+              child: _buildFeed(context, provider, isDark, unread),
+            );
+          }
+
+          return _buildFeed(context, provider, isDark, unread);
+        },
+      ),
+      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  Widget _buildFeed(
+    BuildContext context,
+    NotificationProvider provider,
+    bool isDark,
+    int unread,
+  ) {
+    return RefreshIndicator(
             onRefresh: () => provider.loadNotifications(refresh: true),
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -95,10 +131,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 );
               },
             ),
-          );
-        },
-      ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
     );
   }
 

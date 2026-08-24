@@ -73,6 +73,15 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
   /// moment that copy was taken. Null whenever the list came off the server.
   DateTime? _cachedAt;
 
+  /// When the rows currently on screen were obtained, live or cached.
+  ///
+  /// Kept separately from [_cachedAt] so that a refresh which FAILS can still
+  /// date what the reader is looking at. Without it a failed refresh left the
+  /// previous rows in place, nulled [_cachedAt], and fell past both the error
+  /// and offline guards (each of which requires an empty list) -- so an old
+  /// list was presented with nothing at all saying it was old.
+  DateTime? _rowsAt;
+
   /// The load failed for want of a network and nothing usable was saved.
   /// Kept apart from [_error] because "you are offline" is a state to explain,
   /// not a fault to apologise for.
@@ -186,11 +195,15 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
         // stale if EITHER came from the cache. Reading a live statistic over a
         // saved list is the disagreement this screen already refuses to show.
         _cachedAt = page.servedFromCacheAt ?? stats.servedFromCacheAt;
+        _rowsAt = page.servedFromCacheAt ?? DateTime.now();
         _offline = false;
       } else {
         _offline = isTransportFailure(page);
         _error = _offline ? null : FriendlyError.of(page.message);
-        _cachedAt = null;
+        // Rows survived a failed refresh: date them rather than let them pass
+        // for current. With no rows there is nothing to date, and the offline
+        // and error states below take over.
+        _cachedAt = _rows.isNotEmpty ? _rowsAt : null;
       }
     });
   }

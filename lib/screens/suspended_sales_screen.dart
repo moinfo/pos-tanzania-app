@@ -10,9 +10,11 @@ import '../providers/sale_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 
 class SuspendedSalesScreen extends StatefulWidget {
   const SuspendedSalesScreen({super.key, this.onResumed, this.embedded = false});
@@ -45,6 +47,15 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
 
   List<SuspendedSale> _suspendedSales = [];
   bool _isLoading = false;
+
+  /// The last load failed because the server could not be reached.
+  ///
+  /// Kept apart from "the server answered and there is nothing", because this
+  /// screen is the one a seller checks to find an order a customer is standing
+  /// there waiting for. Suspended sales are not in the read cache -- an open
+  /// order is exactly the thing that must not be answered from a saved copy --
+  /// so offline the only honest answer is that it cannot be seen from here.
+  bool _offline = false;
 
   /// customer person_id -> supervisor's route position (ospos_customers.sort_order),
   /// the same ordering the supervisor sets on http://.../sales/map_route.
@@ -113,12 +124,26 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         setState(() {
           _suspendedSales = response.data!;
           _sortByRoute();
+          _offline = false;
           _isLoading = false;
         });
       } else {
-        setState(() => _isLoading = false);
+        final offline = isTransportFailure(response);
+        setState(() {
+          _offline = offline;
+          // Drop whatever was on screen. These rows came off an earlier
+          // successful load and nothing here can mark them as old, so leaving
+          // them up would present a stale order as a live one -- and every
+          // action on them (resume, delete) needs the server anyway.
+          if (offline) _suspendedSales = [];
+          _isLoading = false;
+        });
+        // A transport failure is already spelled out by the body below; a
+        // snackbar that fades after four seconds is not where that belongs.
         // Only show error if it's not a format exception (which might be from other API calls)
-        if (mounted && !response.diagnostic.contains('FormatException')) {
+        if (mounted &&
+            !offline &&
+            !response.diagnostic.contains('FormatException')) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(response.message)),
           );
@@ -184,7 +209,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         Navigator.pop(context); // close the loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(claim.message ?? 'This sale is being resumed by someone else'),
+            content: Text(claim.message),
             backgroundColor: AppColors.error,
           ),
         );
@@ -442,7 +467,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isClaimed
-                ? (response.message ?? 'This sale is being resumed by someone else')
+                ? response.message
                 : 'Failed to delete sale: ${response.message}'),
             backgroundColor: AppColors.error,
           ),
@@ -576,6 +601,12 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           Expanded(
             child: _isLoading
           ? _buildSkeletonList(isDark)
+          : _offline && _suspendedSales.isEmpty
+              ? OfflineEmptyView(
+                  noun: 'suspended sales',
+                  isDark: isDark,
+                  onRefresh: _loadSuspendedSales,
+                )
           : _filteredSales.isEmpty
               ? Center(
                   child: Column(

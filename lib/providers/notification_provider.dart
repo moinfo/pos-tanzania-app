@@ -7,6 +7,7 @@ import '../models/api_response.dart';
 import '../models/app_notification.dart';
 import '../services/api_service.dart';
 import '../services/app_badge_service.dart';
+import '../services/read_cache.dart';
 
 /// Keeps the notification feed and the approval-inbox badge fresh.
 ///
@@ -110,6 +111,21 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  /// The last feed load failed because the server could not be reached, as
+  /// opposed to answering that there is nothing.
+  ///
+  /// The screen has to be able to tell those apart. The badge on the app bar
+  /// is served from a separate counter that survives an outage, so without
+  /// this the feed said "No notifications" directly underneath a bell reading
+  /// 26 -- the app contradicting itself in the same breath.
+  bool get isOffline => _offline;
+  bool _offline = false;
+
+  /// When the feed last came off the server, so rows left on screen through an
+  /// outage can say how old they are instead of passing for current.
+  DateTime? get loadedAt => _loadedAt;
+  DateTime? _loadedAt;
 
   /// Call once the user is signed in. Safe to call again; it restarts cleanly.
   Future<void> start() async {
@@ -359,8 +375,10 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Pull the full feed for the notifications screen.
   Future<void> loadNotifications({bool refresh = false}) async {
-    if (refresh) _notifications = [];
-
+    // Deliberately NOT clearing _notifications here. Emptying the list before
+    // the request means a failed refresh wipes rows that were on screen and
+    // leaves nothing to show -- the success branch replaces the list wholesale
+    // anyway, so there was never anything to gain by clearing it early.
     _isLoading = true;
     _error = null;
     _safeNotify();
@@ -369,11 +387,14 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     if (response.isSuccess && response.data != null) {
       _notifications = response.data!;
+      _offline = false;
+      _loadedAt = DateTime.now();
       if (_notifications.isNotEmpty) {
         await _saveCursor(_notifications.first.createdAt);
       }
     } else {
       _error = response.message;
+      _offline = isTransportFailure(response);
     }
 
     _isLoading = false;

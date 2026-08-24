@@ -17,7 +17,9 @@ import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../services/read_cache.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 
 class CashSubmitScreen extends StatefulWidget {
   const CashSubmitScreen({super.key});
@@ -30,6 +32,9 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
   final ApiService _apiService = ApiService();
   List<CashSubmitListItem> _submissions = [];
   bool _isLoading = false;
+
+  /// The last load failed on the network rather than being answered.
+  bool _offline = false;
 
   // Date range state - default to last 7 days
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
@@ -88,17 +93,25 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
       limit: 100,
     );
 
+    final offline = !result.isSuccess && isTransportFailure(result);
     setState(() {
       if (result.isSuccess && result.data != null) {
         _submissions = result.data!;
         // API already filters by location, just sort by date (newest first)
         _submissions.sort((a, b) => b.date.compareTo(a.date));
+        _offline = false;
       } else {
-        // Show error message
-        if (mounted) {
+        _offline = offline;
+        // Rows from an earlier load cannot be marked as old on this screen, so
+        // leaving them up would show a stale submission as today's. Drop them
+        // and say plainly that the list cannot be seen from here.
+        if (offline) _submissions = [];
+        // A transport failure is stated by the body below; a snackbar that
+        // fades is not where "you are offline" belongs.
+        if (mounted && !offline) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result.message ?? 'Failed to load cash submissions'),
+              content: Text(result.message),
               backgroundColor: AppColors.error,
             ),
           );
@@ -198,7 +211,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result.message ?? 'Failed to delete submission'),
+              content: Text(result.message),
               backgroundColor: AppColors.error,
             ),
           );
@@ -501,6 +514,15 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
               ),
               child: _isLoading
                   ? _buildSkeletonList(isDark)
+                  // Ahead of the empty state: "none for this date range" is a
+                  // statement about the server's records, not about a request
+                  // that never arrived.
+                  : _offline && _submissions.isEmpty
+                      ? OfflineEmptyView(
+                          noun: 'cash submissions',
+                          isDark: isDark,
+                          onRefresh: _loadSubmissions,
+                        )
                   : _submissions.isEmpty
                       ? Center(
                           child: Text(

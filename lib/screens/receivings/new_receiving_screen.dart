@@ -11,6 +11,7 @@ import '../../providers/receiving_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/offline_actions.dart';
+import '../../services/read_cache.dart';
 import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../widgets/app_bottom_navigation.dart';
@@ -37,6 +38,9 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
 
   List<Item> _searchResults = [];
   bool _isSearching = false;
+
+  /// The last item lookup failed on the network rather than returning nothing.
+  bool _searchOffline = false;
   bool _isProcessing = false;
 
   @override
@@ -127,6 +131,11 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
       } else {
         setState(() {
           _searchResults = [];
+          // Without this the search simply produced nothing and said nothing,
+          // which reads as "that item does not exist" -- the one conclusion a
+          // failed lookup must never let someone draw while they are standing
+          // at the store counting stock.
+          _searchOffline = isTransportFailure(response);
           _isSearching = false;
         });
       }
@@ -192,7 +201,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response.message ?? 'Failed to load suppliers'),
+            content: Text(response.message),
             backgroundColor: AppColors.error,
           ),
         );
@@ -546,6 +555,36 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                   onChanged: _searchItems,
                 ),
               ),
+
+              // Could not reach the server for the lookup. Said plainly,
+              // because an empty result and an unanswered request look
+              // identical otherwise.
+              if (_searchOffline && _searchResults.isEmpty && !_isSearching)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_off,
+                          size: 18,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Cannot search items offline. This is not a result, '
+                          'it is a lookup that never reached the server.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: isDark
+                                ? AppColors.darkTextLight
+                                : AppColors.textLight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // Search results
               if (_searchResults.isNotEmpty)

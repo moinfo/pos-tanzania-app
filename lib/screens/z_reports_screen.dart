@@ -12,8 +12,10 @@ import '../services/offline_submit.dart';
 import '../widgets/offline_submit_feedback.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
+import '../services/read_cache.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 
 class ZReportsScreen extends StatefulWidget {
   const ZReportsScreen({super.key});
@@ -26,6 +28,9 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
   final ApiService _apiService = ApiService();
   List<ZReportListItem> _reports = [];
   bool _isLoading = false;
+
+  /// The last load failed on the network rather than being answered.
+  bool _offline = false;
 
   // Date range state - default to last 7 days
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
@@ -49,15 +54,20 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
       limit: 100,
     );
 
+    final offline = !result.isSuccess && isTransportFailure(result);
     setState(() {
       if (result.isSuccess && result.data != null) {
         _reports = result.data!;
+        _offline = false;
       } else {
-        // Show error message
-        if (mounted) {
+        _offline = offline;
+        // Nothing on this screen can mark a row as old, so a stale report left
+        // on screen reads as a filed one. Drop them and say so.
+        if (offline) _reports = [];
+        if (mounted && !offline) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result.message ?? 'Failed to load Z reports'),
+              content: Text(result.message),
               backgroundColor: AppColors.error,
             ),
           );
@@ -163,6 +173,14 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
           Expanded(
             child: _isLoading
                 ? _buildSkeletonList(isDark)
+                // Ahead of the empty state: "none in this range" is a claim
+                // about the server's records.
+                : _offline && _reports.isEmpty
+                    ? OfflineEmptyView(
+                        noun: 'Z reports',
+                        isDark: isDark,
+                        onRefresh: _loadReports,
+                      )
                 : _reports.isEmpty
                     ? Center(
                         child: Text(

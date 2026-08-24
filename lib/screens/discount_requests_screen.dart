@@ -810,7 +810,27 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
     }
 
     // Validate against max discount
-    if (_itemPrices != null && discount > _itemPrices!.maxDiscount) {
+    // The ceiling is the entire point of this check, so the request cannot be
+    // raised while it is unknown. getItemPrices is NOT in the read cache, so
+    // offline _itemPrices stays null -- and the old `_itemPrices != null &&`
+    // guard then SKIPPED the limit rather than enforcing it, quietly letting an
+    // over-limit discount be queued and uploaded later as if it had been
+    // checked. Refusing is the safe direction: an approver can always be asked
+    // again, a discount already granted cannot be taken back.
+    if (_itemPrices == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Cannot check this item\'s maximum discount while offline. '
+            'Connect to the internet and reopen this form.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (discount > _itemPrices!.maxDiscount) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Discount cannot exceed TSh ${currencyFormat.format(_itemPrices!.maxDiscount)}'),
@@ -1284,7 +1304,27 @@ class _EditDiscountRequestSheetState extends State<_EditDiscountRequestSheet> {
       return;
     }
 
-    if (_itemPrices != null && discount > _itemPrices!.maxDiscount) {
+    // The ceiling is the entire point of this check, so the request cannot be
+    // raised while it is unknown. getItemPrices is NOT in the read cache, so
+    // offline _itemPrices stays null -- and the old `_itemPrices != null &&`
+    // guard then SKIPPED the limit rather than enforcing it, quietly letting an
+    // over-limit discount be queued and uploaded later as if it had been
+    // checked. Refusing is the safe direction: an approver can always be asked
+    // again, a discount already granted cannot be taken back.
+    if (_itemPrices == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Cannot check this item\'s maximum discount while offline. '
+            'Connect to the internet and reopen this form.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (discount > _itemPrices!.maxDiscount) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Discount cannot exceed TSh ${currencyFormat.format(_itemPrices!.maxDiscount)}'),
