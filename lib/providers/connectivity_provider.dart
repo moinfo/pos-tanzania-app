@@ -17,11 +17,42 @@ class ConnectivityProvider extends ChangeNotifier {
   int _connectionDropCount = 0;
   Duration _totalOfflineTime = Duration.zero;
 
-  /// Whether the device is currently online
-  bool get isOnline => _isOnline;
+  /// Whether the last request actually reached the server.
+  ///
+  /// The radio being up is not the same thing, and this app's users live in
+  /// the gap between them: a van on a bar of signal that carries nothing, a
+  /// shop wifi whose uplink is down, a captive portal. The badge used to read
+  /// ONLINE in all three while every request failed.
+  ///
+  /// Null means nothing has been tried since the radio came up, so there is no
+  /// evidence either way and the radio is the best guess available.
+  bool? _serverAnswering;
+
+  /// Online means the radio is up AND the server has not just refused to
+  /// answer. Optimistic when untested: a fresh start with signal reads online
+  /// until something proves otherwise, rather than accusing the network before
+  /// a single request has been made.
+  bool get isOnline => _isOnline && (_serverAnswering ?? true);
 
   /// Whether the device is currently offline
-  bool get isOffline => !_isOnline;
+  bool get isOffline => !isOnline;
+
+  /// True only when the radio is up but the server is not answering -- worth
+  /// saying differently on screen, because "no internet" sends a seller to
+  /// check a connection that is fine.
+  bool get serverUnreachable => _isOnline && _serverAnswering == false;
+
+  /// Report the outcome of a real request.
+  ///
+  /// Called from ApiService on every response: statusCode == null means nobody
+  /// answered, anything else means they did -- a 401 or a 500 is still the
+  /// server being there. Cheap and truthful, and it costs no extra round trip,
+  /// which is why this is not a poll.
+  void reportServerReachable(bool reachable) {
+    if (_serverAnswering == reachable) return;
+    _serverAnswering = reachable;
+    notifyListeners();
+  }
 
   /// Current connection type (wifi, mobile, none, etc.)
   ConnectivityResult get connectionType => _connectionType;
@@ -83,12 +114,24 @@ class ConnectivityProvider extends ChangeNotifier {
   }
 
   /// Update connectivity status
+  /// Exposed for tests: the radio transition is half of what [isOnline] means,
+  /// and the half that cannot be driven from a unit test otherwise.
+  @visibleForTesting
+  void applyConnectivityResult(ConnectivityResult result) =>
+      _updateConnectivity(result);
+
   void _updateConnectivity(ConnectivityResult result) {
     final wasOnline = _isOnline;
 
     // Determine connection type and online status
     _connectionType = result;
     _isOnline = result != ConnectivityResult.none;
+
+    // A different radio is a different network, so what the last one proved
+    // about the server no longer applies. Forget it and let the next real
+    // request settle the question -- otherwise a phone that walks from a dead
+    // shop wifi onto mobile data keeps insisting the server is unreachable.
+    _serverAnswering = null;
 
     // Track online/offline transitions
     if (wasOnline && !_isOnline) {

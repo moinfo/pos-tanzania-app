@@ -91,6 +91,12 @@ class MyApp extends StatelessWidget {
             authProvider!.setPermissionProvider(permissionProvider);
             authProvider.setLocationProvider(locationProvider);
             authProvider.setConnectivityProvider(connectivityProvider);
+            // Let every API response tell the badge whether the server is
+            // actually there. Set here rather than inside ApiService so the
+            // service keeps no reference to the widget layer -- SyncService
+            // uses it from no widget tree at all.
+            ApiService.onServerReachability =
+                connectivityProvider.reportServerReachable;
             authProvider.setSaleProvider(saleProvider);
             authProvider.setNotificationProvider(notificationProvider);
             return authProvider;

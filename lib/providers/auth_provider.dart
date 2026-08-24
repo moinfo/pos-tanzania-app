@@ -125,10 +125,60 @@ class AuthProvider with ChangeNotifier {
         }
 
         notifyListeners();
+      } else if (result.statusCode == null) {
+        // Nobody answered. That is NOT the same as "your token is invalid",
+        // and treating it as such was destructive twice over: it dropped the
+        // seller to a login screen, and it DELETED the one credential an
+        // offline session had to work from. A phone opened in a dead-signal
+        // area lost its session permanently and could not sign back in.
+        //
+        // The token stays exactly where it is. If it has genuinely expired the
+        // server will say so with a 401 the moment there is a connection, and
+        // that path already handles it.
+        final restored = await _restoreCachedSession();
+        debugPrint(restored
+            ? '📴 Server unreachable at startup; carrying on from the saved session'
+            : '📴 Server unreachable at startup and nothing saved to carry on from');
+        notifyListeners();
       } else {
-        // Token is invalid, clear it
+        // The server answered and refused the token. This one really is invalid.
         await _apiService.clearToken();
       }
+    }
+  }
+
+  /// Bring back the last signed-in session from disk, without a server.
+  ///
+  /// Used when the app is opened with no connection and a token already on the
+  /// device. No password is re-checked: the token being present is the proof,
+  /// the same proof an online start relies on, and asking for a password that
+  /// cannot be verified offline would refuse the seller for having no signal.
+  ///
+  /// Returns false when there is nothing cached, which is a first run -- the
+  /// device has genuinely never been primed and MainNavigation says so.
+  Future<bool> _restoreCachedSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final client = await ApiService.getCurrentClient();
+      final userJson = prefs.getString('${_offlineUserKey}_${client.id}');
+      if (userJson == null) return false;
+
+      _user = User.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
+      _isAuthenticated = true;
+      _isOfflineSession = true;
+      _error = null;
+      await _persistActiveUserId();
+
+      // Permissions come from disk too. Without them every PermissionWrapper
+      // hides its child and the seller lands on a shell with no screens and an
+      // empty drawer -- which is exactly what a fresh install offline looked
+      // like before 34c7e89.
+      await _permissionProvider?.loadPermissionsFromLocal();
+
+      return true;
+    } catch (e) {
+      debugPrint('Could not restore the saved session: $e');
+      return false;
     }
   }
 
