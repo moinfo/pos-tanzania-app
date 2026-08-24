@@ -8,6 +8,7 @@ import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 import 'receiving_details_screen.dart';
 
 class SupplierCreditScreen extends StatefulWidget {
@@ -30,6 +31,9 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
   SupplierStatement? _statement;
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// Non-null when this statement came off the saved copy, not the server.
+  DateTime? _cachedAt;
 
   String _startDate = DateFormat('yyyy-MM-dd').format(
     DateTime(DateTime.now().year, DateTime.now().month, 1),
@@ -58,6 +62,7 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
       _isLoading = false;
       if (response.isSuccess) {
         _statement = response.data;
+        _cachedAt = response.servedFromCacheAt;
       } else {
         _errorMessage = response.message;
       }
@@ -124,6 +129,13 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
       ),
       body: Column(
         children: [
+          if (_cachedAt != null)
+            CachedDataBanner(
+              fetchedAtLabel: describeCacheAge(_cachedAt!),
+              noun: 'this statement',
+              isDark: isDark,
+              onRetry: _loadStatement,
+            ),
           if (_statement != null) _buildBalanceCard(),
           Padding(
             padding: const EdgeInsets.all(16.0),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../widgets/state_views.dart';
 import '../models/credit.dart';
 import '../widgets/credit/credit_list_widgets.dart';
 import '../models/permission_model.dart';
@@ -30,6 +31,9 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
   DailyDebtReportResponse? _reportData;
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when this report came off the saved copy.
+  DateTime? _cachedAt;
   String _searchQuery = '';
   late DateTime _startDate;
   late DateTime _endDate;
@@ -119,6 +123,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _reportData = response.data;
+          _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message ?? 'Failed to load report';
         }
@@ -181,6 +186,13 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
         color: isDark ? AppColors.darkBackground : Colors.grey.shade100,
         child: Column(
           children: [
+            if (_cachedAt != null)
+              CachedDataBanner(
+                fetchedAtLabel: describeCacheAge(_cachedAt!),
+                noun: 'this report',
+                isDark: isDark,
+                onRetry: _loadReport,
+              ),
             _buildDateRangeSelector(isDark),
             if (_reportData != null && !_isLoading) _buildSummaryCard(isDark),
             _buildSearchBar(isDark),
@@ -222,6 +234,13 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
           children: [
+            if (_cachedAt != null)
+              CachedDataBanner(
+                fetchedAtLabel: describeCacheAge(_cachedAt!),
+                noun: 'this report',
+                isDark: Theme.of(context).brightness == Brightness.dark,
+                onRetry: _loadReport,
+              ),
             _buildLerumaTotalCard(total, debts.length),
             const SizedBox(height: 12),
             if (_canPickPeriod) ...[

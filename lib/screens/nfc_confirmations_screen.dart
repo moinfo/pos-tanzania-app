@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../widgets/state_views.dart';
 import '../models/nfc_wallet.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
@@ -18,6 +19,9 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
   List<NfcConfirmation> _confirmations = [];
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when this came off the saved copy, not the server.
+  DateTime? _cachedAt;
 
   // Filters
   String? _selectedType;
@@ -54,6 +58,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _confirmations = response.data!;
+          _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message;
         }
@@ -107,6 +112,13 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
       ),
       body: Column(
         children: [
+          if (_cachedAt != null)
+            CachedDataBanner(
+              fetchedAtLabel: describeCacheAge(_cachedAt!),
+              noun: 'confirmations',
+              isDark: isDark,
+              onRetry: _loadConfirmations,
+            ),
           // Filters bar
           Container(
             padding: const EdgeInsets.all(12),

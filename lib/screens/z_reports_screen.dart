@@ -32,6 +32,13 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
   /// The last load failed on the network rather than being answered.
   bool _offline = false;
 
+  /// Non-null when these rows came off the saved copy.
+  ///
+  /// This screen used to DROP saved rows rather than show them, because a
+  /// filed Z report and a stale one look identical and the screen had no way
+  /// to tell them apart. The banner is that way, so the rows can stay.
+  DateTime? _cachedAt;
+
   // Date range state - default to last 7 days
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
   DateTime _endDate = DateTime.now();
@@ -58,6 +65,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
     setState(() {
       if (result.isSuccess && result.data != null) {
         _reports = result.data!;
+        _cachedAt = result.servedFromCacheAt;
         _offline = false;
       } else {
         _offline = offline;
@@ -140,6 +148,13 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
       ),
       body: Column(
         children: [
+          if (_cachedAt != null)
+            CachedDataBanner(
+              fetchedAtLabel: describeCacheAge(_cachedAt!),
+              noun: 'these Z reports',
+              isDark: isDark,
+              onRetry: _loadReports,
+            ),
           // Date range display
           Container(
             width: double.infinity,

@@ -10,6 +10,7 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 
 /// Suspended Items Summary Screen
 /// Aggregates all items from all suspended sales
@@ -31,6 +32,9 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
   SuspendedSummaryTotals? _totals;
   bool _isLoading = true;
   String? _error;
+
+  /// Non-null when these rows came off the saved copy rather than the server.
+  DateTime? _cachedAt;
 
   // Store comments for each item (key: itemId_locationId)
   final Map<String, ItemComment?> _comments = {};
@@ -90,6 +94,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
       setState(() {
         _items = response.data!.items;
         _totals = response.data!.totals;
+        _cachedAt = response.servedFromCacheAt;
         _isLoading = false;
       });
       _filterItems();
@@ -225,7 +230,13 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
           ),
         ],
       ),
-      body: _buildBody(isDark),
+      body: CachedBodyWrapper(
+        cachedAt: _cachedAt,
+        noun: 'suspended sales',
+        isDark: isDark,
+        onRetry: _loadData,
+        child: _buildBody(isDark),
+      ),
     );
   }
 

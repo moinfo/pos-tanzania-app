@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../services/read_cache.dart';
+
+// Re-exported so a screen that shows a CachedDataBanner needs one import, not
+// two. The label and the banner are always used together.
+export '../services/read_cache.dart' show describeCacheAge;
 import '../utils/constants.dart';
 import 'skeleton_loader.dart';
 

@@ -8,6 +8,7 @@ import '../models/stock_location.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../utils/constants.dart';
@@ -37,6 +38,11 @@ class _CreditsScreenState extends State<CreditsScreen> {
   SupervisorCreditsResponse? _creditsData;
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when these rows came off the saved copy rather than the server.
+  /// Drives the age banner: a seller must be able to see that the balances in
+  /// front of them are from this morning, not from this minute.
+  DateTime? _cachedAt;
   String _searchQuery = '';
 
   /// Balance filter chips (design_handoff_home_credit 3.4): all / open / settled.
@@ -108,6 +114,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _creditsData = response.data;
+        _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message ?? 'Failed to load credits';
         }
@@ -272,6 +279,16 @@ class _CreditsScreenState extends State<CreditsScreen> {
         child: Column(
           children: [
             // Summary Card with glassmorphic design
+            // Shown only when these rows came off the saved copy. Recording a
+            // payment is refused offline, so a stale figure here can guide a
+            // trip but can never be written back as fact.
+            if (_cachedAt != null)
+              CachedDataBanner(
+                fetchedAtLabel: describeCacheAge(_cachedAt!),
+                isDark: isDark,
+                noun: 'credit balances',
+                onRetry: _loadCredits,
+              ),
             if (_creditsData != null && !_isLoading)
               _buildSummaryCard(isDark),
 
@@ -914,6 +931,11 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
   SupervisorCustomersResponse? _customersData;
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when these rows came off the saved copy rather than the server.
+  /// Drives the age banner: a seller must be able to see that the balances in
+  /// front of them are from this morning, not from this minute.
+  DateTime? _cachedAt;
   String _searchQuery = '';
   String _balanceFilter = 'all';
   bool _sortByBalance = true;
@@ -961,6 +983,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _customersData = response.data;
+        _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message ?? 'Failed to load customers';
         }
@@ -1019,6 +1042,16 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
         child: Column(
           children: [
             // Summary Card
+            // Shown only when these rows came off the saved copy. Recording a
+            // payment is refused offline, so a stale figure here can guide a
+            // trip but can never be written back as fact.
+            if (_cachedAt != null)
+              CachedDataBanner(
+                fetchedAtLabel: describeCacheAge(_cachedAt!),
+                isDark: isDark,
+                noun: 'credit balances',
+                onRetry: _loadCustomers,
+              ),
             if (_customersData != null && !_isLoading)
               _buildSummaryCard(isDark),
 

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_tanzania_mobile/providers/connectivity_provider.dart';
@@ -68,6 +70,38 @@ void main() {
       c.applyConnectivityResult(ConnectivityResult.mobile);
       expect(c.isOnline, isTrue);
       expect(c.serverUnreachable, isFalse);
+    });
+  });
+
+  /// The badge only knows what the request layer tells it, so every path that
+  /// talks to the server has to report. _cachedGet did not: it builds its own
+  /// ApiResponse instead of going through _handleResponse, so a screen whose
+  /// loaders were all cached left the badge on its last known value. That grows
+  /// worse the more endpoints get cached, which is the direction the app is
+  /// moving -- hence a guard rather than a one-off fix.
+  ///
+  /// Read from source because ApiService._http is a static final with no seam
+  /// to inject a stub through.
+  group('every request path reports what it learned about the server', () {
+    String cachedGetBody() {
+      final source = File('lib/services/api_service.dart').readAsStringSync();
+      final start = source.indexOf('Future<ApiResponse<T>> _cachedGet<T>(');
+      expect(start, isNot(-1), reason: '_cachedGet has been renamed or removed');
+      final end = source.indexOf('\n  /// A stable cache key', start);
+      return source.substring(start, end == -1 ? start + 3000 : end);
+    }
+
+    test('a cached read reports the server as reachable when it answers', () {
+      expect(cachedGetBody(), contains('_reportReachable(true)'),
+          reason: 'A cached endpoint that answers must mark the server up, or '
+              'the badge stays stuck showing an outage that has ended.');
+    });
+
+    test('a cached read reports the server as unreachable when it does not', () {
+      expect(cachedGetBody(), contains('_reportReachable(false)'),
+          reason: 'A cached endpoint served from a saved copy still failed to '
+              'reach the server, and the badge must say so -- otherwise the '
+              'app reads ONLINE while showing yesterday rows.');
     });
   });
 }

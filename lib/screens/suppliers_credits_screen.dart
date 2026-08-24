@@ -10,6 +10,7 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/permission_wrapper.dart';
@@ -31,6 +32,9 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
   SupplierCreditsResponse? _creditsData;
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when these rows came off the saved copy, not the server.
+  DateTime? _cachedAt;
   String _searchQuery = '';
 
   @override
@@ -77,6 +81,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _creditsData = response.data;
+          _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message ?? 'Failed to load supplier credits';
         }
@@ -137,6 +142,13 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
         color: isDark ? AppColors.darkBackground : Colors.grey.shade100,
         child: Column(
           children: [
+            if (_cachedAt != null)
+              CachedDataBanner(
+                fetchedAtLabel: describeCacheAge(_cachedAt!),
+                noun: 'supplier credits',
+                isDark: isDark,
+                onRetry: _loadCredits,
+              ),
             // Summary Card with glassmorphic design
             if (_creditsData != null && !_isLoading)
               _buildSummaryCard(isDark),
@@ -769,6 +781,9 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
   SupplierAccountResponse? _accountData;
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when these rows came off the saved copy, not the server.
+  DateTime? _cachedAt;
   late DateTime _startDate;
   late DateTime _endDate;
 
@@ -798,6 +813,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _accountData = response.data;
+          _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message ?? 'Failed to load account';
         }
@@ -883,6 +899,13 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_cachedAt != null)
+            CachedDataBanner(
+              fetchedAtLabel: describeCacheAge(_cachedAt!),
+              noun: 'this account',
+              isDark: isDark,
+              onRetry: _loadAccount,
+            ),
           // Date Range Selector
           GlassmorphicCard(
             isDark: isDark,
@@ -1206,6 +1229,9 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
   SupplierDailyCreditResponse? _reportData;
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when these rows came off the saved copy, not the server.
+  DateTime? _cachedAt;
   String _searchQuery = '';
   late DateTime _startDate;
   late DateTime _endDate;
@@ -1249,6 +1275,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _reportData = response.data;
+          _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message ?? 'Failed to load report';
         }
@@ -1303,6 +1330,13 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
         color: isDark ? AppColors.darkBackground : Colors.grey.shade100,
         child: Column(
           children: [
+            if (_cachedAt != null)
+              CachedDataBanner(
+                fetchedAtLabel: describeCacheAge(_cachedAt!),
+                noun: 'this report',
+                isDark: isDark,
+                onRetry: _loadReport,
+              ),
             _buildDateRangeSelector(isDark),
             if (_reportData != null && !_isLoading) _buildSummaryCard(isDark),
             _buildSearchBar(isDark),
@@ -1609,6 +1643,9 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
   SupplierDailyDebtResponse? _reportData;
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when these rows came off the saved copy, not the server.
+  DateTime? _cachedAt;
   String _searchQuery = '';
   late DateTime _startDate;
   late DateTime _endDate;
@@ -1652,6 +1689,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _reportData = response.data;
+          _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message ?? 'Failed to load report';
         }
@@ -1706,6 +1744,13 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
         color: isDark ? AppColors.darkBackground : Colors.grey.shade100,
         child: Column(
           children: [
+            if (_cachedAt != null)
+              CachedDataBanner(
+                fetchedAtLabel: describeCacheAge(_cachedAt!),
+                noun: 'this report',
+                isDark: isDark,
+                onRetry: _loadReport,
+              ),
             _buildDateRangeSelector(isDark),
             if (_reportData != null && !_isLoading) _buildSummaryCard(isDark),
             _buildSearchBar(isDark),

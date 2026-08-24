@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+
+import '../../widgets/state_views.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -32,6 +34,9 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
   List<ZReportListItem> _zReports = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// Non-null when this came off the saved copy, not the server.
+  DateTime? _cachedAt;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
   DateTime _endDate = DateTime.now();
 
@@ -74,6 +79,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
       if (response.isSuccess && response.data != null) {
         setState(() {
           _zReports = response.data!;
+          _cachedAt = response.servedFromCacheAt;
           // Sort by date (newest first)
           _zReports.sort((a, b) => b.date.compareTo(a.date));
           _isLoading = false;
@@ -676,6 +682,13 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
       ),
       body: Column(
         children: [
+          if (_cachedAt != null)
+            CachedDataBanner(
+              fetchedAtLabel: describeCacheAge(_cachedAt!),
+              noun: 'these Z reports',
+              isDark: isDark,
+              onRetry: _loadZReports,
+            ),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

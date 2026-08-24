@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/state_views.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/report.dart';
@@ -27,6 +29,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   final _apiService = ApiService();
   bool _isLoading = true;
   String? _error;
+
+  /// Non-null when this report came off the saved copy.
+  DateTime? _cachedAt;
   ReportData? _reportData;
   GraphicalReportData? _graphicalData;
 
@@ -98,6 +103,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       if (response.isSuccess) {
         setState(() {
           _reportData = response.data;
+          _cachedAt = response.servedFromCacheAt;
           _isLoading = false;
         });
       } else {
@@ -139,6 +145,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       if (response.isSuccess) {
         setState(() {
           _graphicalData = response.data;
+          _cachedAt = response.servedFromCacheAt;
           _isLoading = false;
         });
       } else {
@@ -226,6 +233,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         ),
         child: Column(
           children: [
+            if (_cachedAt != null)
+              CachedDataBanner(
+                fetchedAtLabel: describeCacheAge(_cachedAt!),
+                noun: 'this report',
+                isDark: isDark,
+                onRetry: _loadReport,
+              ),
             // Date range display
             _buildDateRangeHeader(isDark),
 

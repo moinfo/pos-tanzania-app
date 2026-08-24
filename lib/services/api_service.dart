@@ -414,6 +414,12 @@ class ApiService {
     try {
       final response = await _http.get(uri, headers: await _getHeaders());
 
+      // Same rule as _handleResponse: any status at all means the server is
+      // there. Without this a cached endpoint is invisible to the badge, and
+      // the more endpoints are cached the more the badge is guessing -- which
+      // is how it came to read ONLINE with nothing answering.
+      _reportReachable(true);
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Decoding is guarded separately from the request. A 200 carrying an
         // HTML error page is the server answering badly, not the network being
@@ -433,7 +439,11 @@ class ApiService {
           );
         } catch (e) {
           return ApiResponse<T>.error(
-            message: 'Failed to parse response: $e',
+            // A refusal the server meant to send is passed through in the
+            // server's own words; anything else really is a decode failure.
+            message: e is ApiPayloadError
+                ? e.message
+                : 'Failed to parse response: $e',
             statusCode: response.statusCode,
           );
         }
@@ -445,6 +455,7 @@ class ApiService {
         statusCode: response.statusCode,
       );
     } catch (e) {
+      _reportReachable(false);
       failure = ApiResponse<T>.error(message: 'Connection error: $e');
     }
 
@@ -467,6 +478,13 @@ class ApiService {
     }
   }
 
+  /// Thrown by a [_cachedGet] parser when the server answered and its answer
+  /// was a refusal the user needs to read -- "Customer not found", not a
+  /// decoding failure. Several endpoints wrap the real result in a
+  /// {success, data, message} envelope, so "no" arrives inside a 200.
+  ///
+  /// Without this, such a refusal would surface as "Failed to parse response",
+  /// which tells the user nothing and reads like a bug in the app.
   /// A stable cache key for a request: the path plus its query, with the
   /// parameters sorted so that two orderings of the same filters share a row
   /// instead of quietly saving the list twice.
@@ -638,26 +656,18 @@ class ApiService {
         queryParameters: queryParams,
       );
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final reports = (data['z_reports'] as List)
+      return _cachedGet<List<ZReportListItem>>(
+        uri,
+        (data) => (data['z_reports'] as List)
             .map((item) => ZReportListItem.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: reports,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch Z reports',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // A closed Z report is history: the till was counted and the figure is
+        // fixed. It cannot change retroactively, so a week-old copy is as true
+        // as a fresh one.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch Z reports',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -1675,14 +1685,16 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/credits/statement/$customerId')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(
+      return _cachedGet<CreditStatement>(
         uri,
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<CreditStatement>(
-        response,
         (data) => CreditStatement.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // What this customer already did: sales taken on credit, payments made.
+        // Settled history, so a week-old copy is still true. The CURRENT credit
+        // POSITION is a separate call and stays uncached -- a request is sized
+        // against that figure, and a stale one authorises the wrong amount.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch credit statement',
       );
     } catch (e) {
       _reportReachable(false);
@@ -1721,14 +1733,23 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/credits/supervisors')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(
+      return _cachedGet<SupervisorCreditsResponse>(
         uri,
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<SupervisorCreditsResponse>(
-        response,
         (data) => SupervisorCreditsResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Six hours. This is a WORKING LIST -- who owes what, so a seller on a
+        // route knows where to stop -- and without it the Credits tab, one of
+        // the five in the bottom bar, simply cannot open away from signal.
+        //
+        // Safe to cache only because the money-touching action is already
+        // blocked: credits/add_payment refuses offline, because a payment
+        // recorded against a stale balance is a wrong balance written to the
+        // server. The list informs the trip; it never sizes a transaction.
+        //
+        // Short horizon because another seller collecting changes it. Six hours
+        // covers a route, not a day.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch supervisor credits',
       );
     } catch (e) {
       _reportReachable(false);
@@ -1741,14 +1762,19 @@ class ApiService {
     int supervisorId,
   ) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/credits/supervisor_customers/$supervisorId'),
-        headers: await _getHeaders(),
-      );
+      final uri =
+          Uri.parse('$baseUrlSync/credits/supervisor_customers/$supervisorId');
 
-      return _handleResponse<SupervisorCustomersResponse>(
-        response,
+      return _cachedGet<SupervisorCustomersResponse>(
+        uri,
         (data) => SupervisorCustomersResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Same reasoning and the same horizon as the supervisor list above:
+        // this is who to call on, not what to charge them. Recording a payment
+        // is refused offline, so a stale figure here can inform a trip but can
+        // never be written back as fact.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch supervisor customers',
       );
     } catch (e) {
       _reportReachable(false);
@@ -1773,14 +1799,14 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/credits/daily_debt_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(
+      return _cachedGet<DailyDebtReportResponse>(
         uri,
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<DailyDebtReportResponse>(
-        response,
         (data) => DailyDebtReportResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Who to collect from today. Twelve hours, because it answers "where am
+        // I going this morning" and by tomorrow it names the wrong doors.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch daily debt report',
       );
     } catch (e) {
       _reportReachable(false);
@@ -1925,8 +1951,6 @@ class ApiService {
     String? endDate,
   }) async {
     try {
-      final token = await getToken();
-
       // Build query parameters
       final Map<String, String> queryParams = {};
       if (startDate != null) queryParams['start_date'] = startDate;
@@ -1935,17 +1959,14 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/supplier_credits/statement/$supplierId')
           .replace(queryParameters: queryParams);
 
-      final response = await _http.get(
+      return _cachedGet<SupplierStatement>(
         uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      return _handleResponse<SupplierStatement>(
-        response,
         (data) => SupplierStatement.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A statement is a record of what already happened. Same reasoning as the
+        // account above.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch supplier statement',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2154,11 +2175,15 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<SupplierCreditsResponse>(
-        response,
+      return _cachedGet<SupplierCreditsResponse>(
+        uri,
         (data) => SupplierCreditsResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Who we owe. A working list a buyer checks before a trip to town, so it
+        // has to survive the drive; six hours, because a payment posted by the
+        // office changes it.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch supplier creditors',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2179,11 +2204,14 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/account/$supplierId')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<SupplierAccountResponse>(
-        response,
+      return _cachedGet<SupplierAccountResponse>(
+        uri,
         (data) => SupplierAccountResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // One supplier's ledger. Settled lines are history and cannot change
+        // behind us, so a week-old copy still answers "what did we buy".
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch supplier account',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2229,11 +2257,14 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_credit_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<SupplierDailyCreditResponse>(
-        response,
+      return _cachedGet<SupplierDailyCreditResponse>(
+        uri,
         (data) => SupplierDailyCreditResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Today's buying. Useful for "what have I already booked this morning";
+        // by tomorrow it answers the wrong question.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch supplier daily credit report',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2257,11 +2288,13 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_debt_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<SupplierDailyDebtResponse>(
-        response,
+      return _cachedGet<SupplierDailyDebtResponse>(
+        uri,
         (data) => SupplierDailyDebtResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Today's owing, same horizon and same reason as the credit report.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch supplier daily debt report',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2505,14 +2538,17 @@ class ApiService {
   /// Get single sale details
   Future<ApiResponse<Sale>> getSaleDetails(int saleId) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/sales/$saleId'),
-        headers: await _getHeaders(),
-      );
+      final uri = Uri.parse('$baseUrlSync/sales/$saleId');
 
-      return _handleResponse<Sale>(
-        response,
+      return _cachedGet<Sale>(
+        uri,
         (data) => Sale.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A completed sale is a receipt: it does not change. This is what lets
+        // someone open a sale from a summary, or re-share it by SMS, on a route
+        // with no signal.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch sale',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2945,33 +2981,19 @@ class ApiService {
         queryParameters: {'location_id': locationId.toString()},
       );
 
-      final response = await _http.get(
+      return _cachedGet<MapRouteResponse>(
         uri,
-        headers: await _getHeaders(),
+        (data) => data is Map<String, dynamic>
+            ? MapRouteResponse.fromJson(data)
+            : MapRouteResponse(customers: [], customerCount: 0),
+        cacheKey: _keyFor(uri),
+        // Where the customers on this route actually are. This is the single
+        // most offline thing in the app -- it is read while driving between
+        // shops, which is exactly where there is no signal. Coordinates barely
+        // move, so three days is right.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch map route data',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-
-        if (data != null && data is Map<String, dynamic>) {
-          final mapRouteResponse = MapRouteResponse.fromJson(data);
-          return ApiResponse.success(
-            data: mapRouteResponse,
-            message: jsonResponse['message'] ?? 'Success',
-          );
-        } else {
-          return ApiResponse.success(
-            data: MapRouteResponse(customers: [], customerCount: 0),
-            message: jsonResponse['message'] ?? 'Success',
-          );
-        }
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch map route data',
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -3013,41 +3035,28 @@ class ApiService {
         queryParameters: {'location_id': locationId.toString()},
       );
 
-      final response = await _http.get(
+      return _cachedGet<SuspendedSummaryResponse>(
         uri,
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-
-        if (data != null && data is Map<String, dynamic>) {
-          final summaryResponse = SuspendedSummaryResponse.fromJson(data);
-          return ApiResponse.success(
-            data: summaryResponse,
-            message: jsonResponse['message'] ?? 'Success',
-          );
-        } else {
-          return ApiResponse.success(
-            data: SuspendedSummaryResponse(
-              items: [],
-              totals: SuspendedSummaryTotals(
-                totalQuantity: 0,
-                grandTotal: 0,
-                totalWeight: 0,
-                itemCount: 0,
+        (data) => data is Map<String, dynamic>
+            ? SuspendedSummaryResponse.fromJson(data)
+            // An empty till is a real answer, not a failure: preserved from the
+            // hand-rolled version this replaced.
+            : SuspendedSummaryResponse(
+                items: [],
+                totals: SuspendedSummaryTotals(
+                  totalQuantity: 0,
+                  grandTotal: 0,
+                  totalWeight: 0,
+                  itemCount: 0,
+                ),
               ),
-            ),
-            message: jsonResponse['message'] ?? 'Success',
-          );
-        }
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch suspended summary',
-        );
-      }
+        cacheKey: _keyFor(uri),
+        // Six hours. Suspended sales are a queue someone comes back to finish,
+        // so the list has to be there on a route; but another till completing
+        // one changes it, so it must not outlive the shift.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch suspended summary',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -3067,33 +3076,19 @@ class ApiService {
         },
       );
 
-      final response = await _http.get(
+      return _cachedGet<ItemCommentResponse>(
         uri,
-        headers: await _getHeaders(),
+        (data) => data is Map<String, dynamic>
+            ? ItemCommentResponse.fromJson(data)
+            // No note on this item is a real answer, not a failure.
+            : ItemCommentResponse(comment: null, history: []),
+        cacheKey: _keyFor(uri),
+        // Notes staff leave on an item at a location. Read constantly while
+        // working a till, written rarely; a day-old note still says the same
+        // thing.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch comment',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-
-        if (data != null && data is Map<String, dynamic>) {
-          final commentResponse = ItemCommentResponse.fromJson(data);
-          return ApiResponse.success(
-            data: commentResponse,
-            message: jsonResponse['message'] ?? 'Success',
-          );
-        } else {
-          return ApiResponse.success(
-            data: ItemCommentResponse(comment: null, history: []),
-            message: jsonResponse['message'] ?? 'Success',
-          );
-        }
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch comment',
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -5285,11 +5280,16 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/${reportType.apiPath}')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<ReportData>(
-        response,
+      return _cachedGet<ReportData>(
+        uri,
         (data) => ReportData.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Reports are read against a date range, and the key carries that range, so
+        // today's report and last month's are separate saved copies. Twelve hours:
+        // a range that ends today keeps moving, and a closed month re-fetches
+        // cheaply the next time there is signal.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch report',
       );
     } catch (e) {
       _reportReachable(false);
@@ -5668,11 +5668,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/reports/graphical/$reportType')
           .replace(queryParameters: queryParams);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<GraphicalReportData>(
-        response,
+      return _cachedGet<GraphicalReportData>(
+        uri,
         (data) => GraphicalReportData.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Same data as the report above, shaped for a chart; same horizon.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch graphical report',
       );
     } catch (e) {
       _reportReachable(false);
@@ -5713,27 +5715,16 @@ class ApiService {
   /// Get receiving items for a specific receiving
   Future<ApiResponse<List<Map<String, dynamic>>>> getReceivingItems(int receivingId) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/reports/receiving_items/$receivingId'),
-        headers: await _getHeaders(),
+      final uri = Uri.parse('$baseUrlSync/reports/receiving_items/$receivingId');
+
+      return _cachedGet<List<Map<String, dynamic>>>(
+        uri,
+        (data) => (data['items'] as List).cast<Map<String, dynamic>>(),
+        cacheKey: _keyFor(uri),
+        // The lines on a receiving that already happened. Fixed once booked.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch receiving items',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final items = (data['items'] as List).cast<Map<String, dynamic>>();
-
-        return ApiResponse.success(
-          data: items,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch receiving items',
-          statusCode: response.statusCode,
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -6308,37 +6299,22 @@ class ApiService {
 
       final response = await _http.get(uri, headers: await _getHeaders());
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-
-        // Handle nested response format: {status, data: {success, data: [...]}}
-        var rawData = jsonResponse['data'];
-        List<dynamic> data = [];
-
-        // Check if data is nested (API_Controller wraps response)
-        if (rawData is Map && rawData['data'] != null) {
-          rawData = rawData['data'];
-        }
-
-        if (rawData is List) {
-          data = rawData;
-        } else if (rawData is Map) {
-          debugPrint('⚠️ getCustomerCards: data is Map, treating as empty');
-        }
-
-        debugPrint('📋 Found ${data.length} cards for customer $customerId');
-
-        return ApiResponse.success(
-          data: data.map((e) => CustomerCard.fromJson(e)).toList(),
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to get cards',
-          statusCode: response.statusCode,
-        );
-      }
+      return _cachedGet<List<CustomerCard>>(
+        uri,
+        (raw) {
+          // {status, data: {success, data: [...]}} -- API_Controller wraps it.
+          final inner = raw is Map && raw['data'] != null ? raw['data'] : raw;
+          return inner is List
+              ? inner.map((e) => CustomerCard.fromJson(e)).toList()
+              : <CustomerCard>[];
+        },
+        cacheKey: _keyFor(uri),
+        // Which card belongs to whom. A lookup list, not money: the BALANCE on
+        // a card is deliberately never cached, because selling against a stale
+        // one loses real cash. Three days is right for the mapping itself.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to get cards',
+      );
     } catch (e) {
       debugPrint('❌ Error getting customer cards: $e');
       _reportReachable(false);
@@ -6365,35 +6341,22 @@ class ApiService {
 
       final response = await _http.get(uri, headers: await _getHeaders());
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-
-        // Handle nested response format: {status, data: {success, data: [...]}}
-        var rawData = jsonResponse['data'];
-        List<dynamic> data = [];
-
-        // Check if data is nested (API_Controller wraps response)
-        if (rawData is Map && rawData['data'] != null) {
-          rawData = rawData['data'];
-        }
-
-        if (rawData is List) {
-          data = rawData;
-        } else if (rawData is Map) {
-          debugPrint('⚠️ getAllCustomerCards: data is Map, treating as empty');
-        }
-
-        return ApiResponse.success(
-          data: data.map((e) => CustomerCard.fromJson(e)).toList(),
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to get cards',
-          statusCode: response.statusCode,
-        );
-      }
+      return _cachedGet<List<CustomerCard>>(
+        uri,
+        (raw) {
+          // {status, data: {success, data: [...]}} -- API_Controller wraps it.
+          final inner = raw is Map && raw['data'] != null ? raw['data'] : raw;
+          return inner is List
+              ? inner.map((e) => CustomerCard.fromJson(e)).toList()
+              : <CustomerCard>[];
+        },
+        cacheKey: _keyFor(uri),
+        // Which card belongs to whom. A lookup list, not money: the BALANCE on
+        // a card is deliberately never cached, because selling against a stale
+        // one loses real cash. Three days is right for the mapping itself.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to get cards',
+      );
     } catch (e) {
       debugPrint('❌ Error getting all cards: $e');
       _reportReachable(false);
@@ -6697,23 +6660,25 @@ class ApiService {
         queryParameters: queryParams,
       );
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        var rawData = jsonResponse['data'];
-
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
-          return ApiResponse.success(
-            data: NfcStatement.fromJson(rawData['data']),
-            message: 'Success',
+      return _cachedGet<NfcStatement>(
+        uri,
+        (raw) {
+          // The real result rides inside a {success, data, message}
+          // envelope, so a refusal arrives with a 200. Raise it as the
+          // server worded it rather than letting it read as a decode bug.
+          if (raw is Map && raw['success'] == true && raw['data'] != null) {
+            return NfcStatement.fromJson(raw['data']);
+          }
+          throw ApiPayloadError(
+            (raw is Map ? raw['message']?.toString() : null) ?? 'Failed to get statement',
           );
-        }
-
-        return ApiResponse.error(message: rawData?['message'] ?? 'Failed to get statement');
-      } else {
-        return ApiResponse.error(message: 'Failed to get statement');
-      }
+        },
+        cacheKey: _keyFor(uri),
+        // A statement is settled history: what the card already did. It cannot
+        // change behind us, so a week-old copy is as true as a fresh one.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to get statement',
+      );
     } catch (e) {
       debugPrint('❌ Error getting statement: $e');
       _reportReachable(false);
@@ -6750,24 +6715,22 @@ class ApiService {
         queryParameters: queryParams,
       );
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        var rawData = jsonResponse['data'];
-
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
-          final confirmationsData = rawData['data']['confirmations'] as List<dynamic>? ?? [];
-          return ApiResponse.success(
-            data: confirmationsData.map((e) => NfcConfirmation.fromJson(e)).toList(),
-            message: 'Success',
-          );
-        }
-
-        return ApiResponse.error(message: 'Failed to get confirmations');
-      } else {
-        return ApiResponse.error(message: 'Failed to get confirmations');
-      }
+      return _cachedGet<List<NfcConfirmation>>(
+        uri,
+        (raw) {
+          if (raw is Map && raw['success'] == true && raw['data'] != null) {
+            final rows = raw['data']['confirmations'] as List<dynamic>? ?? [];
+            return rows.map((e) => NfcConfirmation.fromJson(e)).toList();
+          }
+          throw ApiPayloadError('Failed to get confirmations');
+        },
+        cacheKey: _keyFor(uri),
+        // Wallet movements waiting to be confirmed -- a queue someone works
+        // through, so it has to be readable away from signal. Six hours,
+        // because a colleague confirming one changes the list.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to get confirmations',
+      );
     } catch (e) {
       debugPrint('❌ Error getting confirmations: $e');
       _reportReachable(false);
@@ -6862,23 +6825,26 @@ class ApiService {
         queryParameters: {'customer_id': customerId.toString()},
       );
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        var rawData = jsonResponse['data'];
-
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
-          return ApiResponse.success(
-            data: NfcCustomerSettings.fromJson(rawData['data']),
-            message: 'Success',
+      return _cachedGet<NfcCustomerSettings>(
+        uri,
+        (raw) {
+          // The real result rides inside a {success, data, message}
+          // envelope, so a refusal arrives with a 200. Raise it as the
+          // server worded it rather than letting it read as a decode bug.
+          if (raw is Map && raw['success'] == true && raw['data'] != null) {
+            return NfcCustomerSettings.fromJson(raw['data']);
+          }
+          throw ApiPayloadError(
+            (raw is Map ? raw['message']?.toString() : null) ?? 'Customer not found',
           );
-        }
-
-        return ApiResponse.error(message: rawData?['message'] ?? 'Customer not found');
-      } else {
-        return ApiResponse.error(message: 'Failed to get settings');
-      }
+        },
+        cacheKey: _keyFor(uri),
+        // A customer's wallet rules -- limits, whether the card is active. These
+        // change rarely and are read constantly, so three days is right. The
+        // SPENDABLE BALANCE is a separate call and is never cached.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to get settings',
+      );
     } catch (e) {
       debugPrint('❌ Error getting settings: $e');
       _reportReachable(false);
@@ -8120,4 +8086,14 @@ class _TimeoutClient extends http.BaseClient {
         : const Duration(seconds: 30);
     return _inner.send(request).timeout(timeout);
   }
+}
+
+/// See [ApiService] -- a refusal carried inside a successful HTTP response.
+class ApiPayloadError implements Exception {
+  ApiPayloadError(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }

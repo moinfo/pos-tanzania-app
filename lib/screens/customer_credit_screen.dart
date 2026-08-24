@@ -11,6 +11,7 @@ import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
+import '../widgets/state_views.dart';
 import '../services/nfc_service.dart';
 import '../utils/constants.dart';
 import '../widgets/permission_wrapper.dart';
@@ -46,6 +47,9 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   CreditStatement? _statement;
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// Non-null when this came off the saved copy, not the server.
+  DateTime? _cachedAt;
   int? _selectedLocationId;
 
   String _startDate = DateFormat('yyyy-MM-dd').format(
@@ -117,6 +121,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
       _isLoading = false;
       if (response.isSuccess) {
         _statement = response.data;
+        _cachedAt = response.servedFromCacheAt;
       } else {
         _errorMessage = response.message;
       }
@@ -318,6 +323,13 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
       ),
       body: Column(
         children: [
+          if (_cachedAt != null)
+            CachedDataBanner(
+              fetchedAtLabel: describeCacheAge(_cachedAt!),
+              noun: 'this statement',
+              isDark: isDark,
+              onRetry: _loadStatement,
+            ),
           if (_statement != null) _buildBalanceCard(),
           Padding(
             padding: const EdgeInsets.all(16.0),

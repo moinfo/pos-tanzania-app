@@ -48,6 +48,9 @@ class _CustomerCreditHistoryScreenState
   bool _loading = true;
   String? _error;
 
+  /// Non-null when this came off the saved copy, not the server.
+  DateTime? _cachedAt;
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +70,7 @@ class _CustomerCreditHistoryScreenState
       _loading = false;
       if (response.isSuccess && response.data != null) {
         _data = response.data;
+        _cachedAt = response.servedFromCacheAt;
       } else {
         _error = FriendlyError.of(response.message);
       }
@@ -107,7 +111,13 @@ class _CustomerCreditHistoryScreenState
           ),
         ],
       ),
-      body: _buildBody(isDark),
+      body: CachedBodyWrapper(
+        cachedAt: _cachedAt,
+        noun: 'this history',
+        isDark: isDark,
+        onRetry: _load,
+        child: _buildBody(isDark),
+      ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
     );
   }

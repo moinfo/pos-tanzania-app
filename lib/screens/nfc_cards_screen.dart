@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../widgets/state_views.dart';
 import '../services/nfc_service.dart';
 import '../services/pdf_service.dart';
 import '../models/customer_card.dart';
@@ -29,6 +30,9 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
   List<CustomerCard> _cards = [];
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when this came off the saved copy, not the server.
+  DateTime? _cachedAt;
   bool _nfcAvailable = false;
 
   @override
@@ -58,6 +62,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _cards = response.data!;
+          _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message;
         }
@@ -316,7 +321,12 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
             ),
         ],
       ),
-      body: !_nfcAvailable
+      body: CachedBodyWrapper(
+        cachedAt: _cachedAt,
+        noun: 'these cards',
+        isDark: isDark,
+        onRetry: _loadCards,
+        child: !_nfcAvailable
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -396,6 +406,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                             },
                           ),
                         ),
+      ),
       floatingActionButton: _nfcAvailable
           ? PermissionWrapper(
               permissionId: PermissionIds.nfcCardsRegister,
@@ -1024,6 +1035,9 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
   NfcStatement? _statement;
   String? _errorMessage;
 
+  /// Non-null when this came off the saved copy, not the server.
+  DateTime? _cachedAt;
+
   @override
   void initState() {
     super.initState();
@@ -1043,6 +1057,7 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
         _isLoading = false;
         if (response.isSuccess && response.data != null) {
           _statement = response.data!;
+          _cachedAt = response.servedFromCacheAt;
         } else {
           _errorMessage = response.message;
         }
@@ -1063,7 +1078,12 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
       ),
-      body: _isLoading
+      body: CachedBodyWrapper(
+        cachedAt: _cachedAt,
+        noun: 'this statement',
+        isDark: isDark,
+        onRetry: _loadStatement,
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? Center(
@@ -1231,6 +1251,7 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
                     ],
                   ),
                 ),
+      ),
     );
   }
 
