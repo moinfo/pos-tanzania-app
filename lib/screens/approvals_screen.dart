@@ -8,6 +8,7 @@ import '../models/permission_model.dart';
 import '../providers/notification_provider.dart';
 import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../utils/friendly_error.dart';
@@ -58,6 +59,19 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
   bool _loadingMine = true;
   String? _inboxError;
   String? _mineError;
+
+  /// When the rows on screen are a saved copy rather than a live one -- the
+  /// moment that copy was taken. Null whenever the list came off the server.
+  ///
+  /// This is the whole point of the screen offline: an approver who cannot
+  /// tell "nothing is waiting" from "I cannot see what is waiting" will either
+  /// leave a seller stranded or go looking for a request nobody sent.
+  DateTime? _inboxCachedAt;
+  DateTime? _mineCachedAt;
+
+  /// The load failed for want of a network, and nothing usable was saved.
+  bool _inboxOffline = false;
+  bool _mineOffline = false;
 
   /// Batch mode, and what is ticked. Only the inbox tab has it -- "My
   /// Requests" is a list of things I asked for, not things I decide.
@@ -189,8 +203,15 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       if (response.isSuccess && response.data != null) {
         _inboxPage = response.data;
         _inbox = response.data!.approvals;
+        _inboxCachedAt = response.servedFromCacheAt;
+        _inboxOffline = false;
       } else {
-        _inboxError = FriendlyError.of(response.message);
+        // Distinguish "the network is down" from "the server said no". The
+        // first is not an error to apologise for, it is a state to explain;
+        // the second is a message worth showing.
+        _inboxOffline = isTransportFailure(response);
+        _inboxError = _inboxOffline ? null : FriendlyError.of(response.message);
+        _inboxCachedAt = null;
       }
     });
   }
@@ -212,8 +233,12 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       if (response.isSuccess && response.data != null) {
         _minePage = response.data;
         _mine = response.data!.approvals;
+        _mineCachedAt = response.servedFromCacheAt;
+        _mineOffline = false;
       } else {
-        _mineError = FriendlyError.of(response.message);
+        _mineOffline = isTransportFailure(response);
+        _mineError = _mineOffline ? null : FriendlyError.of(response.message);
+        _mineCachedAt = null;
       }
     });
   }
@@ -810,20 +835,45 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       return ErrorStateView(message: _inboxError!, onRetry: FriendlyError.isPermanent(_inboxError) ? null : _loadInbox, isDark: isDark);
     }
 
-    if (_inbox.isEmpty) {
-      return _emptyForRange(
+    // Offline with nothing saved. Deliberately NOT the "Nothing waiting"
+    // empty state below: that one asserts the queue is clear, which is
+    // precisely what cannot be known from here.
+    if (_inboxOffline) {
+      return OfflineEmptyView(
+        noun: 'approvals',
         isDark: isDark,
-        page: _inboxPage,
         onRefresh: _loadInbox,
-        emptyIcon: Icons.task_alt,
-        emptyTitle: 'Nothing waiting',
-        emptyMessage:
-            'Every request in your stock locations has been dealt with.',
-        filteredMessage: 'Nothing was submitted to you in this date range.',
       );
     }
 
-    return RefreshIndicator(
+    // Note this is wrapped too. An empty list from the cache is still a saved
+    // copy: "Nothing waiting" is a claim about the server, and stating it over
+    // a stale page with no marker is the confusion this screen exists to stop.
+    if (_inbox.isEmpty) {
+      return CachedBodyWrapper(
+        isDark: isDark,
+        cachedAt: _inboxCachedAt,
+        noun: 'approvals',
+        onRetry: _loadInbox,
+        child: _emptyForRange(
+          isDark: isDark,
+          page: _inboxPage,
+          onRefresh: _loadInbox,
+          emptyIcon: Icons.task_alt,
+          emptyTitle: 'Nothing waiting',
+          emptyMessage:
+              'Every request in your stock locations has been dealt with.',
+          filteredMessage: 'Nothing was submitted to you in this date range.',
+        ),
+      );
+    }
+
+    return CachedBodyWrapper(
+      isDark: isDark,
+      cachedAt: _inboxCachedAt,
+      noun: 'approvals',
+      onRetry: _loadInbox,
+      child: RefreshIndicator(
       onRefresh: _loadInbox,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -851,6 +901,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
                 : null,
           );
         },
+      ),
       ),
     );
   }
@@ -952,31 +1003,53 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
       return ErrorStateView(message: _mineError!, onRetry: FriendlyError.isPermanent(_mineError) ? null : _loadMine, isDark: isDark);
     }
 
-    if (_mine.isEmpty) {
-      return _emptyForRange(
+    // "You have not raised a request yet" is a claim about the server. Offline
+    // with nothing saved, it cannot be made.
+    if (_mineOffline) {
+      return OfflineEmptyView(
+        noun: 'your requests',
         isDark: isDark,
-        page: _minePage,
         onRefresh: _loadMine,
-        emptyIcon: Icons.outbox_outlined,
-        emptyTitle: 'You have not raised a request yet',
-        emptyMessage: 'Discount and credit limit requests will appear here.',
-        filteredMessage: 'You raised nothing in this date range.',
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadMine,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
-        itemCount: _mine.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, index) => _ApprovalCard(
-          approval: _mine[index],
-          index: index + 1,
-          money: _money,
+    if (_mine.isEmpty) {
+      return CachedBodyWrapper(
+        isDark: isDark,
+        cachedAt: _mineCachedAt,
+        noun: 'your requests',
+        onRetry: _loadMine,
+        child: _emptyForRange(
           isDark: isDark,
-          onTap: () => _openDetail(_mine[index].approvalId),
+          page: _minePage,
+          onRefresh: _loadMine,
+          emptyIcon: Icons.outbox_outlined,
+          emptyTitle: 'You have not raised a request yet',
+          emptyMessage: 'Discount and credit limit requests will appear here.',
+          filteredMessage: 'You raised nothing in this date range.',
+        ),
+      );
+    }
+
+    return CachedBodyWrapper(
+      isDark: isDark,
+      cachedAt: _mineCachedAt,
+      noun: 'your requests',
+      onRetry: _loadMine,
+      child: RefreshIndicator(
+        onRefresh: _loadMine,
+        child: ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
+          itemCount: _mine.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) => _ApprovalCard(
+            approval: _mine[index],
+            index: index + 1,
+            money: _money,
+            isDark: isDark,
+            onTap: () => _openDetail(_mine[index].approvalId),
+          ),
         ),
       ),
     );

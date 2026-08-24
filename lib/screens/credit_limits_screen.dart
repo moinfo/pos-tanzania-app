@@ -9,6 +9,7 @@ import '../models/approval.dart';
 import '../models/permission_model.dart';
 import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -68,6 +69,15 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
   bool _loadingMore = false;
   String? _error;
 
+  /// Set when the rows below are a saved copy rather than a live one, to the
+  /// moment that copy was taken. Null whenever the list came off the server.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network and nothing usable was saved.
+  /// Kept apart from [_error] because "you are offline" is a state to explain,
+  /// not a fault to apologise for.
+  bool _offline = false;
+
   /// null means "every status"; otherwise one of the six outcomes.
   CreditLimitOutcome? _statusFilter;
 
@@ -85,6 +95,7 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
   UnusedAllowanceList? _unused;
   bool _loadingUnused = true;
   String? _unusedError;
+  bool _unusedOffline = false;
 
   bool get _canCreate => context
       .read<PermissionProvider>()
@@ -171,8 +182,15 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
           ..clear()
           ..addAll(page.data!.rows);
         if (stats.isSuccess && stats.data != null) _stats = stats.data!;
+        // The rows and the figures are cached separately, so mark the pair
+        // stale if EITHER came from the cache. Reading a live statistic over a
+        // saved list is the disagreement this screen already refuses to show.
+        _cachedAt = page.servedFromCacheAt ?? stats.servedFromCacheAt;
+        _offline = false;
       } else {
-        _error = FriendlyError.of(page.message);
+        _offline = isTransportFailure(page);
+        _error = _offline ? null : FriendlyError.of(page.message);
+        _cachedAt = null;
       }
     });
   }
@@ -217,8 +235,11 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
       _loadingUnused = false;
       if (response.isSuccess && response.data != null) {
         _unused = response.data;
+        _unusedOffline = false;
       } else {
-        _unusedError = FriendlyError.of(response.message);
+        _unusedOffline = isTransportFailure(response);
+        _unusedError =
+            _unusedOffline ? null : FriendlyError.of(response.message);
       }
     });
   }
@@ -420,9 +441,34 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
       );
     }
 
+    // Offline with nothing saved. This must come before the list, because the
+    // empty footer below names a date range and asserts nothing was raised in
+    // it -- a claim about the server that cannot be made from here.
+    if (_offline && _rows.isEmpty) {
+      return Column(
+        children: [
+          _dateBar(),
+          Expanded(
+            child: OfflineEmptyView(
+              noun: 'credit limit requests',
+              isDark: isDark,
+              onRefresh: _load,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         _dateBar(),
+        if (_cachedAt != null)
+          CachedDataBanner(
+            fetchedAtLabel: describeCacheAge(_cachedAt!),
+            noun: 'credit limit requests',
+            isDark: isDark,
+            onRetry: _load,
+          ),
         _searchField(isDark),
         Expanded(
           child: RefreshIndicator(
@@ -906,6 +952,17 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
         onRetry:
             FriendlyError.isPermanent(_unusedError) ? null : _loadUnused,
         isDark: isDark,
+      );
+    }
+
+    // "Nobody is holding an unspent allowance" is a statement about the
+    // server. Offline it is not knowable, and getting it wrong here means a
+    // supervisor stops chasing money that is still outstanding.
+    if (_unusedOffline) {
+      return OfflineEmptyView(
+        noun: 'unspent allowances',
+        isDark: isDark,
+        onRefresh: _loadUnused,
       );
     }
 

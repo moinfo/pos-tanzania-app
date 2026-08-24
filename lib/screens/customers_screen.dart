@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
+import '../services/offline_submit.dart';
+import '../widgets/offline_submit_feedback.dart';
+import '../services/read_cache.dart';
+import '../utils/friendly_error.dart';
+import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
 import '../services/nfc_service.dart';
 import '../models/customer.dart';
@@ -32,6 +38,13 @@ class _CustomersScreenState extends State<CustomersScreen> {
   List<Customer> _customers = [];
   bool _isLoading = true;
   String? _errorMessage;
+
+  /// Non-null when the rows on screen are a saved copy rather than live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
+
   String _searchQuery = '';
   bool _nfcAvailable = false;
 
@@ -221,8 +234,15 @@ class _CustomersScreenState extends State<CustomersScreen> {
         _isLoading = false;
         if (response.isSuccess) {
           _customers = response.data!;
+          _cachedAt = response.servedFromCacheAt;
+          _offline = false;
         } else {
-          _errorMessage = response.message;
+          // Only a refusal from the server is worth a message; a dead network
+          // is a state to explain. ApiService returns rather than throws on
+          // one, so this is where the two have to be told apart.
+          _offline = isTransportFailure(response);
+          _errorMessage = _offline ? null : FriendlyError.of(response.message);
+          _cachedAt = null;
         }
       });
     }
@@ -420,49 +440,64 @@ class _CustomersScreenState extends State<CustomersScreen> {
             child: _isLoading
                 ? _buildSkeletonLoading(isDark)
                 : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                            const SizedBox(height: 16),
-                            Text(_errorMessage!,
-                              style: TextStyle(
-                                color: isDark ? AppColors.darkText : AppColors.text,
-                              )),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _loadCustomers,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
+                    ? ErrorStateView(
+                        message: _errorMessage!,
+                        isDark: isDark,
+                        onRetry: FriendlyError.isPermanent(_errorMessage)
+                            ? null
+                            : _loadCustomers,
                       )
+                    // Ahead of the empty state: "No customers found" is a
+                    // claim about the server's books, and a seller who reads
+                    // it offline concludes the customer was never registered.
+                    : _offline
+                    ? OfflineEmptyView(
+                        noun: 'customers',
+                        isDark: isDark,
+                        onRefresh: _loadCustomers,
+                      )
+                    // Wrapped like the list below: a cached page holding no
+                    // rows is still a saved copy, and "No customers found"
+                    // is a claim about the server that a stale copy cannot
+                    // support.
                     : _customers.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.people_outline, size: 64, color: isDark ? AppColors.darkTextLight : Colors.grey),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _searchQuery.isEmpty
-                                      ? 'No customers found'
-                                      : 'No customers match your search',
-                                  style: TextStyle(fontSize: 16, color: isDark ? AppColors.darkText : Colors.grey),
-                                ),
-                              ],
+                        ? CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'customers',
+                            isDark: isDark,
+                            onRetry: _loadCustomers,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.people_outline, size: 64, color: isDark ? AppColors.darkTextLight : Colors.grey),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _searchQuery.isEmpty
+                                        ? 'No customers found'
+                                        : 'No customers match your search',
+                                    style: TextStyle(fontSize: 16, color: isDark ? AppColors.darkText : Colors.grey),
+                                  ),
+                                ],
+                              ),
                             ),
                           )
-                        : RefreshIndicator(
-                            onRefresh: _loadCustomers,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _customers.length,
-                              itemBuilder: (context, index) {
-                                return _buildCustomerCard(
-                                    _customers[index], isDark, isLeruma, index + 1);
-                              },
+                        : CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'customers',
+                            isDark: isDark,
+                            onRetry: _loadCustomers,
+                            child: RefreshIndicator(
+                              onRefresh: _loadCustomers,
+                              child: ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                itemCount: _customers.length,
+                                itemBuilder: (context, index) {
+                                  return _buildCustomerCard(
+                                      _customers[index], isDark, isLeruma, index + 1);
+                                },
+                              ),
                             ),
                           ),
           ),
@@ -920,6 +955,10 @@ class CustomerFormDialog extends StatefulWidget {
 class _CustomerFormDialogState extends State<CustomerFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a Save that times
+  /// out and is tapped again cannot create the same customer twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
@@ -1382,30 +1421,51 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
           _ccListsLoaded && canEditCcExceptions ? _ccExceptions : null,
     );
 
-    final response = widget.customer == null
-        ? await _apiService.createCustomer(formData)
-        : await _apiService.updateCustomer(widget.customer!.personId, formData);
-
-    if (mounted) {
+    if (widget.customer != null) {
+      // An edit targets a server id and cannot be queued -- the customer it
+      // edits may itself still be waiting in the queue with no id yet.
+      final response =
+          await _apiService.updateCustomer(widget.customer!.personId, formData);
+      if (!mounted) return;
       setState(() => _isLoading = false);
-
-      if (response.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message ?? 'Customer saved successfully'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        widget.onSaved();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message ?? 'Failed to save customer'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message),
+          backgroundColor:
+              response.isSuccess ? AppColors.success : AppColors.error,
+        ),
+      );
+      if (response.isSuccess) widget.onSaved();
+      return;
     }
+
+    final result = await _offlineSubmit.submit<Customer>(
+      context: context,
+      action: OfflineAction.customer,
+      payload: formData.toJson(),
+      summary: '${formData.firstName} ${formData.lastName}'.trim(),
+      send: (requestId) =>
+          _apiService.createCustomer(formData, requestId: requestId),
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result.isSent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } else {
+      showOfflineSubmitFeedback(context, result);
+    }
+
+    // Queued counts as saved. Note the customer has no server id yet, so a
+    // sale cannot be attached to them until the queue drains -- but the
+    // record itself is safe and will upload exactly once.
+    if (result.isKept) widget.onSaved();
   }
 
   @override

@@ -11,10 +11,13 @@ import '../providers/permission_provider.dart';
 import '../models/permission_model.dart';
 import '../models/transaction.dart';
 import '../services/api_service.dart';
+import '../services/read_cache.dart';
 import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
+import '../utils/friendly_error.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../widgets/state_views.dart';
 import 'daily_debt_report_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,6 +31,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final _apiService = ApiService();
   bool _isLoading = true;
   String? _error;
+
+  /// Non-null when the figures on screen are a saved copy, not live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
+
   DateTime _selectedDate = DateTime.now();
 
   // Dashboard data
@@ -194,9 +204,17 @@ class _HomeScreenState extends State<HomeScreen> {
         await _loadSadaDashboard();
       }
     } catch (e) {
-      print('❌ Dashboard error: $e');
+      // Kept, unlike the dead catches on the list screens: this try block
+      // branches on client config and the loaders below parse and cast the
+      // payload, all of which can genuinely throw. What must never happen is
+      // the exception's text reaching the screen -- it used to be interpolated
+      // straight into _error.
+      debugPrint('Dashboard error: $e');
+      if (!mounted) return;
       setState(() {
-        _error = 'Failed to load dashboard data: ${e.toString()}';
+        _error = 'Something went wrong loading the dashboard. Pull down to retry.';
+        _offline = false;
+        _cachedAt = null;
         _isLoading = false;
       });
     }
@@ -241,10 +259,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
         _totalUnpaid = totalUnpaid;
         _isLoading = false;
+        _cachedAt = summaryResponse.servedFromCacheAt;
+        _offline = false;
       });
     } else {
       setState(() {
-        _error = summaryResponse.message;
+        _offline = isTransportFailure(summaryResponse);
+        _error = _offline ? null : FriendlyError.of(summaryResponse.message);
+        _cachedAt = null;
         _isLoading = false;
       });
     }
@@ -271,12 +293,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!hasLocation && !hasTransactionsPermission) {
       setState(() {
         _error = 'Please select a stock location';
+        _offline = false;
+        _cachedAt = null;
         _isLoading = false;
       });
       return;
     }
 
     // Load Transactions Dashboard if user has transactions permission (no location required)
+    DateTime? transactionsCachedAt;
     if (hasTransactionsPermission) {
       print('📊 User has transactions permission, loading transactions dashboard');
       final transactionsResponse = await _apiService.getWakalaReport(
@@ -286,6 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (transactionsResponse.isSuccess && transactionsResponse.data != null) {
         _transactionsDashboardData = transactionsResponse.data;
+        transactionsCachedAt = transactionsResponse.servedFromCacheAt;
         print('✅ Transactions dashboard data loaded successfully');
       } else {
         print('⚠️ Failed to load transactions dashboard: ${transactionsResponse.message}');
@@ -326,10 +352,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
           _totalUnpaid = 0; // Come & Save doesn't have contracts
           _isLoading = false;
+          _cachedAt = _olderCacheAge(
+              summaryResponse.servedFromCacheAt, transactionsCachedAt);
+          _offline = false;
         });
       } else {
         setState(() {
-          _error = summaryResponse.message;
+          _offline = isTransportFailure(summaryResponse);
+          _error = _offline ? null : FriendlyError.of(summaryResponse.message);
+          _cachedAt = null;
           _isLoading = false;
         });
       }
@@ -337,8 +368,20 @@ class _HomeScreenState extends State<HomeScreen> {
       // No location - just finish loading (transactions dashboard will show if available)
       setState(() {
         _isLoading = false;
+        // The transactions dashboard is the whole screen in this branch, so
+        // its age is the screen's age.
+        _cachedAt = transactionsCachedAt;
       });
     }
+  }
+
+  /// The banner can name only one age, so when two independent reads feed one
+  /// screen it has to be the older of them -- otherwise half the figures are
+  /// staler than the label admits.
+  static DateTime? _olderCacheAge(DateTime? a, DateTime? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a.isBefore(b) ? a : b;
   }
 
   /// Load dashboard for Leruma (commission tracking focused)
@@ -359,6 +402,10 @@ class _HomeScreenState extends State<HomeScreen> {
     // network response overwrite it. Only when nothing is on screen yet --
     // a refresh of visible data must not flash backwards.
     final cacheKey = 'leruma_dashboard_${selectedLocationId ?? 0}';
+    // The age is saved alongside the payload: a stale paint with no timestamp
+    // cannot be labelled, and an unlabelled stale dashboard is exactly the
+    // confident-but-wrong screen this work exists to remove.
+    final cacheTimeKey = '${cacheKey}_saved_at';
     if (_commissionData == null && _myCommissions == null) {
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -366,7 +413,8 @@ class _HomeScreenState extends State<HomeScreen> {
         if (cached != null && mounted) {
           _applyLerumaDashboard(
               json.decode(cached) as Map<String, dynamic>, selectedLocationId,
-              fromCache: true);
+              fromCache: true,
+              cachedAt: DateTime.tryParse(prefs.getString(cacheTimeKey) ?? ''));
         }
       } catch (_) {}
     }
@@ -383,25 +431,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (dashboardResponse.isSuccess && dashboardResponse.data != null) {
       final data = dashboardResponse.data!;
-      _applyLerumaDashboard(data, selectedLocationId);
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(cacheKey, json.encode(data));
-      } catch (_) {}
+      _applyLerumaDashboard(data, selectedLocationId,
+          cachedAt: dashboardResponse.servedFromCacheAt);
+      // Only a live answer is worth saving; replaying a cached one back into
+      // the store would reset its age and make old figures look new.
+      if (!dashboardResponse.isFromCache) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(cacheKey, json.encode(data));
+          await prefs.setString(cacheTimeKey, DateTime.now().toIso8601String());
+        } catch (_) {}
+      }
     } else if (_commissionData == null && _myCommissions == null) {
-      // Only surface the error when the cached paint gave us nothing.
+      // Only surface the failure when the cached paint gave us nothing.
       setState(() {
-        _error = dashboardResponse.message ?? 'Failed to load dashboard';
+        _offline = isTransportFailure(dashboardResponse);
+        _error = _offline ? null : FriendlyError.of(dashboardResponse.message);
+        _cachedAt = null;
         _isLoading = false;
       });
     } else {
+      // Something is on screen, but it came out of the cache and the refresh
+      // did not land -- keep _cachedAt so the banner keeps saying so.
       setState(() => _isLoading = false);
     }
   }
 
   void _applyLerumaDashboard(Map<String, dynamic> data, int? selectedLocationId,
-      {bool fromCache = false}) {
+      {bool fromCache = false, DateTime? cachedAt}) {
     setState(() {
+      _cachedAt = cachedAt;
+      _offline = false;
       _commissionData = data['commission_progress'] as Map<String, dynamic>?;
       _salesSummary = data['sales_summary'] as Map<String, dynamic>?;
       _topStats = data['top_stats'] as Map<String, dynamic>?;
@@ -491,7 +551,15 @@ class _HomeScreenState extends State<HomeScreen> {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: RefreshIndicator(
+      // The banner sits above the scroll view rather than as its first child:
+      // as a row it scrolls away, and the moment a manager most needs to know
+      // the figures are stale is when they have scrolled to one.
+      child: CachedBodyWrapper(
+        cachedAt: _cachedAt,
+        noun: 'the dashboard',
+        isDark: isDark,
+        onRetry: _loadDashboardData,
+        child: RefreshIndicator(
         onRefresh: _refreshDashboard,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -629,30 +697,25 @@ class _HomeScreenState extends State<HomeScreen> {
               // Show skeleton placeholders while loading
               _buildDashboardSkeleton(isDark)
             else if (_error != null)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: AppColors.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: AppColors.error),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadDashboardData,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
+              ErrorStateView(
+                message: _error!,
+                isDark: isDark,
+                onRetry: FriendlyError.isPermanent(_error)
+                    ? null
+                    : _loadDashboardData,
+              )
+            // Before any of the card branches below, which would otherwise
+            // render a dashboard of zeroes -- a manager reading "Total Sales 0"
+            // acts on it, and here it only ever meant the phone could not ask.
+            else if (_offline)
+              // onRefresh is deliberately omitted: this sits inside the page's
+              // SingleChildScrollView, and the scrollable OfflineEmptyView
+              // builds for pull-to-refresh needs a bounded height it cannot
+              // get here. The whole page is already inside a RefreshIndicator,
+              // so the pull still works.
+              OfflineEmptyView(
+                noun: 'the dashboard',
+                isDark: isDark,
               )
             else if (ApiService.currentClient?.features.hasCommissionDashboard ?? false)
               // Leruma Commission Dashboard
@@ -832,6 +895,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
           ],
         ),
+      ),
       ),
       ),
     );

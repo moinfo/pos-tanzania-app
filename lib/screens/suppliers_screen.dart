@@ -6,10 +6,16 @@ import '../models/supplier.dart';
 import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
+import '../services/offline_submit.dart';
+import '../widgets/offline_submit_feedback.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
+import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/state_views.dart';
 import 'supplier_credit_screen.dart';
 
 class SuppliersScreen extends StatefulWidget {
@@ -27,6 +33,12 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   List<Supplier> _filteredSuppliers = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// Non-null when the rows on screen are a saved copy rather than live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
 
   @override
   void initState() {
@@ -48,14 +60,21 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     });
 
     final response = await _apiService.getSuppliers();
+    if (!mounted) return;
 
     setState(() {
       _isLoading = false;
       if (response.isSuccess) {
         _suppliers = response.data ?? [];
         _filteredSuppliers = _suppliers;
+        _cachedAt = response.servedFromCacheAt;
+        _offline = false;
       } else {
-        _errorMessage = response.message;
+        // A dead network comes back as an error response here, never as a
+        // thrown exception, so tell the two apart on the response itself.
+        _offline = isTransportFailure(response);
+        _errorMessage = _offline ? null : FriendlyError.of(response.message);
+        _cachedAt = null;
       }
     });
   }
@@ -154,28 +173,49 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             child: _isLoading
                 ? _buildSkeletonList(isDark)
                 : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(_errorMessage!,
-                                style: TextStyle(color: isDark ? AppColors.darkText : AppColors.error)),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _loadSuppliers,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
+                    ? ErrorStateView(
+                        message: _errorMessage!,
+                        isDark: isDark,
+                        onRetry: FriendlyError.isPermanent(_errorMessage)
+                            ? null
+                            : _loadSuppliers,
                       )
+                    // Ahead of the empty state: "No suppliers found" says the
+                    // books are empty, which offline this device cannot know.
+                    : _offline
+                    ? OfflineEmptyView(
+                        noun: 'suppliers',
+                        isDark: isDark,
+                        onRefresh: _loadSuppliers,
+                      )
+                    // Wrapped like the list below: a cached page holding no
+                    // rows is still a saved copy, and "No suppliers found" is
+                    // a claim about the server that a stale copy cannot
+                    // support.
                     : _filteredSuppliers.isEmpty
-                        ? Center(child: Text('No suppliers found', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)))
-                        : ListView.builder(
-                            itemCount: _filteredSuppliers.length,
-                            itemBuilder: (context, index) {
-                              final supplier = _filteredSuppliers[index];
-                              return _buildSupplierCard(supplier, isDark);
-                            },
+                        ? CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'suppliers',
+                            isDark: isDark,
+                            onRetry: _loadSuppliers,
+                            child: Center(child: Text('No suppliers found', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text))),
+                          )
+                        : CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'suppliers',
+                            isDark: isDark,
+                            onRetry: _loadSuppliers,
+                            child: RefreshIndicator(
+                              onRefresh: _loadSuppliers,
+                              child: ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                itemCount: _filteredSuppliers.length,
+                                itemBuilder: (context, index) {
+                                  final supplier = _filteredSuppliers[index];
+                                  return _buildSupplierCard(supplier, isDark);
+                                },
+                              ),
+                            ),
                           ),
           ),
         ],
@@ -423,6 +463,10 @@ class _SupplierFormDialog extends StatefulWidget {
 
 class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a Save that times
+  /// out and is tapped again cannot create the same supplier twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
   final _formKey = GlobalKey<FormState>();
   late TabController _tabController;
 
@@ -541,30 +585,49 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
       'supervisor_id': _selectedSupervisorId,
     };
 
-    final response = widget.supplier == null
-        ? await _apiService.createSupplier(supplierData)
-        : await _apiService.updateSupplier(widget.supplier!.supplierId, supplierData);
+    if (widget.supplier != null) {
+      // An edit targets a server id and cannot be queued -- the supplier it
+      // edits may itself still be waiting in the queue with no id yet.
+      final response = await _apiService.updateSupplier(
+          widget.supplier!.supplierId, supplierData);
 
-    setState(() {
-      _isLoading = false;
-    });
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (mounted) {
-      if (response.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.supplier == null
-                ? 'Supplier created successfully'
-                : 'Supplier updated successfully'),
-          ),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${response.message}')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.isSuccess
+              ? 'Supplier updated successfully'
+              : response.message),
+        ),
+      );
+      if (response.isSuccess) Navigator.pop(context, true);
+      return;
     }
+
+    final result = await _offlineSubmit.submit<Supplier>(
+      context: context,
+      action: OfflineAction.supplier,
+      payload: supplierData,
+      summary: _companyNameController.text.trim().isNotEmpty
+          ? _companyNameController.text.trim()
+          : _firstNameController.text.trim(),
+      send: (requestId) =>
+          _apiService.createSupplier(supplierData, requestId: requestId),
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result.isSent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Supplier created successfully')),
+      );
+    } else {
+      showOfflineSubmitFeedback(context, result);
+    }
+
+    if (result.isKept) Navigator.pop(context, true);
   }
 
   @override

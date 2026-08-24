@@ -11,9 +11,12 @@ import '../providers/location_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
+import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
+import '../widgets/state_views.dart';
 
 class ItemsScreen extends StatefulWidget {
   const ItemsScreen({super.key});
@@ -36,6 +39,12 @@ class _ItemsScreenState extends State<ItemsScreen> {
       _items.where((item) => item.variation == 'CTN').toList();
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// Non-null when the rows on screen are a saved copy rather than live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
 
   @override
   void initState() {
@@ -82,12 +91,20 @@ class _ItemsScreenState extends State<ItemsScreen> {
       locationId: selectedLocationId,
     );
 
+    if (!mounted) return;
+
     setState(() {
       _isLoading = false;
       if (response.isSuccess) {
         _items = response.data ?? [];
+        _cachedAt = response.servedFromCacheAt;
+        _offline = false;
       } else {
-        _errorMessage = response.message;
+        // ApiService turns a dead socket into an error response instead of
+        // throwing, so the network case has to be picked out here.
+        _offline = isTransportFailure(response);
+        _errorMessage = _offline ? null : FriendlyError.of(response.message);
+        _cachedAt = null;
       }
     });
   }
@@ -254,30 +271,48 @@ class _ItemsScreenState extends State<ItemsScreen> {
             child: _isLoading
                 ? _buildSkeletonList(isDark)
                 : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(_errorMessage!,
-                                style: TextStyle(color: isDark ? AppColors.darkText : AppColors.error)),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _loadItems,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
+                    ? ErrorStateView(
+                        message: _errorMessage!,
+                        isDark: isDark,
+                        onRetry: FriendlyError.isPermanent(_errorMessage)
+                            ? null
+                            : _loadItems,
                       )
+                    // Ahead of the empty state: "No items found" reads as
+                    // "this product is not stocked", which offline is a claim
+                    // this device is in no position to make.
+                    : _offline
+                    ? OfflineEmptyView(
+                        noun: 'items',
+                        isDark: isDark,
+                        onRefresh: _loadItems,
+                      )
+                    // Wrapped like the list below: a cached page holding no
+                    // rows is still a saved copy, and "No items found" is a
+                    // claim about the server that a stale copy cannot support.
                     : _visibleItems.isEmpty
-                        ? Center(child: Text('No items found', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)))
-                        : RefreshIndicator(
-                            onRefresh: _loadItems,
-                            child: ListView.builder(
-                              itemCount: _visibleItems.length,
-                              itemBuilder: (context, index) {
-                                final item = _visibleItems[index];
-                                return _buildItemCard(item, isDark, index + 1);
-                              },
+                        ? CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'items',
+                            isDark: isDark,
+                            onRetry: _loadItems,
+                            child: Center(child: Text('No items found', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text))),
+                          )
+                        : CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'items',
+                            isDark: isDark,
+                            onRetry: _loadItems,
+                            child: RefreshIndicator(
+                              onRefresh: _loadItems,
+                              child: ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                itemCount: _visibleItems.length,
+                                itemBuilder: (context, index) {
+                                  final item = _visibleItems[index];
+                                  return _buildItemCard(item, isDark, index + 1);
+                                },
+                              ),
                             ),
                           ),
           ),

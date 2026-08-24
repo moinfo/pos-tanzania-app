@@ -5,9 +5,12 @@ import '../../models/receiving.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/read_cache.dart';
 import '../../utils/constants.dart';
+import '../../utils/friendly_error.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/state_views.dart';
 import 'new_receiving_screen.dart';
 
 class MainStoreScreen extends StatefulWidget {
@@ -22,6 +25,12 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// Non-null when the rows on screen are a saved copy rather than live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
 
   MainStoreData? _mainStoreData;
 
@@ -49,29 +58,26 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
       _errorMessage = null;
     });
 
-    try {
-      final response = await _apiService.getMainStore(
-        locationId: selectedLocation?.locationId,
-        date: DateFormat('yyyy-MM-dd').format(_selectedDate),
-      );
+    final response = await _apiService.getMainStore(
+      locationId: selectedLocation?.locationId,
+      date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+    );
+    if (!mounted) return;
 
+    setState(() {
+      _isLoading = false;
       if (response.isSuccess && response.data != null) {
-        setState(() {
-          _mainStoreData = response.data;
-          _isLoading = false;
-        });
+        _mainStoreData = response.data;
+        _cachedAt = response.servedFromCacheAt;
+        _offline = false;
       } else {
-        setState(() {
-          _errorMessage = response.message ?? 'Failed to load main store data';
-          _isLoading = false;
-        });
+        // Branch on the response, never on an exception: ApiService turns a
+        // dead socket into an error response rather than throwing.
+        _offline = isTransportFailure(response);
+        _errorMessage = _offline ? null : FriendlyError.of(response.message);
+        _cachedAt = null;
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error: $e';
-        _isLoading = false;
-      });
-    }
+    });
   }
 
   void _toggleSaleExpanded(int saleId) {
@@ -399,50 +405,67 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
             child: _isLoading
                 ? _buildSkeletonList(isDark)
                 : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error_outline, size: 64, color: AppColors.error),
-                            const SizedBox(height: 16),
-                            Text(_errorMessage!, style: const TextStyle(fontSize: 16)),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _loadMainStore,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Retry'),
-                            ),
-                          ],
-                        ),
+                    ? ErrorStateView(
+                        message: _errorMessage!,
+                        isDark: isDark,
+                        onRetry: FriendlyError.isPermanent(_errorMessage)
+                            ? null
+                            : _loadMainStore,
                       )
+                    // Before the empty state, which tells the user to try
+                    // another location -- useless advice when the real cause
+                    // is that no request left the phone.
+                    : _offline
+                    ? OfflineEmptyView(
+                        noun: 'stock',
+                        isDark: isDark,
+                        onRefresh: _loadMainStore,
+                      )
+                    // Wrapped like the list below: a cached page holding no
+                    // sales is still a saved copy, and "No sales found for
+                    // today" is a claim about the server that a stale copy
+                    // cannot support.
                     : _mainStoreData == null || _mainStoreData!.sales.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade400),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No sales found for today',
-                                  style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Try selecting a different location',
-                                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-                                ),
-                              ],
+                        ? CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'stock',
+                            isDark: isDark,
+                            onRetry: _loadMainStore,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade400),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No sales found for today',
+                                    style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Try selecting a different location',
+                                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                                  ),
+                                ],
+                              ),
                             ),
                           )
-                        : RefreshIndicator(
-                            onRefresh: _loadMainStore,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              itemCount: _mainStoreData!.sales.length,
-                              itemBuilder: (context, index) {
-                                final sale = _mainStoreData!.sales[index];
-                                return _buildSaleCard(sale, isDark);
-                              },
+                        : CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'stock',
+                            isDark: isDark,
+                            onRetry: _loadMainStore,
+                            child: RefreshIndicator(
+                              onRefresh: _loadMainStore,
+                              child: ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                itemCount: _mainStoreData!.sales.length,
+                                itemBuilder: (context, index) {
+                                  final sale = _mainStoreData!.sales[index];
+                                  return _buildSaleCard(sale, isDark);
+                                },
+                              ),
                             ),
                           ),
           ),

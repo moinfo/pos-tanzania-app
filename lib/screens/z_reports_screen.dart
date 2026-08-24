@@ -7,6 +7,9 @@ import 'package:provider/provider.dart';
 import '../models/zreport.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
+import '../services/offline_submit.dart';
+import '../widgets/offline_submit_feedback.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -282,6 +285,10 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
 
+  /// Holds this form's idempotency key across attempts, so a Save that times
+  /// out and is tapped again cannot file the same Z report twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
+
   // One controller per EFD Z-report figure, in the order they appear on the
   // fiscal printout.
   final _turnoverController = TextEditingController();
@@ -422,35 +429,53 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
 
       final picFile = 'data:$mimeType;base64,$base64String';
 
-      final result = await _apiService.createZReport(
-        turnover: _amountOf(_turnoverController),
-        net: _amountOf(_netController),
-        tax: _amountOf(_taxController),
-        turnoverExSr: _amountOf(_turnoverExSrController),
-        total: _amountOf(_totalController),
-        totalCharges: _amountOf(_totalChargesController),
-        date: Formatters.formatDateForApi(_selectedDate),
-        picFile: picFile,
+      final date = Formatters.formatDateForApi(_selectedDate);
+
+      final result = await _offlineSubmit.submit<ZReportDetails>(
+        context: context,
+        action: OfflineAction.zReport,
+        payload: ApiService.zReportBody(
+          turnover: _amountOf(_turnoverController),
+          net: _amountOf(_netController),
+          tax: _amountOf(_taxController),
+          turnoverExSr: _amountOf(_turnoverExSrController),
+          total: _amountOf(_totalController),
+          totalCharges: _amountOf(_totalChargesController),
+          date: date,
+          picFile: picFile,
+        ),
+        summary: date,
+        send: (requestId) => _apiService.createZReport(
+          turnover: _amountOf(_turnoverController),
+          net: _amountOf(_netController),
+          tax: _amountOf(_taxController),
+          turnoverExSr: _amountOf(_turnoverExSrController),
+          total: _amountOf(_totalController),
+          totalCharges: _amountOf(_totalChargesController),
+          date: date,
+          picFile: picFile,
+          requestId: requestId,
+        ),
       );
 
+      if (!mounted) return;
       setState(() => _isLoading = false);
 
-      if (result.isSuccess && mounted) {
+      // Queued counts as filed: it is on the device and will upload itself.
+      if (result.isKept) {
         Navigator.pop(context);
         widget.onCreated();
+      }
+
+      if (result.isSent) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Z Report created successfully'),
             backgroundColor: AppColors.success,
           ),
         );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.message),
-            backgroundColor: AppColors.error,
-          ),
-        );
+      } else {
+        showOfflineSubmitFeedback(context, result);
       }
     } catch (e) {
       setState(() => _isLoading = false);

@@ -9,6 +9,9 @@ import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../utils/constants.dart';
 import '../../widgets/curved_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
@@ -2659,6 +2662,10 @@ class _MakeDepositForm extends StatefulWidget {
 
 class _MakeDepositFormState extends State<_MakeDepositForm> {
   final ApiService _apiService = ApiService();
+
+  /// Holds this deposit's idempotency key across attempts, so a Save that
+  /// times out and is tapped again cannot become two deposits.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
   final _formKey = GlobalKey<FormState>();
   final _currencyFormat = NumberFormat('#,###', 'en_US');
   final ImagePicker _imagePicker = ImagePicker();
@@ -2739,20 +2746,53 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
             : null,
       );
 
-      // Use API with attachment if file is selected
-      final response = _attachmentFile != null
-          ? await _apiService.createBankingDepositWithAttachment(
-              request, _attachmentFile!.path)
-          : await _apiService.createBankingDeposit(request);
-
-      if (response.isSuccess) {
-        widget.onSuccess();
-      } else {
+      if (_attachmentFile != null) {
+        // A deposit WITH an attachment goes as multipart, and the file lives
+        // on disk rather than in the JSON body -- so it cannot be replayed
+        // from the queue the way the plain deposit can. Sent live or not at
+        // all, and the clerk is told which.
+        final response = await _apiService.createBankingDepositWithAttachment(
+            request, _attachmentFile!.path);
+        if (!mounted) return;
+        if (response.isSuccess) {
+          widget.onSuccess();
+          return;
+        }
         setState(() {
-          _errorMessage = response.message ?? 'Failed to create deposit';
+          // No status code means the server never answered -- see
+          // SyncService._classify, which draws the same line.
+          _errorMessage = response.statusCode == null
+              ? 'A deposit with an attachment needs an internet connection. '
+                  'Nothing was saved. Remove the attachment to save it on the '
+                  'device instead, or reconnect and try again.'
+              : response.message;
           _isSubmitting = false;
         });
+        return;
       }
+
+      final result = await _offlineSubmit.submit<Map<String, dynamic>>(
+        context: context,
+        action: OfflineAction.bankingDeposit,
+        payload: request.toJson(),
+        summary: '${_currencyFormat.format(amount)} TZS',
+        send: (requestId) =>
+            _apiService.createBankingDeposit(request, requestId: requestId),
+      );
+
+      if (!mounted) return;
+
+      if (result.isKept) {
+        // Queued counts as kept: it is on the device and will upload itself.
+        if (result.isQueued) showOfflineSubmitFeedback(context, result);
+        widget.onSuccess();
+        return;
+      }
+
+      setState(() {
+        _errorMessage = result.message;
+        _isSubmitting = false;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Error: $e';

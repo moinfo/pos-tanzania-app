@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -44,6 +45,8 @@ import '../models/nfc_wallet.dart';
 import '../models/shop.dart';
 import '../models/borrowed_money.dart';
 import '../config/clients_config.dart';
+import 'offline_actions.dart';
+import 'read_cache.dart';
 
 class ApiService {
   /// One shared HTTP client for every request. The top-level http.get/post
@@ -262,6 +265,60 @@ class ApiService {
     debugPrint('401 Unauthorized: Token cleared, user will be logged out');
   }
 
+  /// POST one CREATE, under one idempotency key.
+  ///
+  /// Every queueable create goes through here, and so does the sync queue when
+  /// it replays a queued one. That is the point: the queued upload re-sends the
+  /// SAME path with the SAME body under the SAME key, so it is byte-for-byte
+  /// the request the online attempt made. There is no second, parallel way to
+  /// build these calls that could drift away from the first.
+  ///
+  /// [requestId] is what `API_Controller::claim_request_id()` keys on. The
+  /// first request claims it, a retry gets the original stored response back
+  /// instead of writing a second record, and a duplicate that is still running
+  /// server-side gets 409. Omitting it is allowed only for callers that have
+  /// no key to offer -- and those can never be queued safely.
+  Future<ApiResponse<T>> postAction<T>(
+    String endpoint,
+    Map<String, dynamic> body, {
+    String? requestId,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/$endpoint'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          ...body,
+          if (requestId != null && requestId.isNotEmpty) 'request_id': requestId,
+        }),
+      );
+
+      return _handleResponse<T>(
+        response,
+        fromJson == null ? null : (data) => fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Turn a transport failure into words a person can act on.
+  ///
+  /// Used by the actions that must NOT be queued. Without it the user is shown
+  /// `Connection error: SocketException: Failed host lookup...`, which tells
+  /// them nothing about what just did not happen. [action] names the thing they
+  /// were doing, so the message reads as a refusal of that specific action
+  /// rather than as a generic network complaint.
+  ///
+  /// Only the transport-failure path uses this. A response that carries a
+  /// status code never reaches here: the server answered, and its own words
+  /// about why it said no are better than anything invented here.
+  static ApiResponse<T> _offlineRefusal<T>(String action, Object error) {
+    debugPrint('ApiService: "$action" could not reach the server - $error');
+    return ApiResponse<T>.error(message: OnlineOnly.message(action));
+  }
+
   // Handle API response
   ApiResponse<T> _handleResponse<T>(
     http.Response response,
@@ -308,6 +365,99 @@ class ApiService {
         statusCode: statusCode,
       );
     }
+  }
+
+  // ============ READ-THROUGH CACHE ============
+
+  /// A GET whose last successful answer is kept on the device, so the screen
+  /// that asked can still open when the server cannot be reached.
+  ///
+  /// Read path only. Nothing here queues, uploads or mutates anything; the
+  /// cache is display data and is replaced wholesale by the next live load.
+  ///
+  /// The subtlety that made every previous offline fallback in this app dead
+  /// code: a transport failure does NOT throw out of these methods, it comes
+  /// back as an error ApiResponse. So the fallback is driven off
+  /// [isTransportFailure] — a null statusCode plus a transport-shaped message
+  /// — and not off a catch block. A refusal the server actually sent (403, a
+  /// validation message, an expired token) is passed straight through: those
+  /// are answers, and replacing an answer with yesterday's rows would hide a
+  /// real problem.
+  ///
+  /// On a cache hit the response is a SUCCESS carrying [servedFromCacheAt].
+  /// Callers must render the age; see CachedDataBanner.
+  Future<ApiResponse<T>> _cachedGet<T>(
+    Uri uri,
+    T Function(dynamic data) parse, {
+    required String cacheKey,
+    required Duration maxAge,
+    String errorFallback = 'Could not load',
+  }) async {
+    ApiResponse<T> failure;
+    try {
+      final response = await _http.get(uri, headers: await _getHeaders());
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Decoding is guarded separately from the request. A 200 carrying an
+        // HTML error page is the server answering badly, not the network being
+        // down, and must never be papered over with yesterday's rows -- so it
+        // carries the status code and is returned as-is.
+        try {
+          final jsonResponse = json.decode(response.body);
+          final raw = jsonResponse['data'];
+          if (raw != null) {
+            // Fire and forget: a cache write must never delay the screen, and
+            // a cache that cannot be written is not a reason to fail a load.
+            unawaited(ReadCache.instance.write(cacheKey, raw));
+          }
+          return ApiResponse<T>.success(
+            data: parse(raw),
+            message: jsonResponse['message']?.toString() ?? 'Success',
+          );
+        } catch (e) {
+          return ApiResponse<T>.error(
+            message: 'Failed to parse response: $e',
+            statusCode: response.statusCode,
+          );
+        }
+      }
+
+      if (response.statusCode == 401) _handleUnauthorized();
+      return ApiResponse<T>.error(
+        message: _extractErrorMessage(response.body, fallback: errorFallback),
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      failure = ApiResponse<T>.error(message: 'Connection error: $e');
+    }
+
+    if (!isTransportFailure(failure)) return failure;
+
+    final cached = await ReadCache.instance.read(cacheKey, maxAge: maxAge);
+    if (cached == null) return failure;
+
+    try {
+      return ApiResponse<T>.success(
+        data: parse(cached.payload),
+        message: failure.message,
+        servedFromCacheAt: cached.fetchedAt,
+      );
+    } catch (e) {
+      // The saved shape no longer parses -- an endpoint changed under it.
+      // Report the outage rather than hand back a half-built model.
+      debugPrint('ApiService: cached "$cacheKey" no longer parses: $e');
+      return failure;
+    }
+  }
+
+  /// A stable cache key for a request: the path plus its query, with the
+  /// parameters sorted so that two orderings of the same filters share a row
+  /// instead of quietly saving the list twice.
+  static String _keyFor(Uri uri) {
+    final params = uri.queryParameters.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final query = params.map((e) => '${e.key}=${e.value}').join('&');
+    return query.isEmpty ? uri.path : '${uri.path}?$query';
   }
 
   // ============ AUTH ENDPOINTS ============
@@ -510,6 +660,34 @@ class ApiService {
   }
 
   /// Create Z report with file
+  /// The body a Z report is created with.
+  ///
+  /// Exposed because a Z report that could not be sent has to be QUEUED with
+  /// exactly this body -- the queue re-posts what was built here rather than
+  /// rebuilding it from figures the screen may since have recomputed.
+  static Map<String, dynamic> zReportBody({
+    required double turnover,
+    required double net,
+    required double tax,
+    required double turnoverExSr,
+    required double total,
+    required double totalCharges,
+    required String date,
+    int? stockLocationId,
+    required String picFile,
+  }) =>
+      <String, dynamic>{
+        'turnover': turnover,
+        'net': net,
+        'tax': tax,
+        'turnover_ex_sr': turnoverExSr,
+        'total': total,
+        'total_charges': totalCharges,
+        'date': date,
+        'pic_file': picFile,
+        if (stockLocationId != null) 'stock_location_id': stockLocationId,
+      };
+
   Future<ApiResponse<ZReportDetails>> createZReport({
     required double turnover,
     required double net,
@@ -520,37 +698,24 @@ class ApiService {
     required String date,
     int? stockLocationId,
     required String picFile, // Base64 encoded file
-  }) async {
-    try {
-      final body = <String, dynamic>{
-        'turnover': turnover,
-        'net': net,
-        'tax': tax,
-        'turnover_ex_sr': turnoverExSr,
-        'total': total,
-        'total_charges': totalCharges,
-        'date': date,
-        'pic_file': picFile,
-      };
-
-      if (stockLocationId != null) {
-        body['stock_location_id'] = stockLocationId;
-      }
-
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/zreports/create'),
-        headers: await _getHeaders(),
-        body: jsonEncode(body),
+    String? requestId,
+  }) =>
+      postAction<ZReportDetails>(
+        OfflineAction.zReport.endpoint,
+        zReportBody(
+          turnover: turnover,
+          net: net,
+          tax: tax,
+          turnoverExSr: turnoverExSr,
+          total: total,
+          totalCharges: totalCharges,
+          date: date,
+          stockLocationId: stockLocationId,
+          picFile: picFile,
+        ),
+        requestId: requestId,
+        fromJson: (data) => ZReportDetails.fromJson(data),
       );
-
-      return _handleResponse<ZReportDetails>(
-        response,
-        (data) => ZReportDetails.fromJson(data),
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update Z report
   Future<ApiResponse<ZReportDetails>> updateZReport({
@@ -595,7 +760,9 @@ class ApiService {
         (data) => ZReportDetails.fromJson(data),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('Z report'), e);
     }
   }
 
@@ -609,7 +776,9 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('Z report'), e);
     }
   }
 
@@ -664,32 +833,39 @@ class ApiService {
   }
 
   /// Create cash submission
+  /// The body a cash submission is created with. See [zReportBody] for why
+  /// this is a separate, shared builder.
+  static Map<String, dynamic> cashSubmissionBody({
+    required double amount,
+    required String date,
+    required int supervisorId,
+    int? stockLocationId,
+  }) =>
+      <String, dynamic>{
+        'amount': amount,
+        'date': date,
+        'supervisor_id': supervisorId,
+        if (stockLocationId != null) 'stock_location_id': stockLocationId,
+      };
+
   Future<ApiResponse<CashSubmitDetails>> createCashSubmission({
     required double amount,
     required String date,
     required int supervisorId,
     int? stockLocationId,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/cashsubmit/create'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'amount': amount,
-          'date': date,
-          'supervisor_id': supervisorId,
-          if (stockLocationId != null) 'stock_location_id': stockLocationId,
-        }),
+    String? requestId,
+  }) =>
+      postAction<CashSubmitDetails>(
+        OfflineAction.cashSubmit.endpoint,
+        cashSubmissionBody(
+          amount: amount,
+          date: date,
+          supervisorId: supervisorId,
+          stockLocationId: stockLocationId,
+        ),
+        requestId: requestId,
+        fromJson: (data) => CashSubmitDetails.fromJson(data),
       );
-
-      return _handleResponse<CashSubmitDetails>(
-        response,
-        (data) => CashSubmitDetails.fromJson(data),
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update cash submission
   Future<ApiResponse<CashSubmitDetails>> updateCashSubmission(
@@ -714,7 +890,9 @@ class ApiService {
         (data) => CashSubmitDetails.fromJson(data),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('cash submission'), e);
     }
   }
 
@@ -736,7 +914,9 @@ class ApiService {
         );
       }
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('cash submission'), e);
     }
   }
 
@@ -795,40 +975,13 @@ class ApiService {
 
       print('🌐 Calling: $uri');
 
-      final response = await _http.get(
+      return _cachedGet<Map<String, dynamic>>(
         uri,
-        headers: await _getHeaders(),
+        (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch the cash submit summary',
       );
-
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body (first 200 chars): ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        try {
-          final jsonResponse = json.decode(response.body);
-          return ApiResponse.success(
-            data: jsonResponse['data'],
-            message: jsonResponse['message'],
-          );
-        } catch (e) {
-          print('❌ JSON decode error: $e');
-          print('❌ Response body: ${response.body}');
-          return ApiResponse.error(message: 'Invalid JSON response: $e');
-        }
-      } else {
-        try {
-          final jsonResponse = json.decode(response.body);
-          return ApiResponse.error(
-            message: jsonResponse['message'] ?? 'Failed to fetch today summary',
-            statusCode: response.statusCode,
-          );
-        } catch (e) {
-          return ApiResponse.error(
-            message: 'Server error (${response.statusCode}): ${response.body.substring(0, 100)}',
-            statusCode: response.statusCode,
-          );
-        }
-      }
     } catch (e) {
       print('❌ Connection error: $e');
       return ApiResponse.error(message: 'Connection error: $e');
@@ -852,24 +1005,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/cashsubmit/sellers_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(
+      return _cachedGet<Map<String, dynamic>>(
         uri,
-        headers: await _getHeaders(),
+        (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch sellers report',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.success(
-          data: jsonResponse['data'],
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch sellers report',
-          statusCode: response.statusCode,
-        );
-      }
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -990,26 +1132,19 @@ class ApiService {
         queryParameters: queryParams,
       );
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final expenses = (data['expenses'] as List)
+      return _cachedGet<List<Expense>>(
+        uri,
+        (data) => (data['expenses'] as List)
             .map((item) => Expense.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: expenses,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch expenses',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Twelve hours. This is money that moved today, and its use offline is
+        // "what have I already recorded this morning" -- which stops a seller
+        // entering the same fuel expense twice. By tomorrow it answers the
+        // wrong question, so it is not allowed to survive the night.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch expenses',
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -1033,22 +1168,16 @@ class ApiService {
   }
 
   /// Create expense
-  Future<ApiResponse<Expense>> createExpense(ExpenseFormData formData) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/expenses/create'),
-        headers: await _getHeaders(),
-        body: json.encode(formData.toJson()),
+  Future<ApiResponse<Expense>> createExpense(
+    ExpenseFormData formData, {
+    String? requestId,
+  }) =>
+      postAction<Expense>(
+        OfflineAction.expense.endpoint,
+        formData.toJson(),
+        requestId: requestId,
+        fromJson: (data) => Expense.fromJson(data),
       );
-
-      return _handleResponse<Expense>(
-        response,
-        (data) => Expense.fromJson(data),
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update expense
   Future<ApiResponse<Expense>> updateExpense(int id, ExpenseFormData formData) async {
@@ -1064,7 +1193,9 @@ class ApiService {
         (data) => Expense.fromJson(data),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('expense'), e);
     }
   }
 
@@ -1078,36 +1209,25 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('expense'), e);
     }
   }
 
   /// Get expense categories
   Future<ApiResponse<List<ExpenseCategory>>> getExpenseCategories() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/expenses/categories'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final categories = (data['categories'] as List)
+      final uri = Uri.parse('$baseUrlSync/expenses/categories');
+      return _cachedGet<List<ExpenseCategory>>(
+        uri,
+        (data) => (data['categories'] as List)
             .map((item) => ExpenseCategory.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: categories,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch expense categories',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch expense categories',
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -1139,35 +1259,18 @@ class ApiService {
       );
 
       debugPrint('🔗 Customers API URL: $uri');
-      final response = await _http.get(uri, headers: await _getHeaders());
-      debugPrint('📥 Customers API status: ${response.statusCode}');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final customers = (data['customers'] as List)
+      return _cachedGet<List<Customer>>(
+        uri,
+        (data) => (data['customers'] as List)
             .map((item) => Customer.fromJson(item))
-            .toList();
-
-        debugPrint('✅ Customers parsed: ${customers.length} customers found');
-        return ApiResponse.success(
-          data: customers,
-          message: jsonResponse['message'],
-        );
-      } else {
-        // A CodeIgniter database error renders an HTML page, not JSON. Decoding it
-        // blind used to throw and get reported as "Connection error", which hid
-        // real server faults (e.g. MySQL 1054 unknown column).
-        final message = _extractErrorMessage(
-          response.body,
-          fallback: 'Failed to fetch customers',
-        );
-        debugPrint('⚠️ Customers API error ${response.statusCode}: $message');
-        return ApiResponse.error(
-          message: message,
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Three days. A customer's name, phone and route do not change often,
+        // and looking one up is the single most common thing a seller does
+        // standing in front of a shop with no signal.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch customers',
+      );
     } catch (e) {
       debugPrint('⚠️ Customers API exception: $e');
       return ApiResponse.error(message: 'Connection error: $e');
@@ -1211,22 +1314,16 @@ class ApiService {
   }
 
   /// Create customer
-  Future<ApiResponse<Customer>> createCustomer(CustomerFormData formData) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/customers/create'),
-        headers: await _getHeaders(),
-        body: json.encode(formData.toJson()),
+  Future<ApiResponse<Customer>> createCustomer(
+    CustomerFormData formData, {
+    String? requestId,
+  }) =>
+      postAction<Customer>(
+        OfflineAction.customer.endpoint,
+        formData.toJson(),
+        requestId: requestId,
+        fromJson: (data) => Customer.fromJson(data),
       );
-
-      return _handleResponse<Customer>(
-        response,
-        (data) => Customer.fromJson(data),
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update customer
   Future<ApiResponse<Customer>> updateCustomer(int id, CustomerFormData formData) async {
@@ -1242,7 +1339,9 @@ class ApiService {
         (data) => Customer.fromJson(data),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('customer'), e);
     }
   }
 
@@ -1256,7 +1355,9 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('customer'), e);
     }
   }
 
@@ -1289,28 +1390,19 @@ class ApiService {
       );
 
       print('🔗 Items API URL: $uri');
-      final response = await _http.get(uri, headers: await _getHeaders());
-      print('📥 Items API status: ${response.statusCode}');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final items = (data['items'] as List)
+      return _cachedGet<List<Item>>(
+        uri,
+        (data) => (data['items'] as List)
             .map((item) => Item.fromJson(item))
-            .toList();
-        print('✅ Items parsed: ${items.length} items found');
-
-        return ApiResponse.success(
-          data: items,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch items',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Three days for names and prices. The stock NUMBERS in this payload
+        // are the part that goes stale fastest, which is why the items screen
+        // marks the whole list as saved rather than pretending the quantities
+        // are current.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch items',
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -1365,7 +1457,9 @@ class ApiService {
         (data) => Item.fromJson(data),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('item'), e);
     }
   }
 
@@ -1379,7 +1473,9 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('item'), e);
     }
   }
 
@@ -1516,7 +1612,9 @@ class ApiService {
         (data) => Item.fromJson(data),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('item'), e);
     }
   }
 
@@ -1661,7 +1759,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.creditPayment, e);
     }
   }
 
@@ -1680,7 +1780,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('credit payment'), e);
     }
   }
 
@@ -1698,7 +1800,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('credit payment'), e);
     }
   }
 
@@ -1724,27 +1828,14 @@ class ApiService {
   /// Get all suppliers with balances
   Future<ApiResponse<List<Supplier>>> getSuppliers() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/supplier_credits/suppliers'),
-        headers: await _getHeaders(),
+      final uri = Uri.parse('$baseUrlSync/supplier_credits/suppliers');
+      return _cachedGet<List<Supplier>>(
+        uri,
+        (data) => (data as List).map((item) => Supplier.fromJson(item)).toList(),
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to load suppliers',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'] as List;
-        final suppliers = data.map((item) => Supplier.fromJson(item)).toList();
-
-        return ApiResponse.success(
-          data: suppliers,
-          message: jsonResponse['message'] ?? 'Suppliers retrieved successfully',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to load suppliers',
-          statusCode: response.statusCode,
-        );
-      }
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -1834,7 +1925,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.creditPayment, e);
     }
   }
 
@@ -1882,7 +1975,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('supplier payment'), e);
     }
   }
 
@@ -1903,7 +1998,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('supplier payment'), e);
     }
   }
 
@@ -1925,22 +2022,16 @@ class ApiService {
   }
 
   /// Create supplier
-  Future<ApiResponse<Supplier>> createSupplier(Map<String, dynamic> supplierData) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/suppliers/create'),
-        headers: await _getHeaders(),
-        body: json.encode(supplierData),
+  Future<ApiResponse<Supplier>> createSupplier(
+    Map<String, dynamic> supplierData, {
+    String? requestId,
+  }) =>
+      postAction<Supplier>(
+        OfflineAction.supplier.endpoint,
+        supplierData,
+        requestId: requestId,
+        fromJson: (data) => Supplier.fromJson(data as Map<String, dynamic>),
       );
-
-      return _handleResponse<Supplier>(
-        response,
-        (data) => Supplier.fromJson(data as Map<String, dynamic>),
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update supplier
   Future<ApiResponse<Supplier>> updateSupplier(int supplierId, Map<String, dynamic> supplierData) async {
@@ -1956,7 +2047,9 @@ class ApiService {
         (data) => Supplier.fromJson(data as Map<String, dynamic>),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('supplier'), e);
     }
   }
 
@@ -1970,7 +2063,9 @@ class ApiService {
 
       return _handleResponse<void>(response, (_) => null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('supplier'), e);
     }
   }
 
@@ -2059,7 +2154,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.creditPayment, e);
     }
   }
 
@@ -2151,11 +2248,16 @@ class ApiService {
       }
 
       final uri = Uri.parse('$baseUrlSync/receivings').replace(queryParameters: queryParams);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
+      return _cachedGet<Map<String, dynamic>>(
+        uri,
         (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        // A week. A receiving that has been booked does not change afterwards,
+        // so an old copy is not WRONG, only incomplete -- and the banner says
+        // as much. The horizon exists to stop an abandoned device showing a
+        // month-old delivery list as if it were the current one.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch receivings',
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2180,22 +2282,16 @@ class ApiService {
   }
 
   /// Create new receiving
-  Future<ApiResponse<Map<String, dynamic>>> createReceiving(Receiving receiving) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/receivings/create'),
-        headers: await _getHeaders(),
-        body: json.encode(receiving.toJson()),
+  Future<ApiResponse<Map<String, dynamic>>> createReceiving(
+    Receiving receiving, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.receiving.endpoint,
+        receiving.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Delete receiving
   Future<ApiResponse<Map<String, dynamic>>> deleteReceiving(int receivingId) async {
@@ -2210,7 +2306,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('receiving'), e);
     }
   }
 
@@ -2285,11 +2383,15 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/receivings/main_store')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<MainStoreData>(
-        response,
+      return _cachedGet<MainStoreData>(
+        uri,
         (data) => MainStoreData.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Stock on hand at the main store. Twelve hours, not a week: the
+        // figure is a quantity that moves all day, so a copy from yesterday
+        // would have someone promise a delivery that is no longer there.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch the main store',
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2321,11 +2423,18 @@ class ApiService {
       if (locationId != null) queryParams['location_id'] = locationId.toString();
 
       final uri = Uri.parse('$baseUrlSync/sales').replace(queryParameters: queryParams);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
+      return _cachedGet<Map<String, dynamic>>(
+        uri,
         (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        // A week, and only the page that was actually fetched. Sales history
+        // is the biggest list in the app, so this deliberately does NOT
+        // prefetch: it keeps whatever pages the seller already scrolled
+        // through online. Offline that means page one opens and the rest does
+        // not, which is the honest outcome -- a completed sale never changes,
+        // so what is kept is accurate as far as it goes.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch sales',
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2480,10 +2589,12 @@ class ApiService {
           if (date != null) 'date': date,
         },
       );
-      final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<Map<String, dynamic>>(
-        response,
+      return _cachedGet<Map<String, dynamic>>(
+        uri,
         (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch the payment summary',
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2814,7 +2925,9 @@ class ApiService {
         );
       }
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('customer order'), e);
     }
   }
 
@@ -2993,7 +3106,9 @@ class ApiService {
         );
       }
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('item comment'), e);
     }
   }
 
@@ -3444,7 +3559,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('sale'), e);
     }
   }
 
@@ -3492,15 +3609,15 @@ class ApiService {
       }
 
       final uri = Uri.parse('$baseUrlSync/banking').replace(queryParameters: queryParams);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<List<BankingListItem>>(
-        response,
+      return _cachedGet<List<BankingListItem>>(
+        uri,
         (data) {
-          final bankingData = data as Map<String, dynamic>;
-          final bankings = bankingData['bankings'] as List;
+          final bankings = (data as Map<String, dynamic>)['bankings'] as List;
           return bankings.map((json) => BankingListItem.fromJson(json)).toList();
         },
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch banking',
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -3508,22 +3625,16 @@ class ApiService {
   }
 
   /// Create Banking
-  Future<ApiResponse<Map<String, dynamic>>> createBanking(BankingCreate banking) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/banking/create'),
-        headers: await _getHeaders(),
-        body: json.encode(banking.toJson()),
+  Future<ApiResponse<Map<String, dynamic>>> createBanking(
+    BankingCreate banking, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.banking.endpoint,
+        banking.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update Banking
   Future<ApiResponse<BankingListItem>> updateBanking(int id, BankingCreate banking) async {
@@ -3539,7 +3650,9 @@ class ApiService {
         (data) => BankingListItem.fromJson(data as Map<String, dynamic>),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('banking record'), e);
     }
   }
 
@@ -3556,7 +3669,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('banking record'), e);
     }
   }
 
@@ -3595,22 +3710,15 @@ class ApiService {
 
   /// Create a new banking deposit (Financial Banking - Leruma)
   Future<ApiResponse<Map<String, dynamic>>> createBankingDeposit(
-      CreateDepositRequest request) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/banking/add_deposit'),
-        headers: await _getHeaders(),
-        body: jsonEncode(request.toJson()),
+    CreateDepositRequest request, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.bankingDeposit.endpoint,
+        request.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Create a new banking deposit with attachment (Financial Banking - Leruma)
   /// Uses multipart/form-data for file upload
@@ -3678,7 +3786,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('banking deposit'), e);
     }
   }
 
@@ -3695,7 +3805,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('banking deposit'), e);
     }
   }
 
@@ -3781,22 +3893,16 @@ class ApiService {
   }
 
   /// Create Profit Submission
-  Future<ApiResponse<Map<String, dynamic>>> createProfitSubmission(ProfitSubmitCreate profitSubmit) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/profitsubmit/create'),
-        headers: await _getHeaders(),
-        body: json.encode(profitSubmit.toJson()),
+  Future<ApiResponse<Map<String, dynamic>>> createProfitSubmission(
+    ProfitSubmitCreate profitSubmit, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.profitSubmit.endpoint,
+        profitSubmit.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update Profit Submission
   Future<ApiResponse<Map<String, dynamic>>> updateProfitSubmission(int id, ProfitSubmitCreate profitSubmit) async {
@@ -3812,7 +3918,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('profit submission'), e);
     }
   }
 
@@ -3829,7 +3937,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('profit submission'), e);
     }
   }
 
@@ -4044,22 +4154,16 @@ class ApiService {
   }
 
   /// Add deposit
-  Future<ApiResponse<Map<String, dynamic>>> addDeposit(TransactionFormData formData) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_deposit'),
-        headers: await _getHeaders(),
-        body: json.encode(formData.toJson()),
+  Future<ApiResponse<Map<String, dynamic>>> addDeposit(
+    TransactionFormData formData, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.transactionDeposit.endpoint,
+        formData.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update deposit
   Future<ApiResponse<Map<String, dynamic>>> updateDeposit(int id, TransactionFormData formData) async {
@@ -4075,7 +4179,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('deposit'), e);
     }
   }
 
@@ -4092,27 +4198,23 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('deposit'), e);
     }
   }
 
   /// Add withdrawal
-  Future<ApiResponse<Map<String, dynamic>>> addWithdrawal(TransactionFormData formData) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_withdrawal'),
-        headers: await _getHeaders(),
-        body: json.encode(formData.toJson()),
+  Future<ApiResponse<Map<String, dynamic>>> addWithdrawal(
+    TransactionFormData formData, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.transactionWithdrawal.endpoint,
+        formData.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update withdrawal
   Future<ApiResponse<Map<String, dynamic>>> updateWithdrawal(int id, TransactionFormData formData) async {
@@ -4128,7 +4230,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('withdrawal'), e);
     }
   }
 
@@ -4145,7 +4249,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('withdrawal'), e);
     }
   }
 
@@ -4214,28 +4320,28 @@ class ApiService {
   }
 
   /// Add cash basis category
+  /// The body a named-category create is posted with. Shared with the queue,
+  /// which re-posts this exact map rather than rebuilding it. See [zReportBody].
+  static Map<String, dynamic> namedCategoryBody({
+    required String name,
+    String? description,
+  }) =>
+      <String, dynamic>{
+        'name': name,
+        if (description != null) 'description': description,
+      };
+
   Future<ApiResponse<Map<String, dynamic>>> addCashBasisCategory({
     required String name,
     String? description,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_cash_basis_category'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'name': name,
-          if (description != null) 'description': description,
-        }),
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.cashBasisCategory.endpoint,
+        namedCategoryBody(name: name, description: description),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update cash basis category
   Future<ApiResponse<Map<String, dynamic>>> updateCashBasisCategory(
@@ -4258,7 +4364,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('cash basis category'), e);
     }
   }
 
@@ -4275,7 +4383,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('cash basis category'), e);
     }
   }
 
@@ -4304,30 +4414,30 @@ class ApiService {
   }
 
   /// Add cash basis transaction
+  /// The body a cash basis transaction is posted with. See [zReportBody].
+  static Map<String, dynamic> cashBasisBody({
+    required int cashBasisId,
+    required double amount,
+    required String date,
+  }) =>
+      <String, dynamic>{
+        'cash_basis_id': cashBasisId,
+        'amount': amount,
+        'date': date,
+      };
+
   Future<ApiResponse<Map<String, dynamic>>> addCashBasisTransaction({
     required int cashBasisId,
     required double amount,
     required String date,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_cash_basis'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'cash_basis_id': cashBasisId,
-          'amount': amount,
-          'date': date,
-        }),
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.cashBasis.endpoint,
+        cashBasisBody(cashBasisId: cashBasisId, amount: amount, date: date),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update cash basis transaction
   Future<ApiResponse<Map<String, dynamic>>> updateCashBasisTransaction(
@@ -4352,7 +4462,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('cash basis transaction'), e);
     }
   }
 
@@ -4369,7 +4481,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('cash basis transaction'), e);
     }
   }
 
@@ -4410,25 +4524,14 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> addBankBasisCategory({
     required String name,
     String? description,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_bank_basis_category'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'name': name,
-          if (description != null) 'description': description,
-        }),
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.bankBasisCategory.endpoint,
+        namedCategoryBody(name: name, description: description),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update bank basis category
   Future<ApiResponse<Map<String, dynamic>>> updateBankBasisCategory(
@@ -4451,7 +4554,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('bank basis category'), e);
     }
   }
 
@@ -4468,7 +4573,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('bank basis category'), e);
     }
   }
 
@@ -4497,30 +4604,30 @@ class ApiService {
   }
 
   /// Add bank basis transaction
+  /// The body a bank basis transaction is posted with. See [zReportBody].
+  static Map<String, dynamic> bankBasisBody({
+    required int bankBasisId,
+    required double amount,
+    required String date,
+  }) =>
+      <String, dynamic>{
+        'bank_basis_id': bankBasisId,
+        'amount': amount,
+        'date': date,
+      };
+
   Future<ApiResponse<Map<String, dynamic>>> addBankBasisTransaction({
     required int bankBasisId,
     required double amount,
     required String date,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_bank_basis'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'bank_basis_id': bankBasisId,
-          'amount': amount,
-          'date': date,
-        }),
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.bankBasis.endpoint,
+        bankBasisBody(bankBasisId: bankBasisId, amount: amount, date: date),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update bank basis transaction
   Future<ApiResponse<Map<String, dynamic>>> updateBankBasisTransaction(
@@ -4545,7 +4652,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('bank basis transaction'), e);
     }
   }
 
@@ -4562,7 +4671,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('bank basis transaction'), e);
     }
   }
 
@@ -4603,25 +4714,14 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> addSim({
     required String name,
     String? description,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_sim'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'name': name,
-          if (description != null) 'description': description,
-        }),
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.sim.endpoint,
+        namedCategoryBody(name: name, description: description),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update SIM card
   Future<ApiResponse<Map<String, dynamic>>> updateSim(
@@ -4644,7 +4744,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('SIM card'), e);
     }
   }
 
@@ -4661,7 +4763,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('SIM card'), e);
     }
   }
 
@@ -4690,30 +4794,30 @@ class ApiService {
   }
 
   /// Add wakala transaction
+  /// The body a wakala transaction is posted with. See [zReportBody].
+  static Map<String, dynamic> wakalaBody({
+    required int simId,
+    required double amount,
+    required String date,
+  }) =>
+      <String, dynamic>{
+        'sim_id': simId,
+        'amount': amount,
+        'date': date,
+      };
+
   Future<ApiResponse<Map<String, dynamic>>> addWakalaTransaction({
     required int simId,
     required double amount,
     required String date,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_wakala'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'sim_id': simId,
-          'amount': amount,
-          'date': date,
-        }),
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.wakala.endpoint,
+        wakalaBody(simId: simId, amount: amount, date: date),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data as Map<String, dynamic>,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update wakala transaction
   Future<ApiResponse<Map<String, dynamic>>> updateWakalaTransaction(
@@ -4738,7 +4842,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('wakala transaction'), e);
     }
   }
 
@@ -4755,7 +4861,9 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('wakala transaction'), e);
     }
   }
 
@@ -4771,12 +4879,12 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/transactions/wakala_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<WakalaReport>(
-        response,
+      return _cachedGet<WakalaReport>(
+        uri,
         (data) => WakalaReport.fromJson(data),
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch the wakala report',
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -4809,23 +4917,15 @@ class ApiService {
 
   /// Add wakala expense
   Future<ApiResponse<Map<String, dynamic>>> addWakalaExpense(
-    WakalaExpenseFormData formData,
-  ) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_wakala_expense'),
-        headers: await _getHeaders(),
-        body: json.encode(formData.toJson()),
+    WakalaExpenseFormData formData, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.wakalaExpense.endpoint,
+        formData.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update wakala expense
   Future<ApiResponse<Map<String, dynamic>>> updateWakalaExpense(
@@ -4844,7 +4944,9 @@ class ApiService {
         (data) => data,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('wakala expense'), e);
     }
   }
 
@@ -4861,7 +4963,9 @@ class ApiService {
         (data) => data,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('wakala expense'), e);
     }
   }
 
@@ -4917,23 +5021,15 @@ class ApiService {
 
   /// Add commission
   Future<ApiResponse<Map<String, dynamic>>> addCommission(
-    CommissionFormData formData,
-  ) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_commission'),
-        headers: await _getHeaders(),
-        body: json.encode(formData.toJson()),
+    CommissionFormData formData, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.commission.endpoint,
+        formData.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update commission
   Future<ApiResponse<Map<String, dynamic>>> updateCommission(
@@ -4952,7 +5048,9 @@ class ApiService {
         (data) => data,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('commission'), e);
     }
   }
 
@@ -4969,7 +5067,9 @@ class ApiService {
         (data) => data,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('commission'), e);
     }
   }
 
@@ -5001,23 +5101,15 @@ class ApiService {
 
   /// Add capital entry
   Future<ApiResponse<Map<String, dynamic>>> addCapital(
-    CapitalFormData formData,
-  ) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/transactions/add_capital'),
-        headers: await _getHeaders(),
-        body: json.encode(formData.toJson()),
+    CapitalFormData formData, {
+    String? requestId,
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.capital.endpoint,
+        formData.toJson(),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
-        (data) => data,
-      );
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update capital entry
   Future<ApiResponse<Map<String, dynamic>>> updateCapital(
@@ -5036,7 +5128,9 @@ class ApiService {
         (data) => data,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('capital'), e);
     }
   }
 
@@ -5053,7 +5147,9 @@ class ApiService {
         (data) => data,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('capital'), e);
     }
   }
 
@@ -5804,14 +5900,17 @@ class ApiService {
       }
     }
 
+    final queryParams = <String, String>{};
+    if (startDate != null) queryParams['start_date'] = startDate;
+    if (endDate != null) queryParams['end_date'] = endDate;
+    if (locationId != null) queryParams['location_id'] = locationId.toString();
+
+    // Hoisted out of the try so the offline fallback in the catch below can
+    // name the same cache key the successful path writes to.
+    final uri = Uri.parse('$baseUrlSync/dashboard')
+        .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+
     try {
-      final queryParams = <String, String>{};
-      if (startDate != null) queryParams['start_date'] = startDate;
-      if (endDate != null) queryParams['end_date'] = endDate;
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
-
-      final uri = Uri.parse('$baseUrlSync/dashboard').replace(queryParameters: queryParams.isEmpty ? null : queryParams);
-
       print('📊 Fetching commission dashboard: $uri');
 
       final response = await _http.get(uri, headers: await _getHeaders());
@@ -5825,6 +5924,10 @@ class ApiService {
         // Cache the response
         _dashboardCache = data;
         _dashboardCacheTime = DateTime.now();
+        // ...and on disk as well. The in-memory copy above dies with the
+        // process, so it does exactly nothing for the case that matters:
+        // opening the app in a dead-signal area, which is a cold start.
+        unawaited(ReadCache.instance.write(_keyFor(uri), data));
         print('💾 Dashboard data cached');
 
         return ApiResponse.success(
@@ -5840,15 +5943,35 @@ class ApiService {
       }
     } catch (e) {
       print('❌ Dashboard error: $e');
-      // Return cached data on network error if available
-      if (_dashboardCache != null) {
+      final failure = ApiResponse<Map<String, dynamic>>.error(
+        message: 'Connection error: $e',
+      );
+      if (!isTransportFailure(failure)) return failure;
+
+      // In-memory first -- same process, so it is the freshest copy there is.
+      // Note the timestamp: this used to come back as a plain success, which
+      // meant the dashboard showed last hour's takings with nothing to say so.
+      if (_dashboardCache != null && _dashboardCacheTime != null) {
         print('📦 Network error, using cached data');
         return ApiResponse.success(
           data: _dashboardCache!,
-          message: 'Success (offline cache)',
+          message: failure.message,
+          servedFromCacheAt: _dashboardCacheTime,
         );
       }
-      return ApiResponse.error(message: 'Connection error: $e');
+
+      final saved = await ReadCache.instance.read(
+        _keyFor(uri),
+        maxAge: CacheAge.today,
+      );
+      if (saved != null && saved.payload is Map) {
+        return ApiResponse.success(
+          data: (saved.payload as Map).cast<String, dynamic>(),
+          message: failure.message,
+          servedFromCacheAt: saved.fetchedAt,
+        );
+      }
+      return failure;
     }
   }
 
@@ -6223,7 +6346,9 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error depositing: $e');
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.nfcWallet, e);
     }
   }
 
@@ -6277,7 +6402,9 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error paying: $e');
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.nfcWallet, e);
     }
   }
 
@@ -6320,7 +6447,9 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error confirming credit: $e');
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.nfcWallet, e);
     }
   }
 
@@ -6360,7 +6489,9 @@ class ApiService {
       return ApiResponse.error(message: 'Server error: ${response.statusCode}');
     } catch (e) {
       debugPrint('❌ Error confirming cash: $e');
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.nfcWallet, e);
     }
   }
 
@@ -6403,7 +6534,9 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error confirming payment: $e');
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.nfcWallet, e);
     }
   }
 
@@ -6578,7 +6711,9 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error updating settings: $e');
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.nfcWallet, e);
     }
   }
 
@@ -6740,7 +6875,9 @@ class ApiService {
         (data) => Shop.fromJson(data),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('shop'), e);
     }
   }
 
@@ -6754,7 +6891,9 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('shop'), e);
     }
   }
 
@@ -6889,6 +7028,24 @@ class ApiService {
   }
 
   /// Create a new discount request
+  /// The body a discount request is created with. See [zReportBody].
+  static Map<String, dynamic> discountRequestBody({
+    required int customerId,
+    required int itemId,
+    required double quantity,
+    required double discount,
+    int discountType = 1,
+    String? notes,
+  }) =>
+      <String, dynamic>{
+        'customer_id': customerId,
+        'item_id': itemId,
+        'quantity': quantity,
+        'discount': discount,
+        'discount_type': discountType,
+        if (notes != null) 'notes': notes,
+      };
+
   Future<ApiResponse<void>> createDiscountRequest({
     required int customerId,
     required int itemId,
@@ -6896,26 +7053,20 @@ class ApiService {
     required double discount,
     int discountType = 1,
     String? notes,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/discount_requests/create'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'customer_id': customerId,
-          'item_id': itemId,
-          'quantity': quantity,
-          'discount': discount,
-          'discount_type': discountType,
-          if (notes != null) 'notes': notes,
-        }),
+    String? requestId,
+  }) =>
+      postAction<void>(
+        OfflineAction.discountRequest.endpoint,
+        discountRequestBody(
+          customerId: customerId,
+          itemId: itemId,
+          quantity: quantity,
+          discount: discount,
+          discountType: discountType,
+          notes: notes,
+        ),
+        requestId: requestId,
       );
-
-      return _handleResponse<void>(response, null);
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   /// Update a pending discount request
   Future<ApiResponse<void>> updateDiscountRequest({
@@ -6937,7 +7088,9 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('discount request'), e);
     }
   }
 
@@ -6951,7 +7104,9 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.approveDiscount, e);
     }
   }
 
@@ -6965,7 +7120,9 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.rejectDiscount, e);
     }
   }
 
@@ -6979,7 +7136,9 @@ class ApiService {
 
       return _handleResponse<void>(response, null);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('discount request'), e);
     }
   }
 
@@ -7042,7 +7201,9 @@ class ApiService {
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.edit('borrowed money record'), e);
     }
   }
 
@@ -7055,7 +7216,9 @@ class ApiService {
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.remove('borrowed money record'), e);
     }
   }
 
@@ -7095,7 +7258,9 @@ class ApiService {
         (data) => ReturnResult.fromJson(data as Map<String, dynamic>),
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(OnlineOnly.processReturn, e);
     }
   }
 
@@ -7129,10 +7294,16 @@ class ApiService {
           if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
         },
       );
-      final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<ApprovalPage>(
-        response,
+      return _cachedGet<ApprovalPage>(
+        uri,
         (data) => ApprovalPage.fromJson(data, 'approvals'),
+        cacheKey: _keyFor(uri),
+        // Six hours. An approval queue is the one list where a stale row is
+        // actively harmful: it can show a request a manager decided an hour
+        // ago as still waiting, and someone will go and argue about it. Short
+        // enough that the copy is plausibly still true, long enough to cover
+        // a morning's round through a dead-signal area.
+        maxAge: CacheAge.queue,
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -7197,7 +7368,9 @@ class ApiService {
         (data) => data,
       );
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(approve ? OnlineOnly.approve : OnlineOnly.reject, e);
     }
   }
 
@@ -7227,7 +7400,9 @@ class ApiService {
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
+      // Cannot be queued: see OnlineOnly. Name the action so the user
+      // knows what did not happen, and that nothing was saved.
+      return _offlineRefusal(approve ? OnlineOnly.bulkApprove : OnlineOnly.bulkReject, e);
     }
   }
 
@@ -7253,10 +7428,11 @@ class ApiService {
           if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
         },
       );
-      final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<ApprovalPage>(
-        response,
+      return _cachedGet<ApprovalPage>(
+        uri,
         (data) => ApprovalPage.fromJson(data, 'requests'),
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.queue,
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -7269,13 +7445,17 @@ class ApiService {
   /// all pre-filtered to what this employee may choose.
   Future<ApiResponse<DiscountFormOptions>> getDiscountFormOptions() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/one_time_discounts/form_options'),
-        headers: await _getHeaders(),
-      );
-      return _handleResponse<DiscountFormOptions>(
-        response,
-        DiscountFormOptions.fromJson,
+      final uri = Uri.parse('$baseUrlSync/one_time_discounts/form_options');
+      return _cachedGet<DiscountFormOptions>(
+        uri,
+        (data) => DiscountFormOptions.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Three days. These are the choices in the form's pickers -- the
+        // locations and customers this employee is allowed to pick. They move
+        // when someone is reassigned, which is a weekly event, not an hourly
+        // one. Without this the form cannot be opened offline at all: an empty
+        // customer picker is not a degraded form, it is an unusable one.
+        maxAge: CacheAge.reference,
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -7292,15 +7472,19 @@ class ApiService {
           if (search != null && search.isNotEmpty) 'search': search,
         },
       );
-      final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<List<DiscountEligibleItem>>(response, (data) {
-        final list = data['items'];
-        if (list is! List) return <DiscountEligibleItem>[];
-        return list
-            .whereType<Map<String, dynamic>>()
-            .map(DiscountEligibleItem.fromJson)
-            .toList();
-      });
+      return _cachedGet<List<DiscountEligibleItem>>(
+        uri,
+        (data) {
+          final list = data['items'];
+          if (list is! List) return <DiscountEligibleItem>[];
+          return list
+              .whereType<Map<String, dynamic>>()
+              .map(DiscountEligibleItem.fromJson)
+              .toList();
+        },
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.reference,
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -7319,36 +7503,49 @@ class ApiService {
   /// `results` list saying what happened to every one of them — a batch can
   /// come back partly created, so the caller has to read it rather than assume
   /// success covered everything.
+  /// The body a one-time discount request is raised with. See [zReportBody].
+  static Map<String, dynamic> oneTimeDiscountRequestBody({
+    required int customerId,
+    required int stockLocationId,
+    required List<Map<String, dynamic>> items,
+    required String reason,
+    String? validDate,
+  }) =>
+      <String, dynamic>{
+        'customer_id': customerId,
+        'stock_location_id': stockLocationId,
+        'items': items,
+        'reason': reason,
+        if (validDate != null) 'valid_date': validDate,
+      };
+
   Future<ApiResponse<Map<String, dynamic>>> createOneTimeDiscountRequest({
     required int customerId,
     required int stockLocationId,
     required List<Map<String, dynamic>> items,
     required String reason,
     String? validDate,
+    // Retrying after a timeout must not raise a second request. The server
+    // replays the original response for a request_id it has already seen --
+    // for the whole batch, which is why the id has to be minted against the
+    // whole item list. This endpoint already carried the key before offline
+    // support; what is new is that the key is now PERSISTED with the queued
+    // copy, so it survives the app being killed rather than living only in
+    // the screen's memory.
     String? requestId,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/one_time_discounts/create'),
-        headers: await _getHeaders(),
-        body: jsonEncode({
-          'customer_id': customerId,
-          'stock_location_id': stockLocationId,
-          'items': items,
-          'reason': reason,
-          if (validDate != null) 'valid_date': validDate,
-          // Retrying after a timeout must not raise a second request. The
-          // server replays the original response for a request_id it has
-          // already seen — for the whole batch, which is why the id has to be
-          // minted against the whole item list.
-          if (requestId != null) 'request_id': requestId,
-        }),
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.oneTimeDiscountRequest.endpoint,
+        oneTimeDiscountRequestBody(
+          customerId: customerId,
+          stockLocationId: stockLocationId,
+          items: items,
+          reason: reason,
+          validDate: validDate,
+        ),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   Future<ApiResponse<List<MyDiscountRequest>>> getMyDiscountRequests({
     String? status,
@@ -7392,15 +7589,19 @@ class ApiService {
           .replace(queryParameters: {
         if (search != null && search.isNotEmpty) 'search': search,
       });
-      final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<List<CreditScopedCustomer>>(response, (data) {
-        final list = data['customers'];
-        if (list is! List) return <CreditScopedCustomer>[];
-        return list
-            .whereType<Map<String, dynamic>>()
-            .map(CreditScopedCustomer.fromJson)
-            .toList();
-      });
+      return _cachedGet<List<CreditScopedCustomer>>(
+        uri,
+        (data) {
+          final list = data['customers'];
+          if (list is! List) return <CreditScopedCustomer>[];
+          return list
+              .whereType<Map<String, dynamic>>()
+              .map(CreditScopedCustomer.fromJson)
+              .toList();
+        },
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.reference,
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -7428,6 +7629,24 @@ class ApiService {
   ///
   /// An approved request grants a ONE-TIME allowance consumed by the next
   /// credit sale — it does not permanently raise the customer's limit.
+  /// The body a credit limit request is raised with. See [zReportBody].
+  static Map<String, dynamic> creditLimitRequestBody({
+    required int customerId,
+    required double creditAmount,
+    required String reason,
+    String? notes,
+    String? effectiveDate,
+    String? expiryDate,
+  }) =>
+      <String, dynamic>{
+        'customer_id': customerId,
+        'credit_amount': creditAmount,
+        'reason': reason,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (effectiveDate != null) 'effective_date': effectiveDate,
+        if (expiryDate != null) 'expiry_date': expiryDate,
+      };
+
   Future<ApiResponse<Map<String, dynamic>>> createCreditLimitRequest({
     required int customerId,
     required double creditAmount,
@@ -7435,27 +7654,23 @@ class ApiService {
     String? notes,
     String? effectiveDate,
     String? expiryDate,
+    // As with the one-time discount request, the key was already sent; what
+    // offline support adds is persisting it beside the queued payload.
     String? requestId,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/customer_credit_limits/create'),
-        headers: await _getHeaders(),
-        body: jsonEncode({
-          'customer_id': customerId,
-          'credit_amount': creditAmount,
-          'reason': reason,
-          if (notes != null && notes.isNotEmpty) 'notes': notes,
-          if (effectiveDate != null) 'effective_date': effectiveDate,
-          if (expiryDate != null) 'expiry_date': expiryDate,
-          if (requestId != null) 'request_id': requestId,
-        }),
+  }) =>
+      postAction<Map<String, dynamic>>(
+        OfflineAction.creditLimitRequest.endpoint,
+        creditLimitRequestBody(
+          customerId: customerId,
+          creditAmount: creditAmount,
+          reason: reason,
+          notes: notes,
+          effectiveDate: effectiveDate,
+          expiryDate: expiryDate,
+        ),
+        requestId: requestId,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
-      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
-    } catch (e) {
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
 
   Future<ApiResponse<List<MyCreditLimitRequest>>> getMyCreditLimitRequests({
     int limit = 100,
@@ -7507,8 +7722,12 @@ class ApiService {
         if (status != null && status.isNotEmpty) 'status': status,
         if (search != null && search.isNotEmpty) 'search': search,
       });
-      final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<CreditLimitPage>(response, CreditLimitPage.fromJson);
+      return _cachedGet<CreditLimitPage>(
+        uri,
+        (data) => CreditLimitPage.fromJson(data),
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.queue,
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -7530,12 +7749,16 @@ class ApiService {
         if (status != null && status.isNotEmpty) 'status': status,
         if (search != null && search.isNotEmpty) 'search': search,
       });
-      final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<CreditLimitStatistics>(response, (data) {
-        final stats = data['statistics'];
-        return CreditLimitStatistics.fromJson(
-            stats is Map ? stats.cast<String, dynamic>() : const {});
-      });
+      return _cachedGet<CreditLimitStatistics>(
+        uri,
+        (data) {
+          final stats = data['statistics'];
+          return CreditLimitStatistics.fromJson(
+              stats is Map ? stats.cast<String, dynamic>() : const {});
+        },
+        cacheKey: _keyFor(uri),
+        maxAge: CacheAge.queue,
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }

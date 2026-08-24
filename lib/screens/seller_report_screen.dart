@@ -5,10 +5,13 @@ import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
 import '../models/stock_location.dart';
 import '../services/api_service.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
+import '../utils/friendly_error.dart';
 import 'sales_history_screen.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../widgets/state_views.dart';
 
 /// Seller Report Screen - Leruma specific
 /// Shows seller/supervisor performance data by stock location
@@ -30,6 +33,13 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
   List<Map<String, dynamic>> _sellers = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// Non-null when the figures on screen are a saved copy, not live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
+
   DateTime _selectedDate = DateTime.now();
   bool _isAdmin = false;
   StockLocation? _selectedLocation;
@@ -80,14 +90,22 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
       locationId: _selectedLocation?.locationId,
     );
 
+    if (!mounted) return;
+
     setState(() {
       if (result.isSuccess && result.data != null) {
         _sellers = List<Map<String, dynamic>>.from(result.data!['sellers'] ?? []);
         _isAdmin = result.data!['is_admin'] ?? false;
         _errorMessage = null;
+        _cachedAt = result.servedFromCacheAt;
+        _offline = false;
       } else {
         _sellers = [];
-        _errorMessage = result.message ?? 'Failed to load sellers report';
+        // ApiService reports a dead network as an error response rather than
+        // throwing, so the two cases separate here or not at all.
+        _offline = isTransportFailure(result);
+        _errorMessage = _offline ? null : FriendlyError.of(result.message);
+        _cachedAt = null;
       }
       _isLoading = false;
     });
@@ -297,9 +315,28 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
           ? _buildSkeletonLoading(isDark)
           : _errorMessage != null
               ? _buildErrorView(isDark)
-              : _sellers.isEmpty
-                  ? _buildEmptyView(isDark)
-                  : _buildContent(isDark),
+              // Ahead of the empty view, which says "No seller data for this
+              // date" -- read offline that tells a supervisor nobody sold
+              // anything, when in truth nothing was ever fetched.
+              : _offline
+                  ? OfflineEmptyView(
+                      noun: 'the sellers report',
+                      isDark: isDark,
+                      onRefresh: _loadSellersReport,
+                    )
+                  // Wrapped like _buildContent: a cached page holding no
+                  // sellers is still a saved copy, and "No seller data for
+                  // this date" is a claim about the server that a stale copy
+                  // cannot support.
+                  : _sellers.isEmpty
+                      ? CachedBodyWrapper(
+                          cachedAt: _cachedAt,
+                          noun: 'the sellers report',
+                          isDark: isDark,
+                          onRetry: _loadSellersReport,
+                          child: _buildEmptyView(isDark),
+                        )
+                      : _buildContent(isDark),
     );
   }
 
@@ -493,35 +530,12 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
   }
 
   Widget _buildErrorView(bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: AppColors.error, size: 64),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: isDark ? AppColors.darkText : AppColors.text,
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _loadSellersReport,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ErrorStateView(
+      message: _errorMessage!,
+      isDark: isDark,
+      onRetry: FriendlyError.isPermanent(_errorMessage)
+          ? null
+          : _loadSellersReport,
     );
   }
 
@@ -570,9 +584,15 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: RefreshIndicator(
+      child: CachedBodyWrapper(
+        cachedAt: _cachedAt,
+        noun: 'the sellers report',
+        isDark: isDark,
+        onRetry: _loadSellersReport,
+        child: RefreshIndicator(
         onRefresh: _loadSellersReport,
         child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
             // Location & Date header
@@ -718,6 +738,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             )).toList(),
           ],
         ),
+      ),
       ),
     );
   }

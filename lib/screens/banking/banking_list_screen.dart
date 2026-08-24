@@ -13,10 +13,13 @@ import '../../providers/theme_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/read_cache.dart';
+import '../../utils/friendly_error.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/permission_wrapper.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/state_views.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_banking_screen.dart';
 
@@ -33,6 +36,13 @@ class _BankingListScreenState extends State<BankingListScreen> {
   List<BankingListItem> _bankings = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// Non-null when the rows on screen are a saved copy rather than live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
+
   // Default to today - will be updated based on permission
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
@@ -66,39 +76,36 @@ class _BankingListScreenState extends State<BankingListScreen> {
       _errorMessage = null;
     });
 
-    try {
-      final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
-      final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
+    final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
+    final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
 
-      final locationProvider = context.read<LocationProvider>();
-      final selectedLocationId = locationProvider.selectedLocation?.locationId;
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
-      final response = await _apiService.getBankingList(
-        startDate: startDateStr,
-        endDate: endDateStr,
-        locationId: selectedLocationId,
-        limit: 100,
-      );
+    final response = await _apiService.getBankingList(
+      startDate: startDateStr,
+      endDate: endDateStr,
+      locationId: selectedLocationId,
+      limit: 100,
+    );
+    if (!mounted) return;
 
+    setState(() {
+      _isLoading = false;
       if (response.isSuccess && response.data != null) {
-        setState(() {
-          _bankings = response.data!;
-          // Sort by date (newest first)
-          _bankings.sort((a, b) => b.date.compareTo(a.date));
-          _isLoading = false;
-        });
+        _bankings = response.data!;
+        // Sort by date (newest first)
+        _bankings.sort((a, b) => b.date.compareTo(a.date));
+        _cachedAt = response.servedFromCacheAt;
+        _offline = false;
       } else {
-        setState(() {
-          _errorMessage = response.message ?? 'Failed to load banking transactions';
-          _isLoading = false;
-        });
+        // ApiService answers a dead network with an error response, not an
+        // exception, so the distinction has to be drawn here.
+        _offline = isTransportFailure(response);
+        _errorMessage = _offline ? null : FriendlyError.of(response.message);
+        _cachedAt = null;
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error: $e';
-        _isLoading = false;
-      });
-    }
+    });
   }
 
   Future<void> _onRefresh() async {
@@ -716,56 +723,66 @@ class _BankingListScreenState extends State<BankingListScreen> {
               child: _isLoading
           ? _buildSkeletonList(isDark)
           : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline,
-                          size: 64, color: AppColors.error),
-                      const SizedBox(height: 16),
-                      Text(_errorMessage!,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          )),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _loadBankings,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
-                  ),
+              ? ErrorStateView(
+                  message: _errorMessage!,
+                  isDark: isDark,
+                  onRetry: FriendlyError.isPermanent(_errorMessage)
+                      ? null
+                      : _loadBankings,
                 )
+              // Ahead of the empty state: "No banking transactions found"
+              // would tell a seller their deposit never registered, when in
+              // fact the phone simply could not ask.
+              : _offline
+              ? OfflineEmptyView(
+                  noun: 'banking records',
+                  isDark: isDark,
+                  onRefresh: _loadBankings,
+                )
+              // Wrapped like the list below: a cached page holding no rows
+              // is still a saved copy, and "No banking transactions found"
+              // is a claim about the server that a stale copy cannot support.
               : _bankings.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.account_balance,
-                              size: 64, color: isDark ? AppColors.darkTextLight : Colors.grey.shade400),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No banking transactions found',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: isDark ? AppColors.darkText : Colors.grey.shade600,
+                  ? CachedBodyWrapper(
+                      cachedAt: _cachedAt,
+                      noun: 'banking records',
+                      isDark: isDark,
+                      onRetry: _loadBankings,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.account_balance,
+                                size: 64, color: isDark ? AppColors.darkTextLight : Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No banking transactions found',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: isDark ? AppColors.darkText : Colors.grey.shade600,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Start by creating your first banking transaction',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? AppColors.darkTextLight : Colors.grey.shade500,
+                            const SizedBox(height: 8),
+                            Text(
+                              'Start by creating your first banking transaction',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDark ? AppColors.darkTextLight : Colors.grey.shade500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     )
-                  : RefreshIndicator(
+                  : CachedBodyWrapper(
+                      cachedAt: _cachedAt,
+                      noun: 'banking records',
+                      isDark: isDark,
+                      onRetry: _loadBankings,
+                      child: RefreshIndicator(
                       onRefresh: _onRefresh,
                       child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         itemCount: _bankings.length,
                         itemBuilder: (context, index) {
                           final banking = _bankings[index];
@@ -1134,6 +1151,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                         );
                       },
                     ),
+                  ),
                   ),
             ),
           ),

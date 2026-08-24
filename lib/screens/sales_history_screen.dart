@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/pdf_service.dart';
+import '../services/read_cache.dart';
+import '../utils/friendly_error.dart';
+import '../widgets/state_views.dart';
 import '../models/sale.dart';
 import '../models/stock_location.dart';
 import '../models/permission_model.dart';
@@ -51,6 +54,19 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   List<Sale> _sales = [];
   List<Sale> _filteredSales = [];
   bool _isLoading = false;
+
+  /// This screen used to have no failure state at all: a failed load fired a
+  /// SnackBar with the raw transport message and left the list empty, so the
+  /// body said "No sales found for this period" -- a claim about the shop's
+  /// books when the truth was that no request ever left the phone.
+  String? _error;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
+
+  /// Non-null when the rows on screen are a saved copy rather than live data.
+  DateTime? _cachedAt;
+
   bool _hasMore = true;
   int _offset = 0;
   final int _limit = 20;
@@ -129,6 +145,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
     setState(() {
       _isLoading = true;
+      _error = null;
       if (refresh) {
         _sales.clear();
         _offset = 0;
@@ -164,6 +181,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
       locationId: selectedLocationId,
     );
 
+    if (!mounted) return;
+
     if (response.isSuccess && response.data != null) {
       final data = response.data!;
       final salesList = (data['sales'] as List)
@@ -176,15 +195,33 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
         _offset += salesList.length;
         _hasMore = salesList.length >= _limit;
         _isLoading = false;
+        _cachedAt = response.servedFromCacheAt;
+        _offline = false;
       });
       _filterSales();
     } else {
-      setState(() => _isLoading = false);
-      if (mounted) {
+      final offline = isTransportFailure(response);
+
+      // A failed page two must not throw away the rows already on screen --
+      // the reader keeps what they have and is told the next page did not
+      // arrive. Only a first page with nothing to show becomes a full state.
+      if (_sales.isNotEmpty) {
+        setState(() {
+          _isLoading = false;
+          _hasMore = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message)),
+          SnackBar(content: Text(FriendlyError.of(response.message))),
         );
+        return;
       }
+
+      setState(() {
+        _isLoading = false;
+        _offline = offline;
+        _error = offline ? null : FriendlyError.of(response.message);
+        _cachedAt = null;
+      });
     }
   }
 
@@ -314,7 +351,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message)),
+          SnackBar(content: Text(FriendlyError.of(response.message))),
         );
       }
     }
@@ -575,17 +612,57 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
           // Sales list
           Expanded(
-            child: _sales.isEmpty && !_isLoading
-                ? const Center(
-                    child: Text('No sales found for this period'),
+            child: _error != null
+                ? ErrorStateView(
+                    message: _error!,
+                    isDark: isDark,
+                    onRetry: FriendlyError.isPermanent(_error)
+                        ? null
+                        : () => _loadSales(refresh: true),
+                  )
+                // Ahead of the empty state below, which asserts the shop rang
+                // up nothing today. Offline that is unknowable, and a seller
+                // who reads it goes hunting for sales that are perfectly fine.
+                : _offline
+                ? OfflineEmptyView(
+                    noun: 'sales',
+                    isDark: isDark,
+                    onRefresh: () => _loadSales(refresh: true),
+                  )
+                // Wrapped like the list below: a cached page holding no
+                // rows is still a saved copy, and "No sales found for this
+                // period" is a claim about the server that a stale copy
+                // cannot support. The filtered variant beneath it filters
+                // that same stale copy, so it says the same thing.
+                : _sales.isEmpty && !_isLoading
+                ? CachedBodyWrapper(
+                    cachedAt: _cachedAt,
+                    noun: 'sales',
+                    isDark: isDark,
+                    onRetry: () => _loadSales(refresh: true),
+                    child: const Center(
+                      child: Text('No sales found for this period'),
+                    ),
                   )
                 : (_searchQuery.isNotEmpty || _paymentFilter != 'All') && _filteredSales.isEmpty
-                    ? const Center(
-                        child: Text('No sales match your search/filter'),
+                    ? CachedBodyWrapper(
+                        cachedAt: _cachedAt,
+                        noun: 'sales',
+                        isDark: isDark,
+                        onRetry: () => _loadSales(refresh: true),
+                        child: const Center(
+                          child: Text('No sales match your search/filter'),
+                        ),
                       )
-                    : RefreshIndicator(
+                    : CachedBodyWrapper(
+                        cachedAt: _cachedAt,
+                        noun: 'sales',
+                        isDark: isDark,
+                        onRetry: () => _loadSales(refresh: true),
+                        child: RefreshIndicator(
                         onRefresh: () => _loadSales(refresh: true),
                         child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: (_searchQuery.isNotEmpty || _paymentFilter != 'All'
                               ? _filteredSales.length
                               : _sales.length + (_hasMore ? 1 : 0)),
@@ -761,6 +838,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                         );
                       },
                     ),
+                  ),
                   ),
           ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
 import 'skeleton_loader.dart';
 
@@ -192,6 +193,162 @@ class SkeletonRowList extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A strip above a list saying the rows below are a saved copy, not live.
+///
+/// The shape here is the one that has produced RenderFlex overflows in this
+/// app before: an icon, a long sentence and a button in a Row. The Text is
+/// wrapped in Expanded so the sentence wraps instead of the row overflowing —
+/// at 320px with a 12-word message it wraps to three lines and still fits.
+class CachedDataBanner extends StatelessWidget {
+  const CachedDataBanner({
+    super.key,
+    required this.fetchedAtLabel,
+    required this.isDark,
+    this.onRetry,
+    this.noun = 'data',
+  });
+
+  /// A coarse age, e.g. "3 hours ago" — see CachedRead.describeAge.
+  final String fetchedAtLabel;
+
+  /// What is being shown, so the sentence reads naturally: "saved expenses".
+  final String noun;
+
+  final bool isDark;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: isDark ? 0.16 : 0.10),
+        border: Border(
+          bottom: BorderSide(color: AppColors.warning.withValues(alpha: 0.35)),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(Icons.cloud_off, size: 18, color: AppColors.warning),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Offline — showing $noun saved $fetchedAtLabel. This is not live.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.35,
+                fontWeight: FontWeight.w500,
+                color: AppColors.ink(context),
+              ),
+            ),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                foregroundColor: AppColors.warning,
+              ),
+              child: const Text('Retry', style: TextStyle(fontSize: 12.5)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Offline, and this device has never loaded this screen.
+///
+/// Distinct on purpose from [EmptyStateView], which means "the server says
+/// there is nothing". Someone who cannot tell those two apart goes looking for
+/// a request that was never missing, or assumes a queue is clear when it is
+/// not. This one never claims anything about what exists — only that it cannot
+/// be seen from here, and what to do about it.
+class OfflineEmptyView extends StatelessWidget {
+  const OfflineEmptyView({
+    super.key,
+    required this.noun,
+    required this.isDark,
+    this.onRefresh,
+    this.wasStale = false,
+  });
+
+  /// Plural, lowercase: "approvals", "expenses", "credit limit requests".
+  final String noun;
+
+  final bool isDark;
+  final Future<void> Function()? onRefresh;
+
+  /// True when a copy exists but is past its trust horizon, which is a
+  /// different sentence: there IS something saved, it is just too old to show.
+  final bool wasStale;
+
+  @override
+  Widget build(BuildContext context) {
+    return EmptyStateView(
+      icon: Icons.cloud_off,
+      title: wasStale
+          ? 'Saved $noun are too old to show'
+          : 'Cannot show $noun offline',
+      message: wasStale
+          ? 'The copy on this device is out of date and might not match what '
+              'is really there. Connect to the internet to load the current $noun.'
+          : 'You are offline and this device has not loaded $noun yet. '
+              'Connect to the internet once and they will be saved for next time.',
+      isDark: isDark,
+      onRefresh: onRefresh,
+    );
+  }
+}
+
+/// A screen body with the "this is a saved copy" strip above it, or the body
+/// untouched when [cachedAt] is null and the data is live.
+///
+/// The banner sits ABOVE the scrollable rather than as its first row on
+/// purpose: as a row it scrolls away, and the moment a reader most needs to
+/// know the list is stale is when they have scrolled to something and are
+/// about to act on it.
+class CachedBodyWrapper extends StatelessWidget {
+  const CachedBodyWrapper({
+    super.key,
+    required this.cachedAt,
+    required this.noun,
+    required this.isDark,
+    required this.child,
+    this.onRetry,
+  });
+
+  /// Null means the data is live and nothing is drawn.
+  final DateTime? cachedAt;
+
+  final String noun;
+  final bool isDark;
+  final Widget child;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (cachedAt == null) return child;
+    return Column(
+      children: [
+        CachedDataBanner(
+          fetchedAtLabel: describeCacheAge(cachedAt!),
+          noun: noun,
+          isDark: isDark,
+          onRetry: onRetry,
+        ),
+        Expanded(child: child),
+      ],
     );
   }
 }

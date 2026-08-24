@@ -6,9 +6,13 @@ import '../models/permission_model.dart';
 import '../models/sale.dart';
 import '../providers/location_provider.dart';
 import '../providers/permission_provider.dart';
+import '../models/api_response.dart';
 import '../services/api_service.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
+import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
+import '../widgets/state_views.dart';
 
 /// The day's takings per payment type for one location, with a drill-down
 /// into the customers behind each type.
@@ -36,6 +40,13 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
 
   bool _isLoading = false;
   String? _error;
+
+  /// Non-null when the figures on screen are a saved copy, not live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
+
   DateTime _date = DateTime.now();
 
   List<Map<String, dynamic>> _totals = [];
@@ -66,7 +77,15 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
   Future<void> _load() async {
     final location = context.read<LocationProvider>().selectedLocation;
     if (location == null) {
-      setState(() => _error = 'Select a stock location first');
+      // Clearing the spinner matters: build checks _isLoading first, so
+      // leaving it set here left the screen spinning on a message it had
+      // already decided to show.
+      setState(() {
+        _error = 'Select a stock location first';
+        _isLoading = false;
+        _offline = false;
+        _cachedAt = null;
+      });
       return;
     }
 
@@ -136,10 +155,17 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
         _totals = totals;
         _customers = customers;
         _isLoading = false;
+        _cachedAt = summary.servedFromCacheAt as DateTime?;
+        _offline = false;
       });
     } else {
       setState(() {
-        _error = summary.message ?? 'Failed to load payment summary';
+        // ApiService answers a dead network with an error response rather
+        // than an exception, so the catch below never sees one -- the split
+        // has to happen here.
+        _offline = isTransportFailure(summary as ApiResponse<dynamic>);
+        _error = _offline ? null : FriendlyError.of(summary.message as String?);
+        _cachedAt = null;
         _isLoading = false;
       });
     }
@@ -148,7 +174,12 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
       debugPrint('Payment summary load failed: $e');
       if (mounted) {
         setState(() {
+          // Kept, unlike the dead catches elsewhere: the try block above does
+          // real casting and sorting that genuinely can throw. The exception
+          // itself never reaches the screen.
           _error = 'Could not load the payment summary. Pull to retry.';
+          _offline = false;
+          _cachedAt = null;
           _isLoading = false;
         });
       }
@@ -271,12 +302,30 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? Center(
-                        child: Text(_error!,
-                            style: const TextStyle(color: AppColors.error)))
-                    : _selectedType == null
-                        ? _buildTotals(isDark)
-                        : _buildCustomers(isDark),
+                    ? ErrorStateView(
+                        message: _error!,
+                        isDark: isDark,
+                        onRetry:
+                            FriendlyError.isPermanent(_error) ? null : _load,
+                      )
+                    // Ahead of the "No payments recorded" empty state inside
+                    // _buildTotals: that sentence tells a seller the day's
+                    // takings were nil, which offline is not knowable.
+                    : _offline
+                        ? OfflineEmptyView(
+                            noun: 'the payment summary',
+                            isDark: isDark,
+                            onRefresh: _load,
+                          )
+                        : CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'the payment summary',
+                            isDark: isDark,
+                            onRetry: _load,
+                            child: _selectedType == null
+                                ? _buildTotals(isDark)
+                                : _buildCustomers(isDark),
+                          ),
           ),
         ],
       ),

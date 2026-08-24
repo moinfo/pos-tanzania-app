@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
+import '../services/offline_submit.dart';
+import '../widgets/offline_submit_feedback.dart';
 import '../models/discount_request.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
@@ -718,6 +721,10 @@ class _CreateDiscountRequestSheet extends StatefulWidget {
 
 class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet> {
   final ApiService _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a Submit that
+  /// times out and is tapped again cannot raise two identical requests.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
   final currencyFormat = NumberFormat('#,##0', 'en_US');
 
   // Form state
@@ -815,27 +822,49 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
 
     setState(() => _isSubmitting = true);
 
-    final response = await _apiService.createDiscountRequest(
-      customerId: _selectedCustomer!.personId,
-      itemId: _selectedItem!.itemId,
-      quantity: quantity,
-      discount: discount,
-      notes: _notesController.text.isEmpty ? null : _notesController.text,
+    final notes = _notesController.text.isEmpty ? null : _notesController.text;
+
+    // Raising a request is safe to queue: it is new work for an approver to
+    // look at and depends on no server state. DECIDING one is not, and is
+    // refused -- see OnlineOnly.approveDiscount.
+    final result = await _offlineSubmit.submit<void>(
+      context: context,
+      action: OfflineAction.discountRequest,
+      payload: ApiService.discountRequestBody(
+        customerId: _selectedCustomer!.personId,
+        itemId: _selectedItem!.itemId,
+        quantity: quantity,
+        discount: discount,
+        notes: notes,
+      ),
+      summary: '${_selectedItem!.name} for ${_selectedCustomer!.fullName}',
+      send: (requestId) => _apiService.createDiscountRequest(
+        customerId: _selectedCustomer!.personId,
+        itemId: _selectedItem!.itemId,
+        quantity: quantity,
+        discount: discount,
+        notes: notes,
+        requestId: requestId,
+      ),
     );
 
-    if (mounted) {
-      setState(() => _isSubmitting = false);
-      if (response.isSuccess) {
-        Navigator.pop(context);
-        widget.onCreated();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Discount request created'), backgroundColor: AppColors.success),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message), backgroundColor: AppColors.error),
-        );
-      }
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (result.isKept) {
+      Navigator.pop(context);
+      widget.onCreated();
+    }
+
+    if (result.isSent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Discount request created'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } else {
+      showOfflineSubmitFeedback(context, result);
     }
   }
 

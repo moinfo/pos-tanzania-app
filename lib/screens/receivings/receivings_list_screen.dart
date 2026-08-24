@@ -8,9 +8,12 @@ import '../../providers/location_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/read_cache.dart';
 import '../../utils/constants.dart';
+import '../../utils/friendly_error.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/state_views.dart';
 import 'receiving_details_screen.dart';
 import 'new_receiving_screen.dart';
 import 'receivings_summary_screen.dart';
@@ -32,6 +35,12 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
   bool _isLoading = false;
   bool _isLoadingMore = false;
   String? _errorMessage;
+
+  /// Non-null when the rows on screen are a saved copy rather than live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
 
   int _currentOffset = 0;
   final int _limit = 20;
@@ -88,44 +97,45 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
       _receivings.clear();
     });
 
-    try {
-      final locationProvider = context.read<LocationProvider>();
-      final selectedLocationId = locationProvider.selectedLocation?.locationId;
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
-      final response = await _apiService.getReceivings(
-        limit: _limit,
-        offset: 0,
-        search: _searchQuery.isNotEmpty ? _searchQuery : null,
-        // Today only: receiving happens the day the stock arrives, so the
-        // working list is today's deliveries -- history lives in the
-        // summaries. No picker on purpose.
-        startDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        endDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        locationId: selectedLocationId,
-      );
+    final response = await _apiService.getReceivings(
+      limit: _limit,
+      offset: 0,
+      search: _searchQuery.isNotEmpty ? _searchQuery : null,
+      // Today only: receiving happens the day the stock arrives, so the
+      // working list is today's deliveries -- history lives in the
+      // summaries. No picker on purpose.
+      startDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      endDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      locationId: selectedLocationId,
+    );
+    if (!mounted) return;
 
-      if (response.isSuccess && response.data != null) {
-        final receivingsData = response.data!['receivings'] as List;
-        final receivingsList = receivingsData
-            .map((json) => ReceivingListItem.fromJson(json))
-            .toList();
+    if (response.isSuccess && response.data != null) {
+      final receivingsData = response.data!['receivings'] as List;
+      final receivingsList = receivingsData
+          .map((json) => ReceivingListItem.fromJson(json))
+          .toList();
 
-        setState(() {
-          _receivings = receivingsList;
-          _totalCount = response.data!['total_count'] ?? 0;
-          _currentOffset = _limit;
-          _hasMore = _receivings.length < _totalCount;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = response.message ?? 'Failed to load receivings';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
       setState(() {
-        _errorMessage = 'Error: $e';
+        _receivings = receivingsList;
+        _totalCount = response.data!['total_count'] ?? 0;
+        _currentOffset = _limit;
+        _hasMore = _receivings.length < _totalCount;
+        _isLoading = false;
+        _cachedAt = response.servedFromCacheAt;
+        _offline = false;
+      });
+    } else {
+      setState(() {
+        // A dead network is a state to explain, not an error to apologise
+        // for. ApiService returns rather than throws on one, so this branch
+        // is the only place an offline device lands.
+        _offline = isTransportFailure(response);
+        _errorMessage = _offline ? null : FriendlyError.of(response.message);
+        _cachedAt = null;
         _isLoading = false;
       });
     }
@@ -467,54 +477,68 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
             child: _isLoading
                 ? _buildSkeletonList(isDark)
                 : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error_outline,
-                                size: 64, color: AppColors.error),
-                            const SizedBox(height: 16),
-                            Text(_errorMessage!,
-                                style: const TextStyle(fontSize: 16)),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _loadReceivings,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Retry'),
-                            ),
-                          ],
-                        ),
+                    ? ErrorStateView(
+                        message: _errorMessage!,
+                        isDark: isDark,
+                        onRetry: FriendlyError.isPermanent(_errorMessage)
+                            ? null
+                            : _loadReceivings,
                       )
+                    // Ahead of the empty state on purpose: "No receivings
+                    // found" asserts today's deliveries are all in, which is
+                    // exactly what an offline device cannot know.
+                    : _offline
+                    ? OfflineEmptyView(
+                        noun: 'receivings',
+                        isDark: isDark,
+                        onRefresh: _loadReceivings,
+                      )
+                    // Wrapped like the list below: a cached page holding no
+                    // rows is still a saved copy, and "No receivings found"
+                    // is a claim about the server that a stale copy cannot
+                    // support.
                     : _receivings.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.inventory_2_outlined,
-                                    size: 64, color: Colors.grey.shade400),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No receivings found',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey.shade600,
+                        ? CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'receivings',
+                            isDark: isDark,
+                            onRetry: _loadReceivings,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.inventory_2_outlined,
+                                      size: 64, color: Colors.grey.shade400),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No receivings found',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey.shade600,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Start by creating your first receiving',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey.shade500,
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Start by creating your first receiving',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           )
-                        : RefreshIndicator(
+                        : CachedBodyWrapper(
+                            cachedAt: _cachedAt,
+                            noun: 'receivings',
+                            isDark: isDark,
+                            onRetry: _loadReceivings,
+                            child: RefreshIndicator(
                             onRefresh: _onRefresh,
                             child: ListView.builder(
                               controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: _receivings.length + (_isLoadingMore ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (index >= _receivings.length) {
@@ -668,6 +692,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                 );
                               },
                             ),
+                          ),
                           ),
           ),
         ],

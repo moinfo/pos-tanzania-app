@@ -118,7 +118,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
       } else {
         setState(() => _isLoading = false);
         // Only show error if it's not a format exception (which might be from other API calls)
-        if (mounted && !response.message.contains('FormatException')) {
+        if (mounted && !response.diagnostic.contains('FormatException')) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(response.message)),
           );

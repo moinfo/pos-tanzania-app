@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
+import '../services/offline_submit.dart';
+import '../widgets/offline_submit_feedback.dart';
+import '../services/read_cache.dart';
+import '../utils/friendly_error.dart';
+import '../widgets/state_views.dart';
 import '../models/expense.dart';
 import '../models/supervisor.dart';
 import '../models/permission_model.dart';
@@ -27,6 +33,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   final _apiService = ApiService();
   bool _isLoading = true;
   String? _error;
+
+  /// Non-null when the rows on screen are a saved copy rather than live data.
+  DateTime? _cachedAt;
+
+  /// The load failed for want of a network AND nothing usable was saved.
+  bool _offline = false;
+
   List<Expense> _expenses = [];
   List<ExpenseCategory> _categories = [];
 
@@ -60,33 +73,32 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
     final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
 
-    try {
-      final locationProvider = context.read<LocationProvider>();
-      final selectedLocationId = locationProvider.selectedLocation?.locationId;
+    final locationProvider = context.read<LocationProvider>();
+    final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
-      final response = await _apiService.getExpenses(
-        startDate: startDateStr,
-        endDate: endDateStr,
-        locationId: selectedLocationId,
-      );
+    final response = await _apiService.getExpenses(
+      startDate: startDateStr,
+      endDate: endDateStr,
+      locationId: selectedLocationId,
+    );
+    if (!mounted) return;
 
+    setState(() {
+      _isLoading = false;
       if (response.isSuccess) {
-        setState(() {
-          _expenses = response.data ?? [];
-          _isLoading = false;
-        });
+        _expenses = response.data ?? [];
+        _cachedAt = response.servedFromCacheAt;
+        _offline = false;
       } else {
-        setState(() {
-          _error = response.message;
-          _isLoading = false;
-        });
+        // "The network is down" is a state to explain, not an error to
+        // apologise for; only a real refusal from the server is worth a
+        // message. ApiService never throws here, so this is the only branch
+        // an offline device can reach.
+        _offline = isTransportFailure(response);
+        _error = _offline ? null : FriendlyError.of(response.message);
+        _cachedAt = null;
       }
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load expenses';
-        _isLoading = false;
-      });
-    }
+    });
   }
 
   Future<void> _selectDateRange() async {
@@ -326,73 +338,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   end: Alignment.bottomCenter,
                 ),
               ),
-              child: RefreshIndicator(
-                onRefresh: _loadExpenses,
-                child: _isLoading
-            ? _buildSkeletonList(isDark)
-            : _error != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: AppColors.error,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _error!,
-                            style: const TextStyle(color: AppColors.error),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadExpenses,
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : _expenses.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.receipt_long,
-                              size: 64,
-                              color: AppColors.muted(context),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No expenses found',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: AppColors.muted(context),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            ElevatedButton.icon(
-                              onPressed: _showAddExpenseDialog,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Add Expense'),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16.0),
-                        itemCount: _expenses.length,
-                        itemBuilder: (context, index) {
-                          final expense = _expenses[index];
-                          return _buildExpenseCard(expense);
-                        },
-                      ),
-              ),
+              child: _buildBody(isDark),
             ),
           ),
         ],
@@ -407,6 +353,72 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ),
       ),
       // Bottom navigation is now handled by MainNavigation
+    );
+  }
+
+  Widget _buildBody(bool isDark) {
+    if (_isLoading) return _buildSkeletonList(isDark);
+
+    if (_error != null) {
+      return ErrorStateView(
+        message: _error!,
+        isDark: isDark,
+        onRetry: FriendlyError.isPermanent(_error) ? null : _loadExpenses,
+      );
+    }
+
+    // Deliberately ahead of the empty state below. "No expenses found" is a
+    // claim about what the server holds, and offline that claim cannot be
+    // made — a seller who cannot tell "none were recorded" from "I cannot see
+    // them" goes looking for the wrong problem.
+    if (_offline) {
+      return OfflineEmptyView(
+        noun: 'expenses',
+        isDark: isDark,
+        onRefresh: _loadExpenses,
+      );
+    }
+
+    if (_expenses.isEmpty) {
+      // Wrapped like the list below: a cached page that happens to hold no
+      // rows is still a saved copy, and "No expenses found" is a claim about
+      // what the server holds that a stale copy cannot support.
+      return CachedBodyWrapper(
+        cachedAt: _cachedAt,
+        noun: 'expenses',
+        isDark: isDark,
+        onRetry: _loadExpenses,
+        child: EmptyStateView(
+          icon: Icons.receipt_long,
+          title: 'No expenses found',
+          isDark: isDark,
+          onRefresh: _loadExpenses,
+          action: ElevatedButton.icon(
+            onPressed: _showAddExpenseDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Expense'),
+          ),
+        ),
+      );
+    }
+
+    return CachedBodyWrapper(
+      cachedAt: _cachedAt,
+      noun: 'expenses',
+      isDark: isDark,
+      onRetry: _loadExpenses,
+      child: RefreshIndicator(
+        onRefresh: _loadExpenses,
+        child: ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          itemCount: _expenses.length,
+          itemBuilder: (context, index) {
+            final expense = _expenses[index];
+            return _buildExpenseCard(expense);
+          },
+        ),
+      ),
     );
   }
 
@@ -713,6 +725,11 @@ class ExpenseFormDialog extends StatefulWidget {
 class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a Save that times
+  /// out and is tapped again cannot become two expenses.
+  final _offlineSubmit = OfflineSubmitter();
+
   final _amountController = TextEditingController();
   final _taxAmountController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -803,30 +820,52 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
         stockLocationId: selectedLocationId, // Use selected location
       );
 
-      final response = widget.expense == null
-          ? await _apiService.createExpense(formData)
-          : await _apiService.updateExpense(widget.expense!.expenseId, formData);
-
-      if (mounted) {
-        if (response.isSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(widget.expense == null
-                  ? 'Expense created successfully'
-                  : 'Expense updated successfully'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-          widget.onSaved();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Failed to save expense'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
+      if (widget.expense != null) {
+        // An edit targets a server id and cannot be queued -- the expense it
+        // edits may itself still be waiting in the queue with no id yet. When
+        // there is no network ApiService refuses it by name rather than
+        // reporting a SocketException.
+        final response =
+            await _apiService.updateExpense(widget.expense!.expenseId, formData);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.isSuccess
+                ? 'Expense updated successfully'
+                : response.message),
+            backgroundColor:
+                response.isSuccess ? AppColors.success : AppColors.error,
+          ),
+        );
+        if (response.isSuccess) widget.onSaved();
+        return;
       }
+
+      final result = await _offlineSubmit.submit<Expense>(
+        context: context,
+        action: OfflineAction.expense,
+        payload: formData.toJson(),
+        summary: Formatters.formatCurrency(formData.amount),
+        send: (requestId) =>
+            _apiService.createExpense(formData, requestId: requestId),
+      );
+
+      if (!mounted) return;
+
+      if (result.isSent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Expense created successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        showOfflineSubmitFeedback(context, result);
+      }
+
+      // Queued counts as saved: it is on the device and will upload itself.
+      // Leaving the form open would invite the clerk to enter it a second time.
+      if (result.isKept) widget.onSaved();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
