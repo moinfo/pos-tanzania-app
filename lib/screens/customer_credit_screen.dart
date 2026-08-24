@@ -458,7 +458,12 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
           ],
         ),
       ),
-      body: _isLoading
+      body: CachedBodyWrapper(
+        cachedAt: _cachedAt,
+        noun: 'this statement',
+        isDark: Theme.of(context).brightness == Brightness.dark,
+        onRetry: _loadStatement,
+        child: _isLoading
           // Not `false`: a light-mode skeleton shimmer over a black page shows
           // as pale grey bars that do not belong to either theme.
           ? _buildSkeletonList(creditDark(context))
@@ -491,6 +496,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                       _buildLerumaTransactions(),
                   ],
                 ),
+      ),
       bottomNavigationBar: _buildLerumaActionBar(),
     );
   }

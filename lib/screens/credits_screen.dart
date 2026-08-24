@@ -424,6 +424,17 @@ class _CreditsScreenState extends State<CreditsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 20),
           children: [
+              // This is the body Leruma actually renders -- build() above has
+              // its own banner, but that branch is only reached for OTHER
+              // clients (body: isLeruma ? _buildLerumaBody() : Container(...)).
+              // Wiring the banner into the wrong branch shipped once already.
+              if (_cachedAt != null)
+                CachedDataBanner(
+                  fetchedAtLabel: describeCacheAge(_cachedAt!),
+                  isDark: Theme.of(context).brightness == Brightness.dark,
+                  noun: 'credit balances',
+                  onRetry: _loadCredits,
+                ),
             if (_creditsData != null && !_isLoading) ...[
               CreditTotalsCard(
                 balance: _creditsData!.summary.totalBalance,
