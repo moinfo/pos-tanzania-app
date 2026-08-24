@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import '../models/pending_upload.dart';
 import '../services/database_service.dart';
 import '../services/sync_service.dart';
 import '../services/api_service.dart';
@@ -61,6 +62,19 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// was really a supplier record.
   int get pendingActionCount => _pendingActionCount;
   int get failedActionCount => _failedActionCount;
+
+  /// Refusals nobody has confirmed reading.
+  ///
+  /// The single most important number in this provider. A rejected record is
+  /// one the server will never accept on a retry, so unless a person actually
+  /// sees it, the work behind it is gone -- and the app cannot know they saw
+  /// it unless they say so. Persisted per record in SQLite, so this survives
+  /// the app being killed; nothing but a human tap clears it.
+  int get unreadRejectionCount => _unreadRejectionCount;
+  int _unreadRejectionCount = 0;
+
+  /// Every refusal on the device, read or not.
+  int get rejectedCount => _failedSaleCount + _failedActionCount;
 
   /// Current client ID
   String? get currentClientId => _currentClientId;
@@ -265,6 +279,8 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
       final actionCounts = await _databaseService!.getUnsyncedActionCounts();
       _pendingActionCount = actionCounts['pending'] ?? 0;
       _failedActionCount = actionCounts['failed'] ?? 0;
+
+      _unreadRejectionCount = await _databaseService!.countUnreadRejections();
 
       notifyListeners();
     }
@@ -600,22 +616,111 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Trigger manual sync
-  Future<bool> triggerSync() async {
+  /// Upload everything queued, now, because a person asked.
+  ///
+  /// Returns what the run actually did so the caller can say it out loud.
+  /// Pressing this twice is harmless -- every queued record carries the
+  /// request_id it was first written under, so a second push replays the
+  /// server's stored answer rather than writing a second record -- but a
+  /// second run is still pointless while the first is going, and the report
+  /// says so through [SyncRunReport.alreadyRunning] rather than pretending
+  /// something happened.
+  Future<SyncRunReport> triggerSync() async {
     if (!_isInitialized || _syncService == null) {
-      return false;
+      // No local database means nothing was ever queued here.
+      return const SyncRunReport();
     }
 
-    return await _syncService!.triggerSync();
+    final report = await _syncService!.triggerSync();
+    await _updateSyncCounts();
+    return report;
   }
 
-  /// Retry failed sync items
-  Future<void> retryFailedSync() async {
+  /// Retry every refused record at once.
+  Future<SyncRunReport> retryFailedSync() async {
     if (!_isInitialized || _syncService == null) {
-      return;
+      return const SyncRunReport();
     }
 
-    await _syncService!.retryFailedItems();
+    final report = await _syncService!.retryFailedItems();
+    await _updateSyncCounts();
+    return report;
+  }
+
+  // =====================================================
+  // WHAT HAS NOT GONE UP, AND WHAT TO DO ABOUT IT
+  // =====================================================
+
+  /// Everything still owed to the server -- sales and every other create --
+  /// as one list, newest first, each carrying which of the three states it is
+  /// in and the server's own words when it is stuck.
+  Future<List<PendingUpload>> loadPendingUploads() async {
+    if (_databaseService == null) return const [];
+
+    final sales = await _databaseService!.getUnsyncedSales();
+    final actions = await _databaseService!.getUnsyncedActions();
+    return PendingUpload.merge(sales: sales, actions: actions);
+  }
+
+  /// Record that a person has seen one refusal.
+  Future<void> acknowledgeRejection(PendingUpload item) async {
+    if (_databaseService == null) return;
+
+    await _databaseService!.acknowledgeRejection(
+      entityType: item.entityType,
+      id: item.localId,
+    );
+    await _updateSyncCounts();
+  }
+
+  /// Record that a person has seen all of them.
+  Future<void> acknowledgeAllRejections() async {
+    if (_databaseService == null) return;
+
+    await _databaseService!.acknowledgeAllRejections();
+    await _updateSyncCounts();
+  }
+
+  /// Try one refused record again, by hand.
+  ///
+  /// Returns how that ONE record stands afterwards: null when it is no longer
+  /// owed at all (it went up), otherwise the record with its new state and,
+  /// if it was refused again, the server's newest words. Reporting the whole
+  /// run here would answer a question nobody asked -- the person tapped one
+  /// row.
+  Future<PendingUpload?> retryRejected(PendingUpload item) async {
+    if (!_isInitialized || _syncService == null) return item;
+
+    await _syncService!.retryOne(
+      entityType: item.entityType,
+      entityId: item.localId,
+    );
+    await _updateSyncCounts();
+
+    final after = await loadPendingUploads();
+    for (final candidate in after) {
+      if (candidate.entityType == item.entityType &&
+          candidate.localId == item.localId) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  /// Stop trying to upload one refused record, deliberately.
+  ///
+  /// The row is not deleted -- see [DatabaseService.discardRejected]. It stops
+  /// being queued, stops being counted, and keeps its payload so the same
+  /// question can still be answered next week.
+  Future<bool> discardRejected(PendingUpload item) async {
+    if (_databaseService == null) return false;
+
+    final discarded = await _databaseService!.discardRejected(
+      entityType: item.entityType,
+      id: item.localId,
+    );
+    if (discarded) await _updateSyncCounts();
+    return discarded;
   }
 
   /// Get database statistics

@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/update_provider.dart';
+import '../providers/offline_provider.dart';
 import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../config/clients_config.dart';
@@ -13,6 +14,7 @@ import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
 import 'client_selector_screen.dart';
 import 'app_update_screen.dart';
+import 'pending_uploads_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -131,6 +133,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
+  }
+
+  /// The one-line state of the upload queue.
+  ///
+  /// A refusal is named first and on its own, never added into a total with
+  /// records that are merely waiting: those two need opposite responses, and
+  /// "4 waiting" over three fine records and one dead one is how the dead one
+  /// gets missed.
+  static String _offlineSummary(int waiting, int rejected) {
+    if (rejected > 0) {
+      final refused = rejected == 1
+          ? '1 record was refused and needs you'
+          : '$rejected records were refused and need you';
+      return waiting > 0 ? '$refused - $waiting also waiting' : refused;
+    }
+    if (waiting > 0) {
+      return waiting == 1
+          ? '1 record waiting - it uploads by itself'
+          : '$waiting records waiting - they upload by themselves';
+    }
+    return 'Everything on this phone is on the server';
   }
 
   /// Build settings avatar with profile picture (Leruma feature) or default icon
@@ -443,6 +466,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
+
+          // Offline Data Section
+          //
+          // The answer to "is anything stuck on this phone?", in the place a
+          // person goes looking for it. Only shown for clients that actually
+          // keep a local queue -- offering it where there is no offline mode
+          // would promise a list that can never have anything in it.
+          //
+          // The row carries the rejected count as a badge rather than folding
+          // it into one total: waiting records need nobody, refused ones need
+          // somebody, and a single number would hide the difference.
+          if (ApiService.currentClient?.features.hasOfflineMode ?? false) ...[
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'OFFLINE DATA',
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            GlassmorphicCard(
+              isDark: isDark,
+              child: Consumer<OfflineProvider>(
+                builder: (context, offline, _) {
+                  final waiting =
+                      offline.pendingSaleCount + offline.pendingActionCount;
+                  final rejected = offline.rejectedCount;
+
+                  return ListTile(
+                    leading: Icon(
+                      rejected > 0
+                          ? Icons.report_problem
+                          : Icons.cloud_upload_outlined,
+                      color: rejected > 0 ? AppColors.error : AppColors.primary,
+                      size: 28,
+                    ),
+                    title: Text(
+                      'Not yet uploaded',
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkText : AppColors.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      _offlineSummary(waiting, rejected),
+                      style: TextStyle(
+                        color: rejected > 0
+                            ? AppColors.error
+                            : (isDark
+                                ? AppColors.darkTextLight
+                                : AppColors.textLight),
+                        fontSize: 13,
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (rejected > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.error,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$rejected',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PendingUploadsScreen(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
 
           // App Update Section
           //

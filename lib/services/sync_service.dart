@@ -32,6 +32,57 @@ enum _Outcome {
   rejected,
 }
 
+/// What one sync run actually did, in the terms a person asked in.
+///
+/// "Did it work?" is not a yes/no question here: a run can upload three
+/// records, have a fourth refused for good, and leave a fifth waiting because
+/// the server stopped answering half way through -- all at once. Reporting
+/// that as a single green tick is how a rejected record gets buried under a
+/// success message, so [SyncService.syncAll] hands back the tally instead and
+/// lets the caller say all of it.
+class SyncRunReport {
+  /// Records that reached the server during THIS run.
+  final int uploaded;
+
+  /// Records the server looked at and refused during THIS run. Retrying will
+  /// not move them; a person has to.
+  final int rejected;
+
+  /// Records still owed to the server after the run, for any reason.
+  final int stillWaiting;
+
+  /// Every refusal sitting on the device once the run finished -- not only the
+  /// ones this run produced.
+  final int rejectedTotal;
+
+  /// The run never started because another one was already going.
+  final bool alreadyRunning;
+
+  /// The run stopped, or never started, because the server could not be
+  /// reached. Nothing here is any record's fault.
+  final bool serverUnreachable;
+
+  /// The device has no network interface at all, so nothing was attempted.
+  final bool noNetwork;
+
+  const SyncRunReport({
+    this.uploaded = 0,
+    this.rejected = 0,
+    this.stillWaiting = 0,
+    this.rejectedTotal = 0,
+    this.alreadyRunning = false,
+    this.serverUnreachable = false,
+    this.noNetwork = false,
+  });
+
+  /// Whether the run got all the way through with nothing left owed.
+  bool get isClear =>
+      !alreadyRunning && !serverUnreachable && !noNetwork && stillWaiting == 0;
+
+  /// Whether anything at all happened worth telling someone about.
+  bool get didSomething => uploaded > 0 || rejected > 0;
+}
+
 /// Sync result for a single item
 class SyncResult {
   final String entityType;
@@ -234,19 +285,55 @@ class SyncService {
     onReachabilityChanged?.call(reachable);
   }
 
-  /// Sync all pending items
-  Future<void> syncAll() async {
+  /// Uploaded and refused during the run in progress.
+  ///
+  /// Reset at the top of every run rather than accumulated, because what a
+  /// person pressing "Sync now" is owed is what THAT press did, not a total
+  /// since the app started.
+  int _runUploaded = 0;
+  int _runRejected = 0;
+
+  /// The queue as it stands, for a report. Read from SQLite rather than from
+  /// [_lastCounts] so the figure quoted back to a person is the real one.
+  Future<SyncRunReport> _report({
+    bool alreadyRunning = false,
+    bool serverUnreachable = false,
+    bool noNetwork = false,
+  }) async {
+    final counts = await _dbService.getSyncQueueCounts();
+    return SyncRunReport(
+      uploaded: _runUploaded,
+      rejected: _runRejected,
+      stillWaiting: counts['pending'] ?? 0,
+      rejectedTotal: counts['failed'] ?? 0,
+      alreadyRunning: alreadyRunning,
+      serverUnreachable: serverUnreachable,
+      noNetwork: noNetwork,
+    );
+  }
+
+  /// Sync all pending items.
+  ///
+  /// The returned report is what a manual "Sync now" reads back to the person
+  /// who pressed it. The automatic triggers ignore it, which is fine -- they
+  /// have nobody standing there to tell.
+  Future<SyncRunReport> syncAll() async {
     if (_isSyncing) {
+      // Not an error and not a no-op to hide: pressing the button while a
+      // sweep is already running is the commonest way this is reached, and the
+      // honest answer is "it is already happening", not a second run.
       debugPrint('SyncService: Already syncing, skipping...');
-      return;
+      return _report(alreadyRunning: true);
     }
 
     if (!await _hasNetworkInterface()) {
       debugPrint('SyncService: No connectivity, skipping sync');
-      return;
+      return _report(noNetwork: true);
     }
 
     _isSyncing = true;
+    _runUploaded = 0;
+    _runRejected = 0;
     _setStatus(SyncStatus.syncing);
 
     debugPrint('SyncService: Starting sync...');
@@ -280,7 +367,7 @@ class SyncService {
       if (!reachable) {
         debugPrint('SyncService: Server unreachable, leaving the rest queued');
         _setStatus(SyncStatus.failed);
-        return;
+        return await _report(serverUnreachable: true);
       }
 
       // Every other CREATE -- expenses, receivings, banking, deposits, the
@@ -292,16 +379,18 @@ class SyncService {
       if (!await _syncPendingActions()) {
         _noteReachability(false);
         _setStatus(SyncStatus.failed);
-        return;
+        return await _report(serverUnreachable: true);
       }
 
       await _syncOneTimeDiscountUsage();
 
       _setStatus(SyncStatus.completed);
       debugPrint('SyncService: Sync completed');
+      return await _report();
     } catch (e) {
       debugPrint('SyncService: Sync failed - $e');
       _setStatus(SyncStatus.failed);
+      return await _report();
     } finally {
       _isSyncing = false;
       await _updateSyncCounts();
@@ -359,6 +448,9 @@ class SyncService {
           DatabaseService.syncStatusFailed,
           error: 'Max retries exceeded',
         );
+        // Counted as a rejection: from the seller's side this sale is not
+        // going up on its own, which is the only distinction that matters.
+        _runRejected++;
         continue;
       }
 
@@ -387,6 +479,7 @@ class SyncService {
           DatabaseService.syncStatusFailed,
           error: 'Sale has no idempotency key and cannot be uploaded safely',
         );
+        _runRejected++;
         continue;
       }
 
@@ -417,6 +510,7 @@ class SyncService {
         );
         await _dbService.removeSyncQueueItem(queueId);
         await _dbService.addSyncLog('sale', entityId, serverSaleId, 'create', 'success');
+        _runUploaded++;
 
         onItemSynced?.call(SyncResult(
           entityType: 'sale',
@@ -480,6 +574,7 @@ class SyncService {
             error: message,
           );
           await _dbService.addSyncLog('sale', entityId, null, 'create', 'failed', message: message);
+          _runRejected++;
           break;
       }
 
@@ -659,6 +754,7 @@ class SyncService {
         );
         await _dbService.removeSyncQueueItem(queueId);
         await _dbService.addSyncLog(actionType, entityId, serverId, 'create', 'success');
+        _runUploaded++;
 
         onItemSynced?.call(SyncResult(
           entityType: actionType,
@@ -726,6 +822,11 @@ class SyncService {
   }
 
   /// Stop trying, and leave the reason where a person can read it.
+  ///
+  /// Every route into this method -- the server's refusal, retries run out, a
+  /// payload this build cannot read -- ends the same way for the person who
+  /// created the record: it is not going up on its own. So they all count as
+  /// rejections in the run report, and they all surface the same way.
   Future<void> _failAction(
     int queueId,
     int actionId,
@@ -733,6 +834,7 @@ class SyncService {
     String error, {
     String? log,
   }) async {
+    _runRejected++;
     debugPrint('SyncService: $label $actionId will not be uploaded - $error');
     await _dbService.updateSyncQueueStatus(
       queueId,
@@ -831,10 +933,41 @@ class SyncService {
     }
   }
 
-  /// Manual sync trigger
-  Future<bool> triggerSync() async {
-    await syncAll();
-    return _status == SyncStatus.completed;
+  /// Manual sync trigger.
+  ///
+  /// Returns the run's tally rather than a bare bool. A person who pressed a
+  /// button is owed "3 uploaded, 1 refused", and a bool cannot say that -- the
+  /// old signature returned true for a run that uploaded nothing and false for
+  /// one that uploaded four things and then lost the server.
+  Future<SyncRunReport> triggerSync() => syncAll();
+
+  /// Put ONE refused record back in the queue and try it now.
+  ///
+  /// The record keeps the request_id it was first written under, so a hand
+  /// retry of something that did reach the server last time replays that
+  /// server's answer instead of writing a second copy. That is what makes
+  /// this button safe to offer at all.
+  ///
+  /// Returns the run report; the caller reads the record back to see whether
+  /// this particular one moved.
+  Future<SyncRunReport> retryOne({
+    required String entityType,
+    required int entityId,
+  }) async {
+    final reopened = await _dbService.reopenRejected(
+      entityType: entityType,
+      id: entityId,
+    );
+    if (!reopened) {
+      debugPrint('SyncService: nothing to retry for $entityType $entityId');
+      // No run happened, so the last run's tally must not be quoted as if it
+      // had.
+      _runUploaded = 0;
+      _runRejected = 0;
+      return _report();
+    }
+    await _updateSyncCounts();
+    return syncAll();
   }
 
   /// Get sync statistics
@@ -851,19 +984,27 @@ class SyncService {
     };
   }
 
-  /// Retry failed sync items
-  Future<void> retryFailedItems() async {
+  /// Retry every refused record, by hand.
+  ///
+  /// Goes through [DatabaseService.reopenRejected] one record at a time rather
+  /// than one UPDATE over sync_queue. The bulk statement it replaces moved the
+  /// QUEUE row back to pending but left the sale or action itself marked
+  /// failed, so the list kept showing a red row and the failed count kept
+  /// counting it until an upload happened to succeed -- the app disagreeing
+  /// with itself about whether it had given up.
+  Future<SyncRunReport> retryFailedItems() async {
     debugPrint('SyncService: Retrying failed items...');
 
-    // Reset failed items to pending (with reset retry count)
-    await _dbService.execute('''
-      UPDATE sync_queue
-      SET sync_status = 0, retry_count = 0, error_message = NULL
-      WHERE sync_status = 2
-    ''');
+    final rejections = await _dbService.getRejections();
+    for (final row in rejections) {
+      await _dbService.reopenRejected(
+        entityType: row['entity_type'] as String,
+        id: row['id'] as int,
+      );
+    }
+    await _updateSyncCounts();
 
-    // Trigger sync
-    await syncAll();
+    return syncAll();
   }
 
   /// Clear completed sync log entries older than specified days

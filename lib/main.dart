@@ -21,6 +21,7 @@ import 'services/push_service.dart';
 import 'config/clients_config.dart';
 import 'utils/app_theme.dart';
 import 'utils/constants.dart';
+import 'widgets/rejection_alert.dart';
 
 /// Lets a tapped push notification navigate without a widget's BuildContext.
 ///
@@ -119,6 +120,19 @@ class MyApp extends StatelessWidget {
           themeMode: themeProvider.themeMode,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
+          // Above the Navigator, not inside any route.
+          //
+          // A record the server has REFUSED will never upload on its own, so
+          // the only thing that saves it is a person finding out. Mounted here,
+          // the warning reaches them on whatever screen they are on, survives
+          // every pushReplacement the splash and login do, and -- because what
+          // it counts lives in SQLite -- comes back after the app is killed.
+          // Inside a screen it would only be seen by somebody who opened that
+          // screen, which is precisely the person who does not need telling.
+          builder: (context, child) => RejectionAlertHost(
+            navigatorKey: navigatorKey,
+            child: child ?? const SizedBox.shrink(),
+          ),
         home: PushBootstrap(firebaseReady: firebaseReady, child: const SplashScreen()),
         ),
       ),
