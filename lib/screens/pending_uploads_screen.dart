@@ -6,6 +6,7 @@ import '../models/pending_upload.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_provider.dart';
 import '../services/sync_service.dart';
+import '../services/screen_prefetch.dart';
 import '../utils/constants.dart';
 import '../widgets/state_views.dart';
 import '../utils/formatters.dart';
@@ -1182,6 +1183,10 @@ class _SheetButton extends StatelessWidget {
 /// failures, the retry. This answers the other half of the same worry: "will
 /// there be anything on this phone when I lose signal." They belong together,
 /// because a seller checking one is usually about to leave.
+///
+/// It lists what came down by name. "Last downloaded 2 hours ago" on its own
+/// still leaves somebody guessing whether the screen they need was included --
+/// which is the question they actually have.
 class _DownloadedDataCard extends StatefulWidget {
   const _DownloadedDataCard();
 
@@ -1190,38 +1195,49 @@ class _DownloadedDataCard extends StatefulWidget {
 }
 
 class _DownloadedDataCardState extends State<_DownloadedDataCard> {
+  PrefetchReport? _report;
   DateTime? _lastAt;
   bool _busy = false;
+  bool _expanded = false;
 
   @override
   void initState() {
     super.initState();
-    _refreshStamp();
+    _refresh();
   }
 
-  Future<void> _refreshStamp() async {
-    final at = await context.read<OfflineProvider>().lastPrefetchAt();
-    if (mounted) setState(() => _lastAt = at);
+  Future<void> _refresh() async {
+    final offline = context.read<OfflineProvider>();
+    final at = await offline.lastPrefetchAt();
+    final report = await offline.lastPrefetchReport();
+    if (mounted) {
+      setState(() {
+        _lastAt = at;
+        _report = report;
+      });
+    }
   }
 
   Future<void> _downloadNow() async {
     setState(() => _busy = true);
     // force: the whole point of pressing it is to override the three-hour pace.
-    final outcome =
+    final report =
         await context.read<OfflineProvider>().prefetchScreens(force: true);
-    await _refreshStamp();
+    await _refresh();
     if (!mounted) return;
-    setState(() => _busy = false);
+    setState(() {
+      _busy = false;
+      if (report.didRun && report.loaded > 0) _expanded = true;
+    });
 
-    final message = !outcome.didRun
-        ? 'Cannot download right now: ${outcome.skippedBecause}'
-        : outcome.loaded == 0
+    final message = !report.didRun
+        ? 'Cannot download right now: ${report.skippedBecause}'
+        : report.loaded == 0
             ? 'Nothing could be downloaded. The server did not answer.'
-            : outcome.failed == 0
+            : report.failed == 0
                 ? 'Downloaded. These screens will open without a connection.'
-                : 'Downloaded ${outcome.loaded}. '
-                    '${outcome.failed} could not be fetched and will be '
-                    'retried.';
+                : 'Downloaded ${report.loaded}. ${report.failed} could not be '
+                    'fetched and will be retried.';
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
@@ -1231,6 +1247,12 @@ class _DownloadedDataCardState extends State<_DownloadedDataCard> {
   Widget build(BuildContext context) {
     final offline = context.watch<OfflineProvider>();
     final noNetwork = !offline.isOnline;
+    final report = _report;
+    final entries = report?.entries ?? const <PrefetchEntry>[];
+    // The provider is the source of truth, not local state: a warm started by
+    // signing in has to show here too, not only one this button began.
+    final running = offline.isPrefetching || _busy;
+    final percent = (offline.prefetchProgress * 100).round();
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1264,25 +1286,130 @@ class _DownloadedDataCardState extends State<_DownloadedDataCard> {
           Text(
             _lastAt == null
                 // Not an error: it just has not happened yet on this device.
-                ? 'Not downloaded yet. Press below while you still have a '
-                    'connection, so these screens open later without one.'
-                : 'Last downloaded ${describeCacheAge(_lastAt!)}. Credits, '
-                    'suspended sales, debt collection, the route map and '
-                    "today's summaries open without a connection.",
+                ? 'Not downloaded yet. This happens by itself when you sign in '
+                    'with a connection. You can also start it below.'
+                : 'Last downloaded ${describeCacheAge(_lastAt!)}.',
             style: TextStyle(fontSize: 12, color: AppColors.muted(context)),
           ),
+          if (entries.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${report!.loaded} of ${entries.length} ready'
+              '${report.failed > 0 ? ', ${report.failed} still missing' : ''}',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: report.failed > 0
+                    ? AppColors.warning
+                    : AppColors.success,
+              ),
+            ),
+            const SizedBox(height: 4),
+            InkWell(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Text(
+                      _expanded ? 'Hide the list' : 'See what was downloaded',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_expanded)
+              // Failures first: a person opening this list is looking for what
+              // is missing, not admiring what worked.
+              ...([...entries]..sort((a, b) => a.ok == b.ok ? 0 : (a.ok ? 1 : -1)))
+                  .map(
+                (e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    children: [
+                      Icon(
+                        e.ok ? Icons.check_circle_outline : Icons.error_outline,
+                        size: 15,
+                        color: e.ok ? AppColors.success : AppColors.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          e.label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: e.ok
+                                ? AppColors.muted(context)
+                                : AppColors.ink(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: (noNetwork || _busy) ? null : _downloadNow,
-            icon: _busy
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.download_outlined, size: 18),
-            label: Text(_busy ? 'Downloading...' : 'Download now'),
-          ),
+          // A bar with a percentage while it runs, because this can take a
+          // minute on a bad connection and a spinner gives no idea whether to
+          // keep waiting. The label names what is being fetched right now, so
+          // the wait is legible rather than blank.
+          if (running) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: offline.prefetchProgress,
+                minHeight: 8,
+                backgroundColor: AppColors.track(context),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text(
+                  '$percent%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    offline.prefetchLabel ?? 'Starting...',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.muted(context),
+                    ),
+                  ),
+                ),
+                Text(
+                  '${offline.prefetchDone}/${offline.prefetchTotal}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.muted(context),
+                  ),
+                ),
+              ],
+            ),
+          ] else
+            OutlinedButton.icon(
+              onPressed: noNetwork ? null : _downloadNow,
+              icon: const Icon(Icons.download_outlined, size: 18),
+              label: const Text('Download now'),
+            ),
           if (noNetwork) ...[
             const SizedBox(height: 6),
             Text(

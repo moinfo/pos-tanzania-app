@@ -45,14 +45,51 @@ void main() {
 
   group('what a run reports back', () {
     test('a skipped run is distinguishable from one that did nothing', () {
-      final skipped = PrefetchOutcome.skipped('offline');
-      final ran = PrefetchOutcome(loaded: 0, failed: 4, ranAt: DateTime.now());
+      final skipped = PrefetchReport.skipped('offline');
+      final ran = PrefetchReport(
+        entries: const [
+          PrefetchEntry('Products', false),
+          PrefetchEntry('Customers', false),
+        ],
+        ranAt: DateTime.now(),
+      );
 
       // Both loaded nothing, but only one of them tried. The Settings sheet
       // has to tell "we did not look" apart from "we looked and it failed".
       expect(skipped.didRun, isFalse);
       expect(ran.didRun, isTrue);
+      expect(ran.failed, 2);
       expect(skipped.skippedBecause, 'offline');
+    });
+
+    test('the report names what came down, and survives a restart', () async {
+      // Settings has to answer "was the screen I need included", which a
+      // timestamp alone cannot. The list is persisted, so it is still there
+      // after the app is killed -- the moment somebody actually checks.
+      final report = PrefetchReport(
+        entries: const [
+          PrefetchEntry('Products', true),
+          PrefetchEntry('Customers', true),
+          PrefetchEntry('Banking', false),
+        ],
+        replayed: 4,
+        ranAt: DateTime.now(),
+      );
+      final restored = PrefetchReport.fromJson(report.toJson());
+
+      expect(restored.loaded, 2);
+      expect(restored.failed, 1);
+      expect(restored.replayed, 4);
+      expect(restored.entries.map((e) => e.label), contains('Banking'));
+    });
+
+    test('a corrupt saved report reads as none, not as a crash', () async {
+      SharedPreferences.setMockInitialValues({
+        'screen_prefetch_last_report': '{not json',
+      });
+      // The card is decoration on a screen people open when something is
+      // already wrong. It must never be the thing that breaks.
+      expect(await ScreenPrefetch.lastReport(), isNull);
     });
   });
 }

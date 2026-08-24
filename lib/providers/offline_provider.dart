@@ -147,8 +147,45 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// The prefetch needs to know which stores this user may see, and which one
   /// they have chosen. Wired from main.dart the same way AuthProvider is.
+  ///
+  /// Listened to, not just held. initialize() runs at app start -- BEFORE
+  /// anyone has signed in -- so the store list is still empty then and the warm
+  /// it kicked off did nothing but return "no store assigned". Signing in is
+  /// what fills this provider, so that is the moment to warm, and this is how
+  /// we hear about it.
   void setLocationProvider(LocationProvider provider) {
+    if (identical(_locationProvider, provider)) return;
+    _locationProvider?.removeListener(_onLocationsChanged);
     _locationProvider = provider;
+    provider.addListener(_onLocationsChanged);
+    _onLocationsChanged();
+  }
+
+  /// Whether this session has already warmed since the stores appeared.
+  ///
+  /// Guards the forced warm below so it happens once per sign-in, not on every
+  /// notification LocationProvider emits.
+  bool _warmedThisSession = false;
+
+  /// Stores resolved (or changed). Warm, if there is now something to warm with.
+  ///
+  /// FORCED, deliberately. Signing in is the clearest signal anyone gives that
+  /// they are about to work, and it is usually done in town with signal. The
+  /// three-hour pace exists to stop background runs burning a bundle; applying
+  /// it here meant somebody who had downloaded earlier in the day signed in,
+  /// saw nothing happen, and reasonably concluded it was broken.
+  void _onLocationsChanged() {
+    final locations = _locationProvider;
+    if (locations == null) return;
+    if (locations.allowedLocations.isEmpty) {
+      // Signing out empties this, so the next sign-in warms again.
+      _warmedThisSession = false;
+      return;
+    }
+    if (!_isInitialized || !_connectivityProvider.isOnline) return;
+    if (_warmedThisSession) return;
+    _warmedThisSession = true;
+    unawaited(prefetchScreens(force: true));
   }
 
   @override
@@ -405,16 +442,20 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Deliberately quiet. Nobody asked for it, so it never raises an error and
   /// never blocks anything: a failed warm just leaves the screen behaving as it
   /// did before.
-  Future<PrefetchOutcome> prefetchScreens({bool force = false}) async {
-    if (!_isInitialized) return PrefetchOutcome.skipped('not initialized');
+  Future<PrefetchReport> prefetchScreens({bool force = false}) async {
+    if (!_isInitialized) return PrefetchReport.skipped('not initialized');
     if (!_connectivityProvider.isOnline) {
-      return PrefetchOutcome.skipped('offline');
+      return PrefetchReport.skipped('offline');
     }
 
     final locations = _locationProvider;
     if (locations == null) {
-      return PrefetchOutcome.skipped('no location context');
+      return PrefetchReport.skipped('no location context');
     }
+
+    _prefetchDone = 0;
+    _prefetchTotal = 0;
+    _prefetchLabel = null;
 
     final outcome = await ScreenPrefetch.run(
       api: _apiService,
@@ -422,21 +463,48 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
           locations.allowedLocations.map((l) => l.locationId).toList(),
       selectedLocationId: locations.selectedLocation?.locationId,
       force: force,
+      onProgress: (done, total, label) {
+        _prefetchDone = done;
+        _prefetchTotal = total;
+        _prefetchLabel = label;
+        notifyListeners();
+      },
     );
 
-    if (outcome.didRun) {
-      _lastPrefetch = outcome;
-      notifyListeners();
-    }
+    _prefetchTotal = 0;
+    _prefetchLabel = null;
+    if (outcome.didRun) _lastPrefetch = outcome;
+    notifyListeners();
     return outcome;
   }
 
+  int _prefetchDone = 0;
+  int _prefetchTotal = 0;
+  String? _prefetchLabel;
+
+  /// Whether a warm is running right now, so the card can show a bar instead
+  /// of a button.
+  bool get isPrefetching => _prefetchTotal > 0;
+
+  /// 0..1, for the progress bar. Zero when nothing is running.
+  double get prefetchProgress =>
+      _prefetchTotal == 0 ? 0 : _prefetchDone / _prefetchTotal;
+
+  /// What is being fetched at this moment, by a name people recognise.
+  String? get prefetchLabel => _prefetchLabel;
+
+  int get prefetchDone => _prefetchDone;
+  int get prefetchTotal => _prefetchTotal;
+
   /// The last warm that actually ran this session, for the Settings sheet.
-  PrefetchOutcome? _lastPrefetch;
-  PrefetchOutcome? get lastPrefetch => _lastPrefetch;
+  PrefetchReport? _lastPrefetch;
+  PrefetchReport? get lastPrefetch => _lastPrefetch;
 
   /// When the cache was last warmed on this device, surviving restarts.
   Future<DateTime?> lastPrefetchAt() => ScreenPrefetch.lastRun();
+
+  /// What that warm actually fetched, so Settings can name it.
+  Future<PrefetchReport?> lastPrefetchReport() => ScreenPrefetch.lastReport();
 
   /// Sync stock locations
   Future<void> _syncStockLocations() async {
@@ -1058,6 +1126,7 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _connectivityProvider.removeListener(_onConnectivityChanged);
+    _locationProvider?.removeListener(_onLocationsChanged);
     close();
     super.dispose();
   }
