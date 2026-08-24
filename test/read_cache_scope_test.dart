@@ -124,4 +124,40 @@ void main() {
     expect(await cache.read('/items'), isNull);
     await cache.close();
   });
+
+  group('knownKeys, which is what the background warm replays', () {
+    test('returns the keys this user saved, without the scope prefix', () async {
+      final cache = await cacheSignedInAs('1');
+      await cache.write('/items?limit=100&location_id=3', {'items': []});
+      await cache.write('/customers?limit=100', {'customers': []});
+
+      final keys = await cache.knownKeys();
+
+      // The prefix has to come off: the warm feeds these straight back to
+      // ApiService.refreshCachedKey, which rebuilds a URL from them. A leaked
+      // "leruma|1|" would produce a request to a path that does not exist.
+      expect(keys, contains('/items?limit=100&location_id=3'));
+      expect(keys, contains('/customers?limit=100'));
+      expect(keys.every((k) => k.startsWith('/')), isTrue);
+    });
+
+    test("another user's keys are not offered for replay", () async {
+      final first = await cacheSignedInAs('1');
+      await first.write('/approvals/pending', {'approvals': []});
+
+      final second = await cacheSignedInAs('2');
+      await second.write('/items?limit=100', {'items': []});
+
+      // Replaying a key belonging to somebody else would refetch and re-save
+      // it under the new user -- quietly importing the first person's queue
+      // into the second person's app.
+      final keys = await second.knownKeys();
+      expect(keys, isNot(contains('/approvals/pending')));
+    });
+
+    test('nothing saved yet yields an empty list, not an error', () async {
+      final cache = await cacheSignedInAs('7');
+      expect(await cache.knownKeys(), isEmpty);
+    });
+  });
 }

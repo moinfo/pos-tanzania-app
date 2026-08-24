@@ -488,6 +488,46 @@ class ApiService {
   /// A stable cache key for a request: the path plus its query, with the
   /// parameters sorted so that two orderings of the same filters share a row
   /// instead of quietly saving the list twice.
+  /// Re-fetch a key the cache already holds, and save the fresh answer.
+  ///
+  /// The counterpart to [ReadCache.knownKeys]. Together they let a background
+  /// warm top up whatever this user actually opens, without anybody having to
+  /// mirror each screen's arguments by hand -- the key came from the screen, so
+  /// the refresh cannot land in the wrong entry.
+  ///
+  /// Returns true only when a fresh copy was stored. A refusal, an outage or an
+  /// unparseable body all leave the existing copy alone: the point is to make a
+  /// saved answer newer, never to lose the one that is already there.
+  Future<bool> refreshCachedKey(String key) async {
+    // The key is "path?sorted&query" with an absolute path, so the origin is
+    // all that has to come back from the current client.
+    final base = Uri.parse(baseUrlSync);
+    final cut = key.indexOf('?');
+    final uri = base.replace(
+      path: cut < 0 ? key : key.substring(0, cut),
+      query: cut < 0 ? null : key.substring(cut + 1),
+    );
+
+    try {
+      final response = await _http.get(uri, headers: await _getHeaders());
+      _reportReachable(true);
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        if (response.statusCode == 401) _handleUnauthorized();
+        return false;
+      }
+
+      final raw = json.decode(response.body)['data'];
+      if (raw == null) return false;
+      await ReadCache.instance.write(key, raw);
+      return true;
+    } catch (e) {
+      _reportReachable(false);
+        debugPrint('ApiService: could not refresh cached "$key": $e');
+      return false;
+    }
+  }
+
   static String _keyFor(Uri uri) {
     final params = uri.queryParameters.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
@@ -840,26 +880,16 @@ class ApiService {
         queryParameters: queryParams,
       );
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final submissions = (data['cash_submissions'] as List)
+      return _cachedGet<List<CashSubmitListItem>>(
+        uri,
+        (data) => (data['cash_submissions'] as List)
             .map((item) => CashSubmitListItem.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: submissions,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch cash submissions',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // A working queue -- submissions waiting on the day's cash-up.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch cash submissions',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -966,29 +996,17 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/cashsubmit/supervisors')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(
+      return _cachedGet<List<Supervisor>>(
         uri,
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final supervisors = (data['supervisors'] as List)
+        (data) => (data['supervisors'] as List)
             .map((item) => Supervisor.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: supervisors,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch supervisors',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Reference list -- who supervises whom. Changes rarely, read by
+        // five different screens.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch supervisors',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -1059,29 +1077,17 @@ class ApiService {
   /// Get all contracts
   Future<ApiResponse<List<Contract>>> getContracts() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/contracts'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final contracts = (data['contracts'] as List)
+      final uri = Uri.parse('$baseUrlSync/contracts');
+      return _cachedGet<List<Contract>>(
+        uri,
+        (data) => (data['contracts'] as List)
             .map((item) => Contract.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: contracts,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch contracts',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Which contracts exist. Changes when one is signed or closed.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch contracts',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -1122,21 +1128,14 @@ class ApiService {
         queryParameters: queryParams,
       );
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.success(
-          data: jsonResponse['data'],
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch contract statement',
-          statusCode: response.statusCode,
-        );
-      }
+      return _cachedGet<Map<String, dynamic>>(
+        uri,
+        (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        // A contract's settled history.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch contract statement',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -1343,14 +1342,14 @@ class ApiService {
   /// Get single customer
   Future<ApiResponse<Customer>> getCustomer(int id) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/customers/$id'),
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<Customer>(
-        response,
+      final uri = Uri.parse('$baseUrlSync/customers/$id');
+      return _cachedGet<Customer>(
+        uri,
         (data) => Customer.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A customer's profile. Changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch customer',
       );
     } catch (e) {
       _reportReachable(false);
@@ -1457,14 +1456,14 @@ class ApiService {
   /// Get single item
   Future<ApiResponse<Item>> getItem(int id) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/items/$id'),
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<Item>(
-        response,
+      final uri = Uri.parse('$baseUrlSync/items/$id');
+      return _cachedGet<Item>(
+        uri,
         (data) => Item.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // One product's details. Changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch item',
       );
     } catch (e) {
       _reportReachable(false);
@@ -1917,27 +1916,16 @@ class ApiService {
   /// Returns suppliers that belong to the supervisor of the given stock location
   Future<ApiResponse<List<Supplier>>> getSuppliersByLocation(int locationId) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/suppliers/by_location/$locationId'),
-        headers: await _getHeaders(),
+      final uri = Uri.parse('$baseUrlSync/suppliers/by_location/$locationId');
+      return _cachedGet<List<Supplier>>(
+        uri,
+        (data) =>
+            (data['suppliers'] as List).map((item) => Supplier.fromJson(item)).toList(),
+        cacheKey: _keyFor(uri),
+        // Reference list, changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to load suppliers',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data']['suppliers'] as List;
-        final suppliers = data.map((item) => Supplier.fromJson(item)).toList();
-
-        return ApiResponse.success(
-          data: suppliers,
-          message: jsonResponse['message'] ?? 'Suppliers retrieved successfully',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to load suppliers',
-          statusCode: response.statusCode,
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2143,17 +2131,17 @@ class ApiService {
   /// Get supervisors for supplier dropdown
   Future<ApiResponse<List<Map<String, dynamic>>>> getSupplierSupervisors() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/suppliers/supervisors'),
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<List<Map<String, dynamic>>>(
-        response,
+      final uri = Uri.parse('$baseUrlSync/suppliers/supervisors');
+      return _cachedGet<List<Map<String, dynamic>>>(
+        uri,
         (data) {
           final supervisors = data['supervisors'] as List;
           return supervisors.map((s) => s as Map<String, dynamic>).toList();
         },
+        cacheKey: _keyFor(uri),
+        // Reference list, changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch supplier supervisors',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2356,14 +2344,14 @@ class ApiService {
   /// Get receiving details
   Future<ApiResponse<ReceivingDetails>> getReceivingDetails(int receivingId) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/receivings/$receivingId'),
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<ReceivingDetails>(
-        response,
+      final uri = Uri.parse('$baseUrlSync/receivings/$receivingId');
+      return _cachedGet<ReceivingDetails>(
+        uri,
         (data) => ReceivingDetails.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A completed receiving. Fixed once booked.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch receiving details',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2417,11 +2405,13 @@ class ApiService {
       };
 
       final uri = Uri.parse('$baseUrlSync/receivings/summary').replace(queryParameters: queryParams);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
+      return _cachedGet<Map<String, dynamic>>(
+        uri,
         (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        // Today's receiving figures.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch receiving summary',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2444,11 +2434,13 @@ class ApiService {
       };
 
       final uri = Uri.parse('$baseUrlSync/receivings/summary2').replace(queryParameters: queryParams);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
+      return _cachedGet<Map<String, dynamic>>(
+        uri,
         (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        // Today's receiving figures, alternate view.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch receiving summary',
       );
     } catch (e) {
       _reportReachable(false);
@@ -2753,39 +2745,22 @@ class ApiService {
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
-      final response = await _http.get(
+      return _cachedGet<List<SuspendedSale>>(
         uri,
-        headers: await _getHeaders(),
+        (raw) {
+          final list = raw is List
+              ? raw
+              : (raw is Map && raw['sales'] != null ? raw['sales'] as List : []);
+          return list
+              .map((s) => SuspendedSale.fromJson(s as Map<String, dynamic>))
+              .toList();
+        },
+        cacheKey: _keyFor(uri),
+        // A queue someone comes back to finish -- has to survive a route,
+        // but a colleague completing one at another till changes it.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch suspended sales',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-
-        // Check if data is a List or wrapped in another structure
-        List<dynamic> salesList;
-        if (data is List) {
-          salesList = data;
-        } else if (data is Map && data['sales'] != null) {
-          salesList = data['sales'] as List;
-        } else {
-          salesList = [];
-        }
-
-        final suspendedSales = salesList
-            .map((s) => SuspendedSale.fromJson(s as Map<String, dynamic>))
-            .toList();
-
-        return ApiResponse.success(
-          data: suspendedSales,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch suspended sales',
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2801,36 +2776,22 @@ class ApiService {
         queryParameters: {'location_id': locationId.toString()},
       );
 
-      final response = await _http.get(
+      return _cachedGet<List<SuspendedSheetSale>>(
         uri,
-        headers: await _getHeaders(),
+        (raw) {
+          final list = raw is List
+              ? raw
+              : (raw is Map && raw['sales'] != null ? raw['sales'] as List : []);
+          return list
+              .map((s) => SuspendedSheetSale.fromJson(s as Map<String, dynamic>))
+              .toList();
+        },
+        cacheKey: _keyFor(uri),
+        // A queue someone comes back to finish -- has to survive a route,
+        // but a colleague completing one at another till changes it.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch suspended sheet',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-
-        List<dynamic> salesList;
-        if (data is List) {
-          salesList = data;
-        } else {
-          salesList = [];
-        }
-
-        final suspendedSheetSales = salesList
-            .map((s) => SuspendedSheetSale.fromJson(s as Map<String, dynamic>))
-            .toList();
-
-        return ApiResponse.success(
-          data: suspendedSheetSales,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch suspended sheet',
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2846,36 +2807,22 @@ class ApiService {
         queryParameters: {'location_id': locationId.toString()},
       );
 
-      final response = await _http.get(
+      return _cachedGet<List<SuspendedSheet2Sale>>(
         uri,
-        headers: await _getHeaders(),
+        (raw) {
+          final list = raw is List
+              ? raw
+              : (raw is Map && raw['sales'] != null ? raw['sales'] as List : []);
+          return list
+              .map((s) => SuspendedSheet2Sale.fromJson(s as Map<String, dynamic>))
+              .toList();
+        },
+        cacheKey: _keyFor(uri),
+        // A queue someone comes back to finish -- has to survive a route,
+        // but a colleague completing one at another till changes it.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch delivery sheet',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-
-        List<dynamic> salesList;
-        if (data is List) {
-          salesList = data;
-        } else {
-          salesList = [];
-        }
-
-        final suspendedSheet2Sales = salesList
-            .map((s) => SuspendedSheet2Sale.fromJson(s as Map<String, dynamic>))
-            .toList();
-
-        return ApiResponse.success(
-          data: suspendedSheet2Sales,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch delivery sheet',
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2891,36 +2838,22 @@ class ApiService {
         queryParameters: {'location_id': locationId.toString()},
       );
 
-      final response = await _http.get(
+      return _cachedGet<List<SuspendedSheet3Sale>>(
         uri,
-        headers: await _getHeaders(),
+        (raw) {
+          final list = raw is List
+              ? raw
+              : (raw is Map && raw['sales'] != null ? raw['sales'] as List : []);
+          return list
+              .map((s) => SuspendedSheet3Sale.fromJson(s as Map<String, dynamic>))
+              .toList();
+        },
+        cacheKey: _keyFor(uri),
+        // A queue someone comes back to finish -- has to survive a route,
+        // but a colleague completing one at another till changes it.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch receipt sheet',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-
-        List<dynamic> salesList;
-        if (data is List) {
-          salesList = data;
-        } else {
-          salesList = [];
-        }
-
-        final suspendedSheet3Sales = salesList
-            .map((s) => SuspendedSheet3Sale.fromJson(s as Map<String, dynamic>))
-            .toList();
-
-        return ApiResponse.success(
-          data: suspendedSheet3Sales,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch receipt sheet',
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -2936,36 +2869,19 @@ class ApiService {
         queryParameters: {'location_id': locationId.toString()},
       );
 
-      final response = await _http.get(
+      return _cachedGet<CustomerCareResponse>(
         uri,
-        headers: await _getHeaders(),
+        (data) => data is Map<String, dynamic>
+            ? CustomerCareResponse.fromJson(data)
+            : CustomerCareResponse(
+                customers: [],
+                totals: CustomerCareTotals(creditLimit: 0, balance: 0, customerCount: 0),
+              ),
+        cacheKey: _keyFor(uri),
+        // Which customers need attention at this store.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch customer care data',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-
-        if (data != null && data is Map<String, dynamic>) {
-          final customerCareResponse = CustomerCareResponse.fromJson(data);
-          return ApiResponse.success(
-            data: customerCareResponse,
-            message: jsonResponse['message'] ?? 'Success',
-          );
-        } else {
-          return ApiResponse.success(
-            data: CustomerCareResponse(
-              customers: [],
-              totals: CustomerCareTotals(creditLimit: 0, balance: 0, customerCount: 0),
-            ),
-            message: jsonResponse['message'] ?? 'Success',
-          );
-        }
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch customer care data',
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -3780,11 +3696,13 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/banking/financial_dashboard')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<FinancialDashboard>(
-        response,
+      return _cachedGet<FinancialDashboard>(
+        uri,
         (data) => FinancialDashboard.fromJson(data as Map<String, dynamic>),
+        cacheKey: _keyFor(uri),
+        // Today's money, summarised.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch financial dashboard',
       );
     } catch (e) {
       _reportReachable(false);
@@ -3914,14 +3832,16 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/banking/efd_analysis')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<List<EfdAnalysisItem>>(
-        response,
+      return _cachedGet<List<EfdAnalysisItem>>(
+        uri,
         (data) {
           final efdList = data['efd_analysis'] as List? ?? [];
           return efdList.map((e) => EfdAnalysisItem.fromJson(e)).toList();
         },
+        cacheKey: _keyFor(uri),
+        // Today's fiscal device figures.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch EFD analysis',
       );
     } catch (e) {
       _reportReachable(false);
@@ -3950,11 +3870,13 @@ class ApiService {
       if (stockLocation != null) queryParams['stock_location'] = stockLocation;
 
       final uri = Uri.parse('$baseUrlSync/profitsubmit').replace(queryParameters: queryParams);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<Map<String, dynamic>>(
-        response,
+      return _cachedGet<Map<String, dynamic>>(
+        uri,
         (data) => data as Map<String, dynamic>,
+        cacheKey: _keyFor(uri),
+        // A working list, not settled history.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch profit submissions',
       );
     } catch (e) {
       _reportReachable(false);
@@ -4041,17 +3963,17 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/stock_locations/allowed')
           .replace(queryParameters: {'module_id': moduleId});
 
-      final response = await _http.get(
+      return _cachedGet<List<StockLocation>>(
         uri,
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<List<StockLocation>>(
-        response,
         (data) {
           final locations = data['locations'] as List;
           return locations.map((loc) => StockLocation.fromJson(loc)).toList();
         },
+        cacheKey: _keyFor(uri),
+        // Which stores this user may work in. Changes when an admin
+        // re-assigns someone, not minute to minute.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch allowed locations',
       );
     } catch (e) {
       _reportReachable(false);
@@ -4148,11 +4070,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/transactions/statement/$customerId')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<TransactionStatement>(
-        response,
+      return _cachedGet<TransactionStatement>(
+        uri,
         (data) => TransactionStatement.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A statement of what already happened.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch customer statement',
       );
     } catch (e) {
       _reportReachable(false);
@@ -4178,26 +4102,16 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/$endpoint')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final deposits = (data['deposits'] as List)
+      return _cachedGet<List<Deposit>>(
+        uri,
+        (data) => (data['deposits'] as List)
             .map((item) => Deposit.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: deposits,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch deposits',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Settled money movements.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch deposits',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -4222,26 +4136,16 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/$endpoint')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final withdrawals = (data['withdrawals'] as List)
+      return _cachedGet<List<Withdrawal>>(
+        uri,
+        (data) => (data['withdrawals'] as List)
             .map((item) => Withdrawal.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: withdrawals,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch withdrawals',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Settled money movements.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch withdrawals',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -4353,29 +4257,17 @@ class ApiService {
   /// Get all customers with balances
   Future<ApiResponse<List<CustomerTransactionBalance>>> getAllCustomersBalance() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/transactions/all_customers_balance'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final customers = (data['customers'] as List)
+      final uri = Uri.parse('$baseUrlSync/transactions/all_customers_balance');
+      return _cachedGet<List<CustomerTransactionBalance>>(
+        uri,
+        (data) => (data['customers'] as List)
             .map((item) => CustomerTransactionBalance.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: customers,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch customer balances',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Today's balances across every customer.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch customer balances',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -4387,29 +4279,17 @@ class ApiService {
   /// Get cash basis categories
   Future<ApiResponse<List<CashBasisCategory>>> getCashBasisCategories() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/transactions/cash_basis_list'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final categories = (data['cash_basis'] as List)
+      final uri = Uri.parse('$baseUrlSync/transactions/cash_basis_list');
+      return _cachedGet<List<CashBasisCategory>>(
+        uri,
+        (data) => (data['cash_basis'] as List)
             .map((item) => CashBasisCategory.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: categories,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch cash basis categories',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Reference list of categories, changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch cash basis categories',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -4499,11 +4379,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/transactions/cash_basis')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<CashBasisResponse>(
-        response,
+      return _cachedGet<CashBasisResponse>(
+        uri,
         (data) => CashBasisResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Money that moved today.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch cash basis transactions',
       );
     } catch (e) {
       _reportReachable(false);
@@ -4590,29 +4472,17 @@ class ApiService {
   /// Get bank basis categories
   Future<ApiResponse<List<BankBasisCategory>>> getBankBasisCategories() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/transactions/bank_basis_list'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final categories = (data['bank_basis'] as List)
+      final uri = Uri.parse('$baseUrlSync/transactions/bank_basis_list');
+      return _cachedGet<List<BankBasisCategory>>(
+        uri,
+        (data) => (data['bank_basis'] as List)
             .map((item) => BankBasisCategory.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: categories,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch bank basis categories',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Reference list of categories, changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch bank basis categories',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -4691,11 +4561,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/transactions/bank_basis')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<BankBasisResponse>(
-        response,
+      return _cachedGet<BankBasisResponse>(
+        uri,
         (data) => BankBasisResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Money that moved today.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch bank basis transactions',
       );
     } catch (e) {
       _reportReachable(false);
@@ -4782,29 +4654,17 @@ class ApiService {
   /// Get SIM cards
   Future<ApiResponse<List<Sim>>> getSims() async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/transactions/sims'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final sims = (data['sims'] as List)
+      final uri = Uri.parse('$baseUrlSync/transactions/sims');
+      return _cachedGet<List<Sim>>(
+        uri,
+        (data) => (data['sims'] as List)
             .map((item) => Sim.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: sims,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch SIMs',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Reference list, changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch SIMs',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -4883,11 +4743,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/transactions/wakala')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<WakalaResponse>(
-        response,
+      return _cachedGet<WakalaResponse>(
+        uri,
         (data) => WakalaResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Today's transactions.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch wakala transactions',
       );
     } catch (e) {
       _reportReachable(false);
@@ -5007,11 +4869,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/transactions/wakala_expenses')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<WakalaExpenseResponse>(
-        response,
+      return _cachedGet<WakalaExpenseResponse>(
+        uri,
         (data) => WakalaExpenseResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Today's expenses.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch wakala expenses',
       );
     } catch (e) {
       _reportReachable(false);
@@ -5113,11 +4977,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/transactions/commissions')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<CommissionResponse>(
-        response,
+      return _cachedGet<CommissionResponse>(
+        uri,
         (data) => CommissionResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Today's earnings figure.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch commissions',
       );
     } catch (e) {
       _reportReachable(false);
@@ -5194,11 +5060,13 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/transactions/capital')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<CapitalResponse>(
-        response,
+      return _cachedGet<CapitalResponse>(
+        uri,
         (data) => CapitalResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Today's capital movement.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch capital entries',
       );
     } catch (e) {
       _reportReachable(false);
@@ -5740,44 +5608,18 @@ class ApiService {
     required String date,
     required int stockLocationId,
   }) async {
-    final url = '$baseUrlSync/stock/tracking?date=$date&stock_location_id=$stockLocationId';
-    print('=== API: getStockTracking ===');
-    print('URL: $url');
-
+    final uri = Uri.parse(
+        '$baseUrlSync/stock/tracking?date=$date&stock_location_id=$stockLocationId');
     try {
-      final headers = await _getHeaders();
-      print('Headers: $headers');
-
-      final response = await _http.get(
-        Uri.parse(url),
-        headers: headers,
+      return await _cachedGet<StockTrackingReport>(
+        uri,
+        (data) => StockTrackingReport.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A date-ranged report; settled once the date has passed.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch stock tracking',
       );
-
-      print('Status Code: ${response.statusCode}');
-      print('Response Body (first 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        print('Parsing StockTrackingReport from data...');
-        final report = StockTrackingReport.fromJson(data);
-        print('Report parsed successfully - Items: ${report.items.length}');
-
-        return ApiResponse.success(
-          data: report,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        print('ERROR: ${jsonResponse['message']}');
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch stock tracking',
-          statusCode: response.statusCode,
-        );
-      }
-    } catch (e, stackTrace) {
-      print('EXCEPTION: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -5791,27 +5633,16 @@ class ApiService {
     required int stockLocationId,
   }) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/stock/item_tracking?start_date=$startDate&end_date=$endDate&item_id=$itemId&stock_location_id=$stockLocationId'),
-        headers: await _getHeaders(),
+      final uri = Uri.parse(
+          '$baseUrlSync/stock/item_tracking?start_date=$startDate&end_date=$endDate&item_id=$itemId&stock_location_id=$stockLocationId');
+      return _cachedGet<ItemTrackingReport>(
+        uri,
+        (data) => ItemTrackingReport.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A date-ranged report; settled once the range has passed.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch item tracking',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final report = ItemTrackingReport.fromJson(data);
-
-        return ApiResponse.success(
-          data: report,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch item tracking',
-          statusCode: response.statusCode,
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -5829,28 +5660,16 @@ class ApiService {
       if (search != null && search.isNotEmpty) {
         url += '&search=${Uri.encodeComponent(search)}';
       }
+      final uri = Uri.parse(url);
 
-      final response = await _http.get(
-        Uri.parse(url),
-        headers: await _getHeaders(),
+      return _cachedGet<List<SimpleItem>>(
+        uri,
+        (data) => (data as List).map((item) => SimpleItem.fromJson(item)).toList(),
+        cacheKey: _keyFor(uri),
+        // Reference list of items for stock tracking. Changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch items',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'] as List;
-        final items = data.map((item) => SimpleItem.fromJson(item)).toList();
-
-        return ApiResponse.success(
-          data: items,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch items',
-          statusCode: response.statusCode,
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -5859,43 +5678,17 @@ class ApiService {
 
   /// Get stock locations for stock tracking
   Future<ApiResponse<List<StockLocation>>> getStockTrackingLocations() async {
-    final url = '$baseUrlSync/stock/locations';
-    print('=== API: getStockTrackingLocations ===');
-    print('URL: $url');
-
+    final uri = Uri.parse('$baseUrlSync/stock/locations');
     try {
-      final headers = await _getHeaders();
-      print('Headers: $headers');
-
-      final response = await _http.get(
-        Uri.parse(url),
-        headers: headers,
+      return await _cachedGet<List<StockLocation>>(
+        uri,
+        (data) => (data as List).map((loc) => StockLocation.fromJson(loc)).toList(),
+        cacheKey: _keyFor(uri),
+        // Reference list, changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch locations',
       );
-
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'] as List;
-        final locations = data.map((loc) => StockLocation.fromJson(loc)).toList();
-
-        print('Parsed ${locations.length} locations');
-        return ApiResponse.success(
-          data: locations,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        print('ERROR: ${jsonResponse['message']}');
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch locations',
-          statusCode: response.statusCode,
-        );
-      }
-    } catch (e, stackTrace) {
-      print('EXCEPTION: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -5916,28 +5709,16 @@ class ApiService {
       if (stockLocationId != null) {
         url += '&stock_location_id=$stockLocationId';
       }
+      final uri = Uri.parse(url);
 
-      final response = await _http.get(
-        Uri.parse(url),
-        headers: await _getHeaders(),
+      return _cachedGet<PositionsReport>(
+        uri,
+        (data) => PositionsReport.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A date-ranged report; settled once the range has passed.
+        maxAge: CacheAge.today,
+        errorFallback: 'Failed to fetch positions',
       );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final report = PositionsReport.fromJson(data);
-
-        return ApiResponse.success(
-          data: report,
-          message: jsonResponse['message'] ?? 'Success',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch positions',
-          statusCode: response.statusCode,
-        );
-      }
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -6873,26 +6654,16 @@ class ApiService {
         queryParameters: queryParams,
       );
 
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'];
-        final shops = (data['shops'] as List)
+      return _cachedGet<List<Shop>>(
+        uri,
+        (data) => (data['shops'] as List)
             .map((item) => Shop.fromJson(item))
-            .toList();
-
-        return ApiResponse.success(
-          data: shops,
-          message: jsonResponse['message'],
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch shops',
-          statusCode: response.statusCode,
-        );
-      }
+            .toList(),
+        cacheKey: _keyFor(uri),
+        // Reference list, changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch shops',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -7007,19 +6778,20 @@ class ApiService {
   /// Get service history for a shop
   Future<ApiResponse<List<ServiceHistory>>> getServiceHistory(int shopId, {int limit = 20, int offset = 0}) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/shops/service_history/$shopId?limit=$limit&offset=$offset'),
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<List<ServiceHistory>>(
-        response,
+      final uri = Uri.parse(
+          '$baseUrlSync/shops/service_history/$shopId?limit=$limit&offset=$offset');
+      return _cachedGet<List<ServiceHistory>>(
+        uri,
         (data) {
           final salesList = data['sales'] as List<dynamic>;
           return salesList
               .map((item) => ServiceHistory.fromJson(item as Map<String, dynamic>))
               .toList();
         },
+        cacheKey: _keyFor(uri),
+        // Settled history of service visits.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch service history',
       );
     } catch (e) {
       _reportReachable(false);
@@ -7047,11 +6819,13 @@ class ApiService {
       if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
       final uri = Uri.parse('$baseUrlSync/discount_requests').replace(queryParameters: queryParams);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<DiscountRequestListResponse>(
-        response,
+      return _cachedGet<DiscountRequestListResponse>(
+        uri,
         (data) => DiscountRequestListResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // A seller's own requests, whose status changes as approvers act.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch discount requests',
       );
     } catch (e) {
       _reportReachable(false);
@@ -7100,14 +6874,14 @@ class ApiService {
   /// Get item prices for discount validation
   Future<ApiResponse<ItemPricesResponse>> getItemPrices(int itemId) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/discount_requests/item_prices/$itemId'),
-        headers: await _getHeaders(),
-      );
-
-      return _handleResponse<ItemPricesResponse>(
-        response,
+      final uri = Uri.parse('$baseUrlSync/discount_requests/item_prices/$itemId');
+      return _cachedGet<ItemPricesResponse>(
+        uri,
         (data) => ItemPricesResponse.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Price tiers for one product. Changes rarely.
+        maxAge: CacheAge.reference,
+        errorFallback: 'Failed to fetch item prices',
       );
     } catch (e) {
       _reportReachable(false);
@@ -7274,14 +7048,16 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/borrowed_money')
           .replace(queryParameters: queryParams);
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      return _handleResponse<List<BorrowedMoneyItem>>(
-        response,
+      return _cachedGet<List<BorrowedMoneyItem>>(
+        uri,
         (data) {
           final records = data['records'] as List;
           return records.map((j) => BorrowedMoneyItem.fromJson(j as Map<String, dynamic>)).toList();
         },
+        cacheKey: _keyFor(uri),
+        // A working list of what is owed and to whom.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch borrowed money',
       );
     } catch (e) {
       _reportReachable(false);
@@ -7450,13 +7226,15 @@ class ApiService {
   /// One approval with its full trail, plus whether I may act on it.
   Future<ApiResponse<ApprovalWithHistory>> getApprovalDetail(int approvalId) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/approvals/detail/$approvalId'),
-        headers: await _getHeaders(),
-      );
-      return _handleResponse<ApprovalWithHistory>(
-        response,
-        ApprovalWithHistory.fromJson,
+      final uri = Uri.parse('$baseUrlSync/approvals/detail/$approvalId');
+      return _cachedGet<ApprovalWithHistory>(
+        uri,
+        (data) => ApprovalWithHistory.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // One approval's full history. Changes as people act on it, so it
+        // must not outlive a shift.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch approval detail',
       );
     } catch (e) {
       _reportReachable(false);
@@ -7897,12 +7675,16 @@ class ApiService {
   Future<ApiResponse<CustomerCreditHistory>> getCustomerCreditHistory(
       int customerId) async {
     try {
-      final response = await _http.get(
-        Uri.parse('$baseUrlSync/customer_credit_limits/history/$customerId'),
-        headers: await _getHeaders(),
+      final uri =
+          Uri.parse('$baseUrlSync/customer_credit_limits/history/$customerId');
+      return _cachedGet<CustomerCreditHistory>(
+        uri,
+        (data) => CustomerCreditHistory.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Settled history: what already happened on this account.
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch credit history',
       );
-      return _handleResponse<CustomerCreditHistory>(
-          response, CustomerCreditHistory.fromJson);
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');
@@ -7918,9 +7700,14 @@ class ApiService {
           .replace(queryParameters: {
         if (search != null && search.isNotEmpty) 'search': search,
       });
-      final response = await _http.get(uri, headers: await _getHeaders());
-      return _handleResponse<UnusedAllowanceList>(
-          response, UnusedAllowanceList.fromJson);
+      return _cachedGet<UnusedAllowanceList>(
+        uri,
+        (data) => UnusedAllowanceList.fromJson(data),
+        cacheKey: _keyFor(uri),
+        // Changes as allowances are used or expire.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch unused allowances',
+      );
     } catch (e) {
       _reportReachable(false);
       return ApiResponse.error(message: 'Connection error: $e');

@@ -234,6 +234,40 @@ class ReadCache {
   ///
   /// Pass [maxAge] to refuse a copy that is too old to be trusted; the caller
   /// then renders the "nothing saved" state rather than a misleading list.
+  /// Every key this user has ever had saved, newest first.
+  ///
+  /// Exists so a background refresh can top up what somebody actually uses,
+  /// instead of a hand-written list of guesses. A key here was written by the
+  /// screen itself, so re-requesting it lands in the same entry by
+  /// construction -- which is the one thing a hand-written list cannot
+  /// guarantee, and got wrong three times before this was added.
+  ///
+  /// The scope prefix is stripped: callers get the key they passed to [write].
+  Future<List<String>> knownKeys({int limit = 200}) async {
+    final db = await _open();
+    if (db == null) return const [];
+    try {
+      final scope = await _currentScope();
+      final rows = await db.query(
+        'read_cache',
+        columns: ['cache_key'],
+        where: 'cache_key LIKE ?',
+        whereArgs: ['$scope|%'],
+        orderBy: 'fetched_at DESC',
+        limit: limit,
+      );
+      final prefix = '$scope|';
+      return rows
+          .map((r) => r['cache_key'] as String)
+          .where((k) => k.startsWith(prefix))
+          .map((k) => k.substring(prefix.length))
+          .toList();
+    } catch (e) {
+      debugPrint('ReadCache: could not list keys: $e');
+      return const [];
+    }
+  }
+
   Future<CachedRead?> read(String key, {Duration? maxAge}) async {
     final db = await _open();
     if (db == null) return null;
