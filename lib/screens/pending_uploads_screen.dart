@@ -7,6 +7,7 @@ import '../providers/connectivity_provider.dart';
 import '../providers/offline_provider.dart';
 import '../services/sync_service.dart';
 import '../utils/constants.dart';
+import '../widgets/state_views.dart';
 import '../utils/formatters.dart';
 
 /// Everything sitting on this phone that the server has not got.
@@ -250,6 +251,8 @@ class _PendingUploadsScreenState extends State<PendingUploadsScreen> {
                 color: AppColors.muted(context),
               ),
             ),
+            const SizedBox(height: 20),
+            const _DownloadedDataCard(),
           ],
         );
       },
@@ -1168,6 +1171,127 @@ class _SheetButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// What the app has already pulled DOWN, as opposed to what is waiting to go up.
+///
+/// The rest of this screen answers "is my work safe" -- the queue, the
+/// failures, the retry. This answers the other half of the same worry: "will
+/// there be anything on this phone when I lose signal." They belong together,
+/// because a seller checking one is usually about to leave.
+class _DownloadedDataCard extends StatefulWidget {
+  const _DownloadedDataCard();
+
+  @override
+  State<_DownloadedDataCard> createState() => _DownloadedDataCardState();
+}
+
+class _DownloadedDataCardState extends State<_DownloadedDataCard> {
+  DateTime? _lastAt;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshStamp();
+  }
+
+  Future<void> _refreshStamp() async {
+    final at = await context.read<OfflineProvider>().lastPrefetchAt();
+    if (mounted) setState(() => _lastAt = at);
+  }
+
+  Future<void> _downloadNow() async {
+    setState(() => _busy = true);
+    // force: the whole point of pressing it is to override the three-hour pace.
+    final outcome =
+        await context.read<OfflineProvider>().prefetchScreens(force: true);
+    await _refreshStamp();
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    final message = !outcome.didRun
+        ? 'Cannot download right now: ${outcome.skippedBecause}'
+        : outcome.loaded == 0
+            ? 'Nothing could be downloaded. The server did not answer.'
+            : outcome.failed == 0
+                ? 'Downloaded. These screens will open without a connection.'
+                : 'Downloaded ${outcome.loaded}. '
+                    '${outcome.failed} could not be fetched and will be '
+                    'retried.';
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final offline = context.watch<OfflineProvider>();
+    final noNetwork = !offline.isOnline;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.raised(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.hairline(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.cloud_download_outlined,
+                  size: 18, color: AppColors.muted(context)),
+              const SizedBox(width: 8),
+              // Expanded, not bare: the title has to wrap on a 320px phone
+              // rather than push the row off the screen.
+              Expanded(
+                child: Text(
+                  'Data saved on this phone',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.ink(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _lastAt == null
+                // Not an error: it just has not happened yet on this device.
+                ? 'Not downloaded yet. Press below while you still have a '
+                    'connection, so these screens open later without one.'
+                : 'Last downloaded ${describeCacheAge(_lastAt!)}. Credits, '
+                    'suspended sales, debt collection, the route map and '
+                    "today's summaries open without a connection.",
+            style: TextStyle(fontSize: 12, color: AppColors.muted(context)),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: (noNetwork || _busy) ? null : _downloadNow,
+            icon: _busy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_outlined, size: 18),
+            label: Text(_busy ? 'Downloading...' : 'Download now'),
+          ),
+          if (noNetwork) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Needs a connection. Whatever was downloaded before is still '
+              'here and still works.',
+              style: TextStyle(fontSize: 11, color: AppColors.muted(context)),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import '../models/pending_upload.dart';
 import '../services/database_service.dart';
 import '../services/sync_service.dart';
 import '../services/api_service.dart';
 import '../services/offline_actions.dart';
+import '../services/screen_prefetch.dart';
+import 'location_provider.dart';
 import 'connectivity_provider.dart';
 
 /// Provider to manage offline functionality and data synchronization
@@ -13,6 +17,10 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   DatabaseService? _databaseService;
   SyncService? _syncService;
+
+  /// Supplied after construction, because the prefetch has to ask with the same
+  /// location filter the screens use -- see ScreenPrefetch.
+  LocationProvider? _locationProvider;
 
   // State
   bool _isInitialized = false;
@@ -137,11 +145,20 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
   }
 
+  /// The prefetch needs to know which stores this user may see, and which one
+  /// they have chosen. Wired from main.dart the same way AuthProvider is.
+  void setLocationProvider(LocationProvider provider) {
+    _locationProvider = provider;
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
     if (!_isInitialized) return;
     _syncService?.onAppResumed();
+    // Coming back is the best moment to warm the cache: the seller is usually
+    // still in range when they reopen the app, and about to leave.
+    unawaited(prefetchScreens());
   }
 
   /// Initialize offline mode for a client
@@ -198,6 +215,8 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
       } else {
         debugPrint('OfflineProvider: Master data is fresh, skipping sync');
       }
+      // Opening the app is the other reliable moment there is signal.
+      unawaited(prefetchScreens());
     }
   }
 
@@ -231,6 +250,9 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_connectivityProvider.isOnline && _isInitialized) {
       // Trigger sync when coming back online
       _syncService?.syncAll();
+      // Uploads first, then top the cache up -- the queue is somebody's
+      // work and matters more than a fresh list.
+      unawaited(prefetchScreens());
     }
 
     notifyListeners();
@@ -370,6 +392,51 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
     }
   }
+
+  /// Warm the read cache for the screens people open away from signal.
+  ///
+  /// syncMasterData above pulls the reference tables -- items, customers,
+  /// suppliers -- into SQLite once a day. That is the catalogue. This is the
+  /// other half: the working lists each screen shows, which live in the read
+  /// cache rather than in SQLite, and which until now were saved only if
+  /// somebody happened to open that screen while there was signal. That is what
+  /// made "connect once to set up this device" necessary.
+  ///
+  /// Deliberately quiet. Nobody asked for it, so it never raises an error and
+  /// never blocks anything: a failed warm just leaves the screen behaving as it
+  /// did before.
+  Future<PrefetchOutcome> prefetchScreens({bool force = false}) async {
+    if (!_isInitialized) return PrefetchOutcome.skipped('not initialized');
+    if (!_connectivityProvider.isOnline) {
+      return PrefetchOutcome.skipped('offline');
+    }
+
+    final locations = _locationProvider;
+    if (locations == null) {
+      return PrefetchOutcome.skipped('no location context');
+    }
+
+    final outcome = await ScreenPrefetch.run(
+      api: _apiService,
+      allowedLocationIds:
+          locations.allowedLocations.map((l) => l.locationId).toList(),
+      selectedLocationId: locations.selectedLocation?.locationId,
+      force: force,
+    );
+
+    if (outcome.didRun) {
+      _lastPrefetch = outcome;
+      notifyListeners();
+    }
+    return outcome;
+  }
+
+  /// The last warm that actually ran this session, for the Settings sheet.
+  PrefetchOutcome? _lastPrefetch;
+  PrefetchOutcome? get lastPrefetch => _lastPrefetch;
+
+  /// When the cache was last warmed on this device, surviving restarts.
+  Future<DateTime?> lastPrefetchAt() => ScreenPrefetch.lastRun();
 
   /// Sync stock locations
   Future<void> _syncStockLocations() async {

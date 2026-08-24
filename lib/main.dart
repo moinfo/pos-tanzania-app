@@ -102,12 +102,20 @@ class MyApp extends StatelessWidget {
             return authProvider;
           },
         ),
-        ChangeNotifierProxyProvider<ConnectivityProvider, OfflineProvider>(
+        ChangeNotifierProxyProvider2<ConnectivityProvider, LocationProvider,
+            OfflineProvider>(
           create: (context) => OfflineProvider(
-            connectivityProvider: Provider.of<ConnectivityProvider>(context, listen: false),
+            connectivityProvider:
+                Provider.of<ConnectivityProvider>(context, listen: false),
             apiService: ApiService(),
-          ),
-          update: (context, connectivityProvider, offlineProvider) => offlineProvider!,
+          )..setLocationProvider(
+              Provider.of<LocationProvider>(context, listen: false),
+            ),
+          // Re-supplied on rebuild because signing in replaces the location set,
+          // and a prefetch asking with the previous user's stores would warm
+          // the wrong cache entries.
+          update: (context, connectivity, locations, offlineProvider) =>
+              offlineProvider!..setLocationProvider(locations),
         ),
         ChangeNotifierProvider(create: (_) => ReceivingProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
