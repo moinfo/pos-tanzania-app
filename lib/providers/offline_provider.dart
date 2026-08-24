@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import '../services/database_service.dart';
 import '../services/sync_service.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
 import 'connectivity_provider.dart';
 
 /// Provider to manage offline functionality and data synchronization
@@ -19,6 +20,8 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
   int _failedSyncCount = 0;
   int _pendingSaleCount = 0;
   int _failedSaleCount = 0;
+  int _pendingActionCount = 0;
+  int _failedActionCount = 0;
   bool _serverReachable = true;
   String? _currentClientId;
   String? _lastSyncError;
@@ -48,6 +51,16 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// receipts that were never missing.
   int get pendingSaleCount => _pendingSaleCount;
   int get failedSaleCount => _failedSaleCount;
+
+  /// Everything else a person created while there was no network: expenses,
+  /// receivings, banking, submissions, requests, customers, suppliers.
+  ///
+  /// Counted apart from sales for the same reason sales are counted apart from
+  /// the whole queue -- a clerk who queued an expense should not be told two
+  /// sales are waiting, and a seller should not go hunting for a receipt that
+  /// was really a supplier record.
+  int get pendingActionCount => _pendingActionCount;
+  int get failedActionCount => _failedActionCount;
 
   /// Current client ID
   String? get currentClientId => _currentClientId;
@@ -248,6 +261,10 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
       final saleCounts = await _databaseService!.getUnsyncedSaleCounts();
       _pendingSaleCount = saleCounts['pending'] ?? 0;
       _failedSaleCount = saleCounts['failed'] ?? 0;
+
+      final actionCounts = await _databaseService!.getUnsyncedActionCounts();
+      _pendingActionCount = actionCounts['pending'] ?? 0;
+      _failedActionCount = actionCounts['failed'] ?? 0;
 
       notifyListeners();
     }
@@ -814,6 +831,55 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<List<Map<String, dynamic>>> getUnsyncedSales() async {
     if (_databaseService == null) return [];
     return _databaseService!.getUnsyncedSales();
+  }
+
+  /// Everything else still owed to the server, with the reason each is stuck.
+  Future<List<Map<String, dynamic>>> getUnsyncedActions() async {
+    if (_databaseService == null) return [];
+    return _databaseService!.getUnsyncedActions();
+  }
+
+  /// Hold one CREATE on the device until the network comes back.
+  ///
+  /// Returns true when it is safely stored. A false means it was NOT recorded,
+  /// and the caller owes the user that news plainly -- silence here is how a
+  /// person walks away believing an expense was captured when it was not.
+  ///
+  /// [requestId] MUST be the key the failed online attempt used. That attempt
+  /// may have reached the server and been answered into a dead socket, and
+  /// carrying its key in here is what turns the eventual upload into a replay
+  /// rather than a second record.
+  Future<bool> queueAction({
+    required OfflineAction action,
+    required Map<String, dynamic> payload,
+    required String requestId,
+    String? summary,
+  }) async {
+    if (_databaseService == null) {
+      // Unlike the read paths, reaching here means something a person did had
+      // nowhere to go. Callers must check isInitialized before routing a
+      // create into the queue.
+      debugPrint(
+          'OfflineProvider: cannot queue ${action.type} - offline mode is not enabled');
+      return false;
+    }
+
+    try {
+      final id = await _databaseService!.queueAction(
+        actionType: action.type,
+        endpoint: action.endpoint,
+        label: action.label,
+        requestId: requestId,
+        payload: payload,
+        summary: summary,
+      );
+      debugPrint('💾 ${action.label} saved offline with local ID: $id');
+      await _updateSyncCounts();
+      return true;
+    } catch (e) {
+      debugPrint('OfflineProvider: Error queueing ${action.type} - $e');
+      return false;
+    }
   }
 
   @override

@@ -10,6 +10,9 @@ import '../../models/zreport.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 
@@ -25,6 +28,10 @@ class NewZReportScreen extends StatefulWidget {
 class _NewZReportScreenState extends State<NewZReportScreen> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a Save that times
+  /// out and is tapped again cannot file the same Z report twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
 
   // Form controllers for new fields
   final TextEditingController _turnoverController = TextEditingController();
@@ -348,51 +355,78 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
       final total = double.tryParse(_totalController.text) ?? 0;
       final totalCharges = double.tryParse(_totalChargesController.text) ?? 0;
 
-      final response = _isEditMode
-          ? await _apiService.updateZReport(
-              id: widget.zReport!.id,
-              turnover: turnover,
-              net: net,
-              tax: tax,
-              turnoverExSr: turnoverExSr,
-              total: total,
-              totalCharges: totalCharges,
-              date: _dateController.text,
-              stockLocationId: selectedLocationId,
-              picFile: encodedFile,
-            )
-          : await _apiService.createZReport(
-              turnover: turnover,
-              net: net,
-              tax: tax,
-              turnoverExSr: turnoverExSr,
-              total: total,
-              totalCharges: totalCharges,
-              date: _dateController.text,
-              stockLocationId: selectedLocationId,
-              picFile: encodedFile!,
-            );
-
-      if (mounted) {
-        if (response.isSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_isEditMode
-                  ? 'Z Report updated successfully'
-                  : 'Z Report created successfully'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-          Navigator.pop(context, true);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Failed to save Z Report'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
+      if (_isEditMode) {
+        // An edit targets a server id and cannot be queued. Offline,
+        // ApiService refuses it by name rather than reporting a socket error.
+        final response = await _apiService.updateZReport(
+          id: widget.zReport!.id,
+          turnover: turnover,
+          net: net,
+          tax: tax,
+          turnoverExSr: turnoverExSr,
+          total: total,
+          totalCharges: totalCharges,
+          date: _dateController.text,
+          stockLocationId: selectedLocationId,
+          picFile: encodedFile,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.isSuccess
+                ? 'Z Report updated successfully'
+                : response.message),
+            backgroundColor:
+                response.isSuccess ? AppColors.success : AppColors.error,
+          ),
+        );
+        if (response.isSuccess) Navigator.pop(context, true);
+        return;
       }
+
+      final result = await _offlineSubmit.submit<ZReportDetails>(
+        context: context,
+        action: OfflineAction.zReport,
+        payload: ApiService.zReportBody(
+          turnover: turnover,
+          net: net,
+          tax: tax,
+          turnoverExSr: turnoverExSr,
+          total: total,
+          totalCharges: totalCharges,
+          date: _dateController.text,
+          stockLocationId: selectedLocationId,
+          picFile: encodedFile!,
+        ),
+        summary: _dateController.text,
+        send: (requestId) => _apiService.createZReport(
+          turnover: turnover,
+          net: net,
+          tax: tax,
+          turnoverExSr: turnoverExSr,
+          total: total,
+          totalCharges: totalCharges,
+          date: _dateController.text,
+          stockLocationId: selectedLocationId,
+          picFile: encodedFile,
+          requestId: requestId,
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result.isSent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Z Report created successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        showOfflineSubmitFeedback(context, result);
+      }
+
+      if (result.isKept) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

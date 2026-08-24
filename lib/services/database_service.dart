@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
@@ -10,7 +12,7 @@ class DatabaseService {
   static Database? _database;
 
   // Database version - increment when schema changes
-  static const int _databaseVersion = 4;
+  static const int _databaseVersion = 5;
 
   // Private constructor for singleton
   DatabaseService._();
@@ -44,6 +46,24 @@ class DatabaseService {
       onUpgrade: _onUpgrade,
     );
 
+    return _database!;
+  }
+
+  /// Open the database at an explicit path.
+  ///
+  /// Exists so tests can exercise the REAL schema and the real migrations
+  /// against an in-memory database. Production code goes through
+  /// [initDatabase], which derives the path from the client id -- a queue test
+  /// that built its own tables would pass happily while the shipped schema
+  /// drifted out from under it.
+  @visibleForTesting
+  Future<Database> initDatabaseAt(String path) async {
+    _database = await openDatabase(
+      path,
+      version: _databaseVersion,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
     return _database!;
   }
 
@@ -802,6 +822,40 @@ class DatabaseService {
       )
     ''');
 
+    // Pending Actions
+    //
+    // Every CREATE other than a sale waits here. One row is one thing a person
+    // did: the endpoint it was going to, the exact body that was going to be
+    // sent, and the idempotency key it was going to be sent under.
+    //
+    // Storing the request rather than a per-entity table is what keeps this to
+    // ONE mechanism. The upload does not rebuild the call from a model -- it
+    // re-sends the same body to the same path with the same key, so what the
+    // queue posts is what the failed online attempt posted, and there is no
+    // second code path that can drift away from the first.
+    //
+    // request_id is NOT NULL and UNIQUE. Not null because an action with no
+    // key cannot be uploaded safely and must not be accepted into the queue in
+    // the first place; unique because reusing one key for two different actions
+    // would make the second one vanish into the first one's replay, and it is
+    // far better for that to fail here, locally, than on the server.
+    batch.execute('''
+      CREATE TABLE pending_actions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        action_type TEXT NOT NULL,
+        endpoint TEXT NOT NULL,
+        label TEXT,
+        request_id TEXT NOT NULL UNIQUE,
+        payload TEXT NOT NULL,
+        summary TEXT,
+        server_id INTEGER,
+        sync_status INTEGER DEFAULT 0,
+        sync_error TEXT,
+        sync_timestamp TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    ''');
+
     // Sync Log
     batch.execute('''
       CREATE TABLE sync_log (
@@ -883,6 +937,7 @@ class DatabaseService {
     batch.execute('CREATE INDEX idx_one_time_discounts_item ON one_time_discounts(item_id)');
     batch.execute('CREATE INDEX idx_debits_credits_client ON debits_credits(client_id)');
     batch.execute('CREATE INDEX idx_customer_deposits_customer ON customer_deposits(customer_id)');
+    batch.execute('CREATE INDEX idx_pending_actions_status ON pending_actions(sync_status)');
     batch.execute('CREATE INDEX idx_customer_cards_uid ON customer_cards(card_uid)');
     batch.execute('CREATE INDEX idx_customer_cards_customer ON customer_cards(customer_id)');
 
@@ -963,6 +1018,51 @@ class DatabaseService {
       final itemColNames = itemCols.map((r) => r['name'] as String).toSet();
       if (!itemColNames.contains('approved_request_id')) {
         await db.execute('ALTER TABLE sale_items ADD COLUMN approved_request_id INTEGER');
+      }
+    }
+
+    if (oldVersion < 5) {
+      // v5: everything a seller or clerk can only CREATE gets the same queue,
+      // and the same idempotency key, that sales already had.
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS pending_actions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          action_type TEXT NOT NULL,
+          endpoint TEXT NOT NULL,
+          label TEXT,
+          request_id TEXT NOT NULL UNIQUE,
+          payload TEXT NOT NULL,
+          summary TEXT,
+          server_id INTEGER,
+          sync_status INTEGER DEFAULT 0,
+          sync_error TEXT,
+          sync_timestamp TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_pending_actions_status '
+        'ON pending_actions(sync_status)',
+      );
+
+      // Clear out queue rows for the four entity types whose uploaders sent no
+      // request_id and have been removed.
+      //
+      // Nothing in any shipped build ever wrote one -- createLocalExpense and
+      // its siblings had no callers, which is exactly why ba6624d could leave
+      // them un-idempotent -- so in practice this deletes nothing. It runs
+      // anyway because the alternative, if a row DID exist, is a queue entry no
+      // uploader will ever pick up: invisible, permanent, and counted against
+      // the seller in the pending badge forever.
+      final orphaned = await db.delete(
+        'sync_queue',
+        where: 'entity_type IN (?, ?, ?, ?)',
+        whereArgs: ['expense', 'receiving', 'banking', 'customer_deposit'],
+      );
+      if (orphaned > 0) {
+        debugPrint(
+          'DatabaseService: v5 removed $orphaned queue rows with no uploader',
+        );
       }
     }
   }
@@ -1546,6 +1646,136 @@ class DatabaseService {
     return {'pending': pending, 'failed': failed};
   }
 
+  // =====================================================
+  // PENDING ACTIONS (every CREATE that is not a sale)
+  // =====================================================
+
+  /// Entity type the sync queue files a pending action under.
+  static const String pendingActionEntity = 'pending_action';
+
+  /// Record one action that could not reach the server, so it can be uploaded
+  /// later exactly once.
+  ///
+  /// [requestId] MUST be the key the failed online attempt already used. That
+  /// attempt may have been received and processed before the connection died --
+  /// we simply never heard the answer -- and carrying its key in here is what
+  /// turns the eventual upload into a replay of that record rather than a
+  /// second one. Minting a fresh key at this point would BE the duplicate.
+  ///
+  /// [payload] is the exact body that was posted, minus the key itself; the key
+  /// is re-attached at upload time so one column stays the single home of it.
+  ///
+  /// Throws if the key is already in the queue. That is deliberate: a caller
+  /// reusing a key across two different actions is a bug, and failing here --
+  /// locally, loudly, before anything is promised to the user -- is far better
+  /// than the server quietly replaying the first action's answer for the
+  /// second one.
+  Future<int> queueAction({
+    required String actionType,
+    required String endpoint,
+    required String label,
+    required String requestId,
+    required Map<String, dynamic> payload,
+    String? summary,
+  }) async {
+    if (_database == null) throw Exception('Database not initialized');
+    if (requestId.isEmpty) {
+      throw ArgumentError('queueAction requires a non-empty request id');
+    }
+
+    return await _database!.transaction((txn) async {
+      final actionId = await txn.insert('pending_actions', {
+        'action_type': actionType,
+        'endpoint': endpoint,
+        'label': label,
+        'request_id': requestId,
+        'payload': jsonEncode(payload),
+        'summary': summary,
+        'sync_status': syncStatusPending,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      await txn.insert('sync_queue', {
+        'entity_type': pendingActionEntity,
+        'entity_id': actionId,
+        'action': 'create',
+        'priority': 0,
+        'sync_status': syncStatusPending,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      debugPrint('DatabaseService: Queued $actionType action id $actionId');
+      return actionId;
+    });
+  }
+
+  /// One queued action by its local id.
+  Future<Map<String, dynamic>?> getPendingAction(int id) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    final rows =
+        await _database!.query('pending_actions', where: 'id = ?', whereArgs: [id]);
+    if (rows.isEmpty) return null;
+    return rows.first;
+  }
+
+  /// Update a queued action after an upload attempt.
+  Future<void> updatePendingActionStatus(
+    int id,
+    int status, {
+    int? serverId,
+    String? error,
+  }) async {
+    if (_database == null) throw Exception('Database not initialized');
+
+    final data = <String, dynamic>{
+      'sync_status': status,
+      'sync_timestamp': DateTime.now().toIso8601String(),
+    };
+    if (serverId != null) data['server_id'] = serverId;
+    if (error != null) data['sync_error'] = error;
+
+    await _database!
+        .update('pending_actions', data, where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Actions that have not reached the server yet, newest first, with the
+  /// queue state joined on so a person can see WHY one is stuck rather than
+  /// only that it is. Mirrors [getUnsyncedSales] and drives the same sheet.
+  Future<List<Map<String, dynamic>>> getUnsyncedActions({int limit = 100}) async {
+    if (_database == null) return [];
+
+    return await _database!.rawQuery('''
+      SELECT a.id, a.action_type, a.label, a.summary, a.request_id,
+             a.created_at, a.sync_status, a.sync_error, a.server_id,
+             q.retry_count, q.error_message, q.last_attempted_at,
+             q.sync_status AS queue_status
+      FROM pending_actions a
+      LEFT JOIN sync_queue q
+        ON q.entity_type = ? AND q.entity_id = a.id
+      WHERE a.sync_status != ?
+      ORDER BY a.created_at DESC, a.id DESC
+      LIMIT ?
+    ''', [pendingActionEntity, syncStatusSynced, limit]);
+  }
+
+  /// Counts for the badge, split by whether the queue has given up.
+  Future<Map<String, int>> getUnsyncedActionCounts() async {
+    if (_database == null) return {'pending': 0, 'failed': 0};
+
+    final pending = Sqflite.firstIntValue(await _database!.rawQuery(
+      'SELECT COUNT(*) FROM pending_actions WHERE sync_status = ?',
+      [syncStatusPending],
+    )) ?? 0;
+
+    final failed = Sqflite.firstIntValue(await _database!.rawQuery(
+      'SELECT COUNT(*) FROM pending_actions WHERE sync_status = ?',
+      [syncStatusFailed],
+    )) ?? 0;
+
+    return {'pending': pending, 'failed': failed};
+  }
+
   /// Add to sync log
   Future<void> addSyncLog(String entityType, int entityId, int? serverId, String action, String status, {String? message}) async {
     if (_database == null) throw Exception('Database not initialized');
@@ -1663,28 +1893,12 @@ class DatabaseService {
   // EXPENSE OPERATIONS
   // =====================================================
 
-  /// Create a local expense (offline)
-  Future<int> createLocalExpense(Map<String, dynamic> expense) async {
-    if (_database == null) throw Exception('Database not initialized');
-
-    expense['sync_status'] = syncStatusPending;
-    expense['created_at'] = DateTime.now().toIso8601String();
-
-    final expenseId = await _database!.insert('expenses', expense);
-
-    // Add to sync queue
-    await _database!.insert('sync_queue', {
-      'entity_type': 'expense',
-      'entity_id': expenseId,
-      'action': 'create',
-      'priority': 1,
-      'sync_status': syncStatusPending,
-      'created_at': DateTime.now().toIso8601String(),
-    });
-
-    debugPrint('DatabaseService: Created local expense with id $expenseId');
-    return expenseId;
-  }
+  // An offline expense is queued through [queueAction] like every other
+  // non-sale create, not written into the `expenses` table. The old
+  // createLocalExpense() wrote a row and filed it under an entity type whose
+  // uploader sent no request_id -- so the first thing that ever called it
+  // would have started duplicating expenses on every retry. It had no callers
+  // and is gone rather than left as a trap.
 
   /// Save expense categories
   Future<void> saveExpenseCategories(List<Map<String, dynamic>> categories) async {
@@ -1864,6 +2078,10 @@ class DatabaseService {
     await _database!.delete('sales', where: 'sync_status = ?', whereArgs: [syncStatusSynced]);
     await _database!.delete('expenses', where: 'sync_status = ?', whereArgs: [syncStatusSynced]);
     await _database!.delete('receivings', where: 'sync_status = ?', whereArgs: [syncStatusSynced]);
+
+    // Uploaded actions only. A pending or failed one is still owed to the
+    // server and must survive a cache clear -- it is the only copy there is.
+    await _database!.delete('pending_actions', where: 'sync_status = ?', whereArgs: [syncStatusSynced]);
 
     // Clear completed sync queue items
     await _database!.delete('sync_queue', where: 'sync_status = ?', whereArgs: [syncStatusSynced]);

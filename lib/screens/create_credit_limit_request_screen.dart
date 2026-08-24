@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/approval.dart';
+import '../providers/offline_provider.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -70,6 +74,22 @@ class _CreateCreditLimitRequestScreenState
   bool _loading = true;
   bool _submitting = false;
   String? _error;
+
+  /// When the customer list below came from a saved copy rather than the
+  /// server. The picker is worth showing stale -- who is on a seller's route
+  /// changes weekly at most.
+  DateTime? _candidatesCachedAt;
+
+  /// Offline with no saved customer list on this device.
+  bool _candidatesOffline = false;
+
+  /// Offline while trying to read a customer's live credit position.
+  ///
+  /// Kept separate, and never served from a cache, because a credit BALANCE is
+  /// the one figure on this screen where a stale number does real damage: it
+  /// is what the request is sized against. A yesterday's balance would have
+  /// someone ask for an increase the customer has already been given.
+  bool _positionOffline = false;
 
   /// Held across retries, and tied to the payload — see the note in the
   /// discount form. Switching customer after a timeout must not replay the
@@ -136,8 +156,13 @@ class _CreateCreditLimitRequestScreenState
       _searchingCustomers = false;
       if (response.isSuccess && response.data != null) {
         _candidates = response.data!;
+        _candidatesCachedAt = response.servedFromCacheAt;
+        _candidatesOffline = false;
       } else {
-        _error = FriendlyError.of(response.message);
+        _candidatesOffline = isTransportFailure(response);
+        _error =
+            _candidatesOffline ? null : FriendlyError.of(response.message);
+        _candidatesCachedAt = null;
       }
     });
   }
@@ -177,8 +202,10 @@ class _CreateCreditLimitRequestScreenState
       _loading = false;
       if (response.isSuccess && response.data != null) {
         _position = response.data;
+        _positionOffline = false;
       } else {
-        _error = FriendlyError.of(response.message);
+        _positionOffline = isTransportFailure(response);
+        _error = _positionOffline ? null : FriendlyError.of(response.message);
       }
     });
   }
@@ -197,15 +224,66 @@ class _CreateCreditLimitRequestScreenState
       _requestId = const Uuid().v4();
     }
 
+    final creditAmount = double.parse(_amount.text);
+    final reason = _reason.text.trim();
+    final notes = _notes.text.trim();
+
     final response = await _api.createCreditLimitRequest(
       customerId: _customerId!,
-      creditAmount: double.parse(_amount.text),
-      reason: _reason.text.trim(),
-      notes: _notes.text.trim(),
+      creditAmount: creditAmount,
+      reason: reason,
+      notes: notes,
       requestId: _requestId,
     );
 
     if (!mounted) return;
+
+    if (!response.isSuccess && response.statusCode == null) {
+      // The server never answered. This endpoint already carried the key --
+      // what was missing was PERSISTING it, so it died with the screen and a
+      // retry after a restart would have raised the request again. Queue the
+      // same body under the same key.
+      final offlineProvider = context.read<OfflineProvider>();
+      final queued = offlineProvider.isInitialized &&
+          await offlineProvider.queueAction(
+            action: OfflineAction.creditLimitRequest,
+            payload: ApiService.creditLimitRequestBody(
+              customerId: _customerId!,
+              creditAmount: creditAmount,
+              reason: reason,
+              notes: notes,
+            ),
+            requestId: _requestId!,
+            summary: creditAmount.toStringAsFixed(0),
+          );
+
+      if (!mounted) return;
+
+      if (!queued) {
+        setState(() {
+          _submitting = false;
+          _error = 'No connection, and this request could not be saved on the '
+              'device. It was NOT recorded - please try again.';
+        });
+        return;
+      }
+
+      // The key now belongs to the queued row; the next request mints its own.
+      _requestId = null;
+      _requestKey = null;
+
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context, true);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Saved on this device - no connection. The request '
+              'will be sent by itself when the network returns.'),
+          backgroundColor: AppColors.warning,
+          duration: Duration(seconds: 6),
+        ),
+      );
+      return;
+    }
 
     if (response.isSuccess) {
       final needsApproval = response.data?['requires_approval'] == true;
@@ -313,6 +391,16 @@ class _CreateCreditLimitRequestScreenState
       );
     }
 
+    // Before the empty state below, which asserts there are no customers in
+    // this seller's locations -- a claim about the server, not about here.
+    if (_candidatesOffline && _candidates.isEmpty) {
+      return OfflineEmptyView(
+        noun: 'customers',
+        isDark: isDark,
+        onRefresh: () => _searchCustomers(_customerSearch.text),
+      );
+    }
+
     if (_candidates.isEmpty) {
       return EmptyStateView(
         icon: Icons.person_off_outlined,
@@ -326,7 +414,12 @@ class _CreateCreditLimitRequestScreenState
       );
     }
 
-    return ListView.separated(
+    return CachedBodyWrapper(
+      cachedAt: _candidatesCachedAt,
+      noun: 'customers',
+      isDark: isDark,
+      onRetry: () => _searchCustomers(_customerSearch.text),
+      child: ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount: _candidates.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -340,6 +433,7 @@ class _CreateCreditLimitRequestScreenState
           onTap: () => _selectCustomer(customer),
         );
       },
+      ),
     );
   }
 
@@ -351,6 +445,21 @@ class _CreateCreditLimitRequestScreenState
     final position = _position;
 
     if (position == null) {
+      // A deliberate refusal, not a failure. The credit position is what the
+      // request is sized against, so it is read live or not at all -- and the
+      // seller is told which, rather than being shown a spinner or a stale
+      // balance they would size a request against.
+      if (_positionOffline) {
+        return ErrorStateView(
+          icon: Icons.cloud_off,
+          message: 'A customer\'s credit balance can only be checked online, '
+              'because a saved figure could be out of date by the amount you '
+              'are about to request.\n\nConnect to the internet to raise a '
+              'credit limit request for $_customerName.',
+          onRetry: _load,
+          isDark: isDark,
+        );
+      }
       return ErrorStateView(
         message: _error ?? 'Could not load',
         onRetry: FriendlyError.isPermanent(_error) ? null : _load,

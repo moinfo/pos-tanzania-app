@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/approval.dart';
+import '../providers/offline_provider.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
+import '../services/read_cache.dart';
 import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -116,6 +120,17 @@ class _CreateDiscountRequestScreenState
   DateTime _validDate = DateTime.now();
 
   bool _loading = true;
+
+  /// When the pickers below were filled from a saved copy of form_options
+  /// rather than from the server. Null when they are live.
+  ///
+  /// The form is worth opening on a stale copy: the locations and customers an
+  /// employee may choose move when someone is reassigned, which is weekly at
+  /// most. An empty picker is not a degraded form, it is an unusable one.
+  DateTime? _optionsCachedAt;
+
+  /// Offline, and no saved copy of the choices exists on this device.
+  bool _offline = false;
   bool _searchingItems = false;
   bool _submitting = false;
   String? _error;
@@ -165,7 +180,8 @@ class _CreateDiscountRequestScreenState
     if (!response.isSuccess || response.data == null) {
       setState(() {
         _loading = false;
-        _error = FriendlyError.of(response.message);
+        _offline = isTransportFailure(response);
+        _error = _offline ? null : FriendlyError.of(response.message);
       });
       return;
     }
@@ -175,6 +191,8 @@ class _CreateDiscountRequestScreenState
     setState(() {
       _options = options;
       _loading = false;
+      _optionsCachedAt = response.servedFromCacheAt;
+      _offline = false;
 
       // One location is the common case for a seller on a route: pick it.
       if (options.locations.length == 1) {
@@ -228,7 +246,12 @@ class _CreateDiscountRequestScreenState
         _items = response.data!;
       } else {
         _items = [];
-        _error = FriendlyError.of(response.message);
+        // The form itself is still usable without the catalogue -- the item
+        // picker just has nothing to offer. Say that plainly rather than
+        // reporting a transport failure the seller can do nothing about.
+        _error = isTransportFailure(response)
+            ? 'The item list could not be loaded offline. Connect once to save it.'
+            : FriendlyError.of(response.message);
       }
     });
   }
@@ -356,23 +379,78 @@ class _CreateDiscountRequestScreenState
       _requestId = const Uuid().v4();
     }
 
+    final items = [
+      for (final line in _lines)
+        {
+          'item_id': line.item.itemId,
+          'quantity': line.quantity,
+          'discount_amount': line.discountAmount,
+        },
+    ];
+    final reason = _reason.text.trim();
+    final validDate = DateFormat('yyyy-MM-dd').format(_validDate);
+
     final response = await _api.createOneTimeDiscountRequest(
       customerId: _customer!.customerId,
       stockLocationId: _location!.locationId,
-      items: [
-        for (final line in _lines)
-          {
-            'item_id': line.item.itemId,
-            'quantity': line.quantity,
-            'discount_amount': line.discountAmount,
-          },
-      ],
-      reason: _reason.text.trim(),
-      validDate: DateFormat('yyyy-MM-dd').format(_validDate),
+      items: items,
+      reason: reason,
+      validDate: validDate,
       requestId: _requestId,
     );
 
     if (!mounted) return;
+
+    if (!response.isSuccess && response.statusCode == null) {
+      // The server never answered. This endpoint already carried the key --
+      // what was missing was PERSISTING it, so the key died with the screen
+      // and a retry after a restart would have raised the batch again. Queue
+      // the same body under the same key: if this attempt did land, the upload
+      // replays it; if it did not, the upload creates it. Either way, one
+      // batch of requests.
+      final offlineProvider = context.read<OfflineProvider>();
+      final queued = offlineProvider.isInitialized &&
+          await offlineProvider.queueAction(
+            action: OfflineAction.oneTimeDiscountRequest,
+            payload: ApiService.oneTimeDiscountRequestBody(
+              customerId: _customer!.customerId,
+              stockLocationId: _location!.locationId,
+              items: items,
+              reason: reason,
+              validDate: validDate,
+            ),
+            requestId: _requestId!,
+            summary: '${_lines.length} item(s) for ${_customer!.customerName}',
+          );
+
+      if (!mounted) return;
+
+      if (!queued) {
+        setState(() {
+          _submitting = false;
+          _error = 'No connection, and this request could not be saved on the '
+              'device. It was NOT recorded - please try again.';
+        });
+        return;
+      }
+
+      // The key now belongs to the queued row; the next batch mints its own.
+      _requestId = null;
+      _requestKey = null;
+      setState(() => _submitting = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Saved on this device - no connection. '
+              '${_lines.length == 1 ? 'This request' : 'These requests'} will '
+              'upload by itself when the network returns.'),
+          backgroundColor: AppColors.warning,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+      Navigator.pop(context, true);
+      return;
+    }
 
     if (!response.isSuccess) {
       setState(() {
@@ -479,6 +557,15 @@ class _CreateDiscountRequestScreenState
     final options = _options;
 
     if (options == null) {
+      // Offline with nothing saved gets its own wording: there is nothing
+      // wrong, the device simply has never seen the choices this form needs.
+      if (_offline) {
+        return OfflineEmptyView(
+          noun: 'the discount request form',
+          isDark: isDark,
+          onRefresh: _load,
+        );
+      }
       return ErrorStateView(
         message: FriendlyError.of(_error ?? 'Could not load'),
         onRetry: FriendlyError.isPermanent(_error) ? null : _load,
@@ -497,7 +584,16 @@ class _CreateDiscountRequestScreenState
 
     return Form(
       key: _formKey,
-      child: ListView(
+      child: Column(children: [
+        if (_optionsCachedAt != null)
+          CachedDataBanner(
+            fetchedAtLabel: describeCacheAge(_optionsCachedAt!),
+            noun: 'the customer and location choices',
+            isDark: isDark,
+            onRetry: _load,
+          ),
+        Expanded(
+          child: ListView(
         // The bottom inset keeps Send Request clear of the navigation bar
         // instead of sitting flush on top of it.
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
@@ -660,8 +756,10 @@ class _CreateDiscountRequestScreenState
               padding: const EdgeInsets.symmetric(vertical: 15),
             ),
           ),
-        ],
-      ),
+          ],
+          ),
+        ),
+      ]),
     );
   }
 

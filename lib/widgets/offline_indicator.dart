@@ -214,11 +214,22 @@ class OfflineBanner extends StatelessWidget {
       builder: (context, connectivity, offline, child) {
         final pending = offline.pendingSaleCount;
         final failed = offline.failedSaleCount;
+        // Expenses, receivings, banking, submissions, requests, people. Kept
+        // separate from the sale counts in the wording -- telling a seller
+        // "3 sales waiting" when two of them are expenses sends them looking
+        // for receipts that were never missing.
+        final otherPending = offline.pendingActionCount;
+        final otherFailed = offline.failedActionCount;
         final noNetwork = connectivity.isOffline;
         final noServer = !noNetwork && !offline.serverReachable;
 
         // Everything is online, reachable and empty: say nothing.
-        if (!noNetwork && !noServer && pending == 0 && failed == 0) {
+        if (!noNetwork &&
+            !noServer &&
+            pending == 0 &&
+            failed == 0 &&
+            otherPending == 0 &&
+            otherFailed == 0) {
           return const SizedBox.shrink();
         }
 
@@ -227,31 +238,35 @@ class OfflineBanner extends StatelessWidget {
         final String title;
         final String detail;
 
-        if (failed > 0) {
+        if (failed > 0 || otherFailed > 0) {
           background = AppColors.error;
           icon = Icons.report_problem_outlined;
-          title = failed == 1
-              ? '1 sale could not be uploaded'
-              : '$failed sales could not be uploaded';
+          title = failed > 0
+              ? (failed == 1
+                  ? '1 sale could not be uploaded'
+                  : '$failed sales could not be uploaded')
+              : (otherFailed == 1
+                  ? '1 record could not be uploaded'
+                  : '$otherFailed records could not be uploaded');
           detail = 'The server refused it. Tap to see why.';
         } else if (noNetwork) {
           background = AppColors.warning;
           icon = Icons.cloud_off;
-          title = 'No connection - you can keep selling';
-          detail = pending == 0
-              ? 'Sales are saved here and upload by themselves later.'
-              : '${_saleWord(pending)} saved here, uploading by itself when the network returns.';
+          title = 'No connection - you can keep working';
+          detail = (pending == 0 && otherPending == 0)
+              ? 'What you record is saved here and uploads by itself later.'
+              : '${_waitingWord(pending, otherPending)} saved here, uploading by itself when the network returns.';
         } else if (noServer) {
           background = AppColors.warning;
           icon = Icons.cloud_off;
           title = 'Cannot reach the server';
-          detail = pending == 0
+          detail = (pending == 0 && otherPending == 0)
               ? 'You have a connection but the server is not answering.'
-              : '${_saleWord(pending)} waiting. Retrying by itself.';
+              : '${_waitingWord(pending, otherPending)} waiting. Retrying by itself.';
         } else {
           background = AppColors.info;
           icon = Icons.cloud_upload_outlined;
-          title = '${_saleWord(pending)} still uploading';
+          title = '${_waitingWord(pending, otherPending)} still uploading';
           detail = offline.isSyncing
               ? 'Uploading now.'
               : 'This happens by itself - nothing to press.';
@@ -317,6 +332,21 @@ class OfflineBanner extends StatelessWidget {
   }
 
   static String _saleWord(int n) => n == 1 ? '1 sale' : '$n sales';
+
+  /// "2 sales", "1 record", or "2 sales and 1 record" -- whichever is true.
+  ///
+  /// Naming both kinds matters: a clerk who queued an expense and is told only
+  /// about sales has no way to know their expense is safe, and a seller told
+  /// about "3 items" cannot tell whether a receipt is among them.
+  static String _otherWord(int n) => n == 1 ? '1 record' : '$n records';
+
+  static String _waitingWord(int sales, int others) {
+    if (sales > 0 && others > 0) {
+      return '${_saleWord(sales)} and ${_otherWord(others)}';
+    }
+    if (others > 0) return _otherWord(others);
+    return _saleWord(sales);
+  }
 }
 
 /// Bottom sheet showing sync status and controls
@@ -563,9 +593,111 @@ class SyncStatusSheet extends StatelessWidget {
             ),
           ),
 
+          // Everything else that is waiting -- expenses, receivings, banking,
+          // submissions, requests, customers, suppliers. Listed apart from the
+          // sales so a clerk chasing an expense is not reading a list of
+          // receipts, and shown at all because a queue nobody can see is worse
+          // than no queue.
+          const SizedBox(height: 20),
+          Text(
+            'Other records not yet on the server',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.muted(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 240),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: offlineProvider.getUnsyncedActions(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: LinearProgressIndicator(),
+                  );
+                }
+
+                final actions = snapshot.data ?? const [];
+                if (actions.isEmpty) {
+                  return Text(
+                    'Everything has been uploaded.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.muted(context),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: actions.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 12,
+                    color: AppColors.hairline(context),
+                  ),
+                  itemBuilder: (context, i) =>
+                      _buildQueuedActionRow(context, actions[i]),
+                );
+              },
+            ),
+          ),
+
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+
+  /// One queued record: what kind it is, which one, and -- when it is stuck --
+  /// the server's own words for why.
+  Widget _buildQueuedActionRow(BuildContext context, Map<String, dynamic> row) {
+    final isFailed = row['sync_status'] == DatabaseService.syncStatusFailed;
+    final label = (row['label'] as String?)?.trim();
+    final summary = (row['summary'] as String?)?.trim();
+    final error = (row['sync_error'] ?? row['error_message']) as String?;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          isFailed ? Icons.error_outline : Icons.schedule,
+          size: 18,
+          color: isFailed ? AppColors.error : AppColors.warning,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                summary == null || summary.isEmpty
+                    ? (label ?? 'Record')
+                    : '${label ?? 'Record'}  -  $summary',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.ink(context),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                isFailed
+                    ? (error?.trim().isNotEmpty == true
+                        ? error!.trim()
+                        : 'The server refused this record.')
+                    : 'Waiting to upload.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isFailed ? AppColors.error : AppColors.muted(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

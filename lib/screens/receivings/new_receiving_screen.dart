@@ -10,6 +10,9 @@ import '../../providers/location_provider.dart';
 import '../../providers/receiving_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../widgets/app_bottom_navigation.dart';
 
 class NewReceivingScreen extends StatefulWidget {
@@ -24,6 +27,10 @@ class NewReceivingScreen extends StatefulWidget {
 
 class _NewReceivingScreenState extends State<NewReceivingScreen> {
   final ApiService _apiService = ApiService();
+
+  /// Holds this receiving's idempotency key across attempts, so a Save that
+  /// times out and is tapped again cannot book the stock in twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _referenceController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
@@ -299,29 +306,34 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
       }
 
       final receiving = receivingProvider.createReceiving();
-      final response = await _apiService.createReceiving(receiving);
 
-      if (response.isSuccess) {
-        if (mounted) {
-          receivingProvider.clearCart();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Receiving created successfully!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-          Navigator.pop(context, true);
-        }
+      final result = await _offlineSubmit.submit<Map<String, dynamic>>(
+        context: context,
+        action: OfflineAction.receiving,
+        payload: receiving.toJson(),
+        summary: '${receiving.items.length} item(s)',
+        send: (requestId) =>
+            _apiService.createReceiving(receiving, requestId: requestId),
+      );
+
+      if (!mounted) return;
+
+      if (result.isSent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Receiving created successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Failed to create receiving'),
-              backgroundColor: AppColors.error,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
+        showOfflineSubmitFeedback(context, result);
+      }
+
+      // Queued counts as kept. Leaving the cart loaded would invite the clerk
+      // to book the same delivery in a second time when the network returns.
+      if (result.isKept) {
+        receivingProvider.clearCart();
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {

@@ -1,14 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'database_service.dart';
 import 'api_service.dart';
 import '../models/api_response.dart';
 import '../models/sale.dart';
-import '../models/expense.dart';
-import '../models/receiving.dart';
-import '../models/banking.dart';
-import '../models/transaction.dart';
+import 'offline_actions.dart';
 
 /// Sync status enum
 enum SyncStatus {
@@ -254,9 +253,10 @@ class SyncService {
 
     try {
       // Sales first, and they gate the rest: when the server did not answer
-      // the sale upload it will not answer the other five either, and pushing
-      // on means five more 30-second timeouts before the seller's screen stops
-      // saying "Syncing...". Everything left simply stays queued.
+      // the sale upload it will not answer the queued expenses and receivings
+      // either, and pushing on means another 30-second timeout per item before
+      // the seller's screen stops saying "Syncing...". Everything left simply
+      // stays queued.
       // With an empty queue _syncSales has nothing to learn from, so it cannot
       // tell us whether the server is up -- and a seller about to start a
       // shift deserves to know that BEFORE the first sale, not after it. One
@@ -283,10 +283,18 @@ class SyncService {
         return;
       }
 
-      await _syncExpenses();
-      await _syncReceivings();
-      await _syncBanking();
-      await _syncCustomerDeposits();
+      // Every other CREATE -- expenses, receivings, banking, deposits, the
+      // submissions, the requests, customers, suppliers, the whole
+      // transactions/add_* family -- goes through one queue and one uploader.
+      // If it stops because the server went away mid-run, the rest stays
+      // queued rather than spending 30 seconds each discovering the same
+      // thing.
+      if (!await _syncPendingActions()) {
+        _noteReachability(false);
+        _setStatus(SyncStatus.failed);
+        return;
+      }
+
       await _syncOneTimeDiscountUsage();
 
       _setStatus(SyncStatus.completed);
@@ -534,320 +542,240 @@ class SyncService {
     );
   }
 
-  /// Sync pending expenses
-  Future<void> _syncExpenses() async {
-    final pendingItems = await _dbService.getPendingSyncItems(entityType: 'expense');
-    debugPrint('SyncService: Found ${pendingItems.length} pending expenses to sync');
-
-    for (final item in pendingItems) {
-      final entityId = item['entity_id'] as int;
-      final retryCount = item['retry_count'] as int? ?? 0;
-
-      if (retryCount >= _maxRetries) {
-        await _dbService.updateSyncQueueStatus(
-          item['id'] as int,
-          DatabaseService.syncStatusFailed,
-          error: 'Max retries exceeded',
-        );
-        continue;
-      }
-
-      try {
-        // Get expense from local DB
-        final expenses = await _dbService.query('expenses', where: 'id = ?', whereArgs: [entityId]);
-        if (expenses.isEmpty) {
-          await _dbService.removeSyncQueueItem(item['id'] as int);
-          continue;
-        }
-
-        final expense = expenses.first;
-
-        // Create expense form data
-        final formData = ExpenseFormData(
-          date: expense['date'] as String,
-          amount: (expense['amount'] as num).toDouble(),
-          taxAmount: (expense['tax_amount'] as num?)?.toDouble() ?? 0,
-          paymentType: expense['payment_type'] as String? ?? 'Cash',
-          description: expense['description'] as String? ?? '',
-          categoryId: expense['expense_category_id'] as int?,
-          supplierTaxCode: expense['supplier_tax_code'] as String?,
-          stockLocationId: expense['stock_location_id'] as int?,
-        );
-
-        // Send to server
-        final response = await _apiService.createExpense(formData);
-
-        if (response.isSuccess && response.data != null) {
-          final serverExpenseId = response.data!.expenseId;
-
-          // Update local expense
-          await _dbService.update(
-            'expenses',
-            {
-              'server_expense_id': serverExpenseId,
-              'sync_status': DatabaseService.syncStatusSynced,
-              'sync_timestamp': DateTime.now().toIso8601String(),
-            },
-            'id = ?',
-            [entityId],
-          );
-
-          // Remove from sync queue
-          await _dbService.removeSyncQueueItem(item['id'] as int);
-
-          // Log success
-          await _dbService.addSyncLog('expense', entityId, serverExpenseId, 'create', 'success');
-
-          debugPrint('SyncService: Expense $entityId synced successfully');
-        } else {
-          throw Exception(response.message ?? 'Unknown error');
-        }
-      } catch (e) {
-        debugPrint('SyncService: Failed to sync expense $entityId - $e');
-
-        await _dbService.updateSyncQueueStatus(
-          item['id'] as int,
-          DatabaseService.syncStatusPending,
-          error: e.toString(),
-        );
-      }
-    }
-  }
-
-  /// Sync pending receivings
-  Future<void> _syncReceivings() async {
-    final pendingItems = await _dbService.getPendingSyncItems(entityType: 'receiving');
-    debugPrint('SyncService: Found ${pendingItems.length} pending receivings to sync');
-
-    for (final item in pendingItems) {
-      final entityId = item['entity_id'] as int;
-      final retryCount = item['retry_count'] as int? ?? 0;
-
-      if (retryCount >= _maxRetries) {
-        await _dbService.updateSyncQueueStatus(
-          item['id'] as int,
-          DatabaseService.syncStatusFailed,
-          error: 'Max retries exceeded',
-        );
-        continue;
-      }
-
-      try {
-        // Get receiving and items from local DB
-        final receivings = await _dbService.query('receivings', where: 'id = ?', whereArgs: [entityId]);
-        if (receivings.isEmpty) {
-          await _dbService.removeSyncQueueItem(item['id'] as int);
-          continue;
-        }
-
-        final receiving = receivings.first;
-        final localItems = await _dbService.query('receiving_items', where: 'receiving_id = ?', whereArgs: [entityId]);
-
-        // Convert to Receiving model
-        final receivingModel = _convertLocalReceivingToModel(receiving, localItems);
-
-        // Send to server
-        final response = await _apiService.createReceiving(receivingModel);
-
-        if (response.isSuccess && response.data != null) {
-          final serverReceivingId = response.data!['receiving_id'] as int?;
-
-          // Update local receiving
-          await _dbService.update(
-            'receivings',
-            {
-              'server_receiving_id': serverReceivingId,
-              'sync_status': DatabaseService.syncStatusSynced,
-              'sync_timestamp': DateTime.now().toIso8601String(),
-            },
-            'id = ?',
-            [entityId],
-          );
-
-          // Remove from sync queue
-          await _dbService.removeSyncQueueItem(item['id'] as int);
-
-          // Log success
-          await _dbService.addSyncLog('receiving', entityId, serverReceivingId, 'create', 'success');
-
-          debugPrint('SyncService: Receiving $entityId synced successfully');
-        } else {
-          throw Exception(response.message ?? 'Unknown error');
-        }
-      } catch (e) {
-        debugPrint('SyncService: Failed to sync receiving $entityId - $e');
-
-        await _dbService.updateSyncQueueStatus(
-          item['id'] as int,
-          DatabaseService.syncStatusPending,
-          error: e.toString(),
-        );
-      }
-    }
-  }
-
-  /// Convert local receiving to Receiving model
-  Receiving _convertLocalReceivingToModel(Map<String, dynamic> localReceiving, List<Map<String, dynamic>> localItems) {
-    final items = localItems.map((item) {
-      return ReceivingItem(
-        itemId: item['item_id'] as int,
-        itemName: item['item_name'] as String? ?? '',
-        line: item['line'] as int? ?? 0,
-        quantity: (item['quantity_purchased'] as num).toDouble(),
-        costPrice: (item['item_cost_price'] as num).toDouble(),
-        unitPrice: (item['item_unit_price'] as num?)?.toDouble() ?? 0,
-        itemLocation: item['item_location'] as int? ?? 1,
-      );
-    }).toList();
-
-    return Receiving(
-      supplierId: localReceiving['supplier_id'] as int,
-      employeeId: localReceiving['employee_id'] as int?,
-      paymentType: localReceiving['payment_type'] as String? ?? 'Cash',
-      reference: localReceiving['reference'] as String?,
-      comment: localReceiving['comment'] as String?,
-      stockLocation: localReceiving['stock_location_id'] as int? ?? 1,
-      items: items,
+  /// Upload every queued CREATE that is not a sale.
+  ///
+  /// One uploader for all of them, because they differ only in where they are
+  /// going: the queue holds the endpoint, the exact body the failed online
+  /// attempt posted, and the key it posted under, so replaying one is a matter
+  /// of sending the same three things again. Rebuilding each call from a model
+  /// -- which is what the four hand-written uploaders this replaced did -- is
+  /// how a queued copy quietly stops matching what the screen actually sent.
+  ///
+  /// Returns false when the run stopped because the server could not be
+  /// reached, so the caller can abandon the rest of the sync rather than wait
+  /// out a 30-second timeout per remaining item.
+  ///
+  /// Unlike sales, a stuck item does NOT stop the ones behind it. Sales upload
+  /// in order because the receipt sequence the seller handed out depends on it;
+  /// an expense and a new customer have no such relationship, and holding a
+  /// perfectly good customer behind an expense the server refuses would only
+  /// widen the damage.
+  Future<bool> _syncPendingActions() async {
+    final pendingItems = await _dbService.getPendingSyncItems(
+      entityType: DatabaseService.pendingActionEntity,
     );
-  }
-
-  /// Sync pending banking
-  Future<void> _syncBanking() async {
-    final pendingItems = await _dbService.getPendingSyncItems(entityType: 'banking');
-    debugPrint('SyncService: Found ${pendingItems.length} pending banking to sync');
+    debugPrint('SyncService: Found ${pendingItems.length} pending actions to sync');
 
     for (final item in pendingItems) {
       final entityId = item['entity_id'] as int;
+      final queueId = item['id'] as int;
       final retryCount = item['retry_count'] as int? ?? 0;
 
+      final action = await _dbService.getPendingAction(entityId);
+      if (action == null) {
+        // The row is gone; nothing left to upload.
+        await _dbService.removeSyncQueueItem(queueId);
+        continue;
+      }
+
+      final label = action['label'] as String? ?? 'Record';
+
       if (retryCount >= _maxRetries) {
-        await _dbService.updateSyncQueueStatus(
-          item['id'] as int,
-          DatabaseService.syncStatusFailed,
-          error: 'Max retries exceeded',
+        await _failAction(queueId, entityId, label, 'Max retries exceeded');
+        continue;
+      }
+
+      // The key this action was FIRST recorded under. Reused verbatim on every
+      // attempt: that is the whole exactly-once guarantee. If an earlier
+      // attempt reached the server and we never heard the answer, the server
+      // replays that answer now instead of writing the record a second time.
+      final requestId = action['request_id'] as String?;
+      if (requestId == null || requestId.isEmpty) {
+        // Uploading without a key risks a duplicate, and a duplicate is worse
+        // than something that waits for a person. queueAction refuses to write
+        // such a row, so reaching here means a hand-edited or corrupted
+        // database -- still no reason to guess.
+        await _failAction(
+          queueId,
+          entityId,
+          label,
+          '$label has no idempotency key and cannot be uploaded safely',
         );
         continue;
       }
 
-      try {
-        final banking = await _dbService.query('banking', where: 'id = ?', whereArgs: [entityId]);
-        if (banking.isEmpty) {
-          await _dbService.removeSyncQueueItem(item['id'] as int);
-          continue;
-        }
-
-        final record = banking.first;
-
-        // Create banking model
-        final bankingModel = BankingCreate(
-          date: record['date'] as String,
-          amount: (record['amount'] as num).toDouble(),
-          bankName: record['bank_name'] as String? ?? '',
-          depositor: record['depositor'] as String? ?? '',
-          supervisorId: record['supervisor_id'] as int? ?? 0,
-          stockLocationId: record['stock_location_id'] as int?,
-        );
-
-        final response = await _apiService.createBanking(bankingModel);
-
-        if (response.isSuccess && response.data != null) {
-          final serverBankingId = response.data!['banking_id'] as int?;
-
-          await _dbService.update(
-            'banking',
-            {
-              'server_banking_id': serverBankingId,
-              'sync_status': DatabaseService.syncStatusSynced,
-              'sync_timestamp': DateTime.now().toIso8601String(),
-            },
-            'id = ?',
-            [entityId],
-          );
-
-          await _dbService.removeSyncQueueItem(item['id'] as int);
-          debugPrint('SyncService: Banking $entityId synced successfully');
-        } else {
-          throw Exception(response.message ?? 'Unknown error');
-        }
-      } catch (e) {
-        debugPrint('SyncService: Failed to sync banking $entityId - $e');
-        await _dbService.updateSyncQueueStatus(
-          item['id'] as int,
-          DatabaseService.syncStatusPending,
-          error: e.toString(),
-        );
-      }
-    }
-  }
-
-  /// Sync pending customer deposits
-  Future<void> _syncCustomerDeposits() async {
-    final pendingItems = await _dbService.getPendingSyncItems(entityType: 'customer_deposit');
-    debugPrint('SyncService: Found ${pendingItems.length} pending customer deposits to sync');
-
-    for (final item in pendingItems) {
-      final entityId = item['entity_id'] as int;
-      final retryCount = item['retry_count'] as int? ?? 0;
-
-      if (retryCount >= _maxRetries) {
-        await _dbService.updateSyncQueueStatus(
-          item['id'] as int,
-          DatabaseService.syncStatusFailed,
-          error: 'Max retries exceeded',
+      final actionType = action['action_type'] as String? ?? '';
+      final endpoint = action['endpoint'] as String? ?? '';
+      if (endpoint.isEmpty || OfflineAction.byType(actionType) == null) {
+        // A type this build does not recognise. Guessing at an endpoint would
+        // be worse than stopping, so a person is told instead.
+        await _failAction(
+          queueId,
+          entityId,
+          label,
+          'This app version cannot upload a queued "$actionType"',
         );
         continue;
       }
 
+      final Map<String, dynamic> payload;
       try {
-        final deposits = await _dbService.query('customer_deposits', where: 'id = ?', whereArgs: [entityId]);
-        if (deposits.isEmpty) {
-          await _dbService.removeSyncQueueItem(item['id'] as int);
-          continue;
-        }
-
-        final deposit = deposits.first;
-        final isDeposit = deposit['type'] == 'deposit';
-        final customerId = deposit['customer_id'] as int;
-        final amount = (deposit['amount'] as num).toDouble();
-
-        // Create TransactionFormData
-        final formData = TransactionFormData(
-          customerId: customerId,
-          amount: amount,
-          description: deposit['comment'] as String?,
-          date: deposit['date'] as String?,
+        payload = Map<String, dynamic>.from(
+          jsonDecode(action['payload'] as String) as Map,
         );
-
-        // Call appropriate API based on type
-        final response = isDeposit
-            ? await _apiService.addDeposit(formData)
-            : await _apiService.addWithdrawal(formData);
-
-        if (response.isSuccess) {
-          await _dbService.update(
-            'customer_deposits',
-            {
-              'sync_status': DatabaseService.syncStatusSynced,
-              'sync_timestamp': DateTime.now().toIso8601String(),
-            },
-            'id = ?',
-            [entityId],
-          );
-
-          await _dbService.removeSyncQueueItem(item['id'] as int);
-          debugPrint('SyncService: Customer deposit $entityId synced successfully');
-        } else {
-          throw Exception(response.message ?? 'Unknown error');
-        }
       } catch (e) {
-        debugPrint('SyncService: Failed to sync customer deposit $entityId - $e');
-        await _dbService.updateSyncQueueStatus(
-          item['id'] as int,
-          DatabaseService.syncStatusPending,
-          error: e.toString(),
+        await _failAction(
+          queueId, entityId, label, 'Queued $label could not be read back: $e');
+        continue;
+      }
+
+      ApiResponse<Map<String, dynamic>> response;
+      try {
+        response = await _apiService.postAction<Map<String, dynamic>>(
+          endpoint,
+          payload,
+          requestId: requestId,
+          fromJson: (data) =>
+              data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{},
         );
+      } catch (e) {
+        // postAction already converts transport errors into an error response;
+        // reaching here means something unexpected threw. Treat it as
+        // unreachable rather than as this record's fault.
+        debugPrint('SyncService: $label $entityId threw during upload - $e');
+        await _dbService.recordSyncQueueAttempt(queueId, e.toString());
+        return false;
+      }
+
+      if (response.isSuccess) {
+        // A replay lands here too, carrying the ORIGINAL record's id -- which
+        // is exactly what we want to record.
+        final serverId = _serverIdOf(response.data);
+
+        await _dbService.updatePendingActionStatus(
+          entityId,
+          DatabaseService.syncStatusSynced,
+          serverId: serverId,
+        );
+        await _dbService.removeSyncQueueItem(queueId);
+        await _dbService.addSyncLog(actionType, entityId, serverId, 'create', 'success');
+
+        onItemSynced?.call(SyncResult(
+          entityType: actionType,
+          entityId: entityId,
+          success: true,
+          serverId: serverId,
+        ));
+
+        debugPrint('SyncService: $label $entityId synced (server ID: $serverId)');
+        continue;
+      }
+
+      final outcome = _classify(response);
+      final message = response.message;
+
+      switch (outcome) {
+        case _Outcome.unreachable:
+          // The server never answered. The record stays exactly as it is, keeps
+          // its key, and is tried again on the next trigger -- forever if need
+          // be. Nothing about this run is the record's fault, so nothing is
+          // counted against it and it is not shown as failed.
+          debugPrint('SyncService: Server unreachable, pausing action sync');
+          await _dbService.recordSyncQueueAttempt(queueId, message);
+          return false;
+
+        case _Outcome.inFlight:
+          // 409 from claim_request_id: our own earlier attempt is still being
+          // processed server-side. Waiting is the correct move -- a second push
+          // cannot help, and the stale-claim takeover lets us back in if that
+          // original really did die.
+          debugPrint('SyncService: $label $entityId is still in flight server-side');
+          await _dbService.recordSyncQueueAttempt(queueId, message);
+          continue;
+
+        case _Outcome.retryable:
+          // 5xx or an expired token: the server is there but cannot take this
+          // right now. Countable, because this one CAN run out of road.
+          debugPrint('SyncService: $label $entityId failed transiently - $message');
+          await _dbService.updateSyncQueueStatus(
+            queueId,
+            DatabaseService.syncStatusPending,
+            error: message,
+          );
+          await _dbService.addSyncLog(actionType, entityId, null, 'create', 'retry', message: message);
+          break;
+
+        case _Outcome.rejected:
+          // The server looked at this and said no. Retrying replays the same
+          // refusal, so stop and put it in front of a human, by name, with the
+          // server's own words.
+          debugPrint('SyncService: $label $entityId rejected by server - $message');
+          await _failAction(queueId, entityId, label, message, log: actionType);
+          break;
+      }
+
+      onItemSynced?.call(SyncResult(
+        entityType: actionType,
+        entityId: entityId,
+        success: false,
+        error: message,
+      ));
+    }
+
+    return true;
+  }
+
+  /// Stop trying, and leave the reason where a person can read it.
+  Future<void> _failAction(
+    int queueId,
+    int actionId,
+    String label,
+    String error, {
+    String? log,
+  }) async {
+    debugPrint('SyncService: $label $actionId will not be uploaded - $error');
+    await _dbService.updateSyncQueueStatus(
+      queueId,
+      DatabaseService.syncStatusFailed,
+      error: error,
+    );
+    await _dbService.updatePendingActionStatus(
+      actionId,
+      DatabaseService.syncStatusFailed,
+      error: error,
+    );
+    if (log != null) {
+      await _dbService.addSyncLog(log, actionId, null, 'create', 'failed', message: error);
+    }
+  }
+
+  /// The server's id for a record it just created, whatever it chose to call
+  /// the field. Only used for the local audit trail, so an unknown shape is
+  /// simply "no id" rather than a failure.
+  static int? _serverIdOf(Map<String, dynamic>? data) {
+    if (data == null) return null;
+    for (final key in const [
+      'id',
+      'expense_id',
+      'receiving_id',
+      'banking_id',
+      'deposit_id',
+      'person_id',
+      'customer_id',
+      'supplier_id',
+      'zreport_id',
+      'submission_id',
+      'request_id_number',
+      'transaction_id',
+    ]) {
+      final value = data[key];
+      if (value is int) return value;
+      if (value is String) {
+        final parsed = int.tryParse(value);
+        if (parsed != null) return parsed;
       }
     }
+    return null;
   }
 
   /// Sync one-time discount usage

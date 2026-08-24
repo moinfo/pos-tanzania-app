@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../models/transaction.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
@@ -407,6 +410,11 @@ class _CapitalFormDialog extends StatefulWidget {
 class _CapitalFormDialogState extends State<_CapitalFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a save that times
+  /// out and is tapped again cannot post the same figure twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
+
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
@@ -442,27 +450,50 @@ class _CapitalFormDialogState extends State<_CapitalFormDialog> {
       date: DateFormat('yyyy-MM-dd').format(_selectedDate),
     );
 
-    final response = _isEditing
-        ? await _apiService.updateCapital(widget.entry!.id, formData)
-        : await _apiService.addCapital(formData);
+    if (_isEditing) {
+      // An edit targets a server id and cannot be queued. Offline, ApiService
+      // refuses it by name rather than reporting a socket error.
+      final response =
+          await _apiService.updateCapital(widget.entry!.id, formData);
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.isSuccess
+              ? 'Capital updated successfully'
+              : response.message),
+          backgroundColor:
+              response.isSuccess ? AppColors.success : AppColors.error,
+        ),
+      );
+      if (response.isSuccess) widget.onSaved();
+      return;
+    }
 
+    final result = await _offlineSubmit.submit<Map<String, dynamic>>(
+      context: context,
+      action: OfflineAction.capital,
+      payload: formData.toJson(),
+      summary: formData.description,
+      send: (requestId) =>
+          _apiService.addCapital(formData, requestId: requestId),
+    );
+
+    if (!mounted) return;
     setState(() => _isSaving = false);
 
-    if (mounted) {
-      if (response.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isEditing ? 'Capital updated successfully' : 'Capital added successfully'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        widget.onSaved();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message ?? 'Failed to save'), backgroundColor: AppColors.error),
-        );
-      }
+    if (result.isSent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Capital added successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } else {
+      showOfflineSubmitFeedback(context, result);
     }
+
+    if (result.isKept) widget.onSaved();
   }
 
   @override

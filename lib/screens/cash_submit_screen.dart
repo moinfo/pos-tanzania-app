@@ -8,6 +8,9 @@ import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
+import '../services/offline_actions.dart';
+import '../services/offline_submit.dart';
+import '../widgets/offline_submit_feedback.dart';
 import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
@@ -603,6 +606,10 @@ class _CreateCashSubmissionDialogState
   final _amountController = TextEditingController();
   final ApiService _apiService = ApiService();
 
+  /// Holds this form's idempotency key across attempts, so a Submit that
+  /// times out and is tapped again cannot bank the same cash twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
+
   DateTime _selectedDate = DateTime.now();
   Supervisor? _selectedSupervisor;
   List<Supervisor> _supervisors = [];
@@ -663,40 +670,77 @@ class _CreateCashSubmissionDialogState
     final locationProvider = context.read<LocationProvider>();
     final selectedLocationId = locationProvider.selectedLocation?.locationId ?? 1;
 
-    final result = widget.submission == null
-        ? await _apiService.createCashSubmission(
-            amount: amount,
-            date: Formatters.formatDateForApi(_selectedDate),
-            supervisorId: int.parse(_selectedSupervisor!.id),
-            stockLocationId: selectedLocationId,
-          )
-        : await _apiService.updateCashSubmission(
-            widget.submission!.id,
-            amount: amount,
-            date: Formatters.formatDateForApi(_selectedDate),
-            supervisorId: int.parse(_selectedSupervisor!.id),
-          );
+    if (widget.submission != null) {
+      // An edit targets a server id and cannot be queued. Offline, ApiService
+      // refuses it by name rather than reporting a socket error.
+      final response = await _apiService.updateCashSubmission(
+        widget.submission!.id,
+        amount: amount,
+        date: Formatters.formatDateForApi(_selectedDate),
+        supervisorId: int.parse(_selectedSupervisor!.id),
+      );
 
-    setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (result.isSuccess && mounted) {
-      Navigator.pop(context);
-      widget.onCreated();
+      if (response.isSuccess) {
+        Navigator.pop(context);
+        widget.onCreated();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.submission == null
-              ? 'Cash submission created successfully'
-              : 'Cash submission updated successfully'),
+          content: Text(response.isSuccess
+              ? 'Cash submission updated successfully'
+              : response.message),
+          backgroundColor:
+              response.isSuccess ? AppColors.success : AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final date = Formatters.formatDateForApi(_selectedDate);
+    final supervisorId = int.parse(_selectedSupervisor!.id);
+
+    final result = await _offlineSubmit.submit<CashSubmitDetails>(
+      context: context,
+      action: OfflineAction.cashSubmit,
+      payload: ApiService.cashSubmissionBody(
+        amount: amount,
+        date: date,
+        supervisorId: supervisorId,
+        stockLocationId: selectedLocationId,
+      ),
+      summary: Formatters.formatCurrency(amount),
+      send: (requestId) => _apiService.createCashSubmission(
+        amount: amount,
+        date: date,
+        supervisorId: supervisorId,
+        stockLocationId: selectedLocationId,
+        requestId: requestId,
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    // Queued counts as submitted: the amount is on the device and will upload
+    // itself. Leaving the dialog open would invite a second submission of the
+    // same cash.
+    if (result.isKept) {
+      Navigator.pop(context);
+      widget.onCreated();
+    }
+
+    if (result.isSent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cash submission created successfully'),
           backgroundColor: AppColors.success,
         ),
       );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppColors.error,
-        ),
-      );
+    } else {
+      showOfflineSubmitFeedback(context, result);
     }
   }
 

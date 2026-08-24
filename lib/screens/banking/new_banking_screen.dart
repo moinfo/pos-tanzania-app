@@ -14,6 +14,9 @@ import '../../providers/location_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../widgets/app_bottom_navigation.dart';
 
 class NewBankingScreen extends StatefulWidget {
@@ -27,6 +30,10 @@ class NewBankingScreen extends StatefulWidget {
 
 class _NewBankingScreenState extends State<NewBankingScreen> {
   final ApiService _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a Save that times
+  /// out and is tapped again cannot become two banking records.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _amountController = TextEditingController();
@@ -442,33 +449,49 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
         picFile: encodedFile,
       );
 
-      final response = widget.banking == null
-          ? await _apiService.createBanking(banking)
-          : await _apiService.updateBanking(widget.banking!.id, banking);
-
-      if (response.isSuccess) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(widget.banking == null
-                  ? 'Banking transaction created successfully!'
-                  : 'Banking transaction updated successfully!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-          Navigator.pop(context, true);
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Failed to create banking'),
-              backgroundColor: AppColors.error,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
+      if (widget.banking != null) {
+        // An edit targets a server id and cannot be queued. Offline,
+        // ApiService refuses it by name rather than reporting a socket error.
+        final response =
+            await _apiService.updateBanking(widget.banking!.id, banking);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.isSuccess
+                ? 'Banking transaction updated successfully!'
+                : response.message),
+            backgroundColor:
+                response.isSuccess ? AppColors.success : AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        if (response.isSuccess) Navigator.pop(context, true);
+        return;
       }
+
+      final result = await _offlineSubmit.submit<Map<String, dynamic>>(
+        context: context,
+        action: OfflineAction.banking,
+        payload: banking.toJson(),
+        summary: _formatCurrency(banking.amount),
+        send: (requestId) =>
+            _apiService.createBanking(banking, requestId: requestId),
+      );
+
+      if (!mounted) return;
+
+      if (result.isSent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Banking transaction created successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        showOfflineSubmitFeedback(context, result);
+      }
+
+      if (result.isKept) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

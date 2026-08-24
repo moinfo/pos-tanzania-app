@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../models/transaction.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
@@ -656,6 +659,11 @@ class WakalaExpenseFormDialog extends StatefulWidget {
 class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a save that times
+  /// out and is tapped again cannot post the same figure twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
+
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
 
@@ -694,30 +702,48 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
         description: _descriptionController.text,
       );
 
-      final response = widget.expense == null
-          ? await _apiService.addWakalaExpense(formData)
-          : await _apiService.updateWakalaExpense(widget.expense!.id, formData);
-
-      if (mounted) {
-        if (response.isSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(widget.expense == null
-                  ? 'Wakala expense added successfully'
-                  : 'Wakala expense updated successfully'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-          widget.onSaved();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Failed to save expense'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
+      if (widget.expense != null) {
+        // An edit targets a server id and cannot be queued. Offline,
+        // ApiService refuses it by name rather than reporting a socket error.
+        final response =
+            await _apiService.updateWakalaExpense(widget.expense!.id, formData);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.isSuccess
+                ? 'Wakala expense updated successfully'
+                : response.message),
+            backgroundColor:
+                response.isSuccess ? AppColors.success : AppColors.error,
+          ),
+        );
+        if (response.isSuccess) widget.onSaved();
+        return;
       }
+
+      final result = await _offlineSubmit.submit<Map<String, dynamic>>(
+        context: context,
+        action: OfflineAction.wakalaExpense,
+        payload: formData.toJson(),
+        summary: formData.description,
+        send: (requestId) =>
+            _apiService.addWakalaExpense(formData, requestId: requestId),
+      );
+
+      if (!mounted) return;
+
+      if (result.isSent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Wakala expense added successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        showOfflineSubmitFeedback(context, result);
+      }
+
+      if (result.isKept) widget.onSaved();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

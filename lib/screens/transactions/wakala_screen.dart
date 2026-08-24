@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../models/transaction.dart';
 import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
@@ -21,6 +24,11 @@ class WakalaScreen extends StatefulWidget {
 class _WakalaScreenState extends State<WakalaScreen>
     with SingleTickerProviderStateMixin {
   final _apiService = ApiService();
+
+  /// Holds each entry's idempotency key across attempts, so a save that times
+  /// out and is tapped again cannot post the same figure twice.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
+
   late TabController _tabController;
   bool _isLoading = false;
   String? _error;
@@ -129,24 +137,36 @@ class _WakalaScreenState extends State<WakalaScreen>
 
               Navigator.pop(context);
 
-              final response = await _apiService.addSim(
-                name: nameController.text,
-                description: descriptionController.text.isEmpty
-                    ? null
-                    : descriptionController.text,
+              final name = nameController.text;
+              final description = descriptionController.text.isEmpty
+                  ? null
+                  : descriptionController.text;
+
+              // The dialog has just been popped, so its context is on its way
+              // out; the screen's own is what survives the upload attempt.
+              if (!mounted) return;
+              final result =
+                  await _offlineSubmit.submit<Map<String, dynamic>>(
+                context: this.context,
+                action: OfflineAction.sim,
+                payload: ApiService.namedCategoryBody(
+                    name: name, description: description),
+                summary: name,
+                send: (requestId) => _apiService.addSim(
+                  name: name,
+                  description: description,
+                  requestId: requestId,
+                ),
               );
 
-              if (context.mounted) {
-                if (response.isSuccess) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('SIM card added successfully')),
-                  );
-                  _loadData();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(response.message)),
-                  );
-                }
+              if (!mounted) return;
+              if (result.isSent) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('SIM card added successfully')),
+                );
+                _loadData();
+              } else {
+                showOfflineSubmitFeedback(this.context, result);
               }
             },
             child: const Text('Add'),
@@ -244,23 +264,35 @@ class _WakalaScreenState extends State<WakalaScreen>
 
                 Navigator.pop(context);
 
-                final response = await _apiService.addWakalaTransaction(
-                  simId: selectedSim!.id,
-                  amount: amount,
-                  date: DateFormat('yyyy-MM-dd').format(selectedDate),
+                final simId = selectedSim!.id;
+                final date = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+                // The dialog has just been popped, so its context is on its
+                // way out; the screen's own is what survives the upload.
+                if (!mounted) return;
+                final result =
+                    await _offlineSubmit.submit<Map<String, dynamic>>(
+                  context: this.context,
+                  action: OfflineAction.wakala,
+                  payload: ApiService.wakalaBody(
+                      simId: simId, amount: amount, date: date),
+                  summary: '$date - $amount',
+                  send: (requestId) => _apiService.addWakalaTransaction(
+                    simId: simId,
+                    amount: amount,
+                    date: date,
+                    requestId: requestId,
+                  ),
                 );
 
-                if (context.mounted) {
-                  if (response.isSuccess) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Transaction added successfully')),
-                    );
-                    _loadData();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(response.message)),
-                    );
-                  }
+                if (!mounted) return;
+                if (result.isSent) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(content: Text('Transaction added successfully')),
+                  );
+                  _loadData();
+                } else {
+                  showOfflineSubmitFeedback(this.context, result);
                 }
               },
               child: const Text('Add'),

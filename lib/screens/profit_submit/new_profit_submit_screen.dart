@@ -9,6 +9,9 @@ import '../../utils/constants.dart';
 import '../../models/profit_submit.dart';
 import '../../models/supervisor.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/glassmorphic_card.dart';
@@ -32,6 +35,10 @@ class NewProfitSubmitScreen extends StatefulWidget {
 
 class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
   final ApiService _apiService = ApiService();
+
+  /// Holds this form's idempotency key across attempts, so a Save that times
+  /// out and is tapped again cannot become two submissions.
+  final OfflineSubmitter _offlineSubmit = OfflineSubmitter();
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _amountController = TextEditingController();
@@ -426,40 +433,49 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
         picFile: encodedFile,
       );
 
-      final response = widget.profit != null
-          ? await _apiService.updateProfitSubmission(widget.profit!.id, profitSubmit)
-          : await _apiService.createProfitSubmission(profitSubmit);
-
-      if (response.isSuccess) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.profit != null
-                    ? 'Profit submission updated successfully!'
-                    : 'Profit submission created successfully!',
-              ),
-              backgroundColor: AppColors.success,
-            ),
-          );
-          Navigator.pop(context, true);
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                response.message ??
-                    (widget.profit != null
-                        ? 'Failed to update profit submission'
-                        : 'Failed to create profit submission'),
-              ),
-              backgroundColor: AppColors.error,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
+      if (widget.profit != null) {
+        // An edit targets a server id and cannot be queued. Offline,
+        // ApiService refuses it by name rather than reporting a socket error.
+        final response = await _apiService.updateProfitSubmission(
+            widget.profit!.id, profitSubmit);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.isSuccess
+                ? 'Profit submission updated successfully!'
+                : response.message),
+            backgroundColor:
+                response.isSuccess ? AppColors.success : AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        if (response.isSuccess) Navigator.pop(context, true);
+        return;
       }
+
+      final result = await _offlineSubmit.submit<Map<String, dynamic>>(
+        context: context,
+        action: OfflineAction.profitSubmit,
+        payload: profitSubmit.toJson(),
+        summary: _dateController.text,
+        send: (requestId) =>
+            _apiService.createProfitSubmission(profitSubmit, requestId: requestId),
+      );
+
+      if (!mounted) return;
+
+      if (result.isSent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profit submission created successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        showOfflineSubmitFeedback(context, result);
+      }
+
+      if (result.isKept) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_actions.dart';
+import '../../services/offline_submit.dart';
+import '../../widgets/offline_submit_feedback.dart';
 import '../../models/transaction.dart';
 import '../../models/customer.dart';
 import '../../models/permission_model.dart';
@@ -24,6 +27,10 @@ class CustomerTransactionsScreen extends StatefulWidget {
 class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     with SingleTickerProviderStateMixin {
   final _apiService = ApiService();
+
+  /// Holds this dialog's idempotency key across attempts, so a Save that times
+  /// out and is tapped again cannot post the amount twice.
+  final _offlineSubmit = OfflineSubmitter();
   late TabController _tabController;
   bool _isLoading = false;
   String? _error;
@@ -361,28 +368,39 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
         date: result['date'] as String,
       );
 
-      final response = isDeposit
-          ? await _apiService.addDeposit(formData)
-          : await _apiService.addWithdrawal(formData);
+      // A deposit or withdrawal against a customer's own ledger is a CREATE:
+      // the server settles it on arrival. It is NOT the NFC wallet, where the
+      // balance is authoritative server-side and spending offline could spend
+      // money that is not there -- see OnlineOnly.nfcWallet.
+      final submitResult = await _offlineSubmit.submit<Map<String, dynamic>>(
+        context: context,
+        action: isDeposit
+            ? OfflineAction.transactionDeposit
+            : OfflineAction.transactionWithdrawal,
+        payload: formData.toJson(),
+        summary: '${_selectedCustomer!.fullName} - ${formData.amount}',
+        send: (requestId) => isDeposit
+            ? _apiService.addDeposit(formData, requestId: requestId)
+            : _apiService.addWithdrawal(formData, requestId: requestId),
+      );
 
-      if (mounted) {
-        if (response.isSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                isDeposit
-                    ? 'Deposit added successfully'
-                    : 'Withdrawal added successfully',
-              ),
+      if (!mounted) return;
+
+      if (submitResult.isSent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isDeposit
+                  ? 'Deposit added successfully'
+                  : 'Withdrawal added successfully',
             ),
-          );
-          await _loadTransactions();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response.message)),
-          );
-        }
+          ),
+        );
+      } else {
+        showOfflineSubmitFeedback(context, submitResult);
       }
+
+      if (submitResult.isSent) await _loadTransactions();
     }
   }
 
