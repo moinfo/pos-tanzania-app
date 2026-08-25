@@ -2455,13 +2455,16 @@ class _SalesScreenState extends State<SalesScreen> {
         }
 
         // Mark one-time discounts as used BEFORE clearing cart.
-        // Quantity offers are deliberately NOT redeemed here: api/Sales.php already
-        // calls record_redemption() while creating the sale, so calling /redeem as
-        // well would write a second redemption row for the same sale.
         if (response.data?.saleId != null) {
           final saleId = response.data!.saleId!;
           debugPrint('Sale completed: Marking discounts as used for sale_id=$saleId');
           await saleProvider.markDiscountsAsUsed(saleId);
+          // api/Sales.php only ever calls record_redemption() for single-item
+          // offers it computes itself. Group offers are entirely unhandled
+          // server side -- the app must redeem those itself or the redemption
+          // table never learns the sale happened at all.
+          debugPrint('Sale completed: Marking group offers as redeemed for sale_id=$saleId');
+          await saleProvider.markOffersAsRedeemed(saleId);
         }
 
         // No cleanup of the suspended original: createSale carried its

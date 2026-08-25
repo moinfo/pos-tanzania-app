@@ -107,6 +107,49 @@ void main() {
     });
   });
 
+  /// The redemption endpoint records a permanent audit row per offer earned,
+  /// and it can only say which tier paid out or how many times a ratio
+  /// applied if the caller SENDS that -- calculateReward's plain double never
+  /// carried it. These pin the resolved variants a redemption is built from.
+  group('resolveReward keeps what calculateReward throws away', () {
+    test('ratio: the multiplier that earned the reward', () {
+      final offer = buildOffer(purchaseQuantity: 100, rewardQuantity: 3);
+      final resolved = offer.resolveReward(250);
+      expect(resolved.quantity, 6);
+      expect(resolved.multiplier, 2);
+      expect(resolved.tierId, isNull);
+    });
+
+    test('ratio: no multiplier below one complete block', () {
+      final offer = buildOffer(purchaseQuantity: 100, rewardQuantity: 3);
+      final resolved = offer.resolveReward(50);
+      expect(resolved.quantity, 0);
+    });
+
+    test('tiered: the tier_id of whichever tier actually matched', () {
+      final tiers = [
+        OfferTier(tierId: 501, minQuantity: 50, rewardQuantity: 1, tierOrder: 1),
+        OfferTier(tierId: 502, minQuantity: 100, rewardQuantity: 3, tierOrder: 2),
+        OfferTier(tierId: 503, minQuantity: 200, rewardQuantity: 8, tierOrder: 3),
+      ];
+      final offer = buildOffer(useTieredRewards: 1, tiers: tiers);
+
+      expect(offer.resolveReward(49).tierId, isNull);
+      expect(offer.resolveReward(50).tierId, 501);
+      expect(offer.resolveReward(150).tierId, 502);
+      expect(offer.resolveReward(500).tierId, 503);
+      // The number itself is unchanged from calculateReward -- only the
+      // tier_id is new information, not a different answer.
+      expect(offer.resolveReward(150).quantity, offer.calculateReward(150));
+    });
+
+    test('tiered offers carry no ratio multiplier', () {
+      final tiers = [OfferTier(tierId: 1, minQuantity: 50, rewardQuantity: 1, tierOrder: 1)];
+      final offer = buildOffer(useTieredRewards: 1, tiers: tiers);
+      expect(offer.resolveReward(50).multiplier, isNull);
+    });
+  });
+
   group('fromJson', () {
     test('parses reward item fields sent as strings by the PHP API', () {
       // CodeIgniter/MySQL frequently returns numerics as strings

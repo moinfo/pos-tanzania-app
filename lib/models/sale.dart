@@ -187,6 +187,16 @@ class SaleItem {
       stockLocationId: json['stock_location_id'] as int?,
       subtotal: (json['subtotal'] as num?)?.toDouble(),
       lineTotal: (json['line_total'] as num?)?.toDouble(),
+      // The other half of the toCreateJson() fix: the server now sends these
+      // back on resume (_format_sale_item), but nothing here ever read them,
+      // so a restored reward line always came back as an ordinary paid line
+      // no matter how correct the server's answer was. That is what made the
+      // group-offer sync unable to recognise it as already earned, and add a
+      // second one on top.
+      quantityOfferFree: json['quantity_offer_free'] == true,
+      quantityOfferId: json['quantity_offer_id'] == null
+          ? null
+          : (json['quantity_offer_id'] as num).toInt(),
       taxes: json['taxes'] != null
           ? (json['taxes'] as List).map((t) => SaleTax.fromJson(t)).toList()
           : null,
@@ -235,6 +245,12 @@ class SaleItem {
       // Suspend persists this on the row so a later resume still knows the
       // discount's origin; create() ignores it.
       if (oneTimeDiscountId != null) 'one_time_discount_id': oneTimeDiscountId,
+      // Same reasoning as one_time_discount_id above, for quantity/group
+      // offers: without this, a suspended sale's reward line comes back from
+      // resume looking like an ordinary paid line, the app finds no existing
+      // reward for the offer, and adds a second one on top of the first.
+      if (quantityOfferFree) 'quantity_offer_free': true,
+      if (quantityOfferId != null) 'quantity_offer_id': quantityOfferId,
       if (taxes != null && taxes!.isNotEmpty)
         'taxes': taxes!.map((t) => t.toJson()).toList(),
     };

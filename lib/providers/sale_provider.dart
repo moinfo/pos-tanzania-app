@@ -188,9 +188,12 @@ class SaleProvider with ChangeNotifier {
       final cartItem = paidItemFor(itemId);
       if (cartItem == null || cartItem.quantity <= 0) continue;
 
-      // Calculate the reward
-      final freeQty = offer.calculateReward(cartItem.quantity);
-      if (freeQty <= 0) continue;
+      // Calculate the reward -- resolved, not just the number, so a tiered
+      // offer's redemption can say WHICH tier paid out and a ratio offer's can
+      // say how many times it applied. Both used to be computed and thrown
+      // away inside calculateReward(); nothing here ever read them.
+      final resolved = offer.resolveReward(cartItem.quantity);
+      if (resolved.quantity <= 0) continue;
 
       // Value given away is the reward item's price, which is not the purchased
       // item's price when the offer hands over a different item.
@@ -201,12 +204,57 @@ class SaleProvider with ChangeNotifier {
 
       appliedOffers.add({
         'offer_id': offer.offerId,
+        'tier_id': resolved.tierId,
+        'ratio_multiplier': resolved.multiplier,
         'item_id': itemId,
         'reward_item_id': rewardItemId,
         'purchased_quantity': cartItem.quantity,
-        'reward_quantity': freeQty,
+        'reward_quantity': resolved.quantity,
         'item_unit_price': cartItem.unitPrice,
-        'total_discount_value': freeQty * rewardUnitPrice,
+        'total_discount_value': resolved.quantity * rewardUnitPrice,
+        // api/Sales.php regenerates this exact line itself and already calls
+        // record_redemption() for it -- markOffersAsRedeemed must skip these
+        // or every single-item offer gets redeemed twice.
+        'is_group': false,
+      });
+    }
+
+    // Group offers were entirely absent from this list -- _quantityOffers only
+    // ever holds single-item offers, so a completed sale whose only reward
+    // came from a group promotion recorded NO redemption at all, and its
+    // history/reporting had nothing to show for it.
+    for (final offer in _groupOffers) {
+      final combined = groupOfferCombinedQuantity(offer);
+      final resolved = offer.resolveReward(combined);
+      if (resolved.quantity <= 0) continue;
+      if (!offer.groupItemIds.any((id) => paidItemFor(id) != null)) continue;
+
+      final rewardItemId = groupOfferRewardItemId(offer);
+      final source = paidItemFor(rewardItemId) ??
+          offer.groupItemIds
+              .map(paidItemFor)
+              .firstWhere((item) => item != null, orElse: () => null);
+      if (source == null) continue;
+
+      final rewardUnitPrice = rewardItemId == source.itemId
+          ? source.unitPrice
+          : (offer.rewardItemUnitPrice ?? source.unitPrice);
+
+      appliedOffers.add({
+        'offer_id': offer.offerId,
+        'tier_id': resolved.tierId,
+        'ratio_multiplier': resolved.multiplier,
+        // Recorded against the item that actually triggered the combined
+        // total, matching what the free line's parent_line would point to.
+        'item_id': source.itemId,
+        'reward_item_id': rewardItemId,
+        'purchased_quantity': combined,
+        'reward_quantity': resolved.quantity,
+        'item_unit_price': source.unitPrice,
+        'total_discount_value': resolved.quantity * rewardUnitPrice,
+        // api/Sales.php has no group-offer handling at all, so nothing server
+        // side ever records this redemption -- markOffersAsRedeemed must.
+        'is_group': true,
       });
     }
 
@@ -724,7 +772,15 @@ class SaleProvider with ChangeNotifier {
 
           // Materialise (or update) the free line for this offer
           _syncOfferFreeLine(itemId);
-          _syncGroupOfferLines();
+
+          // Re-fetch group offers rather than re-syncing the ones already in
+          // memory. _groupOffers is otherwise only refreshed when the stock
+          // location or customer changes, so a seller who keeps the app open
+          // for a shift kept applying a group offer for as long as the app
+          // stayed open, even after an admin deactivated it -- the single-item
+          // offer above is re-checked live on every add, but the group list
+          // never was. This makes group offers exactly as live.
+          await loadGroupOffers(date: date);
 
           // Notify listeners to update UI
           notifyListeners();
@@ -739,8 +795,9 @@ class SaleProvider with ChangeNotifier {
         _renumberLines();
         notifyListeners();
       }
-      // A group offer may still apply even when this item has no single-item one
-      _syncGroupOfferLines();
+      // A group offer may still apply even when this item has no single-item
+      // one -- re-fetched for the same staleness reason as above.
+      await loadGroupOffers(date: date);
       return false;
     } catch (e) {
       debugPrint('Error checking quantity offer: $e');
@@ -846,9 +903,25 @@ class SaleProvider with ChangeNotifier {
   /// Mirrors Sale_lib::_check_and_apply_group_offers() on the web, which is what
   /// puts the free line in the web cart.
   void _syncGroupOfferLines() {
-    if (_groupOffers.isEmpty) return;
-
     var changed = false;
+
+    // Drop any reward line whose offer is no longer known at all -- deactivated,
+    // expired, or otherwise dropped by this fetch. The loop below only
+    // re-evaluates offers CURRENTLY in _groupOffers, so an offer that
+    // disappeared from the list entirely (including the whole list going
+    // empty, which used to return here before even reaching the loop) was
+    // never revisited, and its reward line sat in the cart forever even
+    // after the offer was turned off.
+    final knownOfferIds = {
+      ..._groupOffers.map((o) => o.offerId),
+      ..._quantityOffers.values.map((o) => o.offerId),
+    };
+    final before = _cartItems.length;
+    _cartItems.removeWhere((item) =>
+        item.quantityOfferFree &&
+        item.quantityOfferId != null &&
+        !knownOfferIds.contains(item.quantityOfferId));
+    if (_cartItems.length != before) changed = true;
 
     for (final offer in _groupOffers) {
       final freeQty = groupOfferReward(offer);
@@ -1010,9 +1083,14 @@ class SaleProvider with ChangeNotifier {
     return buffer.toString();
   }
 
-  // Mark all quantity offers as redeemed (call after sale completion)
+  // Mark all quantity offers as redeemed (call after sale completion).
+  // Single-item offers are excluded: api/Sales.php regenerates that reward
+  // line itself and already calls record_redemption() for it, so redeeming
+  // it again here would write a second row for the same sale. Group offers
+  // get no such handling server side, so they are the only ones sent.
   Future<void> markOffersAsRedeemed(int saleId) async {
-    final appliedOffers = getAppliedOffers();
+    final appliedOffers =
+        getAppliedOffers().where((o) => o['is_group'] == true);
 
     for (var offerData in appliedOffers) {
       try {
@@ -1025,6 +1103,11 @@ class SaleProvider with ChangeNotifier {
           customerId: _selectedCustomer?.personId,
           purchasedQuantity: offerData['purchased_quantity'],
           rewardQuantity: offerData['reward_quantity'],
+          // Both accepted by the endpoint since it was written, never sent
+          // from here -- every app-recorded redemption's tier_id came back
+          // NULL regardless of whether the offer was tiered.
+          ratioMultiplier: offerData['ratio_multiplier'],
+          tierId: offerData['tier_id'],
           itemUnitPrice: offerData['item_unit_price'],
           totalDiscountValue: offerData['total_discount_value'],
         );

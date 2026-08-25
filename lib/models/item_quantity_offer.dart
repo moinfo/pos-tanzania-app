@@ -210,9 +210,18 @@ class ItemQuantityOffer {
   }
 
   /// Calculate free quantity for a given purchased quantity (legacy ratio-based)
-  double calculateFreeQuantity(double purchasedQty) {
+  double calculateFreeQuantity(double purchasedQty) =>
+      resolveFreeQuantity(purchasedQty).quantity;
+
+  /// The ratio-based reward, WITH the multiplier that earned it.
+  ///
+  /// [calculateFreeQuantity] discarded this on its way out, so a redemption
+  /// recorded from it could never say how many times the ratio applied --
+  /// `ratio_multiplier` on the redemption row came back 0 or absent no matter
+  /// how many times the offer had actually been earned.
+  RewardResolution resolveFreeQuantity(double purchasedQty) {
     if (purchasedQty <= 0 || purchaseQuantity <= 0) {
-      return 0.0;
+      return const RewardResolution(quantity: 0);
     }
 
     // How many complete ratios does purchase satisfy?
@@ -224,13 +233,22 @@ class ItemQuantityOffer {
       freeQty = maxRewardPerTransaction!;
     }
 
-    return freeQty;
+    return RewardResolution(quantity: freeQty, multiplier: multiplier);
   }
 
   /// Calculate free quantity using tiered system
-  double calculateTieredFreeQuantity(double purchasedQty) {
+  double calculateTieredFreeQuantity(double purchasedQty) =>
+      resolveTieredFreeQuantity(purchasedQty).quantity;
+
+  /// The tiered reward, WITH which tier actually matched.
+  ///
+  /// [calculateTieredFreeQuantity] found this and threw it away, so a
+  /// redemption recorded from a tiered offer had no `tier_id` to record --
+  /// only the resulting quantity survived, so which tier earned it was lost
+  /// the moment this returned.
+  RewardResolution resolveTieredFreeQuantity(double purchasedQty) {
     if (tiers == null || tiers!.isEmpty || purchasedQty <= 0) {
-      return 0.0;
+      return const RewardResolution(quantity: 0);
     }
 
     // Find highest qualifying tier
@@ -243,16 +261,23 @@ class ItemQuantityOffer {
       }
     }
 
-    return qualifyingTier?.rewardQuantity ?? 0.0;
+    return RewardResolution(
+      quantity: qualifyingTier?.rewardQuantity ?? 0.0,
+      tierId: qualifyingTier?.tierId,
+    );
   }
 
   /// Auto-calculate free quantity (uses tiered or legacy based on offer type)
-  double calculateReward(double purchasedQty) {
-    if (useTieredRewards == 1) {
-      return calculateTieredFreeQuantity(purchasedQty);
-    } else {
-      return calculateFreeQuantity(purchasedQty);
-    }
+  double calculateReward(double purchasedQty) =>
+      resolveReward(purchasedQty).quantity;
+
+  /// [calculateReward], but keeping the tier/multiplier that earned it --
+  /// needed wherever a redemption gets recorded (see [resolveTieredFreeQuantity]
+  /// and [resolveFreeQuantity] for why calculateReward alone cannot answer it).
+  RewardResolution resolveReward(double purchasedQty) {
+    return useTieredRewards == 1
+        ? resolveTieredFreeQuantity(purchasedQty)
+        : resolveFreeQuantity(purchasedQty);
   }
 
   /// Get offer description for display
@@ -273,6 +298,22 @@ class ItemQuantityOffer {
   String toString() {
     return 'ItemQuantityOffer{offerId: $offerId, offerName: $offerName, $offerDescription}';
   }
+}
+
+/// What a reward calculation actually resolved, kept alongside the number.
+///
+/// Just the [quantity] is enough to show a badge or fill a cart line; but
+/// `POST /item_quantity_offers/redeem` records a permanent audit row per
+/// offer_quantity_offer_redemptions.tier_id -- for a tiered offer, WHICH tier
+/// paid out, and for a ratio offer, HOW MANY TIMES the ratio applied. Neither
+/// survives past a bare double, which is why the redemption trail this app
+/// wrote was always missing that half of its own history.
+class RewardResolution {
+  const RewardResolution({required this.quantity, this.tierId, this.multiplier});
+
+  final double quantity;
+  final int? tierId;
+  final int? multiplier;
 }
 
 /// Model for offer tier (for tiered offers)
