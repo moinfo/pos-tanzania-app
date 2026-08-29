@@ -365,6 +365,7 @@ class SaleProvider with ChangeNotifier {
         // seller cannot fulfil is worse than showing nothing at all.
         availableStock:
             item.quantityByLocation?[itemLocationId] ?? item.quantity,
+        noCreditCard: item.noCreditCard,
       );
       _cartItems.add(saleItem);
     }

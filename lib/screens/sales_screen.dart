@@ -1301,10 +1301,19 @@ class _SalesScreenState extends State<SalesScreen> {
   /// credit side and the API's credit-limit check all match on that exact
   /// string. Sending a bare 'Credit' left credit sales out of every one of
   /// them, so the customer's own statement never showed the sale.
+  ///
+  /// Credit Card is left off entirely when creditBlockedByExistingBalance --
+  /// a customer already carrying a balance with Credit on Credit off cannot
+  /// take on more credit no matter how much room is left under their limit.
+  /// The app previously always offered it and let the server's credit-limit
+  /// check catch it after the fact; the web register never offers it in the
+  /// first place, and now neither does this.
   List<String> _paymentMethodsFor(SaleProvider saleProvider) => <String>[
         'Cash',
         if (saleProvider.selectedCustomer?.allowBankPayment ?? false) 'Bank',
-        'Credit Card',
+        if (saleProvider.selectedCustomer?.creditBlockedByExistingBalance !=
+            true)
+          'Credit Card',
       ];
 
   /// Shows the payment keypad and records whatever the seller confirms.
@@ -4540,6 +4549,43 @@ class _PaymentDialogState extends State<PaymentDialog> {
     }
   }
 
+  /// Shown as soon as Credit Card is picked and a restricted item is in the
+  /// cart -- matching the web register, which warns right when the payment
+  /// is added rather than leaving the seller to find out from a rejected
+  /// Complete Sale. The actual block is enforced in _validatePayment(); this
+  /// is purely so the reason is visible before that point.
+  Widget _buildCcRestrictionWarning() {
+    if (_paymentMethod != 'Credit Card' || widget.customer == null) {
+      return const SizedBox.shrink();
+    }
+    final restricted = _creditCardRestrictedItems();
+    if (restricted.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.block, size: 18, color: AppColors.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Must be paid in cash, not credit: '
+              '${restricted.map((i) => i.itemName).join(', ')}',
+              style: const TextStyle(fontSize: 12.5, color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCreditInfo() {
     if (_paymentMethod != 'Credit Card' || widget.customer == null) {
       return const SizedBox.shrink();
@@ -4854,6 +4900,23 @@ class _PaymentDialogState extends State<PaymentDialog> {
     );
   }
 
+  /// Paid cart lines this customer cannot cover with Credit Card -- checked
+  /// client-side so the seller finds out before tapping "Add Payment" rather
+  /// than only from the server's rejection at Complete Sale. Free reward
+  /// lines are skipped: they carry no price to have paid on credit either
+  /// way, and warning about a giveaway item reads as a false alarm.
+  List<SaleItem> _creditCardRestrictedItems() {
+    final customer = widget.customer;
+    if (customer == null) return const [];
+    final cartItems = context.read<SaleProvider>().cartItems;
+    return cartItems
+        .where((item) =>
+            !item.quantityOfferFree &&
+            customer.isCreditCardRestricted(item.itemId,
+                noCreditCard: item.noCreditCard))
+        .toList();
+  }
+
   String? _validatePayment() {
     final amount = double.tryParse(_amountController.text) ?? 0;
 
@@ -4873,6 +4936,20 @@ class _PaymentDialogState extends State<PaymentDialog> {
       // Check if customer is allowed credit
       if (!customer.isAllowedCredit) {
         return 'Customer is not allowed to make credit purchases.\nPlease pay with cash.';
+      }
+
+      // Credit on Credit: matches the web register, which removes "Credit
+      // Card" from the payment dropdown entirely for this same reason.
+      if (customer.creditBlockedByExistingBalance) {
+        return 'Customer already has an outstanding balance of '
+            '${_currencyFormat.format(customer.balance)} TSh and is not '
+            'enabled for Credit on Credit.\nPlease pay with cash or bank.';
+      }
+
+      final restricted = _creditCardRestrictedItems();
+      if (restricted.isNotEmpty) {
+        return 'These items must be paid in cash, not credit:\n'
+            '${restricted.map((i) => i.itemName).join(', ')}';
       }
 
       // Check credit limit, one-time ceiling first -- same order as the web
@@ -4948,7 +5025,12 @@ class _PaymentDialogState extends State<PaymentDialog> {
               decoration: const InputDecoration(labelText: 'Payment Method'),
               items: [
                 const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                const DropdownMenuItem(value: 'Credit Card', child: Text('Credit Card')),
+                // Left off entirely when the customer already has a balance
+                // and isn't enabled for Credit on Credit -- same as the web
+                // register's payment dropdown, not just a submit-time refusal.
+                if (widget.customer?.creditBlockedByExistingBalance != true)
+                  const DropdownMenuItem(
+                      value: 'Credit Card', child: Text('Credit Card')),
                 // LIPA NAMBA - hidden for Leruma and SADA
                 if (ApiService.currentClient?.id != 'leruma' && ApiService.currentClient?.id != 'sada')
                   const DropdownMenuItem(value: 'LIPA NAMBA', child: Text('LIPA NAMBA')),
@@ -4988,6 +5070,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 setState(() {});
               },
             ),
+            _buildCcRestrictionWarning(),
             _buildCreditInfo(),
             _buildNfcCardInfo(),
           ],

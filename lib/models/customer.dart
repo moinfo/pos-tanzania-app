@@ -25,6 +25,11 @@ class Customer {
   final bool isBodaBoda;
   final bool oneTimeCredit;
   final bool isAllowedCredit;
+  /// When false, this customer cannot take on MORE credit while they already
+  /// owe anything -- see [creditBlockedByExistingBalance]. Independent of
+  /// creditLimit: a customer can be well under their limit and still be
+  /// refused here.
+  final bool creditOnCredit;
   final double creditLimit;
   final double oneTimeCreditLimit;
   final int dueDate;
@@ -73,6 +78,7 @@ class Customer {
     required this.isBodaBoda,
     required this.oneTimeCredit,
     required this.isAllowedCredit,
+    this.creditOnCredit = false,
     required this.creditLimit,
     required this.oneTimeCreditLimit,
     required this.dueDate,
@@ -90,6 +96,40 @@ class Customer {
     this.ccBlacklistItems = const [],
     this.ccExceptionItems = const [],
   });
+
+  /// Whether [itemId] must be paid in cash rather than on Credit Card for
+  /// this customer. Mirrors api/Sales.php's VALIDATION 3 exactly (which
+  /// itself mirrors Sale_lib::apply_cc_restrictions() on web) so the app can
+  /// warn before checkout instead of only after the server refuses the sale:
+  /// blacklist always restricts; a configured whitelist restricts everything
+  /// not on it; otherwise a globally no-credit-card item restricts unless
+  /// this customer is broadly allowed, the item is an explicit exception, or
+  /// the item is itself on the whitelist (being whitelisted is what "only
+  /// these items" means -- it must not then be re-blocked by the same item's
+  /// own no_credit_card flag).
+  /// Mirrors register.php's payment-option gate: a customer who already owes
+  /// something cannot take on MORE credit unless a one-time allowance covers
+  /// it or creditOnCredit is explicitly on for them -- regardless of how much
+  /// room is left under creditLimit. api/Sales.php enforces this same rule at
+  /// submission; this lets the app avoid offering "Credit Card" as a payment
+  /// method at all in that case, same as the web register does.
+  bool get creditBlockedByExistingBalance =>
+      balance > 0 && !oneTimeCredit && !creditOnCredit;
+
+  bool isCreditCardRestricted(int itemId, {required bool noCreditCard}) {
+    if (ccBlacklistItems.contains(itemId)) return true;
+
+    final hasWhitelist = creditCardItems.isNotEmpty;
+    if (hasWhitelist && !creditCardItems.contains(itemId)) return true;
+
+    final onWhitelist = hasWhitelist && creditCardItems.contains(itemId);
+    if (!allowCreditCardRestricted &&
+        !ccExceptionItems.contains(itemId) &&
+        !onWhitelist) {
+      return noCreditCard;
+    }
+    return false;
+  }
 
   factory Customer.fromJson(Map<String, dynamic> json) {
     // Helper to parse int from string or int
@@ -153,6 +193,7 @@ class Customer {
       isBodaBoda: parseBoolValue(json['is_boda_boda']),
       oneTimeCredit: parseBoolValue(json['one_time_credit']),
       isAllowedCredit: parseBoolValue(json['is_allowed_credit']),
+      creditOnCredit: parseBoolValue(json['credit_on_credit']),
       creditLimit: parseDoubleValue(json['credit_limit']),
       oneTimeCreditLimit: parseDoubleValue(json['one_time_credit_limit']),
       dueDate: parseIntValue(json['due_date'], 7),
@@ -199,6 +240,7 @@ class Customer {
       'is_boda_boda': isBodaBoda,
       'one_time_credit': oneTimeCredit,
       'is_allowed_credit': isAllowedCredit,
+      'credit_on_credit': creditOnCredit,
       'credit_limit': creditLimit,
       'one_time_credit_limit': oneTimeCreditLimit,
       'due_date': dueDate,

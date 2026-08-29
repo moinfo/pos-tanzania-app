@@ -141,6 +141,12 @@ class SaleItem {
   // by a live availability check.
   final int? oneTimeDiscountId;
 
+  /// Carried from the Item this line was added from so the cart can warn
+  /// about Credit Card restrictions before checkout (see
+  /// Customer.isCreditCardRestricted). Display-only -- the server holds its
+  /// own copy and re-checks it independently, so this is never sent back.
+  final bool noCreditCard;
+
   SaleItem({
     required this.itemId,
     required this.itemName,
@@ -162,6 +168,7 @@ class SaleItem {
     this.parentLine,
     this.quantityOfferId,
     this.oneTimeDiscountId,
+    this.noCreditCard = false,
   })  : subtotal = subtotal ?? (quantity * unitPrice),
         lineTotal = lineTotal ?? (quantity * unitPrice);
 
@@ -291,6 +298,7 @@ class SaleItem {
     int? parentLine,
     int? quantityOfferId,
     int? oneTimeDiscountId,
+    bool? noCreditCard,
   }) {
     return SaleItem(
       itemId: itemId ?? this.itemId,
@@ -311,6 +319,7 @@ class SaleItem {
       parentLine: parentLine ?? this.parentLine,
       quantityOfferId: quantityOfferId ?? this.quantityOfferId,
       oneTimeDiscountId: oneTimeDiscountId ?? this.oneTimeDiscountId,
+      noCreditCard: noCreditCard ?? this.noCreditCard,
     );
   }
 }
