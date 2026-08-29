@@ -26,10 +26,27 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
   // line → qty to return (only non-zero entries matter)
   final Map<int, int> _selectedQty = {};
 
+  /// payment_type → amount to refund on it. Only populated -- and only shown
+  /// to the operator -- when the original sale used 2+ payment types; a
+  /// single-type sale has no choice to make, so the whole refund goes back on
+  /// it automatically (server default, unchanged).
+  final Map<String, double> _paymentAllocation = {};
+  final Map<String, TextEditingController> _allocControllers = {};
+
+  bool get _needsPaymentChoice => (_modalData?.paymentTypes.length ?? 0) >= 2;
+
   @override
   void initState() {
     super.initState();
     _loadReturnData();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _allocControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadReturnData() async {
@@ -46,8 +63,16 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
         _modalData = response.data;
         // Default all returnable items to 0
         for (final item in _modalData!.items) {
-          if (!item.isAutoReturnedIn(_modalData!.items) && item.remainingQty > 0) {
+          if (!item.isAutoReturnedIn(_modalData!.items) &&
+              item.remainingQty > 0) {
             _selectedQty[item.line] = 0;
+          }
+        }
+        if (_needsPaymentChoice) {
+          for (final p in _modalData!.paymentTypes) {
+            _paymentAllocation[p.paymentType] = 0;
+            _allocControllers[p.paymentType] =
+                TextEditingController(text: '0.00');
           }
         }
       } else {
@@ -100,6 +125,9 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
 
   bool get _hasSelection => _selectedQty.values.any((q) => q > 0);
 
+  bool get _canSubmit =>
+      _hasSelection && (!_needsPaymentChoice || _allocationMatches);
+
   double get _estimatedRefund {
     if (_modalData == null) return 0;
     double total = 0;
@@ -112,8 +140,61 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
     return total;
   }
 
+  double get _allocatedTotal =>
+      _paymentAllocation.values.fold(0.0, (a, b) => a + b);
+
+  bool get _allocationMatches =>
+      (_allocatedTotal - _estimatedRefund).abs() < 0.005;
+
+  /// Re-spreads the refund total across payment types in proportion to what
+  /// was originally paid on each, same formula as the web modal
+  /// (refreshPaymentAllocation in manage.php) so a cashier switching between
+  /// the two channels sees the same starting split. The operator can still
+  /// type over any field afterwards; this just sets sensible defaults
+  /// whenever the total changes.
+  void _refreshAllocation() {
+    if (!_needsPaymentChoice) return;
+    final types = _modalData!.paymentTypes;
+    final origTotal = types.fold<double>(0, (a, p) => a + p.paymentAmount);
+    final total = _estimatedRefund;
+
+    double allocated = 0;
+    for (var i = 0; i < types.length; i++) {
+      final p = types[i];
+      double amount;
+      if (i == types.length - 1) {
+        amount = (total - allocated).clamp(0, double.infinity); // remainder
+      } else {
+        final share =
+            origTotal > 0 ? p.paymentAmount / origTotal : 1 / types.length;
+        amount = (total * share * 100).round() / 100;
+        allocated += amount;
+      }
+      _paymentAllocation[p.paymentType] = amount;
+      _allocControllers[p.paymentType]?.text = amount.toStringAsFixed(2);
+    }
+  }
+
+  void _setAllocation(String type, double amount) {
+    setState(() {
+      _paymentAllocation[type] = amount;
+    });
+  }
+
   void _setQty(int line, int qty, int max) {
-    setState(() => _selectedQty[line] = qty.clamp(0, max));
+    final clamped = qty.clamp(0, max);
+    setState(() {
+      _selectedQty[line] = clamped;
+      _refreshAllocation();
+    });
+    if (qty != clamped) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Only $max available to return for this item'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _processReturn() async {
@@ -121,6 +202,18 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
       ..removeWhere((_, v) => v == 0);
 
     if (lines.isEmpty) return;
+
+    if (_needsPaymentChoice && !_allocationMatches) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Allocated (${_currencyFormat.format(_allocatedTotal)}) must equal '
+              'the refund total (${_currencyFormat.format(_estimatedRefund)})'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     // Whatever those lines earned goes back with them.
     lines.addAll(_freeLinesFor(lines.keys.toSet()));
@@ -130,6 +223,12 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
     final response = await _apiService.processReturn(
       saleId: widget.saleId,
       lines: lines,
+      refundPayments: _needsPaymentChoice
+          ? _paymentAllocation.entries
+              .where((e) => e.value > 0)
+              .map((e) => {'type': e.key, 'amount': e.value})
+              .toList()
+          : null,
     );
 
     setState(() => _isProcessing = false);
@@ -200,7 +299,8 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Total Refund',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 Text(
                   '${_currencyFormat.format(result.refundTotal)} TSh',
                   style: const TextStyle(
@@ -257,6 +357,8 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
                         if (_modalData!.hasAnyReturn)
                           _buildPartialReturnBanner(),
                         Expanded(child: _buildItemList()),
+                        if (_needsPaymentChoice && _hasSelection)
+                          _buildPaymentAllocation(),
                         _buildBottomBar(),
                       ],
                     ),
@@ -313,7 +415,8 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
+            Icon(Icons.check_circle_outline,
+                size: 64, color: AppColors.success),
             SizedBox(height: 16),
             Text('All items have already been returned.',
                 style: TextStyle(fontSize: 16, color: AppColors.success)),
@@ -370,7 +473,8 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
                       Text(
                         '${item.quantity.toStringAsFixed(0)} sold  ·  '
                         '${_currencyFormat.format(item.price)} TSh each',
-                        style: TextStyle(fontSize: 13, color: AppColors.muted(context)),
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.muted(context)),
                       ),
                       if (item.alreadyReturned > 0)
                         Padding(
@@ -397,14 +501,17 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
               children: [
                 Text(
                   'Return qty  (max $maxQty):',
-                  style: TextStyle(fontSize: 13, color: AppColors.muted(context)),
+                  style:
+                      TextStyle(fontSize: 13, color: AppColors.muted(context)),
                 ),
                 const Spacer(),
                 _QtyStepper(
                   value: selectedQty,
                   max: maxQty,
-                  onDecrement: () => _setQty(item.line, selectedQty - 1, maxQty),
-                  onIncrement: () => _setQty(item.line, selectedQty + 1, maxQty),
+                  onDecrement: () =>
+                      _setQty(item.line, selectedQty - 1, maxQty),
+                  onIncrement: () =>
+                      _setQty(item.line, selectedQty + 1, maxQty),
                   onEdit: (v) => _setQty(item.line, v, maxQty),
                 ),
               ],
@@ -429,6 +536,99 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
     );
   }
 
+  /// Shown only when the original sale used 2+ payment types (a single-type
+  /// sale has nothing to choose -- the whole refund goes back on it). Mirrors
+  /// the web return modal: each field is capped at what was actually paid
+  /// with that type, pre-filled proportionally, and the sum must match the
+  /// refund total before Process Return unlocks.
+  Widget _buildPaymentAllocation() {
+    final types = _modalData!.paymentTypes;
+    return Container(
+      width: double.infinity,
+      color: AppColors.raised(context),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Refund by payment type',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 2),
+          Text(
+            'This sale was paid with more than one method -- choose how the refund splits.',
+            style: TextStyle(fontSize: 12, color: AppColors.muted(context)),
+          ),
+          const SizedBox(height: 10),
+          ...types.map((p) {
+            final controller = _allocControllers[p.paymentType]!;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${p.paymentType} (paid ${_currencyFormat.format(p.paymentAmount)})',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 110,
+                    child: TextField(
+                      controller: controller,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 8),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                        suffixText: 'TSh',
+                        suffixStyle: const TextStyle(fontSize: 11),
+                      ),
+                      onChanged: (v) {
+                        final parsed = double.tryParse(v) ?? 0;
+                        // A field left over its original amount would ask the
+                        // server to refund more than it was ever paid on that
+                        // method -- caught here too so the mismatch (and why)
+                        // is visible before Process Return is even tapped.
+                        _setAllocation(p.paymentType,
+                            parsed.clamp(0, p.paymentAmount).toDouble());
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Text(
+                'Allocated: ${_currencyFormat.format(_allocatedTotal)} / '
+                '${_currencyFormat.format(_estimatedRefund)} TSh',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color:
+                      _allocationMatches ? AppColors.success : AppColors.error,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                _allocationMatches ? Icons.check_circle : Icons.error_outline,
+                size: 14,
+                color: _allocationMatches ? AppColors.success : AppColors.error,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -448,8 +648,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Estimated Refund',
-                  style:
-                      TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
               Text(
                 '${_currencyFormat.format(_estimatedRefund)} TSh',
                 style: const TextStyle(
@@ -463,13 +662,13 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _hasSelection && !_isProcessing ? _processReturn : null,
+              onPressed: _canSubmit && !_isProcessing ? _processReturn : null,
               icon: _isProcessing
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child:
-                          CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.undo),
               label: Text(_isProcessing ? 'Processing...' : 'Process Return'),
@@ -519,14 +718,20 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SkeletonLoader(width: 180, height: 16, isDark: AppColors.isDark(context)),
+              SkeletonLoader(
+                  width: 180, height: 16, isDark: AppColors.isDark(context)),
               const SizedBox(height: 8),
-              SkeletonLoader(width: 120, height: 12, isDark: AppColors.isDark(context)),
+              SkeletonLoader(
+                  width: 120, height: 12, isDark: AppColors.isDark(context)),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  SkeletonLoader(width: 120, height: 36, borderRadius: 8, isDark: AppColors.isDark(context)),
+                  SkeletonLoader(
+                      width: 120,
+                      height: 36,
+                      borderRadius: 8,
+                      isDark: AppColors.isDark(context)),
                 ],
               ),
             ],

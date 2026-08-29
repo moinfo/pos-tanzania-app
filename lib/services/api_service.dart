@@ -7130,15 +7130,22 @@ class ApiService {
     }
   }
 
-  /// Process a return: lines is { line_number: qty_to_return }
+  /// Process a return: lines is { line_number: qty_to_return }.
+  ///
+  /// [refundPayments] picks which original tender(s) the refund comes back on --
+  /// pass one entry per {type, amount}. Omit it (as every caller did until this
+  /// field existed) and the server falls back to splitting proportionally across
+  /// the original payment mix, same as before.
   Future<ApiResponse<ReturnResult>> processReturn({
     required int saleId,
     required Map<int, int> lines,
+    List<Map<String, dynamic>>? refundPayments,
   }) async {
     try {
       final body = json.encode({
         'sale_id': saleId,
         'lines': lines.map((k, v) => MapEntry(k.toString(), v)),
+        if (refundPayments != null) 'refund_payments': refundPayments,
       });
       final response = await _http.post(
         Uri.parse('$baseUrlSync/sales/process_return'),
