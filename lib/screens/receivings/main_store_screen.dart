@@ -144,7 +144,14 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
   }
 
   void _navigateToReceivingWithItems(List<MainStoreSaleItem> items) {
-    // Convert main store items to receiving items format
+    // Convert main store items to receiving items format.
+    //
+    // itemLocation was never set here, so it silently took ReceivingItem's
+    // default of 1 -- every receiving created through "Copy to Cart" landed
+    // in stock location 1 regardless of which location's main store data was
+    // on screen. _mainStoreData.locationId is exactly that location: it is
+    // what getMainStore() was called with to produce the items being copied.
+    final itemLocation = _mainStoreData?.locationId ?? 1;
     final receivingItems = items.map((item) => ReceivingItem(
       itemId: item.itemId,
       itemName: item.itemName,
@@ -153,6 +160,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
       quantity: item.quantity,
       costPrice: item.lerumaUnitPrice, // Use leruma price as cost
       unitPrice: item.lerumaUnitPrice,
+      itemLocation: itemLocation,
     )).toList();
 
     Navigator.push(
