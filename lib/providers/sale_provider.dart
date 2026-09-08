@@ -176,91 +176,6 @@ class SaleProvider with ChangeNotifier {
     return _quantityOffers.containsKey(itemId);
   }
 
-  // Get all applied quantity offer data for redemption
-  List<Map<String, dynamic>> getAppliedOffers() {
-    final List<Map<String, dynamic>> appliedOffers = [];
-
-    for (var entry in _quantityOffers.entries) {
-      final itemId = entry.key;
-      final offer = entry.value;
-
-      // Purchased quantity comes from the paid line only -- never the reward line
-      final cartItem = paidItemFor(itemId);
-      if (cartItem == null || cartItem.quantity <= 0) continue;
-
-      // Calculate the reward -- resolved, not just the number, so a tiered
-      // offer's redemption can say WHICH tier paid out and a ratio offer's can
-      // say how many times it applied. Both used to be computed and thrown
-      // away inside calculateReward(); nothing here ever read them.
-      final resolved = offer.resolveReward(cartItem.quantity);
-      if (resolved.quantity <= 0) continue;
-
-      // Value given away is the reward item's price, which is not the purchased
-      // item's price when the offer hands over a different item.
-      final rewardItemId = offer.resolveRewardItemId(itemId);
-      final rewardUnitPrice = offer.isCrossItemReward(itemId)
-          ? (offer.rewardItemUnitPrice ?? cartItem.unitPrice)
-          : cartItem.unitPrice;
-
-      appliedOffers.add({
-        'offer_id': offer.offerId,
-        'tier_id': resolved.tierId,
-        'ratio_multiplier': resolved.multiplier,
-        'item_id': itemId,
-        'reward_item_id': rewardItemId,
-        'purchased_quantity': cartItem.quantity,
-        'reward_quantity': resolved.quantity,
-        'item_unit_price': cartItem.unitPrice,
-        'total_discount_value': resolved.quantity * rewardUnitPrice,
-        // api/Sales.php regenerates this exact line itself and already calls
-        // record_redemption() for it -- markOffersAsRedeemed must skip these
-        // or every single-item offer gets redeemed twice.
-        'is_group': false,
-      });
-    }
-
-    // Group offers were entirely absent from this list -- _quantityOffers only
-    // ever holds single-item offers, so a completed sale whose only reward
-    // came from a group promotion recorded NO redemption at all, and its
-    // history/reporting had nothing to show for it.
-    for (final offer in _groupOffers) {
-      final combined = groupOfferCombinedQuantity(offer);
-      final resolved = offer.resolveReward(combined);
-      if (resolved.quantity <= 0) continue;
-      if (!offer.groupItemIds.any((id) => paidItemFor(id) != null)) continue;
-
-      final rewardItemId = groupOfferRewardItemId(offer);
-      final source = paidItemFor(rewardItemId) ??
-          offer.groupItemIds
-              .map(paidItemFor)
-              .firstWhere((item) => item != null, orElse: () => null);
-      if (source == null) continue;
-
-      final rewardUnitPrice = rewardItemId == source.itemId
-          ? source.unitPrice
-          : (offer.rewardItemUnitPrice ?? source.unitPrice);
-
-      appliedOffers.add({
-        'offer_id': offer.offerId,
-        'tier_id': resolved.tierId,
-        'ratio_multiplier': resolved.multiplier,
-        // Recorded against the item that actually triggered the combined
-        // total, matching what the free line's parent_line would point to.
-        'item_id': source.itemId,
-        'reward_item_id': rewardItemId,
-        'purchased_quantity': combined,
-        'reward_quantity': resolved.quantity,
-        'item_unit_price': source.unitPrice,
-        'total_discount_value': resolved.quantity * rewardUnitPrice,
-        // api/Sales.php has no group-offer handling at all, so nothing server
-        // side ever records this redemption -- markOffersAsRedeemed must.
-        'is_group': true,
-      });
-    }
-
-    return appliedOffers;
-  }
-
   // Approved discount requests tracking (itemId -> CheckApprovedDiscountResponse)
   final Map<int, CheckApprovedDiscountResponse> _approvedDiscountRequests = {};
 
@@ -731,25 +646,6 @@ class SaleProvider with ChangeNotifier {
     }
   }
 
-  // Mark all used one-time discounts (call after sale completion)
-  Future<void> markDiscountsAsUsed(int saleId) async {
-    final discountIds = getAppliedDiscountIds();
-    debugPrint('markDiscountsAsUsed: sale_id=$saleId, discountIds=$discountIds');
-
-    for (var discountId in discountIds) {
-      try {
-        debugPrint('markDiscountsAsUsed: Calling API for discount_id=$discountId');
-        final response = await _apiService.useOneTimeDiscount(
-          discountId: discountId,
-          saleId: saleId,
-        );
-        debugPrint('markDiscountsAsUsed: API response success=${response.isSuccess}, message=${response.message}');
-      } catch (e) {
-        debugPrint('markDiscountsAsUsed: Error marking discount $discountId as used: $e');
-      }
-    }
-  }
-
   // Check and apply quantity offer for an item
   Future<bool> checkAndApplyQuantityOffer(int itemId, {String? date}) async {
     // Must have stock location
@@ -1082,40 +978,6 @@ class SaleProvider with ChangeNotifier {
       buffer.write(' [Free: ${_rewardItemName(offer, paidItem, rewardItemId)}]');
     }
     return buffer.toString();
-  }
-
-  // Mark all quantity offers as redeemed (call after sale completion).
-  // Single-item offers are excluded: api/Sales.php regenerates that reward
-  // line itself and already calls record_redemption() for it, so redeeming
-  // it again here would write a second row for the same sale. Group offers
-  // get no such handling server side, so they are the only ones sent.
-  Future<void> markOffersAsRedeemed(int saleId) async {
-    final appliedOffers =
-        getAppliedOffers().where((o) => o['is_group'] == true);
-
-    for (var offerData in appliedOffers) {
-      try {
-        await _apiService.redeemOffer(
-          offerId: offerData['offer_id'],
-          saleId: saleId,
-          itemId: offerData['item_id'],
-          rewardItemId: offerData['reward_item_id'],
-          locationId: _stockLocation!,
-          customerId: _selectedCustomer?.personId,
-          purchasedQuantity: offerData['purchased_quantity'],
-          rewardQuantity: offerData['reward_quantity'],
-          // Both accepted by the endpoint since it was written, never sent
-          // from here -- every app-recorded redemption's tier_id came back
-          // NULL regardless of whether the offer was tiered.
-          ratioMultiplier: offerData['ratio_multiplier'],
-          tierId: offerData['tier_id'],
-          itemUnitPrice: offerData['item_unit_price'],
-          totalDiscountValue: offerData['total_discount_value'],
-        );
-      } catch (e) {
-        debugPrint('Error redeeming offer ${offerData['offer_id']}: $e');
-      }
-    }
   }
 
   // Set customer

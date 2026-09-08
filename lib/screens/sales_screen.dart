@@ -2463,18 +2463,12 @@ class _SalesScreenState extends State<SalesScreen> {
           }
         }
 
-        // Mark one-time discounts as used BEFORE clearing cart.
-        if (response.data?.saleId != null) {
-          final saleId = response.data!.saleId!;
-          debugPrint('Sale completed: Marking discounts as used for sale_id=$saleId');
-          await saleProvider.markDiscountsAsUsed(saleId);
-          // api/Sales.php only ever calls record_redemption() for single-item
-          // offers it computes itself. Group offers are entirely unhandled
-          // server side -- the app must redeem those itself or the redemption
-          // table never learns the sale happened at all.
-          debugPrint('Sale completed: Marking group offers as redeemed for sale_id=$saleId');
-          await saleProvider.markOffersAsRedeemed(saleId);
-        }
+        // One-time discounts and quantity-offer redemptions (single-item and
+        // group) are no longer marked from here -- api/sales/create() now
+        // consumes/records both itself, server side, straight from the
+        // sales_items rows it just inserted, deduped per sale. The app calling
+        // this separately used to be the only thing that recorded a group
+        // offer's redemption at all; now it would just double the row.
 
         // No cleanup of the suspended original: createSale carried its
         // resumedFromSaleId, so the server completed that same row in place.

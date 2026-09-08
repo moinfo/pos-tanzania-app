@@ -3360,62 +3360,6 @@ class ApiService {
     }
   }
 
-  /// Record offer redemption when sale completes
-  Future<ApiResponse<Map<String, dynamic>>> redeemOffer({
-    required int offerId,
-    required int saleId,
-    required int itemId,
-    int? rewardItemId,
-    required int locationId,
-    int? customerId,
-    required double purchasedQuantity,
-    required double rewardQuantity,
-    int? ratioMultiplier,
-    int? tierId,
-    required double itemUnitPrice,
-    required double totalDiscountValue,
-  }) async {
-    try {
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/item_quantity_offers/redeem'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'offer_id': offerId,
-          'sale_id': saleId,
-          'item_id': itemId,
-          // Only sent when the reward differs; the server treats absent as "same item"
-          if (rewardItemId != null && rewardItemId != itemId)
-            'reward_item_id': rewardItemId,
-          'stock_location_id': locationId,
-          if (customerId != null) 'customer_id': customerId,
-          'purchased_quantity': purchasedQuantity,
-          'reward_quantity': rewardQuantity,
-          if (ratioMultiplier != null) 'ratio_multiplier': ratioMultiplier,
-          if (tierId != null) 'tier_id': tierId,
-          'item_unit_price': itemUnitPrice,
-          'total_discount_value': totalDiscountValue,
-        }),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'] ?? {};
-        return ApiResponse.success(
-          data: data as Map<String, dynamic>,
-          message: jsonResponse['message'] ?? 'Offer redeemed successfully',
-        );
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to redeem offer',
-        );
-      }
-    } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
-    }
-  }
-
   /// Get all active offers for a customer at a location
   Future<ApiResponse<ActiveOffersResponse>> getActiveOffers({
     required int locationId,
