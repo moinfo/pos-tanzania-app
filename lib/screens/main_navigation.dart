@@ -44,6 +44,7 @@ import 'shops_screen.dart';
 import 'transfer_screen.dart';
 import 'discount_requests_screen.dart';
 import 'item_approvals_screen.dart';
+import 'transfer_approvals_screen.dart';
 import 'notifications_screen.dart';
 import '../main.dart' show handlePushTap;
 import 'cash_movements_screen.dart';
@@ -71,6 +72,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   // render nothing, so a single int is enough.
   int _pendingApprovals = 0;
 
+  // Stock transfer requests waiting for this user to approve. Same
+  // "0 means nothing to show" contract as _pendingApprovals, kept as a
+  // separate counter since it is a distinct grant (transfers_approve) and
+  // menu section from item approvals.
+  int _pendingTransferApprovals = 0;
+
   /// Unread notifications, shown on the bell in the app bar.
   int _unreadNotifications = 0;
 
@@ -90,6 +97,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     // Providers are not readable during initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshPendingApprovals();
+      _refreshPendingTransferApprovals();
       _refreshNotificationCount();
     });
   }
@@ -109,6 +117,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     if (state == AppLifecycleState.resumed) {
       _refreshPermissions();
       _refreshPendingApprovals();
+      _refreshPendingTransferApprovals();
       _refreshNotificationCount();
     }
   }
@@ -174,6 +183,32 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     // "no badge" reads as "nothing waiting", which a network blip must not fake.
     if (response.isSuccess && response.data != null && response.data != _pendingApprovals) {
       setState(() => _pendingApprovals = response.data!);
+    }
+  }
+
+  /// Pull the count of transfer requests awaiting approval. Same demand-driven
+  /// cadence and "keep last known count on failure" behaviour as
+  /// _refreshPendingApprovals, for the same reasons — see its doc comment.
+  Future<void> _refreshPendingTransferApprovals() async {
+    if (!mounted) return;
+    final authProvider = context.read<AuthProvider>();
+    final permissionProvider = context.read<PermissionProvider>();
+
+    if (!authProvider.isAuthenticated ||
+        !permissionProvider.hasPermission(PermissionIds.transfersApprove)) {
+      if (mounted && _pendingTransferApprovals != 0) {
+        setState(() => _pendingTransferApprovals = 0);
+      }
+      return;
+    }
+
+    final response = await ApiService().getTransferApprovalsPendingCount();
+    if (!mounted) return;
+
+    if (response.isSuccess &&
+        response.data != null &&
+        response.data != _pendingTransferApprovals) {
+      setState(() => _pendingTransferApprovals = response.data!);
     }
   }
 
@@ -370,7 +405,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     // A dot, not a number: the drawer is closed most of the
                     // time, so this only has to say "there is something to
                     // look at". The exact count is one tap away.
-                    if (_pendingApprovals > 0)
+                    if (_pendingApprovals > 0 || _pendingTransferApprovals > 0)
                       Positioned(
                         top: 10,
                         right: 10,
@@ -707,6 +742,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         if (isOpened) {
           _refreshPermissions();
           _refreshPendingApprovals();
+          _refreshPendingTransferApprovals();
           _refreshNotificationCount();
         }
       },
@@ -1314,6 +1350,30 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     context,
                     MaterialPageRoute(builder: (_) => const TransferScreen()),
                   );
+                },
+              ),
+            ),
+            // Transfer Approvals - only approvers see it. Whether any
+            // transfer ever lands here at all depends on the tenant-level
+            // "Require approval for stock transfers" toggle (My Subscription),
+            // not on this grant -- transfers_approve only decides who acts on
+            // one once staging is on.
+            PermissionWrapper(
+              permissionId: PermissionIds.transfersApprove,
+              child: ListTile(
+                leading: Icon(Icons.fact_check_outlined, color: AppColors.brandPrimary),
+                title: const Text('Transfer Approvals'),
+                trailing: _pendingTransferApprovals > 0
+                    ? _buildCountBadge(_pendingTransferApprovals)
+                    : null,
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TransferApprovalsScreen()),
+                  );
+                  // The queue may have shrunk while the screen was open.
+                  _refreshPendingTransferApprovals();
                 },
               ),
             ),

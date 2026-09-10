@@ -15,6 +15,8 @@ import '../models/profit_submit.dart';
 import '../models/contract.dart';
 import '../models/discount_request.dart';
 import '../models/item_approval.dart';
+import '../models/transfer_approval.dart';
+import '../models/bulk_result.dart';
 import '../models/cash_movement.dart';
 import '../models/app_notification.dart';
 import '../models/production_report.dart';
@@ -22,7 +24,8 @@ import '../models/production.dart';
 import '../models/expense.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
-import '../models/credit.dart' hide SaleItem; // Hide SaleItem from credit to avoid conflict
+import '../models/credit.dart'
+    hide SaleItem; // Hide SaleItem from credit to avoid conflict
 import '../models/supplier_credit.dart';
 import '../models/supplier.dart';
 import '../models/receiving.dart';
@@ -73,7 +76,8 @@ class ApiService {
     // If FLAVOR is explicitly set (via --dart-define=FLAVOR=xxx), use it in both modes
     if (ClientsConfig.isFlavoredBuild) {
       currentClient = ClientsConfig.getDefaultClient();
-      print('🎯 FLAVOR BUILD: Using client: ${currentClient?.displayName} (${currentClient?.id})');
+      print(
+          '🎯 FLAVOR BUILD: Using client: ${currentClient?.displayName} (${currentClient?.id})');
       print('🎯 Build flavor: "${ClientsConfig.buildFlavor}"');
       return currentClient!;
     }
@@ -81,7 +85,8 @@ class ApiService {
     // In RELEASE mode without explicit flavor: Use PRODUCTION_CLIENT_ID
     if (kReleaseMode) {
       currentClient = ClientsConfig.getDefaultClient();
-      print('🏭 RELEASE MODE: Using client: ${currentClient?.displayName} (${currentClient?.id})');
+      print(
+          '🏭 RELEASE MODE: Using client: ${currentClient?.displayName} (${currentClient?.id})');
       return currentClient!;
     }
 
@@ -93,7 +98,8 @@ class ApiService {
 
     if (clientId != null) {
       currentClient = ClientsConfig.getClientById(clientId);
-      print('✅ Loaded client: ${currentClient?.displayName} (${currentClient?.id})');
+      print(
+          '✅ Loaded client: ${currentClient?.displayName} (${currentClient?.id})');
     } else {
       currentClient = ClientsConfig.getDefaultClient();
       print('⚠️ No saved client, using default: ${currentClient?.displayName}');
@@ -144,7 +150,8 @@ class ApiService {
       return ClientsConfig.getDefaultClient().devApiUrl;
     }
 
-    print('📍 Current Client: ${currentClient!.displayName} (${currentClient!.id})');
+    print(
+        '📍 Current Client: ${currentClient!.displayName} (${currentClient!.id})');
 
     if (kReleaseMode) {
       return currentClient!.prodApiUrl;
@@ -175,7 +182,8 @@ class ApiService {
       final currentClientId = (currentClient ?? await getCurrentClient()).id;
 
       if (storedClientId != currentClientId) {
-        print('⚠️ Token client mismatch: stored=$storedClientId, current=$currentClientId');
+        print(
+            '⚠️ Token client mismatch: stored=$storedClientId, current=$currentClientId');
         print('🗑️ Clearing mismatched token');
         await clearToken();
         return null;
@@ -340,24 +348,28 @@ class ApiService {
   Future<ApiResponse<User>> login(String username, String password) async {
     try {
       final loginUrl = '$baseUrlSync/auth/login';
-      print('🔐 LOGIN URL: $loginUrl'); // Debug: Show which API URL is being used
+      print(
+          '🔐 LOGIN URL: $loginUrl'); // Debug: Show which API URL is being used
       // Never send X-Tenant-ID on login: the tenant must be determined by the
       // credentials (backend does a cross-tenant search), not by whichever
       // tenant the previous user of this device belonged to. A stale header
       // scopes the login to the old tenant and rejects valid credentials.
       final loginHeaders = await _getHeaders(includeAuth: false)
         ..remove('X-Tenant-ID');
-      final response = await http.post(
+      final response = await http
+          .post(
         Uri.parse(loginUrl),
         headers: loginHeaders,
         body: json.encode({
           'username': username,
           'password': password,
         }),
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 30),
         onTimeout: () {
-          throw Exception('Connection timeout - please check your internet connection');
+          throw Exception(
+              'Connection timeout - please check your internet connection');
         },
       );
 
@@ -375,7 +387,9 @@ class ApiService {
           final raw = json.decode(response.body);
           final tid = raw['data']?['tenant_id'];
           if (tid != null) {
-            tenantId = tid is int ? tid : (tid is double ? tid.toInt() : int.tryParse(tid.toString()));
+            tenantId = tid is int
+                ? tid
+                : (tid is double ? tid.toInt() : int.tryParse(tid.toString()));
           }
         } catch (_) {}
 
@@ -385,7 +399,8 @@ class ApiService {
       return result;
     } on SocketException catch (e) {
       return ApiResponse.error(
-        message: 'Network error: Unable to connect to server. Please check your internet connection.',
+        message:
+            'Network error: Unable to connect to server. Please check your internet connection.',
       );
     } on HttpException catch (e) {
       return ApiResponse.error(
@@ -403,14 +418,17 @@ class ApiService {
   /// Fetch subscription plans publicly (no auth) — for the registration screen.
   Future<ApiResponse<List<Map<String, dynamic>>>> getPublicPlans() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrlSync/auth/plans'),
-        headers: await _getHeaders(includeAuth: false),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrlSync/auth/plans'),
+            headers: await _getHeaders(includeAuth: false),
+          )
+          .timeout(const Duration(seconds: 15));
 
       return _handleResponse<List<Map<String, dynamic>>>(
         response,
-        (data) => (data['packages'] as List<dynamic>?)
+        (data) =>
+            (data['packages'] as List<dynamic>?)
                 ?.cast<Map<String, dynamic>>() ??
             [],
       );
@@ -431,19 +449,21 @@ class ApiService {
     required int packageId,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrlSync/auth/register'),
-        headers: await _getHeaders(includeAuth: false),
-        body: json.encode({
-          'business_name': businessName,
-          'owner_name': ownerName,
-          'phone': phone,
-          'email': email,
-          'password': password,
-          'password_confirmation': passwordConfirmation,
-          'package_id': packageId,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/auth/register'),
+            headers: await _getHeaders(includeAuth: false),
+            body: json.encode({
+              'business_name': businessName,
+              'owner_name': ownerName,
+              'phone': phone,
+              'email': email,
+              'password': password,
+              'password_confirmation': passwordConfirmation,
+              'package_id': packageId,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       return _handleResponse<Map<String, dynamic>>(
         response,
@@ -457,7 +477,8 @@ class ApiService {
         },
       );
     } on SocketException {
-      return ApiResponse.error(message: 'Network error: Unable to connect to server.');
+      return ApiResponse.error(
+          message: 'Network error: Unable to connect to server.');
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -465,12 +486,16 @@ class ApiService {
 
   /// Poll registration payment status (no auth required).
   /// Returns status: pending | completed | failed, plus username on completion.
-  Future<ApiResponse<Map<String, dynamic>>> checkRegistrationStatus(String merchantRef) async {
+  Future<ApiResponse<Map<String, dynamic>>> checkRegistrationStatus(
+      String merchantRef) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrlSync/auth/register_status?ref=${Uri.encodeComponent(merchantRef)}'),
-        headers: await _getHeaders(includeAuth: false),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse(
+                '$baseUrlSync/auth/register_status?ref=${Uri.encodeComponent(merchantRef)}'),
+            headers: await _getHeaders(includeAuth: false),
+          )
+          .timeout(const Duration(seconds: 15));
 
       return _handleResponse<Map<String, dynamic>>(
         response,
@@ -488,10 +513,12 @@ class ApiService {
   /// Get subscription info for the current tenant (mopos / multi-tenant clients)
   Future<ApiResponse<Map<String, dynamic>>> getSubscriptionInfo() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrlSync/auth/subscription'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrlSync/auth/subscription'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
 
       return _handleResponse<Map<String, dynamic>>(
         response,
@@ -506,10 +533,12 @@ class ApiService {
   /// Returns a map with keys 'packages' (core plans) and 'addons' (optional modules).
   Future<ApiResponse<Map<String, dynamic>>> getSubscriptionPackages() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrlSync/auth/packages'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrlSync/auth/packages'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
 
       return _handleResponse<Map<String, dynamic>>(
         response,
@@ -712,17 +741,23 @@ class ApiService {
         'limit': '$limit',
         'offset': '$offset',
         if (dateFrom != null)
-          'date_from': '${dateFrom.year}-${dateFrom.month.toString().padLeft(2, '0')}-${dateFrom.day.toString().padLeft(2, '0')}',
+          'date_from':
+              '${dateFrom.year}-${dateFrom.month.toString().padLeft(2, '0')}-${dateFrom.day.toString().padLeft(2, '0')}',
         if (dateTo != null)
-          'date_to': '${dateTo.year}-${dateTo.month.toString().padLeft(2, '0')}-${dateTo.day.toString().padLeft(2, '0')}',
+          'date_to':
+              '${dateTo.year}-${dateTo.month.toString().padLeft(2, '0')}-${dateTo.day.toString().padLeft(2, '0')}',
       };
-      final response = await http.get(
-        Uri.parse('$baseUrlSync/transfers').replace(queryParameters: params),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrlSync/transfers')
+                .replace(queryParameters: params),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
       return _handleResponse<List<Map<String, dynamic>>>(
         response,
-        (data) => (data['transfers'] as List<dynamic>?)
+        (data) =>
+            (data['transfers'] as List<dynamic>?)
                 ?.cast<Map<String, dynamic>>() ??
             [],
       );
@@ -733,14 +768,16 @@ class ApiService {
 
   Future<ApiResponse<List<Map<String, dynamic>>>> getTransferItems() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrlSync/transfers/items'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrlSync/transfers/items'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
       return _handleResponse<List<Map<String, dynamic>>>(
         response,
-        (data) => (data['items'] as List<dynamic>?)
-                ?.cast<Map<String, dynamic>>() ??
+        (data) =>
+            (data['items'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
             [],
       );
     } catch (e) {
@@ -751,11 +788,13 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> getTransferInventory(
       int itemId, int stockId) async {
     try {
-      final response = await http.get(
-        Uri.parse(
-            '$baseUrlSync/transfers/inventory?item_id=$itemId&stock_id=$stockId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse(
+                '$baseUrlSync/transfers/inventory?item_id=$itemId&stock_id=$stockId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
       return _handleResponse<Map<String, dynamic>>(
         response,
         (data) => data as Map<String, dynamic>,
@@ -771,15 +810,17 @@ class ApiService {
     required double quantity,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrlSync/transfers/create'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'item_id': itemId,
-          'stock_id': stockId,
-          'quantity': quantity,
-        }),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/transfers/create'),
+            headers: await _getHeaders(),
+            body: json.encode({
+              'item_id': itemId,
+              'stock_id': stockId,
+              'quantity': quantity,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
       return _handleResponse<Map<String, dynamic>>(
         response,
         (data) => data as Map<String, dynamic>,
@@ -796,11 +837,13 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> initiateSubscriptionPayment(
       int packageId) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrlSync/subscription/initiate'),
-        headers: await _getHeaders(),
-        body: json.encode({'package_id': packageId}),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/subscription/initiate'),
+            headers: await _getHeaders(),
+            body: json.encode({'package_id': packageId}),
+          )
+          .timeout(const Duration(seconds: 20));
 
       return _handleResponse<Map<String, dynamic>>(
         response,
@@ -816,10 +859,13 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> checkPaymentStatus(
       String merchantRef) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrlSync/subscription/status?ref=${Uri.encodeComponent(merchantRef)}'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse(
+                '$baseUrlSync/subscription/status?ref=${Uri.encodeComponent(merchantRef)}'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
 
       return _handleResponse<Map<String, dynamic>>(
         response,
@@ -920,10 +966,12 @@ class ApiService {
   /// Get user permissions
   Future<Map<String, dynamic>> getUserPermissions() async {
     try {
-      final response = await http.get(
+      final response = await http
+          .get(
         Uri.parse('$baseUrlSync/auth/permissions'),
         headers: await _getHeaders(),
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 30),
         onTimeout: () {
           throw Exception('Connection timeout');
@@ -1210,7 +1258,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch cash submissions',
+          message:
+              jsonResponse['message'] ?? 'Failed to fetch cash submissions',
           statusCode: response.statusCode,
         );
       }
@@ -1283,11 +1332,13 @@ class ApiService {
       );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ApiResponse.success(message: 'Cash submission deleted successfully');
+        return ApiResponse.success(
+            message: 'Cash submission deleted successfully');
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to delete cash submission',
+          message:
+              jsonResponse['message'] ?? 'Failed to delete cash submission',
           statusCode: response.statusCode,
         );
       }
@@ -1298,15 +1349,16 @@ class ApiService {
 
   /// Get supervisors list
   /// [locationId] - Optional location ID to filter supervisors by location
-  Future<ApiResponse<List<Supervisor>>> getSupervisors({int? locationId}) async {
+  Future<ApiResponse<List<Supervisor>>> getSupervisors(
+      {int? locationId}) async {
     try {
       final queryParams = <String, String>{};
       if (locationId != null) {
         queryParams['location_id'] = locationId.toString();
       }
 
-      final uri = Uri.parse('$baseUrlSync/cashsubmit/supervisors')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/cashsubmit/supervisors').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -1344,10 +1396,11 @@ class ApiService {
     try {
       final queryParams = <String, String>{};
       if (date != null) queryParams['date'] = date;
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
-      final uri = Uri.parse('$baseUrlSync/cashsubmit/today_summary')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/cashsubmit/today_summary').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       print('🌐 Calling: $uri');
 
@@ -1357,7 +1410,8 @@ class ApiService {
       );
 
       print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body (first 200 chars): ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
+      print(
+          '📥 Response body (first 200 chars): ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         try {
@@ -1380,7 +1434,8 @@ class ApiService {
           );
         } catch (e) {
           return ApiResponse.error(
-            message: 'Server error (${response.statusCode}): ${response.body.substring(0, 100)}',
+            message:
+                'Server error (${response.statusCode}): ${response.body.substring(0, 100)}',
             statusCode: response.statusCode,
           );
         }
@@ -1402,11 +1457,13 @@ class ApiService {
       final queryParams = <String, String>{};
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
-      if (supervisorId != null) queryParams['supervisor_id'] = supervisorId.toString();
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (supervisorId != null)
+        queryParams['supervisor_id'] = supervisorId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
-      final uri = Uri.parse('$baseUrlSync/cashsubmit/sellers_report')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/cashsubmit/sellers_report').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -1493,7 +1550,8 @@ class ApiService {
         if (endDate != null) 'end_date': endDate,
       };
 
-      final uri = Uri.parse('$baseUrlSync/contracts/$contractId/statement').replace(
+      final uri =
+          Uri.parse('$baseUrlSync/contracts/$contractId/statement').replace(
         queryParameters: queryParams,
       );
 
@@ -1508,7 +1566,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch contract statement',
+          message:
+              jsonResponse['message'] ?? 'Failed to fetch contract statement',
           statusCode: response.statusCode,
         );
       }
@@ -1607,7 +1666,8 @@ class ApiService {
   }
 
   /// Update expense
-  Future<ApiResponse<Expense>> updateExpense(int id, ExpenseFormData formData) async {
+  Future<ApiResponse<Expense>> updateExpense(
+      int id, ExpenseFormData formData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/expenses/update/$id'),
@@ -1660,7 +1720,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch expense categories',
+          message:
+              jsonResponse['message'] ?? 'Failed to fetch expense categories',
           statusCode: response.statusCode,
         );
       }
@@ -1737,7 +1798,8 @@ class ApiService {
   }
 
   /// Create customer
-  Future<ApiResponse<Customer>> createCustomer(CustomerFormData formData) async {
+  Future<ApiResponse<Customer>> createCustomer(
+      CustomerFormData formData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/customers/create'),
@@ -1755,7 +1817,8 @@ class ApiService {
   }
 
   /// Update customer
-  Future<ApiResponse<Customer>> updateCustomer(int id, CustomerFormData formData) async {
+  Future<ApiResponse<Customer>> updateCustomer(
+      int id, CustomerFormData formData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/customers/update/$id'),
@@ -1816,9 +1879,8 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'];
-        final items = (data['items'] as List)
-            .map((item) => Item.fromJson(item))
-            .toList();
+        final items =
+            (data['items'] as List).map((item) => Item.fromJson(item)).toList();
         print('✅ Items parsed: ${items.length} items found');
 
         return ApiResponse.success(
@@ -1850,7 +1912,8 @@ class ApiService {
         final categories = List<Map<String, dynamic>>.from(
           jsonResponse['data']['categories'] ?? [],
         );
-        return ApiResponse.success(data: categories, message: jsonResponse['message']);
+        return ApiResponse.success(
+            data: categories, message: jsonResponse['message']);
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
@@ -1864,7 +1927,8 @@ class ApiService {
   }
 
   /// Create item category
-  Future<ApiResponse<Map<String, dynamic>>> createItemCategory(String name) async {
+  Future<ApiResponse<Map<String, dynamic>>> createItemCategory(
+      String name) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/items/categories/create'),
@@ -1877,14 +1941,16 @@ class ApiService {
             data: Map<String, dynamic>.from(jsonResponse['data']),
             message: jsonResponse['message']);
       }
-      return ApiResponse.error(message: jsonResponse['message'] ?? 'Failed to create category');
+      return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to create category');
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
 
   /// Update item category
-  Future<ApiResponse<Map<String, dynamic>>> updateItemCategory(int id, String name) async {
+  Future<ApiResponse<Map<String, dynamic>>> updateItemCategory(
+      int id, String name) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/items/categories/update/$id'),
@@ -1897,7 +1963,8 @@ class ApiService {
             data: Map<String, dynamic>.from(jsonResponse['data']),
             message: jsonResponse['message']);
       }
-      return ApiResponse.error(message: jsonResponse['message'] ?? 'Failed to update category');
+      return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to update category');
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -1914,7 +1981,8 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return ApiResponse.success(message: jsonResponse['message']);
       }
-      return ApiResponse.error(message: jsonResponse['message'] ?? 'Failed to delete category');
+      return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to delete category');
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -2140,7 +2208,8 @@ class ApiService {
       if (endDate != null) queryParams['end_date'] = endDate;
 
       final uri = Uri.parse('$baseUrlSync/credits/statement/$customerId')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+          .replace(
+              queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -2183,8 +2252,8 @@ class ApiService {
         queryParams['location_ids'] = locationIds.join(',');
       }
 
-      final uri = Uri.parse('$baseUrlSync/credits/supervisors')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/credits/supervisors').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -2233,8 +2302,8 @@ class ApiService {
         queryParams['location_ids'] = locationIds.join(',');
       }
 
-      final uri = Uri.parse('$baseUrlSync/credits/daily_debt_report')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/credits/daily_debt_report').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -2340,7 +2409,8 @@ class ApiService {
 
         return ApiResponse.success(
           data: suppliers,
-          message: jsonResponse['message'] ?? 'Suppliers retrieved successfully',
+          message:
+              jsonResponse['message'] ?? 'Suppliers retrieved successfully',
         );
       } else {
         final jsonResponse = json.decode(response.body);
@@ -2356,7 +2426,8 @@ class ApiService {
 
   /// Get suppliers filtered by stock location (Leruma-specific feature)
   /// Returns suppliers that belong to the supervisor of the given stock location
-  Future<ApiResponse<List<Supplier>>> getSuppliersByLocation(int locationId) async {
+  Future<ApiResponse<List<Supplier>>> getSuppliersByLocation(
+      int locationId) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/suppliers/by_location/$locationId'),
@@ -2370,7 +2441,8 @@ class ApiService {
 
         return ApiResponse.success(
           data: suppliers,
-          message: jsonResponse['message'] ?? 'Suppliers retrieved successfully',
+          message:
+              jsonResponse['message'] ?? 'Suppliers retrieved successfully',
         );
       } else {
         final jsonResponse = json.decode(response.body);
@@ -2396,8 +2468,9 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/supplier_credits/statement/$supplierId')
-          .replace(queryParameters: queryParams);
+      final uri =
+          Uri.parse('$baseUrlSync/supplier_credits/statement/$supplierId')
+              .replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
@@ -2474,7 +2547,8 @@ class ApiService {
   }
 
   /// Delete supplier payment
-  Future<ApiResponse<Map<String, dynamic>>> deleteSupplierPayment(int paymentId) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteSupplierPayment(
+      int paymentId) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/supplier_credits/delete_payment/$paymentId'),
@@ -2508,7 +2582,8 @@ class ApiService {
   }
 
   /// Create supplier
-  Future<ApiResponse<Supplier>> createSupplier(Map<String, dynamic> supplierData) async {
+  Future<ApiResponse<Supplier>> createSupplier(
+      Map<String, dynamic> supplierData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/suppliers/create'),
@@ -2526,7 +2601,8 @@ class ApiService {
   }
 
   /// Update supplier
-  Future<ApiResponse<Supplier>> updateSupplier(int supplierId, Map<String, dynamic> supplierData) async {
+  Future<ApiResponse<Supplier>> updateSupplier(
+      int supplierId, Map<String, dynamic> supplierData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/suppliers/update/$supplierId'),
@@ -2558,7 +2634,8 @@ class ApiService {
   }
 
   /// Get supervisors for supplier dropdown
-  Future<ApiResponse<List<Map<String, dynamic>>>> getSupplierSupervisors() async {
+  Future<ApiResponse<List<Map<String, dynamic>>>>
+      getSupplierSupervisors() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/suppliers/supervisors'),
@@ -2589,8 +2666,8 @@ class ApiService {
         queryParams['location_ids'] = locationIds.join(',');
       }
 
-      final uri = Uri.parse('$baseUrlSync/suppliers_creditors')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/suppliers_creditors').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<SupplierCreditsResponse>(
@@ -2613,8 +2690,10 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/suppliers_creditors/account/$supplierId')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri =
+          Uri.parse('$baseUrlSync/suppliers_creditors/account/$supplierId')
+              .replace(
+                  queryParameters: queryParams.isNotEmpty ? queryParams : null);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<SupplierAccountResponse>(
@@ -2647,7 +2726,8 @@ class ApiService {
   }
 
   /// Get daily credit report for suppliers (credit purchases)
-  Future<ApiResponse<SupplierDailyCreditResponse>> getSupplierDailyCreditReport({
+  Future<ApiResponse<SupplierDailyCreditResponse>>
+      getSupplierDailyCreditReport({
     String? startDate,
     String? endDate,
     List<int>? locationIds,
@@ -2660,8 +2740,10 @@ class ApiService {
         queryParams['location_ids'] = locationIds.join(',');
       }
 
-      final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_credit_report')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri =
+          Uri.parse('$baseUrlSync/suppliers_creditors/daily_credit_report')
+              .replace(
+                  queryParameters: queryParams.isNotEmpty ? queryParams : null);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<SupplierDailyCreditResponse>(
@@ -2687,8 +2769,10 @@ class ApiService {
         queryParams['location_ids'] = locationIds.join(',');
       }
 
-      final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_debt_report')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri =
+          Uri.parse('$baseUrlSync/suppliers_creditors/daily_debt_report')
+              .replace(
+                  queryParameters: queryParams.isNotEmpty ? queryParams : null);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<SupplierDailyDebtResponse>(
@@ -2733,7 +2817,8 @@ class ApiService {
         queryParams['location_id'] = locationId.toString();
       }
 
-      final uri = Uri.parse('$baseUrlSync/receivings').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/receivings')
+          .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(
@@ -2746,7 +2831,8 @@ class ApiService {
   }
 
   /// Get receiving details
-  Future<ApiResponse<ReceivingDetails>> getReceivingDetails(int receivingId) async {
+  Future<ApiResponse<ReceivingDetails>> getReceivingDetails(
+      int receivingId) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/receivings/$receivingId'),
@@ -2763,7 +2849,8 @@ class ApiService {
   }
 
   /// Create new receiving
-  Future<ApiResponse<Map<String, dynamic>>> createReceiving(Receiving receiving) async {
+  Future<ApiResponse<Map<String, dynamic>>> createReceiving(
+      Receiving receiving) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/receivings/create'),
@@ -2781,7 +2868,8 @@ class ApiService {
   }
 
   /// Delete receiving
-  Future<ApiResponse<Map<String, dynamic>>> deleteReceiving(int receivingId) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteReceiving(
+      int receivingId) async {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrlSync/receivings/$receivingId'),
@@ -2811,7 +2899,8 @@ class ApiService {
         'end_date': endDate,
       };
 
-      final uri = Uri.parse('$baseUrlSync/receivings/summary').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/receivings/summary')
+          .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(
@@ -2837,7 +2926,8 @@ class ApiService {
         'end_date': endDate,
       };
 
-      final uri = Uri.parse('$baseUrlSync/receivings/summary2').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/receivings/summary2')
+          .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(
@@ -2866,8 +2956,8 @@ class ApiService {
         queryParams['date'] = date;
       }
 
-      final uri = Uri.parse('$baseUrlSync/receivings/main_store')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/receivings/main_store').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<MainStoreData>(
@@ -2899,11 +2989,14 @@ class ApiService {
 
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
-      if (customerId != null) queryParams['customer_id'] = customerId.toString();
+      if (customerId != null)
+        queryParams['customer_id'] = customerId.toString();
       if (saleType != null) queryParams['sale_type'] = saleType.toString();
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
-      final uri = Uri.parse('$baseUrlSync/sales').replace(queryParameters: queryParams);
+      final uri =
+          Uri.parse('$baseUrlSync/sales').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(
@@ -2942,7 +3035,8 @@ class ApiService {
 
       return _handleResponse<List<SaleItem>>(
         response,
-        (data) => (data as List).map((item) => SaleItem.fromJson(item)).toList(),
+        (data) =>
+            (data as List).map((item) => SaleItem.fromJson(item)).toList(),
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -3217,7 +3311,8 @@ class ApiService {
           return ApiResponse.success(
             data: CustomerCareResponse(
               customers: [],
-              totals: CustomerCareTotals(creditLimit: 0, balance: 0, customerCount: 0),
+              totals: CustomerCareTotals(
+                  creditLimit: 0, balance: 0, customerCount: 0),
             ),
             message: jsonResponse['message'] ?? 'Success',
           );
@@ -3225,7 +3320,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch customer care data',
+          message:
+              jsonResponse['message'] ?? 'Failed to fetch customer care data',
         );
       }
     } catch (e) {
@@ -3286,7 +3382,8 @@ class ApiService {
       );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ApiResponse.success(data: null, message: 'Order updated successfully');
+        return ApiResponse.success(
+            data: null, message: 'Order updated successfully');
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
@@ -3339,7 +3436,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch suspended summary',
+          message:
+              jsonResponse['message'] ?? 'Failed to fetch suspended summary',
         );
       }
     } catch (e) {
@@ -3529,7 +3627,8 @@ class ApiService {
   }
 
   /// Get one-time discount details by ID
-  Future<ApiResponse<OneTimeDiscount>> getOneTimeDiscount(int discountId) async {
+  Future<ApiResponse<OneTimeDiscount>> getOneTimeDiscount(
+      int discountId) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/one_time_discounts/$discountId'),
@@ -3575,8 +3674,10 @@ class ApiService {
         queryParams['date'] = date;
       }
 
-      final uri = Uri.parse('$baseUrlSync/one_time_discounts/customer/$customerId')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri =
+          Uri.parse('$baseUrlSync/one_time_discounts/customer/$customerId')
+              .replace(
+                  queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -3831,7 +3932,8 @@ class ApiService {
   }
 
   /// Delete suspended sale
-  Future<ApiResponse<Map<String, dynamic>>> deleteSuspendedSale(int saleId) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteSuspendedSale(
+      int saleId) async {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrlSync/sales/delete/$saleId'),
@@ -3851,7 +3953,8 @@ class ApiService {
   Future<ApiResponse<SaleSummary>> getTodaySummary({String? date}) async {
     try {
       final queryParams = date != null ? {'date': date} : <String, String>{};
-      final uri = Uri.parse('$baseUrlSync/sales/today_summary').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/sales/today_summary')
+          .replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -3890,7 +3993,8 @@ class ApiService {
         queryParams['location_id'] = locationId.toString();
       }
 
-      final uri = Uri.parse('$baseUrlSync/banking').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/banking')
+          .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<List<BankingListItem>>(
@@ -3898,7 +4002,9 @@ class ApiService {
         (data) {
           final bankingData = data as Map<String, dynamic>;
           final bankings = bankingData['bankings'] as List;
-          return bankings.map((json) => BankingListItem.fromJson(json)).toList();
+          return bankings
+              .map((json) => BankingListItem.fromJson(json))
+              .toList();
         },
       );
     } catch (e) {
@@ -3907,7 +4013,8 @@ class ApiService {
   }
 
   /// Create Banking
-  Future<ApiResponse<Map<String, dynamic>>> createBanking(BankingCreate banking) async {
+  Future<ApiResponse<Map<String, dynamic>>> createBanking(
+      BankingCreate banking) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/banking/create'),
@@ -3925,7 +4032,8 @@ class ApiService {
   }
 
   /// Update Banking
-  Future<ApiResponse<BankingListItem>> updateBanking(int id, BankingCreate banking) async {
+  Future<ApiResponse<BankingListItem>> updateBanking(
+      int id, BankingCreate banking) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrlSync/banking/update/$id'),
@@ -3979,8 +4087,8 @@ class ApiService {
         queryParams['efd_id'] = efdId.toString();
       }
 
-      final uri = Uri.parse('$baseUrlSync/banking/financial_dashboard')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/banking/financial_dashboard').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<FinancialDashboard>(
@@ -4021,11 +4129,13 @@ class ApiService {
 
       // Add headers
       final headers = await _getHeaders();
-      headers.remove('Content-Type'); // Let the request set its own content-type
+      headers
+          .remove('Content-Type'); // Let the request set its own content-type
       multipartRequest.headers.addAll(headers);
 
       // Add form fields
-      multipartRequest.fields['beneficiary_id'] = request.beneficiaryId.toString();
+      multipartRequest.fields['beneficiary_id'] =
+          request.beneficiaryId.toString();
       multipartRequest.fields['supplier_id'] = request.supplierId.toString();
       multipartRequest.fields['efd_id'] = request.efdId.toString();
       multipartRequest.fields['amount'] = request.amount.toString();
@@ -4037,7 +4147,8 @@ class ApiService {
       multipartRequest.fields['payment_method'] = request.paymentMethod;
       multipartRequest.fields['bank_name'] = request.bankName;
       multipartRequest.fields['account_number'] = request.accountNumber;
-      multipartRequest.fields['beneficiary_account_id'] = request.beneficiaryAccountId.toString();
+      multipartRequest.fields['beneficiary_account_id'] =
+          request.beneficiaryAccountId.toString();
       multipartRequest.fields['bank_id'] = request.bankId.toString();
       if (request.notes != null) {
         multipartRequest.fields['notes'] = request.notes!;
@@ -4045,7 +4156,8 @@ class ApiService {
 
       // Add file if provided
       if (attachmentPath != null && attachmentPath.isNotEmpty) {
-        final file = await http.MultipartFile.fromPath('attachment', attachmentPath);
+        final file =
+            await http.MultipartFile.fromPath('attachment', attachmentPath);
         multipartRequest.files.add(file);
       }
 
@@ -4114,8 +4226,8 @@ class ApiService {
         queryParams['end_date'] = endDate;
       }
 
-      final uri = Uri.parse('$baseUrlSync/banking/efd_analysis')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/banking/efd_analysis').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<List<EfdAnalysisItem>>(
@@ -4150,7 +4262,8 @@ class ApiService {
       if (endDate != null) queryParams['end_date'] = endDate;
       if (stockLocation != null) queryParams['stock_location'] = stockLocation;
 
-      final uri = Uri.parse('$baseUrlSync/profitsubmit').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/profitsubmit')
+          .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(
@@ -4163,7 +4276,8 @@ class ApiService {
   }
 
   /// Get Profit Submission details
-  Future<ApiResponse<ProfitSubmitDetails>> getProfitSubmissionDetails(int id) async {
+  Future<ApiResponse<ProfitSubmitDetails>> getProfitSubmissionDetails(
+      int id) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/profitsubmit/$id'),
@@ -4180,7 +4294,8 @@ class ApiService {
   }
 
   /// Create Profit Submission
-  Future<ApiResponse<Map<String, dynamic>>> createProfitSubmission(ProfitSubmitCreate profitSubmit) async {
+  Future<ApiResponse<Map<String, dynamic>>> createProfitSubmission(
+      ProfitSubmitCreate profitSubmit) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/profitsubmit/create'),
@@ -4198,7 +4313,8 @@ class ApiService {
   }
 
   /// Update Profit Submission
-  Future<ApiResponse<Map<String, dynamic>>> updateProfitSubmission(int id, ProfitSubmitCreate profitSubmit) async {
+  Future<ApiResponse<Map<String, dynamic>>> updateProfitSubmission(
+      int id, ProfitSubmitCreate profitSubmit) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrlSync/profitsubmit/update/$id'),
@@ -4216,7 +4332,8 @@ class ApiService {
   }
 
   /// Delete Profit Submission
-  Future<ApiResponse<Map<String, dynamic>>> deleteProfitSubmission(int id) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteProfitSubmission(
+      int id) async {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrlSync/profitsubmit/delete/$id'),
@@ -4317,8 +4434,10 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/transactions/customer_balance/$customerId')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri =
+          Uri.parse('$baseUrlSync/transactions/customer_balance/$customerId')
+              .replace(
+                  queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -4343,7 +4462,8 @@ class ApiService {
       if (endDate != null) queryParams['end_date'] = endDate;
 
       final uri = Uri.parse('$baseUrlSync/transactions/statement/$customerId')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+          .replace(
+              queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -4371,8 +4491,8 @@ class ApiService {
           ? 'transactions/deposits/$customerId'
           : 'transactions/deposits';
 
-      final uri = Uri.parse('$baseUrlSync/$endpoint')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/$endpoint').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -4414,8 +4534,8 @@ class ApiService {
           ? 'transactions/withdrawals/$customerId'
           : 'transactions/withdrawals';
 
-      final uri = Uri.parse('$baseUrlSync/$endpoint')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/$endpoint').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -4443,7 +4563,8 @@ class ApiService {
   }
 
   /// Add deposit
-  Future<ApiResponse<Map<String, dynamic>>> addDeposit(TransactionFormData formData) async {
+  Future<ApiResponse<Map<String, dynamic>>> addDeposit(
+      TransactionFormData formData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/add_deposit'),
@@ -4461,7 +4582,8 @@ class ApiService {
   }
 
   /// Update deposit
-  Future<ApiResponse<Map<String, dynamic>>> updateDeposit(int id, TransactionFormData formData) async {
+  Future<ApiResponse<Map<String, dynamic>>> updateDeposit(
+      int id, TransactionFormData formData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/update_deposit/$id'),
@@ -4496,7 +4618,8 @@ class ApiService {
   }
 
   /// Add withdrawal
-  Future<ApiResponse<Map<String, dynamic>>> addWithdrawal(TransactionFormData formData) async {
+  Future<ApiResponse<Map<String, dynamic>>> addWithdrawal(
+      TransactionFormData formData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/add_withdrawal'),
@@ -4514,7 +4637,8 @@ class ApiService {
   }
 
   /// Update withdrawal
-  Future<ApiResponse<Map<String, dynamic>>> updateWithdrawal(int id, TransactionFormData formData) async {
+  Future<ApiResponse<Map<String, dynamic>>> updateWithdrawal(
+      int id, TransactionFormData formData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/update_withdrawal/$id'),
@@ -4549,7 +4673,8 @@ class ApiService {
   }
 
   /// Get all customers with balances
-  Future<ApiResponse<List<CustomerTransactionBalance>>> getAllCustomersBalance() async {
+  Future<ApiResponse<List<CustomerTransactionBalance>>>
+      getAllCustomersBalance() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/transactions/all_customers_balance'),
@@ -4570,7 +4695,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch customer balances',
+          message:
+              jsonResponse['message'] ?? 'Failed to fetch customer balances',
           statusCode: response.statusCode,
         );
       }
@@ -4603,7 +4729,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch cash basis categories',
+          message: jsonResponse['message'] ??
+              'Failed to fetch cash basis categories',
           statusCode: response.statusCode,
         );
       }
@@ -4662,7 +4789,8 @@ class ApiService {
   }
 
   /// Delete cash basis category
-  Future<ApiResponse<Map<String, dynamic>>> deleteCashBasisCategory(int id) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteCashBasisCategory(
+      int id) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/delete_cash_basis_category/$id'),
@@ -4688,8 +4816,8 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/transactions/cash_basis')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/transactions/cash_basis').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -4756,7 +4884,8 @@ class ApiService {
   }
 
   /// Delete cash basis transaction
-  Future<ApiResponse<Map<String, dynamic>>> deleteCashBasisTransaction(int id) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteCashBasisTransaction(
+      int id) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/delete_cash_basis/$id'),
@@ -4796,7 +4925,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch bank basis categories',
+          message: jsonResponse['message'] ??
+              'Failed to fetch bank basis categories',
           statusCode: response.statusCode,
         );
       }
@@ -4855,7 +4985,8 @@ class ApiService {
   }
 
   /// Delete bank basis category
-  Future<ApiResponse<Map<String, dynamic>>> deleteBankBasisCategory(int id) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteBankBasisCategory(
+      int id) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/delete_bank_basis_category/$id'),
@@ -4881,8 +5012,8 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/transactions/bank_basis')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/transactions/bank_basis').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -4949,7 +5080,8 @@ class ApiService {
   }
 
   /// Delete bank basis transaction
-  Future<ApiResponse<Map<String, dynamic>>> deleteBankBasisTransaction(int id) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteBankBasisTransaction(
+      int id) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/delete_bank_basis/$id'),
@@ -4978,9 +5110,8 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'];
-        final sims = (data['sims'] as List)
-            .map((item) => Sim.fromJson(item))
-            .toList();
+        final sims =
+            (data['sims'] as List).map((item) => Sim.fromJson(item)).toList();
 
         return ApiResponse.success(
           data: sims,
@@ -5074,8 +5205,8 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/transactions/wakala')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/transactions/wakala').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5142,7 +5273,8 @@ class ApiService {
   }
 
   /// Delete wakala transaction
-  Future<ApiResponse<Map<String, dynamic>>> deleteWakalaTransaction(int id) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteWakalaTransaction(
+      int id) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/transactions/delete_wakala/$id'),
@@ -5168,8 +5300,8 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/transactions/wakala_report')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/transactions/wakala_report').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5193,7 +5325,8 @@ class ApiService {
       if (endDate != null) queryParams['end_date'] = endDate;
 
       final uri = Uri.parse('$baseUrlSync/transactions/wakala_expenses')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+          .replace(
+              queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5275,7 +5408,8 @@ class ApiService {
       if (endDate != null) queryParams['end_date'] = endDate;
 
       final uri = Uri.parse('$baseUrlSync/transactions/wakala_expenses_total')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+          .replace(
+              queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5300,8 +5434,8 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/transactions/commissions')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/transactions/commissions').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5384,8 +5518,8 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/transactions/capital')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/transactions/capital').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5470,11 +5604,12 @@ class ApiService {
       final queryParams = <String, String>{};
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
       if (saleType != null) queryParams['sale_type'] = saleType;
 
-      final uri = Uri.parse('$baseUrlSync/${reportType.apiPath}')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/${reportType.apiPath}').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5745,12 +5880,13 @@ class ApiService {
   }) async {
     try {
       final queryParams = <String, String>{};
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
       if (search != null) queryParams['search'] = search;
       if (itemCount != null) queryParams['item_count'] = itemCount;
 
-      final uri = Uri.parse('$baseUrlSync/reports/inventory/summary')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/reports/inventory/summary').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5769,10 +5905,11 @@ class ApiService {
   }) async {
     try {
       final queryParams = <String, String>{};
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
-      final uri = Uri.parse('$baseUrlSync/reports/inventory/low')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$baseUrlSync/reports/inventory/low').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5797,8 +5934,9 @@ class ApiService {
         'end_date': endDate,
       };
 
-      final uri = Uri.parse('$baseUrlSync/reports/specific/customer/$customerId')
-          .replace(queryParameters: queryParams);
+      final uri =
+          Uri.parse('$baseUrlSync/reports/specific/customer/$customerId')
+              .replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5823,8 +5961,9 @@ class ApiService {
         'end_date': endDate,
       };
 
-      final uri = Uri.parse('$baseUrlSync/reports/specific/employee/$employeeId')
-          .replace(queryParameters: queryParams);
+      final uri =
+          Uri.parse('$baseUrlSync/reports/specific/employee/$employeeId')
+              .replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -5849,7 +5988,8 @@ class ApiService {
         'start_date': startDate,
         'end_date': endDate,
       };
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
       final uri = Uri.parse('$baseUrlSync/reports/graphical/$reportType')
           .replace(queryParameters: queryParams);
@@ -5876,7 +6016,8 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'] as List;
-        final locations = data.map((loc) => StockLocation.fromJson(loc)).toList();
+        final locations =
+            data.map((loc) => StockLocation.fromJson(loc)).toList();
 
         return ApiResponse.success(
           data: locations,
@@ -5895,7 +6036,8 @@ class ApiService {
   }
 
   /// Get receiving items for a specific receiving
-  Future<ApiResponse<List<Map<String, dynamic>>>> getReceivingItems(int receivingId) async {
+  Future<ApiResponse<List<Map<String, dynamic>>>> getReceivingItems(
+      int receivingId) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/reports/receiving_items/$receivingId'),
@@ -5932,7 +6074,8 @@ class ApiService {
     required String date,
     required int stockLocationId,
   }) async {
-    final url = '$baseUrlSync/stock/tracking?date=$date&stock_location_id=$stockLocationId';
+    final url =
+        '$baseUrlSync/stock/tracking?date=$date&stock_location_id=$stockLocationId';
     print('=== API: getStockTracking ===');
     print('URL: $url');
 
@@ -5946,7 +6089,8 @@ class ApiService {
       );
 
       print('Status Code: ${response.statusCode}');
-      print('Response Body (first 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
+      print(
+          'Response Body (first 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
@@ -5983,7 +6127,8 @@ class ApiService {
   }) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrlSync/stock/item_tracking?start_date=$startDate&end_date=$endDate&item_id=$itemId&stock_location_id=$stockLocationId'),
+        Uri.parse(
+            '$baseUrlSync/stock/item_tracking?start_date=$startDate&end_date=$endDate&item_id=$itemId&stock_location_id=$stockLocationId'),
         headers: await _getHeaders(),
       );
 
@@ -6067,7 +6212,8 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'] as List;
-        final locations = data.map((loc) => StockLocation.fromJson(loc)).toList();
+        final locations =
+            data.map((loc) => StockLocation.fromJson(loc)).toList();
 
         print('Parsed ${locations.length} locations');
         return ApiResponse.success(
@@ -6100,7 +6246,8 @@ class ApiService {
     int? stockLocationId,
   }) async {
     try {
-      var url = '$baseUrlSync/positions?start_date=$startDate&end_date=$endDate';
+      var url =
+          '$baseUrlSync/positions?start_date=$startDate&end_date=$endDate';
       if (stockLocationId != null) {
         url += '&stock_location_id=$stockLocationId';
       }
@@ -6153,7 +6300,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch position summary',
+          message:
+              jsonResponse['message'] ?? 'Failed to fetch position summary',
           statusCode: response.statusCode,
         );
       }
@@ -6175,8 +6323,11 @@ class ApiService {
     bool forceRefresh = false,
   }) async {
     // Check cache first (if not force refresh)
-    if (!forceRefresh && _dashboardCache != null && _dashboardCacheTime != null) {
-      final cacheAge = DateTime.now().difference(_dashboardCacheTime!).inSeconds;
+    if (!forceRefresh &&
+        _dashboardCache != null &&
+        _dashboardCacheTime != null) {
+      final cacheAge =
+          DateTime.now().difference(_dashboardCacheTime!).inSeconds;
       if (cacheAge < _cacheTTLSeconds) {
         print('📦 Using cached dashboard data (age: ${cacheAge}s)');
         return ApiResponse.success(
@@ -6190,9 +6341,11 @@ class ApiService {
       final queryParams = <String, String>{};
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
-      final uri = Uri.parse('$baseUrlSync/dashboard').replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+      final uri = Uri.parse('$baseUrlSync/dashboard')
+          .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
       print('📊 Fetching commission dashboard: $uri');
 
@@ -6251,9 +6404,11 @@ class ApiService {
       final queryParams = <String, String>{};
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
-      final uri = Uri.parse('$baseUrlSync/dashboard/commission').replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+      final uri = Uri.parse('$baseUrlSync/dashboard/commission')
+          .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -6266,7 +6421,8 @@ class ApiService {
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
-          message: jsonResponse['message'] ?? 'Failed to fetch commission progress',
+          message:
+              jsonResponse['message'] ?? 'Failed to fetch commission progress',
           statusCode: response.statusCode,
         );
       }
@@ -6284,9 +6440,11 @@ class ApiService {
       final queryParams = <String, String>{
         'limit': limit.toString(),
       };
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
-      final uri = Uri.parse('$baseUrlSync/dashboard/activity').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/dashboard/activity')
+          .replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: await _getHeaders());
 
@@ -6337,7 +6495,8 @@ class ApiService {
               message: jsonResponse['message'] ?? 'Customer found',
             );
           } else {
-            return ApiResponse.error(message: rawData['message'] ?? 'Card not registered');
+            return ApiResponse.error(
+                message: rawData['message'] ?? 'Card not registered');
           }
         } else if (rawData != null) {
           return ApiResponse.success(
@@ -6426,7 +6585,8 @@ class ApiService {
   }
 
   /// Get all cards for a customer
-  Future<ApiResponse<List<CustomerCard>>> getCustomerCards(int customerId) async {
+  Future<ApiResponse<List<CustomerCard>>> getCustomerCards(
+      int customerId) async {
     try {
       debugPrint('📋 Getting cards for customer $customerId');
 
@@ -6484,7 +6644,8 @@ class ApiService {
         'limit': limit.toString(),
         'offset': offset.toString(),
       };
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
       final uri = Uri.parse('$baseUrlSync/customer_cards/all').replace(
         queryParameters: queryParams,
@@ -6547,13 +6708,16 @@ class ApiService {
         var rawData = jsonResponse['data'];
 
         // Handle nested response
-        if (rawData is Map && rawData['data'] != null && rawData['success'] == true) {
+        if (rawData is Map &&
+            rawData['data'] != null &&
+            rawData['success'] == true) {
           return ApiResponse.success(
             data: NfcCardBalance.fromJson(rawData['data']),
             message: 'Success',
           );
         } else if (rawData is Map && rawData['success'] == false) {
-          return ApiResponse.error(message: rawData['message'] ?? 'Card not found');
+          return ApiResponse.error(
+              message: rawData['message'] ?? 'Card not found');
         }
 
         return ApiResponse.error(message: 'Card not found');
@@ -6591,17 +6755,21 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         var rawData = jsonResponse['data'];
 
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
+        if (rawData is Map &&
+            rawData['success'] == true &&
+            rawData['data'] != null) {
           return ApiResponse.success(
             data: NfcTransactionResult.fromJson(rawData['data']),
             message: rawData['message'] ?? 'Deposit successful',
           );
         }
 
-        return ApiResponse.error(message: rawData?['message'] ?? 'Deposit failed');
+        return ApiResponse.error(
+            message: rawData?['message'] ?? 'Deposit failed');
       } else {
         final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(message: jsonResponse['message'] ?? 'Deposit failed');
+        return ApiResponse.error(
+            message: jsonResponse['message'] ?? 'Deposit failed');
       }
     } catch (e) {
       debugPrint('❌ Error depositing: $e');
@@ -6636,7 +6804,9 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         var rawData = jsonResponse['data'];
 
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
+        if (rawData is Map &&
+            rawData['success'] == true &&
+            rawData['data'] != null) {
           return ApiResponse.success(
             data: NfcTransactionResult.fromJson(rawData['data']),
             message: rawData['message'] ?? 'Payment successful',
@@ -6646,16 +6816,19 @@ class ApiService {
           if (rawData['data'] != null && rawData['data']['shortage'] != null) {
             final shortage = rawData['data'];
             return ApiResponse.error(
-              message: 'Insufficient balance. Need ${shortage['required']}, have ${shortage['available']}',
+              message:
+                  'Insufficient balance. Need ${shortage['required']}, have ${shortage['available']}',
             );
           }
-          return ApiResponse.error(message: rawData['message'] ?? 'Payment failed');
+          return ApiResponse.error(
+              message: rawData['message'] ?? 'Payment failed');
         }
 
         return ApiResponse.error(message: 'Payment failed');
       } else {
         final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(message: jsonResponse['message'] ?? 'Payment failed');
+        return ApiResponse.error(
+            message: jsonResponse['message'] ?? 'Payment failed');
       }
     } catch (e) {
       debugPrint('❌ Error paying: $e');
@@ -6688,17 +6861,21 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         var rawData = jsonResponse['data'];
 
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
+        if (rawData is Map &&
+            rawData['success'] == true &&
+            rawData['data'] != null) {
           return ApiResponse.success(
             data: NfcConfirmationResult.fromJson(rawData['data']),
             message: rawData['message'] ?? 'Credit sale confirmed',
           );
         }
 
-        return ApiResponse.error(message: rawData?['message'] ?? 'Confirmation failed');
+        return ApiResponse.error(
+            message: rawData?['message'] ?? 'Confirmation failed');
       } else {
         final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(message: jsonResponse['message'] ?? 'Confirmation failed');
+        return ApiResponse.error(
+            message: jsonResponse['message'] ?? 'Confirmation failed');
       }
     } catch (e) {
       debugPrint('❌ Error confirming credit: $e');
@@ -6731,17 +6908,21 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         var rawData = jsonResponse['data'];
 
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
+        if (rawData is Map &&
+            rawData['success'] == true &&
+            rawData['data'] != null) {
           return ApiResponse.success(
             data: NfcConfirmationResult.fromJson(rawData['data']),
             message: rawData['message'] ?? 'Payment confirmed',
           );
         }
 
-        return ApiResponse.error(message: rawData?['message'] ?? 'Confirmation failed');
+        return ApiResponse.error(
+            message: rawData?['message'] ?? 'Confirmation failed');
       } else {
         final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(message: jsonResponse['message'] ?? 'Confirmation failed');
+        return ApiResponse.error(
+            message: jsonResponse['message'] ?? 'Confirmation failed');
       }
     } catch (e) {
       debugPrint('❌ Error confirming payment: $e');
@@ -6778,14 +6959,17 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         var rawData = jsonResponse['data'];
 
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
+        if (rawData is Map &&
+            rawData['success'] == true &&
+            rawData['data'] != null) {
           return ApiResponse.success(
             data: NfcStatement.fromJson(rawData['data']),
             message: 'Success',
           );
         }
 
-        return ApiResponse.error(message: rawData?['message'] ?? 'Failed to get statement');
+        return ApiResponse.error(
+            message: rawData?['message'] ?? 'Failed to get statement');
       } else {
         return ApiResponse.error(message: 'Failed to get statement');
       }
@@ -6816,9 +7000,12 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
       if (type != null) queryParams['type'] = type;
-      if (customerId != null) queryParams['customer_id'] = customerId.toString();
-      if (employeeId != null) queryParams['employee_id'] = employeeId.toString();
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
+      if (customerId != null)
+        queryParams['customer_id'] = customerId.toString();
+      if (employeeId != null)
+        queryParams['employee_id'] = employeeId.toString();
+      if (locationId != null)
+        queryParams['location_id'] = locationId.toString();
 
       final uri = Uri.parse('$baseUrlSync/nfc_wallet/confirmations').replace(
         queryParameters: queryParams,
@@ -6830,10 +7017,15 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         var rawData = jsonResponse['data'];
 
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
-          final confirmationsData = rawData['data']['confirmations'] as List<dynamic>? ?? [];
+        if (rawData is Map &&
+            rawData['success'] == true &&
+            rawData['data'] != null) {
+          final confirmationsData =
+              rawData['data']['confirmations'] as List<dynamic>? ?? [];
           return ApiResponse.success(
-            data: confirmationsData.map((e) => NfcConfirmation.fromJson(e)).toList(),
+            data: confirmationsData
+                .map((e) => NfcConfirmation.fromJson(e))
+                .toList(),
             message: 'Success',
           );
         }
@@ -6862,8 +7054,10 @@ class ApiService {
         headers: await _getHeaders(),
         body: json.encode({
           'customer_id': customerId,
-          if (nfcConfirmRequired != null) 'nfc_confirm_required': nfcConfirmRequired,
-          if (nfcPaymentEnabled != null) 'nfc_payment_enabled': nfcPaymentEnabled,
+          if (nfcConfirmRequired != null)
+            'nfc_confirm_required': nfcConfirmRequired,
+          if (nfcPaymentEnabled != null)
+            'nfc_payment_enabled': nfcPaymentEnabled,
         }),
       );
 
@@ -6875,10 +7069,12 @@ class ApiService {
           return ApiResponse.success(message: 'Settings updated');
         }
 
-        return ApiResponse.error(message: rawData?['message'] ?? 'Failed to update settings');
+        return ApiResponse.error(
+            message: rawData?['message'] ?? 'Failed to update settings');
       } else {
         final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(message: jsonResponse['message'] ?? 'Failed to update settings');
+        return ApiResponse.error(
+            message: jsonResponse['message'] ?? 'Failed to update settings');
       }
     } catch (e) {
       debugPrint('❌ Error updating settings: $e');
@@ -6887,11 +7083,13 @@ class ApiService {
   }
 
   /// Get customer NFC settings
-  Future<ApiResponse<NfcCustomerSettings>> getCustomerNfcSettings(int customerId) async {
+  Future<ApiResponse<NfcCustomerSettings>> getCustomerNfcSettings(
+      int customerId) async {
     try {
       debugPrint('⚙️ Getting NFC settings for customer: $customerId');
 
-      final uri = Uri.parse('$baseUrlSync/nfc_wallet/get_customer_settings').replace(
+      final uri =
+          Uri.parse('$baseUrlSync/nfc_wallet/get_customer_settings').replace(
         queryParameters: {'customer_id': customerId.toString()},
       );
 
@@ -6901,14 +7099,17 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         var rawData = jsonResponse['data'];
 
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
+        if (rawData is Map &&
+            rawData['success'] == true &&
+            rawData['data'] != null) {
           return ApiResponse.success(
             data: NfcCustomerSettings.fromJson(rawData['data']),
             message: 'Success',
           );
         }
 
-        return ApiResponse.error(message: rawData?['message'] ?? 'Customer not found');
+        return ApiResponse.error(
+            message: rawData?['message'] ?? 'Customer not found');
       } else {
         return ApiResponse.error(message: 'Failed to get settings');
       }
@@ -6944,9 +7145,8 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'];
-        final shops = (data['shops'] as List)
-            .map((item) => Shop.fromJson(item))
-            .toList();
+        final shops =
+            (data['shops'] as List).map((item) => Shop.fromJson(item)).toList();
 
         return ApiResponse.success(
           data: shops,
@@ -6992,9 +7192,8 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'];
-        final shops = (data['shops'] as List)
-            .map((item) => Shop.fromJson(item))
-            .toList();
+        final shops =
+            (data['shops'] as List).map((item) => Shop.fromJson(item)).toList();
 
         return ApiResponse.success(
           data: shops,
@@ -7063,10 +7262,12 @@ class ApiService {
   }
 
   /// Get service history for a shop
-  Future<ApiResponse<List<ServiceHistory>>> getServiceHistory(int shopId, {int limit = 20, int offset = 0}) async {
+  Future<ApiResponse<List<ServiceHistory>>> getServiceHistory(int shopId,
+      {int limit = 20, int offset = 0}) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrlSync/shops/service_history/$shopId?limit=$limit&offset=$offset'),
+        Uri.parse(
+            '$baseUrlSync/shops/service_history/$shopId?limit=$limit&offset=$offset'),
         headers: await _getHeaders(),
       );
 
@@ -7075,7 +7276,8 @@ class ApiService {
         (data) {
           final salesList = data['sales'] as List<dynamic>;
           return salesList
-              .map((item) => ServiceHistory.fromJson(item as Map<String, dynamic>))
+              .map((item) =>
+                  ServiceHistory.fromJson(item as Map<String, dynamic>))
               .toList();
         },
       );
@@ -7100,10 +7302,12 @@ class ApiService {
         'offset': offset.toString(),
       };
       if (status != null) queryParams['status'] = status;
-      if (customerId != null) queryParams['customer_id'] = customerId.toString();
+      if (customerId != null)
+        queryParams['customer_id'] = customerId.toString();
       if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
-      final uri = Uri.parse('$baseUrlSync/discount_requests').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrlSync/discount_requests')
+          .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<DiscountRequestListResponse>(
@@ -7174,7 +7378,8 @@ class ApiService {
     required int itemId,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrlSync/discount_requests/check_approved').replace(
+      final uri =
+          Uri.parse('$baseUrlSync/discount_requests/check_approved').replace(
         queryParameters: {
           'customer_id': customerId.toString(),
           'item_id': itemId.toString(),
@@ -7490,10 +7695,203 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrlSync/item_approvals/reject/$id'),
         headers: await _getHeaders(),
-        body: json.encode({if (reason != null && reason.isNotEmpty) 'reason': reason}),
+        body: json.encode(
+            {if (reason != null && reason.isNotEmpty) 'reason': reason}),
       );
 
       return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Approve several requests in one call. Requires items_bulk_approve --
+  /// a separate grant from approveItemApproval's items_approve, see
+  /// PermissionIds.itemsApproveBulk. Each id is processed independently
+  /// server-side, so a 200 here can still carry per-id failures in the
+  /// response -- check BulkResult.results, not just isSuccess.
+  Future<ApiResponse<BulkResult>> approveItemApprovalsBulk(
+      List<int> ids) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/item_approvals/approve_bulk'),
+        headers: await _getHeaders(),
+        body: json.encode({'ids': ids}),
+      );
+
+      return _handleResponse<BulkResult>(
+        response,
+        (data) => BulkResult.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Reject several requests in one call. Same items_bulk_approve gate and
+  /// per-id-failure semantics as approveItemApprovalsBulk.
+  Future<ApiResponse<BulkResult>> rejectItemApprovalsBulk(
+    List<int> ids, {
+    String? reason,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/item_approvals/reject_bulk'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'ids': ids,
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        }),
+      );
+
+      return _handleResponse<BulkResult>(
+        response,
+        (data) => BulkResult.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ============================================================================
+  // TRANSFER APPROVALS (stock transfers awaiting an approver)
+  // Backend: application/controllers/api/Transfer_approvals.php
+  // ============================================================================
+
+  /// Pending transfer requests. Pending rows only (Transfer_request::get_pending),
+  /// oldest first, no filter or pagination params -- same shape as item approvals.
+  Future<ApiResponse<TransferApprovalListResponse>>
+      getTransferApprovals() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transfer_approvals'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<TransferApprovalListResponse>(
+        response,
+        (data) => TransferApprovalListResponse.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// One request, with the from/to transfer detail the list response omits.
+  Future<ApiResponse<TransferApproval>> getTransferApproval(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transfer_approvals/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<TransferApproval>(
+        response,
+        (data) => TransferApproval.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Pending count for the menu badge.
+  Future<ApiResponse<int>> getTransferApprovalsPendingCount() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/transfer_approvals/pending_count'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<int>(
+        response,
+        (data) => data['pending_count'] is int
+            ? data['pending_count']
+            : int.tryParse(data['pending_count']?.toString() ?? '') ?? 0,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Approve a request -- replays the staged transfer (web or api variant,
+  /// per the request's `source`) for real.
+  ///
+  /// 422 when the request is no longer pending, 500 when replaying fails
+  /// because the change went stale, e.g. stock dropped below the requested
+  /// quantity in the meantime. Both arrive as response.message.
+  Future<ApiResponse<void>> approveTransferApproval(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transfer_approvals/approve/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Reject a request. `reason` is optional server-side and stored on the row.
+  Future<ApiResponse<void>> rejectTransferApproval(int id,
+      {String? reason}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transfer_approvals/reject/$id'),
+        headers: await _getHeaders(),
+        body: json.encode(
+            {if (reason != null && reason.isNotEmpty) 'reason': reason}),
+      );
+
+      return _handleResponse<void>(response, null);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Approve several requests in one call. Requires transfers_bulk_approve --
+  /// a separate grant from approveTransferApproval's transfers_approve, see
+  /// PermissionIds.transfersApproveBulk. Each id is processed independently
+  /// server-side, so a 200 here can still carry per-id failures in the
+  /// response -- check BulkResult.results, not just isSuccess.
+  Future<ApiResponse<BulkResult>> approveTransferApprovalsBulk(
+      List<int> ids) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transfer_approvals/approve_bulk'),
+        headers: await _getHeaders(),
+        body: json.encode({'ids': ids}),
+      );
+
+      return _handleResponse<BulkResult>(
+        response,
+        (data) => BulkResult.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Reject several requests in one call. Same transfers_bulk_approve gate
+  /// and per-id-failure semantics as approveTransferApprovalsBulk.
+  Future<ApiResponse<BulkResult>> rejectTransferApprovalsBulk(
+    List<int> ids, {
+    String? reason,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/transfer_approvals/reject_bulk'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'ids': ids,
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        }),
+      );
+
+      return _handleResponse<BulkResult>(
+        response,
+        (data) => BulkResult.fromJson(data),
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -7597,7 +7995,6 @@ class ApiService {
     }
   }
 
-
   // ============================================================================
   // PRODUCTION REPORTS
   // Backend: application/controllers/api/Production_reports.php
@@ -7655,7 +8052,8 @@ class ApiService {
 
       return _handleResponse<List<RawMaterial>>(
         response,
-        (data) => (data['materials'] as List<dynamic>?)
+        (data) =>
+            (data['materials'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(RawMaterial.fromJson)
                 .toList() ??
@@ -7665,7 +8063,6 @@ class ApiService {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
-
 
   // ============================================================================
   // PRODUCTION (batches, recipes, sand lots, settings)
@@ -7819,7 +8216,8 @@ class ApiService {
   }
 
   /// Active recipes by default; pass all=true to include inactive ones.
-  Future<ApiResponse<List<ProductionRecipe>>> getProductionRecipes({bool all = false}) async {
+  Future<ApiResponse<List<ProductionRecipe>>> getProductionRecipes(
+      {bool all = false}) async {
     try {
       final uri = Uri.parse('$baseUrlSync/production/recipes')
           .replace(queryParameters: all ? {'all': '1'} : null);
@@ -7827,7 +8225,8 @@ class ApiService {
 
       return _handleResponse<List<ProductionRecipe>>(
         response,
-        (data) => (data['recipes'] as List<dynamic>?)
+        (data) =>
+            (data['recipes'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(ProductionRecipe.fromJson)
                 .toList() ??
@@ -7950,7 +8349,8 @@ class ApiService {
 
       return _handleResponse<List<ProductionLot>>(
         response,
-        (data) => (data['lots'] as List<dynamic>?)
+        (data) =>
+            (data['lots'] as List<dynamic>?)
                 ?.whereType<Map<String, dynamic>>()
                 .map(ProductionLot.fromJson)
                 .toList() ??

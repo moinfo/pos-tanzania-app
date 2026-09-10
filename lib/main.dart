@@ -17,6 +17,7 @@ import 'screens/landing/landing_screen.dart';
 import 'services/api_service.dart';
 import 'services/push_service.dart';
 import 'screens/item_approvals_screen.dart';
+import 'screens/transfer_approvals_screen.dart';
 import 'screens/items_screen.dart';
 import 'screens/production/production_shell.dart';
 import 'config/clients_config.dart';
@@ -45,6 +46,10 @@ void handlePushTap(Map<String, dynamic> data) {
       case 'item_approval':
         navigator.push(MaterialPageRoute(
             builder: (_) => const ItemApprovalsScreen()));
+        break;
+      case 'transfer_approval':
+        navigator.push(MaterialPageRoute(
+            builder: (_) => const TransferApprovalsScreen()));
         break;
       case 'production_ready':
       case 'lot_low':

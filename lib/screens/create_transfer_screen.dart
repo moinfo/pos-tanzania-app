@@ -133,7 +133,23 @@ class _CreateTransferScreenState extends State<CreateTransferScreen> {
     if (!mounted) return;
     setState(() => _submitting = false);
 
-    if (result.isSuccess) {
+    if (result.isPending) {
+      // Tenant has "Require approval for stock transfers" on: the server
+      // took the request but has NOT moved any stock yet. Must not read as
+      // success — there is no receiving_id/quantities to show, just an
+      // echo of what was submitted (see ApiResponse.isPending). Grab the
+      // messenger BEFORE popping: this screen's own Scaffold goes with it,
+      // so calling ScaffoldMessenger.of(context) after would throw.
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context, true);
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.orange.shade800,
+          duration: const Duration(seconds: 5),
+          content: const Text('Sent for approval — stock has not moved yet'),
+        ),
+      );
+    } else if (result.isSuccess) {
       final data = result.data!;
       final recvId = data['receiving_id'];
       final srcQty = (data['source']?['quantity'] as num?)?.toDouble() ?? qty;

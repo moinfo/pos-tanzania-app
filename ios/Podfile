@@ -1,5 +1,6 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# firebase_core/firebase_messaging require iOS 15+; must match the
+# IPHONEOS_DEPLOYMENT_TARGET set on the Runner target in Xcode.
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

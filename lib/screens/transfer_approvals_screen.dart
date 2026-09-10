@@ -2,34 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
-import '../models/item_approval.dart';
-import '../models/bulk_result.dart';
+import '../models/transfer_approval.dart';
 import '../models/permission_model.dart';
 import '../providers/permission_provider.dart';
-import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 
-/// Review queue for item add/edit/inventory changes staged by employees who
-/// lack the `items_approve` grant. The list endpoint returns pending rows
-/// only, so there is no status filter here -- once acted on, a row leaves.
-class ItemApprovalsScreen extends StatefulWidget {
-  const ItemApprovalsScreen({super.key});
+/// Review queue for stock transfer requests, staged while a tenant has
+/// "Require approval for stock transfers" turned on (My Subscription). The
+/// list endpoint returns pending rows only, so there is no status filter
+/// here -- once acted on, a row leaves.
+///
+/// The list response carries the same from/to transfer detail as a single
+/// request, so cards show what's actually moving without a tap -- a
+/// reviewer working through several pending transfers needs that at a
+/// glance, and it's also what a future bulk-approve selection would need.
+class TransferApprovalsScreen extends StatefulWidget {
+  const TransferApprovalsScreen({super.key});
 
   @override
-  State<ItemApprovalsScreen> createState() => _ItemApprovalsScreenState();
+  State<TransferApprovalsScreen> createState() =>
+      _TransferApprovalsScreenState();
 }
 
-class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
+class _TransferApprovalsScreenState extends State<TransferApprovalsScreen> {
   final ApiService _apiService = ApiService();
-  List<ItemApproval> _requests = [];
+  List<TransferApproval> _requests = [];
   bool _isLoading = true;
   String? _errorMessage;
 
   // A tap on the app bar's "Select" icon or a long-press on a card enters
-  // selection mode. Tracked separately from _selectedIds so the mode
-  // survives deselecting everything -- tapping the last checked row off
-  // shouldn't silently kick you back to normal browsing.
+  // selection mode. Tracked separately from _selectedIds (rather than
+  // "non-empty set IS selection mode") so the mode survives deselecting
+  // everything -- tapping the last checked row off shouldn't silently kick
+  // you back to normal browsing.
   bool _selectionMode = false;
   final Set<int> _selectedIds = {};
 
@@ -50,7 +56,7 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
       _selectedIds.clear();
     });
 
-    final response = await _apiService.getItemApprovals();
+    final response = await _apiService.getTransferApprovals();
 
     if (mounted) {
       setState(() {
@@ -73,19 +79,7 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
     }
   }
 
-  IconData _typeIcon(ItemApproval r) {
-    if (r.isAdd) return Icons.add_box_outlined;
-    if (r.isInventory) return Icons.inventory_outlined;
-    return Icons.edit_outlined;
-  }
-
-  Color _typeColor(ItemApproval r) {
-    if (r.isAdd) return AppColors.success;
-    if (r.isInventory) return AppColors.info;
-    return AppColors.warning;
-  }
-
-  Future<void> _openDetail(ItemApproval summary) async {
+  Future<void> _openDetail(TransferApproval summary) async {
     final changed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -133,11 +127,11 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title:
-            Text('Approve ${ids.length} change${ids.length == 1 ? '' : 's'}?'),
+        title: Text(
+            'Approve ${ids.length} transfer${ids.length == 1 ? '' : 's'}?'),
         content: const Text(
-          'Each change is applied immediately, one at a time. Any that fail '
-          '(e.g. a duplicate item number) are skipped and stay pending.',
+          'Stock moves immediately for each one, one at a time. Any that fail '
+          '(e.g. stock changed since you reviewed it) are skipped and stay pending.',
         ),
         actions: [
           TextButton(
@@ -164,11 +158,11 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title:
-            Text('Reject ${ids.length} change${ids.length == 1 ? '' : 's'}?'),
+            Text('Reject ${ids.length} transfer${ids.length == 1 ? '' : 's'}?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Requesters keep their drafts; nothing is applied.'),
+            const Text('Requesters keep their drafts; nothing is moved.'),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
@@ -207,8 +201,12 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
 
   /// One request to a dedicated bulk endpoint (approve_bulk / reject_bulk),
   /// not N calls to the single-item endpoint from here -- that's also what
-  /// makes items_bulk_approve a real, server-enforced permission rather than
-  /// just a client-side button hide (see PermissionIds.itemsApproveBulk).
+  /// makes transfers_bulk_approve a real, server-enforced permission rather
+  /// than just a client-side button hide (see PermissionIds.transfersApproveBulk).
+  /// The server still processes each id one at a time internally for the
+  /// same reason a client-side loop would have: N simultaneous mutations of
+  /// possibly-overlapping stock is exactly the race this workflow exists to
+  /// avoid.
   Future<void> _runBulk(List<int> ids,
       {required bool isApprove, String? reason}) async {
     showDialog(
@@ -224,15 +222,15 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2)),
             const SizedBox(width: 16),
-            Text('${ids.length} change${ids.length == 1 ? '' : 's'}'),
+            Text('${ids.length} transfer${ids.length == 1 ? '' : 's'}'),
           ],
         ),
       ),
     );
 
     final response = isApprove
-        ? await _apiService.approveItemApprovalsBulk(ids)
-        : await _apiService.rejectItemApprovalsBulk(ids, reason: reason);
+        ? await _apiService.approveTransferApprovalsBulk(ids)
+        : await _apiService.rejectTransferApprovalsBulk(ids, reason: reason);
 
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true)
@@ -241,7 +239,9 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
     if (!response.isSuccess || response.data == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(response.message), backgroundColor: AppColors.error),
+          content: Text(response.message),
+          backgroundColor: AppColors.error,
+        ),
       );
       _loadRequests();
       return;
@@ -258,7 +258,7 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(allOk
-            ? '${result.succeeded} change${result.succeeded == 1 ? '' : 's'} $verb'
+            ? '${result.succeeded} transfer${result.succeeded == 1 ? '' : 's'} $verb'
             : '${result.succeeded} $verb, ${failures.length} failed — see below for why'),
         backgroundColor: allOk ? AppColors.success : Colors.orange.shade800,
         duration: Duration(seconds: allOk ? 3 : 4),
@@ -270,7 +270,9 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Some requests failed'),
-          content: SingleChildScrollView(child: Text(failures.join('\n\n'))),
+          content: SingleChildScrollView(
+            child: Text(failures.join('\n\n')),
+          ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
@@ -279,19 +281,19 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
       );
     }
 
-    _loadRequests(); // also clears selection
+    _loadRequests(); // also clears _selectedIds
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     // Gates selection mode entirely, not just the action buttons -- someone
-    // without items_bulk_approve still reviews and decides one at a time
-    // via a tap (PermissionIds.itemsApprove, checked in the detail sheet),
-    // they just never see a way to select more than one.
+    // without transfers_bulk_approve still reviews and decides one at a
+    // time via a tap (PermissionIds.transfersApprove, checked in the detail
+    // sheet), they just never see a way to select more than one.
     final canBulk = context
         .watch<PermissionProvider>()
-        .hasPermission(PermissionIds.itemsApproveBulk);
+        .hasPermission(PermissionIds.transfersApproveBulk);
 
     return PopScope(
       // Back exits selection mode first rather than leaving the screen --
@@ -306,7 +308,7 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
         appBar: AppBar(
           title: Text(_selectionMode
               ? '${_selectedIds.length} selected'
-              : 'Item Approvals'),
+              : 'Transfer Approvals'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           leading: _selectionMode
@@ -453,8 +455,8 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
     );
   }
 
-  Widget _buildCard(ItemApproval r, bool isDark, bool canSelect) {
-    final color = _typeColor(r);
+  Widget _buildCard(TransferApproval r, bool isDark, bool canSelect) {
+    final color = r.isFromApp ? AppColors.info : AppColors.warning;
     final selected = _selectedIds.contains(r.requestId);
 
     return Card(
@@ -497,7 +499,7 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
                     color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(_typeIcon(r), color: color, size: 22),
+                  child: Icon(Icons.swap_horiz_rounded, color: color, size: 22),
                 ),
               const SizedBox(width: 12),
               Expanded(
@@ -505,7 +507,9 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      r.displayName,
+                      r.displayTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
@@ -515,7 +519,9 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${r.changeTypeLabel} · ${r.requesterName ?? 'Unknown'}',
+                      '${r.qtySummary} · ${r.requesterName ?? 'Unknown'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12.5,
                         color:
@@ -551,7 +557,10 @@ class _ItemApprovalsScreenState extends State<ItemApprovalsScreen> {
   }
 }
 
-/// Detail + act. Fetches on open because the list response carries no diffs.
+/// Detail + act. Still fetches by id on open rather than reusing the row
+/// already in hand -- the list is a point-in-time snapshot, and this is
+/// the screen where stale data costs real money (approving against a
+/// quantity that changed a second after the list loaded).
 class _ApprovalDetailSheet extends StatefulWidget {
   final int requestId;
 
@@ -563,11 +572,10 @@ class _ApprovalDetailSheet extends StatefulWidget {
 
 class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
   final ApiService _apiService = ApiService();
-  ItemApproval? _request;
+  TransferApproval? _request;
   bool _isLoading = true;
   bool _isActing = false;
   String? _errorMessage;
-  bool _showUnchanged = false;
 
   @override
   void initState() {
@@ -576,7 +584,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
   }
 
   Future<void> _load() async {
-    final response = await _apiService.getItemApproval(widget.requestId);
+    final response = await _apiService.getTransferApproval(widget.requestId);
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -593,12 +601,8 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Approve change'),
-        content: Text(
-          _request!.isInventory
-              ? 'Apply this stock adjustment? It moves inventory immediately.'
-              : 'Apply this change to ${_request!.displayName}?',
-        ),
+        title: const Text('Approve transfer'),
+        content: const Text('Apply this transfer? Stock moves immediately.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -614,7 +618,8 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     if (confirmed != true) return;
 
     setState(() => _isActing = true);
-    final response = await _apiService.approveItemApproval(widget.requestId);
+    final response =
+        await _apiService.approveTransferApproval(widget.requestId);
     if (!mounted) return;
     setState(() => _isActing = false);
     _finish(response.isSuccess, response.message);
@@ -625,11 +630,11 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reject change'),
+        title: const Text('Reject transfer'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('The requester keeps their draft; nothing is applied.'),
+            const Text('The requester keeps their draft; nothing is moved.'),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
@@ -663,7 +668,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     setState(() => _isActing = true);
     final reason = controller.text.trim();
     controller.dispose();
-    final response = await _apiService.rejectItemApproval(
+    final response = await _apiService.rejectTransferApproval(
       widget.requestId,
       reason: reason,
     );
@@ -686,56 +691,11 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
     );
   }
 
-  /// Column names are raw DB fields; make the common ones readable and
-  /// fall back to a de-underscored version for the rest.
-  static const Map<String, String> _fieldLabels = {
-    'name': 'Name',
-    'category': 'Category',
-    'item_number': 'Item number',
-    'description': 'Description',
-    'cost_price': 'Cost price',
-    'unit_price': 'Selling price',
-    'reorder_level': 'Reorder level',
-    'receiving_quantity': 'Receiving qty',
-    'supplier_id': 'Supplier',
-    'child': 'Child item',
-    'low_sell_item_id': 'Low-sell item',
-    'tax_category_id': 'Tax category',
-    'qty_per_pack': 'Qty per pack',
-    'pack_name': 'Pack name',
-    'discount_limit': 'Discount limit',
-    'stock_type': 'Stock type',
-    'item_type': 'Item type',
-    'dormant': 'Dormant',
-    'deleted': 'Deleted',
-    'allow_alt_description': 'Allow alt description',
-    'is_serialized': 'Serialized',
-  };
-
-  String _label(String field) {
-    final known = _fieldLabels[field];
-    if (known != null) return known;
-    return field
-        .split('_')
-        .where((w) => w.isNotEmpty)
-        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' ');
-  }
-
-  String _locationLabel(BuildContext context, String locationId) {
-    final locations = context.read<LocationProvider>().allowedLocations;
-    for (final loc in locations) {
-      if (loc.locationId.toString() == locationId) return loc.locationName;
-    }
-    // The approver may not be scoped to every location in the diff.
-    return 'Location $locationId';
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final canAct = permissions.hasPermission(PermissionIds.itemsApprove);
+    final canAct = permissions.hasPermission(PermissionIds.transfersApprove);
 
     return Container(
       constraints: BoxConstraints(
@@ -783,6 +743,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
 
   Widget _buildBody(bool isDark) {
     final r = _request!;
+    final t = r.transfer;
     final textColor = isDark ? AppColors.darkText : AppColors.lightText;
     final subColor = isDark ? AppColors.darkTextLight : Colors.grey[600];
 
@@ -792,194 +753,140 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            r.displayName,
+            r.displayTitle,
             style: TextStyle(
                 fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
           ),
           const SizedBox(height: 4),
           Text(
-            '${r.changeTypeLabel} · requested by ${r.requesterName ?? 'Unknown'}',
+            '${r.sourceLabel} · requested by ${r.requesterName ?? 'Unknown'}',
             style: TextStyle(fontSize: 13, color: subColor),
           ),
           const Divider(height: 24),
-          if (r.isInventory && r.inventoryDiff != null)
-            _buildInventoryDiff(r.inventoryDiff!, isDark)
-          else ...[
-            _buildFieldDiffs(r, isDark),
-            if (r.changedQuantities.isNotEmpty) ...[
-              const SizedBox(height: 18),
-              Text('Quantities',
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-              const SizedBox(height: 6),
-              ...r.changedQuantities.map(
-                (d) => _diffRow(_locationLabel(context, d.field), d.beforeLabel,
-                    d.afterLabel, isDark,
-                    changed: d.changed),
-              ),
-            ],
-          ],
+          if (t != null)
+            _buildTransferDetail(t, isDark)
+          else
+            Text('Transfer detail unavailable.',
+                style: TextStyle(color: subColor)),
         ],
       ),
     );
   }
 
-  Widget _buildFieldDiffs(ItemApproval r, bool isDark) {
-    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
-    final changed = r.changedFields;
-    final unchanged = r.unchangedFields;
-
+  Widget _buildTransferDetail(TransferDiff t, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (changed.isEmpty)
-          Text(
-            r.isAdd
-                ? 'All values below are new.'
-                : 'No field values changed in this request.',
-            style: TextStyle(
-                color: isDark ? AppColors.darkTextLight : Colors.grey[600]),
-          )
-        else ...[
-          Text('${changed.length} change${changed.length == 1 ? '' : 's'}',
-              style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-          const SizedBox(height: 6),
-          ...changed.map((d) => _diffRow(
-              _label(d.field), d.beforeLabel, d.afterLabel, isDark,
-              changed: true)),
-        ],
-
-        // Everything else is collapsed: an item row is ~40 columns and
-        // showing them all buries the handful that actually moved.
-        if (unchanged.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          InkWell(
-            onTap: () => setState(() => _showUnchanged = !_showUnchanged),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Icon(_showUnchanged ? Icons.expand_less : Icons.expand_more,
-                      size: 20, color: AppColors.primary),
-                  const SizedBox(width: 4),
-                  Text(
-                    _showUnchanged
-                        ? 'Hide unchanged fields'
-                        : 'Show ${unchanged.length} unchanged fields',
-                    style:
-                        const TextStyle(color: AppColors.primary, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_showUnchanged)
-            ...unchanged.map((d) => _diffRow(
-                _label(d.field), d.beforeLabel, d.afterLabel, isDark,
-                changed: false)),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildInventoryDiff(InventoryDiff d, bool isDark) {
-    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
-    final positive = d.delta >= 0;
-    final qty = NumberFormat('#,##0.##');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _diffRow('Location', d.location, d.location, isDark, changed: false),
+        _transferBox(
+          icon: Icons.remove_circle_outline,
+          color: AppColors.error,
+          label: 'From',
+          item: t.fromItem,
+          qty: TransferDiff.label(t.fromQty),
+          before: t.fromBefore,
+          isDark: isDark,
+        ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             children: [
-              Icon(positive ? Icons.arrow_upward : Icons.arrow_downward,
-                  color: positive ? AppColors.success : AppColors.error,
-                  size: 20),
-              const SizedBox(width: 6),
-              Text(
-                '${positive ? '+' : ''}${qty.format(d.delta)}',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: positive ? AppColors.success : AppColors.error,
-                ),
-              ),
+              const SizedBox(width: 18),
+              Icon(Icons.arrow_downward, size: 18, color: AppColors.primary),
             ],
           ),
         ),
-        if (d.beforeQty != null && d.afterQty != null)
-          _diffRow('Quantity', qty.format(d.beforeQty), qty.format(d.afterQty),
-              isDark,
-              changed: true),
-        if (d.transComment != null && d.transComment!.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Text('Comment',
-              style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-          const SizedBox(height: 3),
-          Text(d.transComment!,
-              style: TextStyle(
-                  color: isDark ? AppColors.darkTextLight : Colors.grey[700])),
+        _transferBox(
+          icon: Icons.add_circle_outline,
+          color: AppColors.success,
+          label: 'To',
+          // A mobile-submitted transfer may not have resolved a specific
+          // child item yet -- see the TransferDiff class doc.
+          item: t.toItem ?? 'Not yet resolved',
+          qty: TransferDiff.label(t.toQty),
+          before: t.toBefore,
+          isDark: isDark,
+        ),
+        if (t.note != null && t.note!.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCard : Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline,
+                    size: 16,
+                    color: isDark ? AppColors.darkTextLight : Colors.grey[600]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t.note!,
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : Colors.grey[700]),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ],
     );
   }
 
-  /// [changed] comes from the server, which compares type-aware:
-  /// "12000.00" and 12000 are equal there. Deciding from the rendered text
-  /// instead would draw a before -> after arrow on rows that never moved,
-  /// which is exactly what a DECIMAL column looks like next to a plain int.
-  Widget _diffRow(String label, String before, String after, bool isDark,
-      {required bool changed}) {
+  Widget _transferBox({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String item,
+    required String qty,
+    dynamic before,
+    required bool isDark,
+  }) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
     final subColor = isDark ? AppColors.darkTextLight : Colors.grey[600];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120,
-            child: Text(label, style: TextStyle(fontSize: 13, color: subColor)),
-          ),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
           Expanded(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Flexible(
-                  child: Text(
-                    // An unchanged row is one value, not a before and an
-                    // after that happen to match.
-                    changed ? before : after,
+                Text(label, style: TextStyle(fontSize: 11.5, color: subColor)),
+                Text(item,
                     style: TextStyle(
-                      fontSize: 13.5,
-                      color: changed
-                          ? subColor
-                          : (isDark ? AppColors.darkText : AppColors.lightText),
-                      decoration: changed ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                ),
-                if (changed) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Icon(Icons.arrow_forward, size: 13, color: subColor),
-                  ),
-                  Flexible(
-                    child: Text(
-                      after,
-                      style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w600,
-                        color:
-                            isDark ? AppColors.darkText : AppColors.lightText,
-                      ),
-                    ),
-                  ),
-                ],
+                        color: textColor)),
               ],
             ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(qty,
+                  style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: textColor)),
+              if (before != null)
+                Text('was ${TransferDiff.label(before)}',
+                    style: TextStyle(fontSize: 11.5, color: subColor)),
+            ],
           ),
         ],
       ),
@@ -991,7 +898,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'You do not have permission to approve or reject changes.',
+          'You do not have permission to approve or reject transfers.',
           style: TextStyle(
               color: isDark ? AppColors.darkTextLight : Colors.grey[600]),
         ),

@@ -111,9 +111,12 @@ class PermissionIds {
   static const String bankingEditDeposit = 'banking_edit_deposit';
   static const String bankingDeleteDeposit = 'banking_delete_deposit';
   static const String bankingDateRangeFilter = 'banking_date_range_filter';
-  static const String bankingDate = 'banking_date'; // Permission to change date when adding/editing
-  static const String bankingSelectAllEfds = 'banking_select_all_efds'; // Can see all EFDs
-  static const String bankingMismatchReport = 'banking_mismatch_report'; // View mismatch report
+  static const String bankingDate =
+      'banking_date'; // Permission to change date when adding/editing
+  static const String bankingSelectAllEfds =
+      'banking_select_all_efds'; // Can see all EFDs
+  static const String bankingMismatchReport =
+      'banking_mismatch_report'; // View mismatch report
 
   // Items sub-permissions
   static const String itemsAdd = 'items_add';
@@ -129,13 +132,44 @@ class PermissionIds {
   // this grant get their saves staged instead of applied (HTTP 202).
   static const String itemsApprove = 'items_approve';
 
+  // Separate from itemsApprove on purpose: deciding one pending item
+  // change at a time doesn't imply being trusted to clear a whole queue
+  // in one tap. Enforced server-side on the bulk endpoints, not just a
+  // client-side button hide -- see api/Item_approvals::approve_bulk.
+  //
+  // NOT "items_approve_bulk": the backend's Employee::has_subpermissions()
+  // treats any "<base>_<suffix>" permission_id as a sub-permission of
+  // "<base>" via a LIKE '<base>_%' check, so that name broke itemsApprove
+  // for every existing holder the moment it was declared. Word order
+  // swapped so it doesn't extend itemsApprove's own string.
+  static const String itemsApproveBulk = 'items_bulk_approve';
+
+  // Approver for staged transfer requests. Staging only happens when the
+  // tenant has "Require approval for stock transfers" on (per-tenant, not
+  // per-employee) -- this grant just decides who can act on one, same
+  // rollout as itemsApprove.
+  static const String transfersApprove = 'transfers_approve';
+
+  // Separate from transfersApprove on purpose: deciding one pending
+  // transfer at a time doesn't imply being trusted to clear a whole queue
+  // in one tap. Enforced server-side on the bulk endpoints, not just a
+  // client-side button hide -- see api/Transfer_approvals::approve_bulk.
+  //
+  // NOT "transfers_approve_bulk" -- same naming trap as itemsApproveBulk
+  // above (broke transfersApprove for every existing holder). Word order
+  // swapped for the same reason.
+  static const String transfersApproveBulk = 'transfers_bulk_approve';
+
   // Direct Deposit / Direct Withdraw (ospos_cash_movements). Both the view
   // and the write grants are per-type, so they are built from the type at
   // the call site rather than enumerated here for every combination.
-  static String cashMovementView(String type) => 'cash_submit_direct_${type}_amount';
+  static String cashMovementView(String type) =>
+      'cash_submit_direct_${type}_amount';
   static String cashMovementAdd(String type) => 'cash_submit_add_direct_$type';
-  static String cashMovementEdit(String type) => 'cash_submit_edit_direct_$type';
-  static String cashMovementDelete(String type) => 'cash_submit_delete_direct_$type';
+  static String cashMovementEdit(String type) =>
+      'cash_submit_edit_direct_$type';
+  static String cashMovementDelete(String type) =>
+      'cash_submit_delete_direct_$type';
 
   // Production module (batches, recipes, lots, cost map) -- tenant-specific,
   // so the grant is the gate rather than a per-client feature flag.
@@ -184,8 +218,10 @@ class PermissionIds {
   static const String customersDelete = 'customers_delete';
   static const String customersAddPayment = 'customers_add_payment';
   static const String customersViewCredit = 'customers_view_credit';
-  static const String customersDormantInactive = 'customers_dormant_inactive_customers';
-  static const String customersMakeDormantActive = 'customers_make_customer_dormant_active';
+  static const String customersDormantInactive =
+      'customers_dormant_inactive_customers';
+  static const String customersMakeDormantActive =
+      'customers_make_customer_dormant_active';
 
   // Suppliers sub-permissions
   static const String suppliersAdd = 'suppliers_add';
@@ -197,9 +233,11 @@ class PermissionIds {
   static const String suppliersCreditorsEdit = 'suppliers_creditors_edit';
   static const String suppliersCreditorsDelete = 'suppliers_creditors_delete';
   static const String suppliersCreditorsView = 'suppliers_creditors_view';
-  static const String suppliersCreditorsPayment = 'suppliers_creditors_make_payment';
+  static const String suppliersCreditorsPayment =
+      'suppliers_creditors_make_payment';
   static const String suppliersCreditorsDate = 'suppliers_creditors_date';
-  static const String suppliersCreditorsEditDate = 'suppliers_creditors_edit_date';
+  static const String suppliersCreditorsEditDate =
+      'suppliers_creditors_edit_date';
 
   // Clients sub-permissions
   static const String clientsEdit = 'clients_edit';
@@ -244,15 +282,18 @@ class PermissionIds {
   static const String cashSubmitAmountTendered = 'cash_submit_amount_tendered';
   static const String cashSubmitAmountDue = 'cash_submit_amount_due';
   static const String cashSubmitSalesReturn = 'cash_submit_sales_return';
-  static const String cashSubmitReceivingReturn = 'cash_submit_receiving_return';
+  static const String cashSubmitReceivingReturn =
+      'cash_submit_receiving_return';
   static const String cashSubmitSalesDiscount = 'cash_submit_sales_discount';
   static const String cashSubmitExpenses = 'cash_submit_expenses';
   static const String cashSubmitSupplierCash = 'cash_submit_supplier_cash';
   static const String cashSubmitSupplierCredit = 'cash_submit_supplier_credit';
   static const String cashSubmitCustomerCredit = 'cash_submit_customer_credit';
   static const String cashSubmitDebitCustomer = 'cash_submit_debit_customer';
-  static const String cashSubmitDebitSupplierCash = 'cash_submit_debit_supplier_cash';
-  static const String cashSubmitDebitSupplierBank = 'cash_submit_debit_supplier_bank';
+  static const String cashSubmitDebitSupplierCash =
+      'cash_submit_debit_supplier_cash';
+  static const String cashSubmitDebitSupplierBank =
+      'cash_submit_debit_supplier_bank';
   static const String cashSubmitTransportCost = 'cash_submit_transport_cost';
   static const String cashSubmitDamage = 'cash_submit_damage';
   static const String cashSubmitGainLoss = 'cash_submit_gain_loss';
@@ -264,19 +305,25 @@ class PermissionIds {
   static const String cashSubmitProfitDate = 'cash_submit_profit_date';
   static const String cashSubmitCashSubmitted = 'cash_submit_cash_submitted';
   static const String cashSubmitBankingAmount = 'cash_submit_banking_amount';
-  static const String cashSubmitProfitSubmitted = 'cash_submit_profit_submitted';
-  static const String cashSubmitFinancialBanking = 'cash_submit_financial_banking';
+  static const String cashSubmitProfitSubmitted =
+      'cash_submit_profit_submitted';
+  static const String cashSubmitFinancialBanking =
+      'cash_submit_financial_banking';
   static const String cashSubmitDifference = 'cash_submit_difference';
   static const String cashSubmitDifferenceMrBs = 'cash_submit_difference_mr_bs';
-  static const String cashSubmitMainStoreReceiving = 'cash_submit_main_store_receiving';
+  static const String cashSubmitMainStoreReceiving =
+      'cash_submit_main_store_receiving';
   // Leruma-specific permissions
   static const String cashSubmitChipDeposited = 'cash_submit_chip_deposited';
   static const String cashSubmitChipUsed = 'cash_submit_chip_used';
   static const String cashSubmitManualEditing = 'cash_submit_manual_editing';
-  static const String cashSubmitManualEditingWorkout = 'cash_submit_manual_editing_workout';
+  static const String cashSubmitManualEditingWorkout =
+      'cash_submit_manual_editing_workout';
   static const String cashSubmitChangeDue = 'cash_submit_change_due';
-  static const String cashSubmitDifferenceManualEditing = 'cash_submit_difference_manual_editing';
-  static const String cashSubmitDoubleSalesItems = 'cash_submit_double_sales_items';
+  static const String cashSubmitDifferenceManualEditing =
+      'cash_submit_difference_manual_editing';
+  static const String cashSubmitDoubleSalesItems =
+      'cash_submit_double_sales_items';
   static const String cashSubmitSellerReport = 'cash_submit_seller_report';
 
   // Transactions module (base permission)
@@ -284,7 +331,8 @@ class PermissionIds {
 
   // Transactions module sub-permissions
   // Main menu permissions
-  static const String transactionsDepositsAndWithdraws = 'transactions_deposits_and_withdraws';
+  static const String transactionsDepositsAndWithdraws =
+      'transactions_deposits_and_withdraws';
   static const String transactionsWakalaReport = 'transactions_wakala_report';
 
   // Transactions admin. On web this grant does two things (see
@@ -297,24 +345,38 @@ class PermissionIds {
   // Cash Basis
   static const String transactionsCashBasis = 'transactions_cash_basis';
   static const String transactionsCashBasisAdd = 'transactions_cash_basis_add';
-  static const String transactionsCashBasisEdit = 'transactions_cash_basis_edit';
-  static const String transactionsCashBasisDelete = 'transactions_cash_basis_delete';
-  static const String transactionsCashBasisSettingAdd = 'transactions_cash_basis_setting_add';
-  static const String transactionsCashBasisSettingEdit = 'transactions_cash_basis_setting_edit';
-  static const String transactionsCashBasisSettingDelete = 'transactions_cash_basis_setting_delete';
-  static const String transactionsCashBasisDate = 'transactions_cash_basis_date';
-  static const String transactionsCashBasisDateRange = 'transactions_cash_basis_date_range';
+  static const String transactionsCashBasisEdit =
+      'transactions_cash_basis_edit';
+  static const String transactionsCashBasisDelete =
+      'transactions_cash_basis_delete';
+  static const String transactionsCashBasisSettingAdd =
+      'transactions_cash_basis_setting_add';
+  static const String transactionsCashBasisSettingEdit =
+      'transactions_cash_basis_setting_edit';
+  static const String transactionsCashBasisSettingDelete =
+      'transactions_cash_basis_setting_delete';
+  static const String transactionsCashBasisDate =
+      'transactions_cash_basis_date';
+  static const String transactionsCashBasisDateRange =
+      'transactions_cash_basis_date_range';
 
   // Bank Basis
   static const String transactionsBankBasis = 'transactions_bank_basis';
   static const String transactionsBankBasisAdd = 'transactions_bank_basis_add';
-  static const String transactionsBankBasisEdit = 'transactions_bank_basis_edit';
-  static const String transactionsBankBasisDelete = 'transactions_bank_basis_delete';
-  static const String transactionsBankBasisSettingAdd = 'transactions_bank_basis_setting_add';
-  static const String transactionsBankBasisSettingEdit = 'transactions_bank_basis_setting_edit';
-  static const String transactionsBankBasisSettingDelete = 'transactions_bank_basis_setting_delete';
-  static const String transactionsBankBasisDate = 'transactions_bank_basis_date';
-  static const String transactionsBankBasisDateRange = 'transactions_bank_basis_date_range';
+  static const String transactionsBankBasisEdit =
+      'transactions_bank_basis_edit';
+  static const String transactionsBankBasisDelete =
+      'transactions_bank_basis_delete';
+  static const String transactionsBankBasisSettingAdd =
+      'transactions_bank_basis_setting_add';
+  static const String transactionsBankBasisSettingEdit =
+      'transactions_bank_basis_setting_edit';
+  static const String transactionsBankBasisSettingDelete =
+      'transactions_bank_basis_setting_delete';
+  static const String transactionsBankBasisDate =
+      'transactions_bank_basis_date';
+  static const String transactionsBankBasisDateRange =
+      'transactions_bank_basis_date_range';
 
   // Customer Transactions (Deposits & Withdrawals)
   static const String transactionsCustomer = 'transactions_customer';
@@ -323,13 +385,16 @@ class PermissionIds {
   static const String transactionsDepositDelete = 'transactions_deposit_delete';
   static const String transactionsWithdrawAdd = 'transactions_withdraw_add';
   static const String transactionsWithdrawEdit = 'transactions_withdraw_edit';
-  static const String transactionsWithdrawDelete = 'transactions_withdraw_delete';
+  static const String transactionsWithdrawDelete =
+      'transactions_withdraw_delete';
   // Finer-grained than web, which controls date editing with the single
   // transactions_admin grant (views/transactions/footer.php). Registered on the
   // web side by migration 20260725000001_transactions_missing_permissions.
-  static const String transactionsDepositDateRange = 'transactions_deposit_date_range';
+  static const String transactionsDepositDateRange =
+      'transactions_deposit_date_range';
   static const String transactionsDepositDate = 'transactions_deposit_date';
-  static const String transactionsWithdrawDateRange = 'transactions_withdraw_date_range';
+  static const String transactionsWithdrawDateRange =
+      'transactions_withdraw_date_range';
   static const String transactionsWithdrawDate = 'transactions_withdraw_date';
 
   // Wakala
@@ -337,32 +402,46 @@ class PermissionIds {
   static const String transactionsWakalaAdd = 'transactions_wakala_add';
   static const String transactionsWakalaEdit = 'transactions_wakala_edit';
   static const String transactionsWakalaDelete = 'transactions_wakala_delete';
-  static const String transactionsWakalaSettingAdd = 'transactions_wakala_setting_add';
-  static const String transactionsWakalaSettingEdit = 'transactions_wakala_setting_edit';
-  static const String transactionsWakalaSettingDelete = 'transactions_wakala_setting_delete';
+  static const String transactionsWakalaSettingAdd =
+      'transactions_wakala_setting_add';
+  static const String transactionsWakalaSettingEdit =
+      'transactions_wakala_setting_edit';
+  static const String transactionsWakalaSettingDelete =
+      'transactions_wakala_setting_delete';
   static const String transactionsWakalaDate = 'transactions_wakala_date';
-  static const String transactionsWakalaDateRange = 'transactions_wakala_date_range';
-  static const String transactionsWakalaReportDateRange = 'transactions_wakala_report_date_range';
+  static const String transactionsWakalaDateRange =
+      'transactions_wakala_date_range';
+  static const String transactionsWakalaReportDateRange =
+      'transactions_wakala_report_date_range';
 
   // Wakala Expenses.
   // The four base ids below are NOT registered in ospos_permissions — web reuses
   // the plain wakala grants for expenses (Transactions.php:319/325/335/346 check
   // transactions_wakala, _add, _edit, _delete). Gate expense screens on the
   // transactionsWakala* family; only the two date ids here are real.
-  static const String transactionsWakalaExpenses = 'transactions_wakala_expenses';
-  static const String transactionsWakalaExpensesAdd = 'transactions_wakala_expenses_add';
-  static const String transactionsWakalaExpensesEdit = 'transactions_wakala_expenses_edit';
-  static const String transactionsWakalaExpensesDelete = 'transactions_wakala_expenses_delete';
-  static const String transactionsWakalaExpensesDate = 'transactions_wakala_expenses_date';
-  static const String transactionsWakalaExpensesDateRange = 'transactions_wakala_expenses_date_range';
+  static const String transactionsWakalaExpenses =
+      'transactions_wakala_expenses';
+  static const String transactionsWakalaExpensesAdd =
+      'transactions_wakala_expenses_add';
+  static const String transactionsWakalaExpensesEdit =
+      'transactions_wakala_expenses_edit';
+  static const String transactionsWakalaExpensesDelete =
+      'transactions_wakala_expenses_delete';
+  static const String transactionsWakalaExpensesDate =
+      'transactions_wakala_expenses_date';
+  static const String transactionsWakalaExpensesDateRange =
+      'transactions_wakala_expenses_date_range';
 
   // Customer balance screen (web: Transactions/customerBalance).
-  static const String transactionsCustomerBalance = 'transactions_customer_balance';
-  static const String transactionsCustomerBalanceDateRange = 'transactions_customer_balance_date_range';
+  static const String transactionsCustomerBalance =
+      'transactions_customer_balance';
+  static const String transactionsCustomerBalanceDateRange =
+      'transactions_customer_balance_date_range';
 
   // General transactions report (web: Transactions/report).
   static const String transactionsReport = 'transactions_report';
-  static const String transactionsReportDateRange = 'transactions_report_date_range';
+  static const String transactionsReportDateRange =
+      'transactions_report_date_range';
 
   // Commission — permissions registered, API PENDING.
   // Migration 20260725000001_transactions_missing_permissions registers these in
@@ -374,10 +453,14 @@ class PermissionIds {
   // and those four endpoints.
   static const String transactionsCommission = 'transactions_commission';
   static const String transactionsCommissionAdd = 'transactions_commission_add';
-  static const String transactionsCommissionEdit = 'transactions_commission_edit';
-  static const String transactionsCommissionDelete = 'transactions_commission_delete';
-  static const String transactionsCommissionDate = 'transactions_commission_date';
-  static const String transactionsCommissionDateRange = 'transactions_commission_date_range';
+  static const String transactionsCommissionEdit =
+      'transactions_commission_edit';
+  static const String transactionsCommissionDelete =
+      'transactions_commission_delete';
+  static const String transactionsCommissionDate =
+      'transactions_commission_date';
+  static const String transactionsCommissionDateRange =
+      'transactions_commission_date_range';
 
   // Capital — permissions registered, API PENDING.
   // Same situation as Commission above. The ospos_capital table does exist and
@@ -389,7 +472,8 @@ class PermissionIds {
   static const String transactionsCapitalEdit = 'transactions_capital_edit';
   static const String transactionsCapitalDelete = 'transactions_capital_delete';
   static const String transactionsCapitalDate = 'transactions_capital_date';
-  static const String transactionsCapitalDateRange = 'transactions_capital_date_range';
+  static const String transactionsCapitalDateRange =
+      'transactions_capital_date_range';
 
   // Reports sub-permissions
   static const String reportsCustomers = 'reports_customers';
@@ -425,7 +509,8 @@ class PermissionIds {
   static const String expensesGivenExpenses = 'expenses_given_expenses';
   static const String expensesAddDriverBudget = 'expenses_add_driver_budget';
   static const String expensesEditDriverBudget = 'expenses_edit_driver_budget';
-  static const String expensesDeleteDriverBudget = 'expenses_delete_driver_budget';
+  static const String expensesDeleteDriverBudget =
+      'expenses_delete_driver_budget';
   static const String expensesCategoriesAdd = 'expenses_categories_add';
   static const String expensesCategoriesEdit = 'expenses_categories_edit';
   static const String expensesCategoriesDelete = 'expenses_categories_delete';
@@ -493,11 +578,16 @@ class PermissionIds {
 
   // Customer Discount Requests permissions (SADA only)
   static const String customerDiscountRequests = 'customer_discount_requests';
-  static const String customerDiscountRequestsAdd = 'customer_discount_requests_add';
-  static const String customerDiscountRequestsEdit = 'customer_discount_requests_edit';
-  static const String customerDiscountRequestsDelete = 'customer_discount_requests_delete';
-  static const String customerDiscountRequestsApprove = 'customer_discount_requests_approve';
-  static const String customerDiscountRequestsReject = 'customer_discount_requests_reject';
+  static const String customerDiscountRequestsAdd =
+      'customer_discount_requests_add';
+  static const String customerDiscountRequestsEdit =
+      'customer_discount_requests_edit';
+  static const String customerDiscountRequestsDelete =
+      'customer_discount_requests_delete';
+  static const String customerDiscountRequestsApprove =
+      'customer_discount_requests_approve';
+  static const String customerDiscountRequestsReject =
+      'customer_discount_requests_reject';
 
   // Shops permissions (under customers module, SADA only)
   static const String customersShops = 'customers_shops';
