@@ -45,6 +45,7 @@ import '../models/nfc_wallet.dart';
 import '../models/shop.dart';
 import '../models/borrowed_money.dart';
 import '../config/clients_config.dart';
+import 'force_update.dart';
 import 'offline_actions.dart';
 import 'read_cache.dart';
 
@@ -7818,11 +7819,29 @@ class _TimeoutClient extends http.BaseClient {
   final http.Client _inner;
 
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final timeout = request is http.MultipartRequest
         ? const Duration(seconds: 120)
         : const Duration(seconds: 30);
-    return _inner.send(request).timeout(timeout);
+
+    // Identify the build on every call, for the server's minimum-version gate.
+    request.headers.addAll(await ForceUpdate.headers());
+
+    final response = await _inner.send(request).timeout(timeout);
+    if (response.statusCode != 426) return response;
+
+    // The server refused this build. Raise the blocking screen, then hand the
+    // caller the same body so its own error handling still sees the message.
+    final bytes = await response.stream.toBytes();
+    ForceUpdate.reportRefusal(bytes);
+    return http.StreamedResponse(
+      Stream.value(bytes),
+      response.statusCode,
+      contentLength: bytes.length,
+      request: response.request,
+      headers: response.headers,
+      reasonPhrase: response.reasonPhrase,
+    );
   }
 }
 

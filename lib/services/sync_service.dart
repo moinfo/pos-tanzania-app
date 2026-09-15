@@ -411,7 +411,9 @@ class SyncService {
 
     // 401 is the token, not the sale. A refresh or re-login fixes it and the
     // sale is still perfectly good, so it must not be marked as rejected.
-    if (code == 401 || code == 408 || code == 429 || code >= 500) {
+    // 426 is this app build being too old, not the sale being bad: it uploads
+    // fine once the app is updated, so it must not be marked as rejected.
+    if (code == 401 || code == 408 || code == 426 || code == 429 || code >= 500) {
       return _Outcome.retryable;
     }
 
