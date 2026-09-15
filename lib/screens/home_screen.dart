@@ -114,7 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeDashboard() async {
     final currentClient = ApiService.currentClient;
-    final hasCommissionDashboard = currentClient?.features.hasCommissionDashboard ?? false;
+    final hasCommissionDashboard =
+        currentClient?.features.hasCommissionDashboard ?? false;
     final clientId = currentClient?.id ?? 'sada';
 
     // Initialize location provider for Leruma and Come and Save
@@ -145,13 +146,15 @@ class _HomeScreenState extends State<HomeScreen> {
       print('📊 Loading dashboard for client: $clientId');
 
       // Load dashboard based on client type
-      final hasCommissionDashboard = currentClient?.features.hasCommissionDashboard ?? false;
+      final hasCommissionDashboard =
+          currentClient?.features.hasCommissionDashboard ?? false;
 
       // Load subscription info in parallel for multi-tenant clients
       if (currentClient?.features.hasMultiTenant == true) {
         _apiService.getSubscriptionInfo().then((result) {
           if (mounted && result.isSuccess) {
-            setState(() => _subscriptionInfo = result.data?.isNotEmpty == true ? result.data : null);
+            setState(() => _subscriptionInfo =
+                result.data?.isNotEmpty == true ? result.data : null);
           }
         });
       }
@@ -183,7 +186,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     // Get contracts for unpaid calculation
-    final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
+    final hasContracts =
+        ApiService.currentClient?.features.hasContracts ?? false;
     double totalUnpaid = 0;
 
     if (hasContracts) {
@@ -206,7 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _profit = (summaryData?['profit'] ?? 0).toDouble();
 
         final bankingAmount = (summaryData?['banking_amount'] ?? 0).toDouble();
-        final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
+        final supplierBank =
+            (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
         _bankDifference = bankingAmount - supplierBank;
 
         _totalUnpaid = totalUnpaid;
@@ -231,11 +236,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
     // Check permissions
-    final hasTransactionsPermission = permissionProvider.hasPermission(PermissionIds.transactions) ||
-        permissionProvider.hasModulePermission(PermissionIds.transactions);
+    final hasTransactionsPermission =
+        permissionProvider.hasPermission(PermissionIds.transactions) ||
+            permissionProvider.hasModulePermission(PermissionIds.transactions);
     final hasLocation = selectedLocationId != null;
 
-    print('📍 Come & Save dashboard - location: $selectedLocationId, hasTransactions: $hasTransactionsPermission');
+    print(
+        '📍 Come & Save dashboard - location: $selectedLocationId, hasTransactions: $hasTransactionsPermission');
 
     // If user has neither location nor transactions permission, show error
     if (!hasLocation && !hasTransactionsPermission) {
@@ -248,7 +255,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Load Transactions Dashboard if user has transactions permission (no location required)
     if (hasTransactionsPermission) {
-      print('📊 User has transactions permission, loading transactions dashboard');
+      print(
+          '📊 User has transactions permission, loading transactions dashboard');
       final transactionsResponse = await _apiService.getWakalaReport(
         startDate: dateString,
         endDate: dateString,
@@ -258,7 +266,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _transactionsDashboardData = transactionsResponse.data;
         print('✅ Transactions dashboard data loaded successfully');
       } else {
-        print('⚠️ Failed to load transactions dashboard: ${transactionsResponse.message}');
+        print(
+            '⚠️ Failed to load transactions dashboard: ${transactionsResponse.message}');
         _transactionsDashboardData = null;
       }
     } else {
@@ -267,7 +276,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Load Sales Dashboard only if user has a location
     if (hasLocation) {
-      print('📍 Loading sales dashboard for location: $selectedLocationId on $dateString');
+      print(
+          '📍 Loading sales dashboard for location: $selectedLocationId on $dateString');
 
       final summaryResponse = await _apiService.getCashSubmitTodaySummary(
         date: dateString,
@@ -290,8 +300,10 @@ class _HomeScreenState extends State<HomeScreen> {
           _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
           _profit = (summaryData?['profit'] ?? 0).toDouble();
 
-          final bankingAmount = (summaryData?['banking_amount'] ?? 0).toDouble();
-          final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
+          final bankingAmount =
+              (summaryData?['banking_amount'] ?? 0).toDouble();
+          final supplierBank =
+              (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
           _bankDifference = bankingAmount - supplierBank;
 
           _totalUnpaid = 0; // Come & Save doesn't have contracts
@@ -318,10 +330,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final selectedLocationId = locationProvider.selectedLocation?.locationId;
 
     // Format dates for API
-    final startDate = DateFormat('yyyy-MM-dd').format(DateTime(_selectedDate.year, _selectedDate.month, 1));
+    final startDate = DateFormat('yyyy-MM-dd')
+        .format(DateTime(_selectedDate.year, _selectedDate.month, 1));
     final endDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-    print('📊 Loading Leruma dashboard: $startDate to $endDate, location: $selectedLocationId');
+    print(
+        '📊 Loading Leruma dashboard: $startDate to $endDate, location: $selectedLocationId');
 
     // Clear cache when location changes
     ApiService.clearDashboardCache();
@@ -343,8 +357,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // New enhanced data
         _topStats = data['top_stats'] as Map<String, dynamic>?;
-        _progressCommission = data['progress_commission'] as Map<String, dynamic>?;
-        _progressCustomers = data['progress_customers'] as Map<String, dynamic>?;
+        _progressCommission =
+            data['progress_commission'] as Map<String, dynamic>?;
+        _progressCustomers =
+            data['progress_customers'] as Map<String, dynamic>?;
         _myCommissions = data['my_commissions'] as Map<String, dynamic>?;
 
         // Debug: Print commission data
@@ -406,230 +422,261 @@ class _HomeScreenState extends State<HomeScreen> {
           // bottom nav (Scaffold uses extendBody: true).
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Welcome Card with Glassmorphism
-            GlassmorphicCard(
-              isDark: isDark,
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  // Profile picture (Leruma feature) or default icon
-                  _buildProfileAvatar(user, 60),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _greeting,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user?.displayName ?? 'User',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          ),
-                        ),
-                        if (user?.email != null && user!.email!.isNotEmpty) ...[
-                          const SizedBox(height: 2),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Welcome Card with Glassmorphism
+              GlassmorphicCard(
+                isDark: isDark,
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  children: [
+                    // Profile picture (Leruma feature) or default icon
+                    _buildProfileAvatar(user, 60),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            user.email!,
+                            _greeting,
                             style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                              fontSize: 14,
+                              color: isDark
+                                  ? AppColors.darkTextLight
+                                  : AppColors.textLight,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            user?.displayName ?? 'User',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  isDark ? AppColors.darkText : AppColors.text,
+                            ),
+                          ),
+                          if (user?.email != null &&
+                              user!.email!.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              user.email!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? AppColors.darkTextLight
+                                    : AppColors.textLight,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Subscription banner (only for multi-tenant clients like mopos)
+              if (ApiService.currentClient?.features.hasMultiTenant == true &&
+                  _subscriptionInfo != null)
+                _buildSubscriptionBanner(isDark),
+
+              // Dashboard Title and Date Selector
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Dashboard',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkText : AppColors.text,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _selectDate(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.brandPrimary.withOpacity(0.15)
+                            : AppColors.brandPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.brandPrimary
+                              .withOpacity(isDark ? 0.3 : 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 16,
+                            color: AppColors.brandPrimary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(_selectedDate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  isDark ? AppColors.darkText : AppColors.text,
                             ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-            // Subscription banner (only for multi-tenant clients like mopos)
-            if (ApiService.currentClient?.features.hasMultiTenant == true &&
-                _subscriptionInfo != null)
-              _buildSubscriptionBanner(isDark),
+              // Location Selector (Leruma and Come and Save - for users with multiple locations)
+              if ((ApiService.currentClient?.features.hasCommissionDashboard ??
+                      false) ||
+                  (ApiService.currentClient?.id == 'come_and_save'))
+                Consumer<LocationProvider>(
+                  builder: (context, locationProvider, child) {
+                    // Only show if user has multiple locations
+                    if (!locationProvider.hasMultipleLocations) {
+                      return const SizedBox.shrink();
+                    }
 
-            // Dashboard Title and Date Selector
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Dashboard',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkText : AppColors.text,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.brandPrimary.withOpacity(0.15)
-                          : AppColors.brandPrimary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.brandPrimary.withOpacity(isDark ? 0.3 : 0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
+                    return Column(
                       children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: AppColors.brandPrimary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          DateFormat('dd MMM yyyy').format(_selectedDate),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.darkText : AppColors.text,
+                        GlassmorphicCard(
+                          isDark: isDark,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.store,
+                                color: isDark
+                                    ? AppColors.brandPrimary
+                                    : AppColors.brandPrimary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<int>(
+                                    value: locationProvider
+                                        .selectedLocation?.locationId,
+                                    isExpanded: true,
+                                    hint: Text(
+                                      'Select Location',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? AppColors.darkTextLight
+                                            : AppColors.textLight,
+                                      ),
+                                    ),
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? AppColors.darkText
+                                          : AppColors.text,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    dropdownColor: isDark
+                                        ? AppColors.darkSurface
+                                        : Colors.white,
+                                    icon: Icon(
+                                      Icons.arrow_drop_down,
+                                      color: isDark
+                                          ? AppColors.darkTextLight
+                                          : AppColors.textLight,
+                                    ),
+                                    items: locationProvider.allowedLocations
+                                        .map((location) {
+                                      return DropdownMenuItem<int>(
+                                        value: location.locationId,
+                                        child: Text(location.locationName),
+                                      );
+                                    }).toList(),
+                                    onChanged: (newLocationId) async {
+                                      if (newLocationId != null) {
+                                        final newLocation = locationProvider
+                                            .allowedLocations
+                                            .firstWhere((loc) =>
+                                                loc.locationId ==
+                                                newLocationId);
+                                        await locationProvider
+                                            .selectLocation(newLocation);
+                                        // Reload dashboard with new location
+                                        await _loadDashboardData();
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  },
+                ),
+
+              // Dashboard Content
+              if (_isLoading)
+                // Show skeleton placeholders while loading
+                _buildDashboardSkeleton(isDark)
+              else if (_error != null)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppColors.error,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: AppColors.error),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadDashboardData,
+                          child: const Text('Retry'),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                )
+              else if (ApiService
+                      .currentClient?.features.hasCommissionDashboard ??
+                  false)
+                // Leruma Commission Dashboard
+                _buildLerumaDashboard(isDark)
+              else
+                // Come & Save / SADA Dashboard
+                Consumer<LocationProvider>(
+                  builder: (context, locationProvider, child) {
+                    final hasLocation =
+                        locationProvider.selectedLocation != null;
 
-            // Location Selector (Leruma and Come and Save - for users with multiple locations)
-            if ((ApiService.currentClient?.features.hasCommissionDashboard ?? false) ||
-                (ApiService.currentClient?.id == 'come_and_save'))
-              Consumer<LocationProvider>(
-                builder: (context, locationProvider, child) {
-                  // Only show if user has multiple locations
-                  if (!locationProvider.hasMultipleLocations) {
-                    return const SizedBox.shrink();
-                  }
-
-                  return Column(
-                    children: [
-                      GlassmorphicCard(
-                        isDark: isDark,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.store,
-                              color: isDark ? AppColors.brandPrimary : AppColors.brandPrimary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<int>(
-                                  value: locationProvider.selectedLocation?.locationId,
-                                  isExpanded: true,
-                                  hint: Text(
-                                    'Select Location',
-                                    style: TextStyle(
-                                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                                    ),
-                                  ),
-                                  style: TextStyle(
-                                    color: isDark ? AppColors.darkText : AppColors.text,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
-                                  icon: Icon(
-                                    Icons.arrow_drop_down,
-                                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                                  ),
-                                  items: locationProvider.allowedLocations.map((location) {
-                                    return DropdownMenuItem<int>(
-                                      value: location.locationId,
-                                      child: Text(location.locationName),
-                                    );
-                                  }).toList(),
-                                  onChanged: (newLocationId) async {
-                                    if (newLocationId != null) {
-                                      final newLocation = locationProvider.allowedLocations
-                                          .firstWhere((loc) => loc.locationId == newLocationId);
-                                      await locationProvider.selectLocation(newLocation);
-                                      // Reload dashboard with new location
-                                      await _loadDashboardData();
-                                    }
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  );
-                },
-              ),
-
-            // Dashboard Content
-            if (_isLoading)
-              // Show skeleton placeholders while loading
-              _buildDashboardSkeleton(isDark)
-            else if (_error != null)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: AppColors.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: AppColors.error),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadDashboardData,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else if (ApiService.currentClient?.features.hasCommissionDashboard ?? false)
-              // Leruma Commission Dashboard
-              _buildLerumaDashboard(isDark)
-            else
-              // Come & Save / SADA Dashboard
-              Consumer<LocationProvider>(
-                builder: (context, locationProvider, child) {
-                  final hasLocation = locationProvider.selectedLocation != null;
-
-                  return Column(
-                    children: [
-                      // Sales Dashboard (only show if user has a location)
-                      if (hasLocation) ...[
-                        // Row 1: Total Sales & Expenses
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDashboardCard(
+                    return Column(
+                      children: [
+                        // Sales Dashboard (only show if user has a location)
+                        if (hasLocation) ...[
+                          // Row 1: Total Sales & Expenses -- each gated on its
+                          // own cash_submit_* grant (see _buildPermissionedRow).
+                          _buildPermissionedRow([
+                            MapEntry(
+                              PermissionIds.cashSubmitAllSales,
+                              _buildDashboardCard(
                                 title: 'Total Sales',
                                 amount: _totalSales,
                                 icon: Icons.shopping_cart,
@@ -637,9 +684,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 isDark: isDark,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildDashboardCard(
+                            MapEntry(
+                              PermissionIds.cashSubmitExpenses,
+                              _buildDashboardCard(
                                 title: 'Expenses',
                                 amount: _expenses,
                                 icon: Icons.money_off,
@@ -647,17 +694,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 isDark: isDark,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
+                          ]),
+                          const SizedBox(height: 12),
 
-                        // SADA: Show Profit & Gain/Loss in Row 2, then Bank Difference & Contract Unpaid
-                        if (ApiService.currentClient?.features.hasContracts ?? false) ...[
-                          // Row 2: Profit & Gain/Loss
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
+                          // SADA: Show Profit & Gain/Loss in Row 2, then Bank Difference & Contract Unpaid
+                          if (ApiService.currentClient?.features.hasContracts ??
+                              false) ...[
+                            // Row 2: Profit & Gain/Loss
+                            _buildPermissionedRow([
+                              MapEntry(
+                                PermissionIds.cashSubmitProfit,
+                                _buildDashboardCard(
                                   title: 'Profit',
                                   amount: _profit,
                                   icon: Icons.trending_up,
@@ -665,8 +712,108 @@ class _HomeScreenState extends State<HomeScreen> {
                                   isDark: isDark,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
+                              MapEntry(
+                                PermissionIds.cashSubmitGainLoss,
+                                _buildDashboardCard(
+                                  title: 'Gain/Loss',
+                                  amount: _gainLoss,
+                                  icon: _gainLoss >= 0
+                                      ? Icons.arrow_upward
+                                      : Icons.arrow_downward,
+                                  color: _gainLoss >= 0
+                                      ? AppColors.success
+                                      : AppColors.error,
+                                  isDark: isDark,
+                                  colorAmount: true,
+                                ),
+                              ),
+                            ]),
+                            const SizedBox(height: 12),
+                            // Row 3: Bank Difference & Contract Unpaid -- the
+                            // latter uses the Contracts module grant itself
+                            // (PermissionIds.contracts), not a cash_submit_*
+                            // one, since its data comes from getContracts()
+                            // rather than the cash-submit summary.
+                            _buildPermissionedRow([
+                              MapEntry(
+                                PermissionIds.cashSubmitDifference,
+                                _buildDashboardCard(
+                                  title: 'Bank Difference',
+                                  amount: _bankDifference,
+                                  icon: Icons.account_balance,
+                                  color: AppColors.info,
+                                  isDark: isDark,
+                                ),
+                              ),
+                              MapEntry(
+                                PermissionIds.contracts,
+                                _buildDashboardCard(
+                                  title: 'Contract Unpaid',
+                                  amount: _totalUnpaid,
+                                  icon: Icons.assignment_late,
+                                  color: AppColors.warning,
+                                  isDark: isDark,
+                                ),
+                              ),
+                            ]),
+                          ] else ...[
+                            // Come & Save: Show Sales Breakdown first, then Profit, then Gain/Loss alone
+                            // Row 2: Cash Sales & Credit Sales
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildDashboardCard(
+                                    title: 'Cash Sales',
+                                    amount: _cashSales,
+                                    icon: Icons.money,
+                                    color: AppColors.success,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildDashboardCard(
+                                    title: 'Credit Sales',
+                                    amount: _customerCredit,
+                                    icon: Icons.credit_card,
+                                    color: AppColors.warning,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Row 3: LIPA NAMBA & Profit
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildDashboardCard(
+                                    title: 'LIPA NAMBA',
+                                    amount: _lipaNamba,
+                                    icon: Icons.phone_android,
+                                    color: AppColors.info,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildDashboardCard(
+                                    title: 'Profit',
+                                    amount: _profit,
+                                    icon: Icons.trending_up,
+                                    color: AppColors.brandPrimary,
+                                    isDark: isDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Row 4: Gain/Loss (centered alone)
+                            Center(
+                              child: SizedBox(
+                                width:
+                                    (MediaQuery.of(context).size.width - 44) /
+                                        2,
                                 child: _buildDashboardCard(
                                   title: 'Gain/Loss',
                                   amount: _gainLoss,
@@ -680,119 +827,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                   colorAmount: true,
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Row 3: Bank Difference & Contract Unpaid
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Bank Difference',
-                                  amount: _bankDifference,
-                                  icon: Icons.account_balance,
-                                  color: AppColors.info,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Contract Unpaid',
-                                  amount: _totalUnpaid,
-                                  icon: Icons.assignment_late,
-                                  color: AppColors.warning,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ] else ...[
-                          // Come & Save: Show Sales Breakdown first, then Profit, then Gain/Loss alone
-                          // Row 2: Cash Sales & Credit Sales
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Cash Sales',
-                                  amount: _cashSales,
-                                  icon: Icons.money,
-                                  color: AppColors.success,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Credit Sales',
-                                  amount: _customerCredit,
-                                  icon: Icons.credit_card,
-                                  color: AppColors.warning,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Row 3: LIPA NAMBA & Profit
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'LIPA NAMBA',
-                                  amount: _lipaNamba,
-                                  icon: Icons.phone_android,
-                                  color: AppColors.info,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Profit',
-                                  amount: _profit,
-                                  icon: Icons.trending_up,
-                                  color: AppColors.brandPrimary,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Row 4: Gain/Loss (centered alone)
-                          Center(
-                            child: SizedBox(
-                              width: (MediaQuery.of(context).size.width - 44) / 2,
-                              child: _buildDashboardCard(
-                                title: 'Gain/Loss',
-                                amount: _gainLoss,
-                                icon: _gainLoss >= 0
-                                    ? Icons.arrow_upward
-                                    : Icons.arrow_downward,
-                                color: _gainLoss >= 0
-                                    ? AppColors.success
-                                    : AppColors.error,
-                                isDark: isDark,
-                                colorAmount: true,
-                              ),
                             ),
-                          ),
+                          ],
+                        ],
+
+                        // Transactions Dashboard (Come & Save - only if user has transactions permission)
+                        // Shows regardless of location
+                        if (_transactionsDashboardData != null) ...[
+                          if (hasLocation) const SizedBox(height: 24),
+                          _buildTransactionsDashboard(isDark),
                         ],
                       ],
-
-                      // Transactions Dashboard (Come & Save - only if user has transactions permission)
-                      // Shows regardless of location
-                      if (_transactionsDashboardData != null) ...[
-                        if (hasLocation) const SizedBox(height: 24),
-                        _buildTransactionsDashboard(isDark),
-                      ],
-                    ],
-                  );
-                },
-              ),
-          ],
+                    );
+                  },
+                ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -996,6 +1047,34 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Lays out up to two dashboard cards side by side, each gated on its own
+  /// permission -- a card the viewer lacks the matching cash_submit_* (or
+  /// other) grant for is dropped rather than shown, same convention as
+  /// PermissionWrapper elsewhere in the app. Unlike PermissionWrapper's
+  /// SizedBox.shrink() (fine for a single widget), a bare missing card here
+  /// would leave a half-empty row, so the remaining card is stretched to
+  /// full width instead when only one survives, and the whole row collapses
+  /// when neither does.
+  Widget _buildPermissionedRow(List<MapEntry<String, Widget>> cards) {
+    final permissions = context.watch<PermissionProvider>();
+    final visible = cards
+        .where((c) => permissions.hasPermission(c.key))
+        .map((c) => c.value)
+        .toList();
+
+    if (visible.isEmpty) return const SizedBox.shrink();
+    if (visible.length == 1) {
+      return SizedBox(width: double.infinity, child: visible.first);
+    }
+    return Row(
+      children: [
+        Expanded(child: visible[0]),
+        const SizedBox(width: 12),
+        Expanded(child: visible[1]),
+      ],
+    );
+  }
+
   Widget _buildDashboardCard({
     required String title,
     required double amount,
@@ -1115,77 +1194,82 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: statusColor.withOpacity(0.08),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(statusIcon, color: statusColor, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        packageName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.darkText : AppColors.text,
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(statusIcon, color: statusColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          packageName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkText : AppColors.text,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Plan',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                        const SizedBox(width: 6),
+                        Text(
+                          'Plan',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextLight
+                                : AppColors.textLight,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    isExpired
-                        ? 'Expired on ${expiresAt.substring(0, 10)}'
-                        : 'Expires ${expiresAt.substring(0, 10)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                statusLabel,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: statusColor,
+                    const SizedBox(height: 2),
+                    Text(
+                      isExpired
+                          ? 'Expired on ${expiresAt.substring(0, 10)}'
+                          : 'Expires ${expiresAt.substring(0, 10)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -1259,13 +1343,17 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_progressCommission != null)
                 Expanded(
                   child: _buildProgressCard(
-                    title: _progressCommission!['user_name'] != null && _progressCommission!['user_name'].toString().isNotEmpty
+                    title: _progressCommission!['user_name'] != null &&
+                            _progressCommission!['user_name']
+                                .toString()
+                                .isNotEmpty
                         ? 'Progress Commission'
                         : 'Progress Commission',
                     icon: Icons.shopping_cart,
                     current: (_progressCommission!['average'] ?? 0).toDouble(),
                     target: (_progressCommission!['target'] ?? 0).toDouble(),
-                    percentage: (_progressCommission!['percentage'] ?? 0).toDouble(),
+                    percentage:
+                        (_progressCommission!['percentage'] ?? 0).toDouble(),
                     isDark: isDark,
                   ),
                 ),
@@ -1278,7 +1366,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.people,
                     current: (_progressCustomers!['served'] ?? 0).toDouble(),
                     target: (_progressCustomers!['total'] ?? 0).toDouble(),
-                    percentage: (_progressCustomers!['percentage'] ?? 0).toDouble(),
+                    percentage:
+                        (_progressCustomers!['percentage'] ?? 0).toDouble(),
                     isDark: isDark,
                     isCount: true,
                   ),
@@ -1290,7 +1379,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Commission Progress Section - Show the user name whose commission is displayed
         Text(
-          _myCommissions != null && _myCommissions!['user_name'] != null && _myCommissions!['user_name'].toString().isNotEmpty
+          _myCommissions != null &&
+                  _myCommissions!['user_name'] != null &&
+                  _myCommissions!['user_name'].toString().isNotEmpty
               ? '${_myCommissions!['user_name']} Commissions'
               : 'My Commissions',
           style: TextStyle(
@@ -1305,21 +1396,24 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_myCommissions != null && _myCommissions!['levels'] != null) ...[
           _buildMyCommissionLevelCard(
             level: 'I',
-            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_i'] as Map<String, dynamic>?,
+            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_i']
+                as Map<String, dynamic>?,
             color: AppColors.success,
             isDark: isDark,
           ),
           const SizedBox(height: 12),
           _buildMyCommissionLevelCard(
             level: 'II',
-            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_ii'] as Map<String, dynamic>?,
+            data: (_myCommissions!['levels']
+                as Map<String, dynamic>)['level_ii'] as Map<String, dynamic>?,
             color: AppColors.warning,
             isDark: isDark,
           ),
           const SizedBox(height: 12),
           _buildMyCommissionLevelCard(
             level: 'III',
-            data: (_myCommissions!['levels'] as Map<String, dynamic>)['level_iii'] as Map<String, dynamic>?,
+            data: (_myCommissions!['levels']
+                as Map<String, dynamic>)['level_iii'] as Map<String, dynamic>?,
             color: AppColors.brandPrimary,
             isDark: isDark,
           ),
@@ -1422,7 +1516,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // For dark mode: use muted/darker versions of colors
     final cardColor = isDark
-        ? HSLColor.fromColor(color).withSaturation(0.4).withLightness(0.25).toColor()
+        ? HSLColor.fromColor(color)
+            .withSaturation(0.4)
+            .withLightness(0.25)
+            .toColor()
         : color;
     final accentColor = isDark ? color : Colors.white;
 
@@ -1471,12 +1568,16 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: isDark ? color.withOpacity(0.2) : Colors.white.withOpacity(0.15),
+                  color: isDark
+                      ? color.withOpacity(0.2)
+                      : Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
-                  color: isDark ? color.withOpacity(0.8) : Colors.white.withOpacity(0.9),
+                  color: isDark
+                      ? color.withOpacity(0.8)
+                      : Colors.white.withOpacity(0.9),
                   size: 22,
                 ),
               ),
@@ -1487,7 +1588,9 @@ class _HomeScreenState extends State<HomeScreen> {
             title,
             style: TextStyle(
               fontSize: 13,
-              color: isDark ? AppColors.darkTextLight : Colors.white.withOpacity(0.95),
+              color: isDark
+                  ? AppColors.darkTextLight
+                  : Colors.white.withOpacity(0.95),
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
             ),
@@ -1516,13 +1619,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Muted colors for dark mode
     final iconColor = isDark
-        ? HSLColor.fromColor(AppColors.brandPrimary).withSaturation(0.5).withLightness(0.55).toColor()
+        ? HSLColor.fromColor(AppColors.brandPrimary)
+            .withSaturation(0.5)
+            .withLightness(0.55)
+            .toColor()
         : AppColors.brandPrimary;
     final progressColor = isDark
-        ? HSLColor.fromColor(baseColor).withSaturation(0.6).withLightness(0.45).toColor()
+        ? HSLColor.fromColor(baseColor)
+            .withSaturation(0.6)
+            .withLightness(0.45)
+            .toColor()
         : baseColor;
     final badgeTextColor = isDark
-        ? HSLColor.fromColor(baseColor).withSaturation(0.5).withLightness(0.6).toColor()
+        ? HSLColor.fromColor(baseColor)
+            .withSaturation(0.5)
+            .withLightness(0.6)
+            .toColor()
         : baseColor;
 
     return GlassmorphicCard(
@@ -1539,11 +1651,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? HSLColor.fromColor(AppColors.brandPrimary).withSaturation(0.4).withLightness(0.2).toColor()
+                      ? HSLColor.fromColor(AppColors.brandPrimary)
+                          .withSaturation(0.4)
+                          .withLightness(0.2)
+                          .toColor()
                       : AppColors.brandPrimary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: isDark
-                      ? Border.all(color: AppColors.brandPrimary.withOpacity(0.2), width: 1)
+                      ? Border.all(
+                          color: AppColors.brandPrimary.withOpacity(0.2),
+                          width: 1)
                       : null,
                 ),
                 child: Icon(icon, size: 18, color: iconColor),
@@ -1552,11 +1669,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? HSLColor.fromColor(baseColor).withSaturation(0.4).withLightness(0.2).toColor()
+                      ? HSLColor.fromColor(baseColor)
+                          .withSaturation(0.4)
+                          .withLightness(0.2)
+                          .toColor()
                       : progressColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: isDark ? baseColor.withOpacity(0.25) : progressColor.withOpacity(0.3),
+                    color: isDark
+                        ? baseColor.withOpacity(0.25)
+                        : progressColor.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -1709,7 +1831,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         '$achievedCount / $totalCustomers customers',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight,
                         ),
                       ),
                     ],
@@ -1717,9 +1841,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isAchieved ? AppColors.success.withOpacity(0.2) : color.withOpacity(0.2),
+                  color: isAchieved
+                      ? AppColors.success.withOpacity(0.2)
+                      : color.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1746,7 +1873,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     'Progress',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      color: isDark
+                          ? AppColors.darkTextLight
+                          : AppColors.textLight,
                     ),
                   ),
                   Text(
@@ -1764,7 +1893,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: (progressPercent / 100).clamp(0.0, 1.0),
-                  backgroundColor: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                  backgroundColor:
+                      isDark ? AppColors.darkDivider : AppColors.lightDivider,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                   minHeight: 8,
                 ),
@@ -1784,7 +1914,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     'Commission',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      color: isDark
+                          ? AppColors.darkTextLight
+                          : AppColors.textLight,
                     ),
                   ),
                   Text(
@@ -1804,7 +1936,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     'Net Commission',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      color: isDark
+                          ? AppColors.darkTextLight
+                          : AppColors.textLight,
                     ),
                   ),
                   Text(
@@ -1812,7 +1946,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: actualCommission >= 0 ? AppColors.success : AppColors.error,
+                      color: actualCommission >= 0
+                          ? AppColors.success
+                          : AppColors.error,
                     ),
                   ),
                 ],
@@ -1848,18 +1984,28 @@ class _HomeScreenState extends State<HomeScreen> {
     final totalWithItems = (data['total_with_items'] ?? 0).toDouble();
 
     // Calculate progress percentage
-    final progressPercent = target > 0 ? (average / target * 100).clamp(0.0, 100.0) : 0.0;
+    final progressPercent =
+        target > 0 ? (average / target * 100).clamp(0.0, 100.0) : 0.0;
 
     // Muted colors for dark mode
     final badgeColor = isDark
-        ? HSLColor.fromColor(color).withSaturation(0.5).withLightness(0.35).toColor()
+        ? HSLColor.fromColor(color)
+            .withSaturation(0.5)
+            .withLightness(0.35)
+            .toColor()
         : color;
     final statusColor = isAchieved ? AppColors.success : color;
     final mutedStatusColor = isDark
-        ? HSLColor.fromColor(statusColor).withSaturation(0.5).withLightness(0.35).toColor()
+        ? HSLColor.fromColor(statusColor)
+            .withSaturation(0.5)
+            .withLightness(0.35)
+            .toColor()
         : statusColor;
     final progressBarColor = isDark
-        ? HSLColor.fromColor(color).withSaturation(0.6).withLightness(0.45).toColor()
+        ? HSLColor.fromColor(color)
+            .withSaturation(0.6)
+            .withLightness(0.45)
+            .toColor()
         : color;
 
     return GestureDetector(
@@ -1887,14 +2033,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           end: Alignment.bottomRight,
                         ),
                         border: isDark
-                            ? Border.all(color: color.withOpacity(0.3), width: 1)
+                            ? Border.all(
+                                color: color.withOpacity(0.3), width: 1)
                             : null,
                       ),
                       child: Center(
                         child: Text(
                           level,
                           style: TextStyle(
-                            color: isDark ? color.withOpacity(0.9) : Colors.white,
+                            color:
+                                isDark ? color.withOpacity(0.9) : Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -1917,7 +2065,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           'Target: ${_formatCompact(target)}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                            color: isDark
+                                ? AppColors.darkTextLight
+                                : AppColors.textLight,
                           ),
                         ),
                       ],
@@ -1927,12 +2077,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: mutedStatusColor.withOpacity(isDark ? 0.3 : 0.2),
                         borderRadius: BorderRadius.circular(12),
                         border: isDark
-                            ? Border.all(color: statusColor.withOpacity(0.3), width: 1)
+                            ? Border.all(
+                                color: statusColor.withOpacity(0.3), width: 1)
                             : null,
                       ),
                       child: Text(
@@ -1940,14 +2092,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? statusColor.withOpacity(0.85) : statusColor,
+                          color: isDark
+                              ? statusColor.withOpacity(0.85)
+                              : statusColor,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       Icons.chevron_right,
-                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      color: isDark
+                          ? AppColors.darkTextLight
+                          : AppColors.textLight,
                       size: 20,
                     ),
                   ],
@@ -1967,7 +2123,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Average: ${_formatCompact(average)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight,
                       ),
                     ),
                     Text(
@@ -1984,7 +2142,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   height: 8,
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                    color:
+                        isDark ? AppColors.darkDivider : AppColors.lightDivider,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: FractionallySizedBox(
@@ -1993,7 +2152,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [progressBarColor.withOpacity(0.8), progressBarColor],
+                          colors: [
+                            progressBarColor.withOpacity(0.8),
+                            progressBarColor
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(4),
                       ),
@@ -2015,7 +2177,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Commission',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight,
                       ),
                     ),
                     Text(
@@ -2035,7 +2199,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Total (Base + Items)',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight,
                       ),
                     ),
                     Text(
@@ -2044,8 +2210,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: isDark
-                            ? (totalWithItems >= 0 ? AppColors.success.withOpacity(0.85) : AppColors.error.withOpacity(0.85))
-                            : (totalWithItems >= 0 ? AppColors.success : AppColors.error),
+                            ? (totalWithItems >= 0
+                                ? AppColors.success.withOpacity(0.85)
+                                : AppColors.error.withOpacity(0.85))
+                            : (totalWithItems >= 0
+                                ? AppColors.success
+                                : AppColors.error),
                       ),
                     ),
                   ],
@@ -2059,7 +2229,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Show commission detail bottom sheet
-  void _showCommissionDetail(String level, Map<String, dynamic> data, Color color, bool isDark) {
+  void _showCommissionDetail(
+      String level, Map<String, dynamic> data, Color color, bool isDark) {
     final purchases = (data['purchases'] ?? 0).toDouble();
     final average = (data['average'] ?? 0).toDouble();
     final target = (data['target'] ?? 0).toDouble();
@@ -2095,7 +2266,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                  color:
+                      isDark ? AppColors.darkDivider : AppColors.lightDivider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -2136,7 +2308,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkText : AppColors.text,
+                              color:
+                                  isDark ? AppColors.darkText : AppColors.text,
                             ),
                           ),
                           if (name.isNotEmpty)
@@ -2144,16 +2317,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               name,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                color: isDark
+                                    ? AppColors.darkTextLight
+                                    : AppColors.textLight,
                               ),
                             ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isAchieved ? AppColors.success.withOpacity(0.2) : color.withOpacity(0.2),
+                        color: isAchieved
+                            ? AppColors.success.withOpacity(0.2)
+                            : color.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
@@ -2168,7 +2346,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              Divider(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+              Divider(
+                  color:
+                      isDark ? AppColors.darkDivider : AppColors.lightDivider),
               // Content
               Expanded(
                 child: ListView(
@@ -2179,19 +2359,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                        color: isDark
+                            ? AppColors.darkBackground
+                            : AppColors.lightBackground,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
                         children: [
-                          _buildDetailRow('Purchases', Formatters.formatCurrency(purchases), isDark),
-                          _buildDetailRow('Average', Formatters.formatCurrency(average), isDark),
-                          _buildDetailRow('Target', Formatters.formatCurrency(target), isDark),
+                          _buildDetailRow('Purchases',
+                              Formatters.formatCurrency(purchases), isDark),
+                          _buildDetailRow('Average',
+                              Formatters.formatCurrency(average), isDark),
+                          _buildDetailRow('Target',
+                              Formatters.formatCurrency(target), isDark),
                           _buildDetailRow('Days', '$days', isDark),
                           const Divider(height: 24),
-                          _buildDetailRow('Commission', Formatters.formatCurrency(commission), isDark, valueColor: AppColors.success),
-                          _buildDetailRow('Disciplinary', Formatters.formatCurrency(disciplinary), isDark, valueColor: AppColors.error),
-                          _buildDetailRow('Actual', Formatters.formatCurrency(actual), isDark, valueColor: AppColors.success, isBold: true),
+                          _buildDetailRow('Commission',
+                              Formatters.formatCurrency(commission), isDark,
+                              valueColor: AppColors.success),
+                          _buildDetailRow('Disciplinary',
+                              Formatters.formatCurrency(disciplinary), isDark,
+                              valueColor: AppColors.error),
+                          _buildDetailRow('Actual',
+                              Formatters.formatCurrency(actual), isDark,
+                              valueColor: AppColors.success, isBold: true),
                         ],
                       ),
                     ),
@@ -2210,29 +2401,41 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 12),
                       ...items.map((item) {
                         final itemData = item as Map<String, dynamic>;
-                        final itemName = itemData['item_name'] ?? 'Unknown Item';
-                        final qtyPurchased = (itemData['qty_purchased'] ?? 0).toDouble();
-                        final qtyTarget = (itemData['qty_target'] ?? 0).toDouble();
-                        final ratePerUnit = (itemData['rate_per_unit'] ?? 0).toDouble();
+                        final itemName =
+                            itemData['item_name'] ?? 'Unknown Item';
+                        final qtyPurchased =
+                            (itemData['qty_purchased'] ?? 0).toDouble();
+                        final qtyTarget =
+                            (itemData['qty_target'] ?? 0).toDouble();
+                        final ratePerUnit =
+                            (itemData['rate_per_unit'] ?? 0).toDouble();
                         final itemStatus = itemData['status'] ?? 'not_achieved';
-                        final itemCommission = (itemData['commission'] ?? 0).toDouble();
+                        final itemCommission =
+                            (itemData['commission'] ?? 0).toDouble();
                         final itemAchieved = itemStatus == 'achieved';
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                            color: isDark
+                                ? AppColors.darkBackground
+                                : AppColors.lightBackground,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: itemAchieved ? AppColors.success.withOpacity(0.3) : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                              color: itemAchieved
+                                  ? AppColors.success.withOpacity(0.3)
+                                  : (isDark
+                                      ? AppColors.darkDivider
+                                      : AppColors.lightDivider),
                             ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
                                     child: Text(
@@ -2240,22 +2443,31 @@ class _HomeScreenState extends State<HomeScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: isDark ? AppColors.darkText : AppColors.text,
+                                        color: isDark
+                                            ? AppColors.darkText
+                                            : AppColors.text,
                                       ),
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: itemAchieved ? AppColors.success.withOpacity(0.2) : AppColors.error.withOpacity(0.2),
+                                      color: itemAchieved
+                                          ? AppColors.success.withOpacity(0.2)
+                                          : AppColors.error.withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      itemAchieved ? 'ACHIEVED' : 'NOT ACHIEVED',
+                                      itemAchieved
+                                          ? 'ACHIEVED'
+                                          : 'NOT ACHIEVED',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: itemAchieved ? AppColors.success : AppColors.error,
+                                        color: itemAchieved
+                                            ? AppColors.success
+                                            : AppColors.error,
                                       ),
                                     ),
                                   ),
@@ -2265,17 +2477,26 @@ class _HomeScreenState extends State<HomeScreen> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: _buildMiniStat('Qty Purchased', '${qtyPurchased.toInt()}', isDark),
+                                    child: _buildMiniStat('Qty Purchased',
+                                        '${qtyPurchased.toInt()}', isDark),
                                   ),
                                   Expanded(
-                                    child: _buildMiniStat('Qty Target', '${qtyTarget.toInt()}', isDark),
+                                    child: _buildMiniStat('Qty Target',
+                                        '${qtyTarget.toInt()}', isDark),
                                   ),
                                   Expanded(
-                                    child: _buildMiniStat('Rate/Unit', '${ratePerUnit.toInt()}', isDark),
+                                    child: _buildMiniStat('Rate/Unit',
+                                        '${ratePerUnit.toInt()}', isDark),
                                   ),
                                   Expanded(
-                                    child: _buildMiniStat('Commission', Formatters.formatCurrency(itemCommission), isDark,
-                                        valueColor: itemCommission > 0 ? AppColors.success : null),
+                                    child: _buildMiniStat(
+                                        'Commission',
+                                        Formatters.formatCurrency(
+                                            itemCommission),
+                                        isDark,
+                                        valueColor: itemCommission > 0
+                                            ? AppColors.success
+                                            : null),
                                   ),
                                 ],
                               ),
@@ -2287,15 +2508,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                          color: isDark
+                              ? AppColors.darkBackground
+                              : AppColors.lightBackground,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           children: [
-                            _buildDetailRow('Item Subtotal', Formatters.formatCurrency(itemSubtotal), isDark),
+                            _buildDetailRow(
+                                'Item Subtotal',
+                                Formatters.formatCurrency(itemSubtotal),
+                                isDark),
                             const Divider(height: 16),
-                            _buildDetailRow('Total (Base + Items)', Formatters.formatCurrency(totalWithItems), isDark,
-                                valueColor: AppColors.success, isBold: true),
+                            _buildDetailRow(
+                                'Total (Base + Items)',
+                                Formatters.formatCurrency(totalWithItems),
+                                isDark,
+                                valueColor: AppColors.success,
+                                isBold: true),
                           ],
                         ),
                       ),
@@ -2303,14 +2533,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                          color: isDark
+                              ? AppColors.darkBackground
+                              : AppColors.lightBackground,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
                           child: Text(
                             'No item commissions for this level',
                             style: TextStyle(
-                              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                              color: isDark
+                                  ? AppColors.darkTextLight
+                                  : AppColors.textLight,
                             ),
                           ),
                         ),
@@ -2326,7 +2560,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Build detail row for bottom sheet
-  Widget _buildDetailRow(String label, String value, bool isDark, {Color? valueColor, bool isBold = false}) {
+  Widget _buildDetailRow(String label, String value, bool isDark,
+      {Color? valueColor, bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -2344,7 +2579,8 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-              color: valueColor ?? (isDark ? AppColors.darkText : AppColors.text),
+              color:
+                  valueColor ?? (isDark ? AppColors.darkText : AppColors.text),
             ),
           ),
         ],
@@ -2353,7 +2589,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Build mini stat widget for item details
-  Widget _buildMiniStat(String label, String value, bool isDark, {Color? valueColor}) {
+  Widget _buildMiniStat(String label, String value, bool isDark,
+      {Color? valueColor}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2428,7 +2665,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight,
                   ),
                 ),
               ],
@@ -2491,7 +2729,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   formattedTime,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight,
                   ),
                 ),
               ],
@@ -2512,11 +2751,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build profile avatar with profile picture (Leruma feature) or default icon
   Widget _buildProfileAvatar(dynamic user, double size) {
-    final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
+    final hasCommissionDashboard =
+        ApiService.currentClient?.features.hasCommissionDashboard ?? false;
     final profilePicture = user?.profilePicture;
 
     // Show profile picture only for Leruma (hasCommissionDashboard) and if picture exists
-    if (hasCommissionDashboard && profilePicture != null && profilePicture.isNotEmpty) {
+    if (hasCommissionDashboard &&
+        profilePicture != null &&
+        profilePicture.isNotEmpty) {
       return Container(
         width: size,
         height: size,
@@ -2570,7 +2812,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Build skeleton placeholders for dashboard loading
   Widget _buildDashboardSkeleton(bool isDark) {
-    final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
+    final hasCommissionDashboard =
+        ApiService.currentClient?.features.hasCommissionDashboard ?? false;
 
     if (hasCommissionDashboard) {
       return _buildLerumaDashboardSkeleton(isDark);
@@ -2674,7 +2917,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _ShimmerBox(width: 28, height: 28, borderRadius: 6),
               const SizedBox(width: 8),
               Expanded(
-                child: _ShimmerBox(width: double.infinity, height: 12, borderRadius: 4),
+                child: _ShimmerBox(
+                    width: double.infinity, height: 12, borderRadius: 4),
               ),
             ],
           ),
@@ -2853,7 +3097,8 @@ class _ShimmerBox extends StatefulWidget {
   State<_ShimmerBox> createState() => _ShimmerBoxState();
 }
 
-class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderStateMixin {
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -2897,9 +3142,7 @@ class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderState
               stops: const [0.0, 0.5, 1.0],
             ),
           ),
-          child: widget.child != null
-              ? Center(child: widget.child)
-              : null,
+          child: widget.child != null ? Center(child: widget.child) : null,
         );
       },
     );

@@ -728,6 +728,110 @@ class ApiService {
     }
   }
 
+  /// Applies one counted row's surplus/shortage straight into stock and
+  /// logs it in the inventory trail. Refused server-side if the row is
+  /// already applied or already linked to a write-off sale -- see
+  /// PhysicalStockCount.isResolved for the client-side mirror of that.
+  Future<ApiResponse<Map<String, dynamic>>> updatePhysicalStock({
+    required int countId,
+    required int itemId,
+    required int locationId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/items/physical_stock/update_stock'),
+            headers: await _getHeaders(),
+            body: json.encode({
+              'count_id': countId,
+              'item_id': itemId,
+              'location_id': locationId,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Bulk version of updatePhysicalStock: applies every row passed in, one
+  /// at a time server-side. items: [{count_id, item_id, location_id}].
+  /// A bad row (already applied, etc.) is reported back in `failed` rather
+  /// than stopping the rest -- check the response body, not just isSuccess.
+  Future<ApiResponse<Map<String, dynamic>>> updatePhysicalStockBulk(
+    List<Map<String, dynamic>> items,
+  ) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/items/physical_stock/update_stock_bulk'),
+            headers: await _getHeaders(),
+            body: json.encode({'items': items}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Marks an item handled for this week without recording a real count
+  /// (locked store room, in transit, etc). Fails server-side if a count
+  /// already exists for this item/location/week.
+  Future<ApiResponse<Map<String, dynamic>>> deferPhysicalStock({
+    required int itemId,
+    required int locationId,
+    required int weekNumber,
+    String? reason,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrlSync/items/physical_stock/defer'),
+            headers: await _getHeaders(),
+            body: json.encode({
+              'item_id': itemId,
+              'location_id': locationId,
+              'week_number': weekNumber,
+              if (reason != null && reason.isNotEmpty) 'reason': reason,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Loss Stock report: every shortage this month, valued at selling price.
+  Future<ApiResponse<Map<String, dynamic>>> getPhysicalStockLossReport({
+    String? month,
+    String? week, // '1'..'4' or null for all
+    int? locationId,
+  }) async {
+    try {
+      final params = <String, String>{
+        if (month != null) 'month': month,
+        if (week != null) 'week': week,
+        if (locationId != null && locationId > 0)
+          'location_id': locationId.toString(),
+      };
+      final uri = Uri.parse('$baseUrlSync/items/physical_stock/loss_report')
+          .replace(queryParameters: params.isEmpty ? null : params);
+      final response = await http
+          .get(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 30));
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ─── Transfer API ───────────────────────────────────────────────────────
 
   Future<ApiResponse<List<Map<String, dynamic>>>> getTransfers({

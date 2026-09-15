@@ -58,27 +58,54 @@ class PhysicalStockItem {
 }
 
 /// A saved count for one item in one week.
+///
+/// `applied`/`saleId` mark a surplus/shortage as already resolved -- once
+/// either is set the backend refuses to re-apply it (see
+/// api/Items::_apply_physical_stock_adjustment), so the UI must treat the
+/// row as read-only rather than offering Update Stock again. `deferred`
+/// marks a placeholder row (physical_qty snapshotted equal to system_qty,
+/// so difference is always 0) recorded via "Defer to Next Stock" instead
+/// of a real count.
 class PhysicalStockCount {
+  final int countId;
   final double systemQty;
   final double physicalQty;
   final double difference;
+  final bool applied;
+  final int? saleId;
+  final bool deferred;
+  final String? deferReason;
   final String? countDate;
 
   PhysicalStockCount({
+    required this.countId,
     required this.systemQty,
     required this.physicalQty,
     required this.difference,
+    this.applied = false,
+    this.saleId,
+    this.deferred = false,
+    this.deferReason,
     this.countDate,
   });
 
   factory PhysicalStockCount.fromJson(Map<String, dynamic> json) {
     return PhysicalStockCount(
+      countId: _toInt(json['count_id']),
       systemQty: _toDouble(json['system_qty']),
       physicalQty: _toDouble(json['physical_qty']),
       difference: _toDouble(json['difference']),
+      applied: _toInt(json['applied']) == 1,
+      saleId: json['sale_id'] == null ? null : _toInt(json['sale_id']),
+      deferred: _toInt(json['deferred']) == 1,
+      deferReason: json['defer_reason']?.toString(),
       countDate: json['count_date']?.toString(),
     );
   }
+
+  /// Already handled this week -- Update Stock/Defer must not be offered
+  /// again, matching what the backend itself refuses.
+  bool get isResolved => applied || saleId != null;
 }
 
 /// Full payload of GET /api/items/physical_stock.
@@ -90,7 +117,8 @@ class PhysicalStockData {
   final int locationId;
   final List<PhysicalStockLocation> locations;
   final List<PhysicalStockItem> items;
-  final Map<int, Map<int, PhysicalStockCount>> counts; // week -> itemId -> count
+  final Map<int, Map<int, PhysicalStockCount>>
+      counts; // week -> itemId -> count
 
   PhysicalStockData({
     required this.month,
@@ -267,6 +295,138 @@ class PhysicalStockReport {
           .map(PhysicalStockReportRecord.fromJson)
           .toList(),
       summary: PhysicalStockSummary.fromJson(
+          json['summary'] as Map<String, dynamic>? ?? {}),
+    );
+  }
+}
+
+/// One shortage row on the Loss Stock report -- every count this month
+/// where physical < system, valued at the item's current selling price.
+class PhysicalStockLossRecord {
+  final int weekNumber;
+  final int itemId;
+  final int locationId;
+  final double systemQty;
+  final double physicalQty;
+  final double difference;
+  final String? countDate;
+  final int? saleId;
+  final String itemName;
+  final String category;
+  final String? itemNumber;
+  final double unitPrice;
+  final String locationName;
+  final double lossQty;
+  final double lossValue;
+
+  PhysicalStockLossRecord({
+    required this.weekNumber,
+    required this.itemId,
+    required this.locationId,
+    required this.systemQty,
+    required this.physicalQty,
+    required this.difference,
+    this.countDate,
+    this.saleId,
+    required this.itemName,
+    required this.category,
+    this.itemNumber,
+    required this.unitPrice,
+    required this.locationName,
+    required this.lossQty,
+    required this.lossValue,
+  });
+
+  factory PhysicalStockLossRecord.fromJson(Map<String, dynamic> json) {
+    return PhysicalStockLossRecord(
+      weekNumber: _toInt(json['week_number']),
+      itemId: _toInt(json['item_id']),
+      locationId: _toInt(json['location_id']),
+      systemQty: _toDouble(json['system_qty']),
+      physicalQty: _toDouble(json['physical_qty']),
+      difference: _toDouble(json['difference']),
+      countDate: json['count_date']?.toString(),
+      saleId: json['sale_id'] == null ? null : _toInt(json['sale_id']),
+      itemName: json['item_name']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      itemNumber: json['item_number']?.toString(),
+      unitPrice: _toDouble(json['unit_price']),
+      locationName: json['location_name']?.toString() ?? '',
+      lossQty: _toDouble(json['loss_qty']),
+      lossValue: _toDouble(json['loss_value']),
+    );
+  }
+}
+
+class PhysicalStockLossSummary {
+  final int totalItems;
+  final double totalLossQty;
+  final double totalLossValue;
+
+  PhysicalStockLossSummary({
+    required this.totalItems,
+    required this.totalLossQty,
+    required this.totalLossValue,
+  });
+
+  factory PhysicalStockLossSummary.fromJson(Map<String, dynamic> json) {
+    return PhysicalStockLossSummary(
+      totalItems: _toInt(json['total_items']),
+      totalLossQty: _toDouble(json['total_loss_qty']),
+      totalLossValue: _toDouble(json['total_loss_value']),
+    );
+  }
+}
+
+/// Full payload of GET /api/items/physical_stock/loss_report.
+class PhysicalStockLossReport {
+  final String month;
+  final String monthName;
+  final String weekFilter; // 'all' or '1'..'4'
+  final int locationId;
+  final Map<int, String> weekRanges;
+  final List<String> months;
+  final List<PhysicalStockLocation> locations;
+  final List<PhysicalStockLossRecord> records;
+  final PhysicalStockLossSummary summary;
+
+  PhysicalStockLossReport({
+    required this.month,
+    required this.monthName,
+    required this.weekFilter,
+    required this.locationId,
+    required this.weekRanges,
+    required this.months,
+    required this.locations,
+    required this.records,
+    required this.summary,
+  });
+
+  factory PhysicalStockLossReport.fromJson(Map<String, dynamic> json) {
+    final weekRanges = <int, String>{};
+    (json['week_ranges'] as Map<String, dynamic>? ?? {}).forEach((k, v) {
+      final wn = int.tryParse(k);
+      if (wn != null) weekRanges[wn] = v.toString();
+    });
+
+    return PhysicalStockLossReport(
+      month: json['month']?.toString() ?? '',
+      monthName: json['month_name']?.toString() ?? '',
+      weekFilter: json['week_filter']?.toString() ?? 'all',
+      locationId: _toInt(json['location_id']),
+      weekRanges: weekRanges,
+      months: (json['months'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      locations: (json['locations'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map(PhysicalStockLocation.fromJson)
+          .toList(),
+      records: (json['records'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map(PhysicalStockLossRecord.fromJson)
+          .toList(),
+      summary: PhysicalStockLossSummary.fromJson(
           json['summary'] as Map<String, dynamic>? ?? {}),
     );
   }

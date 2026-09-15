@@ -9,9 +9,13 @@ import '../../providers/permission_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import 'physical_stock_report_screen.dart';
+import 'physical_stock_loss_report_screen.dart';
 
 /// Per-row auto-save state, shown as a small indicator on the item row.
 enum _RowSaveStatus { saving, saved, error }
+
+/// Status filter chips above the item list.
+enum _StatusFilter { all, notCounted, loss, gain, updated }
 
 /// Physical Stock Count screen (mobile version of web /items/physical_stock).
 ///
@@ -39,6 +43,11 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
   int? _selectedLocationId;
   int _activeWeek = 1;
   String _search = '';
+  _StatusFilter _statusFilter = _StatusFilter.all;
+
+  /// Set while a resolve action (Update Stock / Update All / Defer) is
+  /// in flight, to block re-entrant taps on the same or other rows.
+  bool _isResolving = false;
 
   /// itemId -> controller holding the physical qty being entered.
   final Map<int, TextEditingController> _qtyControllers = {};
@@ -127,10 +136,11 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
     _saveStatus.clear();
 
     for (final item in data.items) {
-      final controller =
-          _qtyControllers.putIfAbsent(item.itemId, () => TextEditingController());
+      final controller = _qtyControllers.putIfAbsent(
+          item.itemId, () => TextEditingController());
       final existing = weekCounts[item.itemId];
-      controller.text = existing != null ? _formatQty(existing.physicalQty) : '';
+      controller.text =
+          existing != null ? _formatQty(existing.physicalQty) : '';
     }
     setState(() {});
   }
@@ -150,13 +160,50 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
   List<PhysicalStockItem> get _filteredItems {
     final data = _data;
     if (data == null) return const [];
-    if (_search.isEmpty) return data.items;
-    final q = _search.toLowerCase();
-    return data.items
-        .where((i) =>
-            i.name.toLowerCase().contains(q) ||
-            i.category.toLowerCase().contains(q) ||
-            (i.itemNumber?.toLowerCase().contains(q) ?? false))
+    final weekCounts = data.counts[_activeWeek] ?? {};
+
+    Iterable<PhysicalStockItem> items = data.items;
+
+    if (_search.isNotEmpty) {
+      final q = _search.toLowerCase();
+      items = items.where((i) =>
+          i.name.toLowerCase().contains(q) ||
+          i.category.toLowerCase().contains(q) ||
+          (i.itemNumber?.toLowerCase().contains(q) ?? false));
+    }
+
+    switch (_statusFilter) {
+      case _StatusFilter.all:
+        break;
+      case _StatusFilter.notCounted:
+        items = items.where((i) => weekCounts[i.itemId] == null);
+        break;
+      case _StatusFilter.loss:
+        items = items.where((i) => (weekCounts[i.itemId]?.difference ?? 0) < 0);
+        break;
+      case _StatusFilter.gain:
+        items = items.where((i) => (weekCounts[i.itemId]?.difference ?? 0) > 0);
+        break;
+      case _StatusFilter.updated:
+        items = items.where((i) {
+          final c = weekCounts[i.itemId];
+          return c != null && (c.isResolved || c.deferred);
+        });
+        break;
+    }
+
+    return items.toList();
+  }
+
+  /// Rows currently on screen that have an unresolved gain/loss -- what
+  /// "Update All Stock" would apply.
+  List<MapEntry<PhysicalStockItem, PhysicalStockCount>> get _unresolvedRows {
+    final weekCounts = _data?.counts[_activeWeek] ?? {};
+    return _filteredItems
+        .map((i) => MapEntry(i, weekCounts[i.itemId]))
+        .where((e) =>
+            e.value != null && e.value!.difference != 0 && !e.value!.isResolved)
+        .map((e) => MapEntry(e.key, e.value!))
         .toList();
   }
 
@@ -203,12 +250,27 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
       // backend rule: an existing count for this week keeps its snapshot,
       // a first count snapshots the current system quantity.
       final weekCounts = _data?.counts.putIfAbsent(week, () => {});
-      final systemQty =
-          weekCounts?[item.itemId]?.systemQty ?? item.systemQty;
+      final existing = weekCounts?[item.itemId];
+      final systemQty = existing?.systemQty ?? item.systemQty;
+      // A real count clears any earlier "Defer to Next Stock" placeholder,
+      // but leaves applied/saleId alone -- re-saving an already-resolved
+      // row's count updates the displayed difference without un-resolving
+      // it server-side (save_physical_stock never touches those columns).
+      final rawCountId =
+          (result.data?['count_ids'] as Map?)?[item.itemId.toString()];
+      final countId = rawCountId is int
+          ? rawCountId
+          : int.tryParse(rawCountId?.toString() ?? '') ??
+              existing?.countId ??
+              0;
       weekCounts?[item.itemId] = PhysicalStockCount(
+        countId: countId,
         systemQty: systemQty,
         physicalQty: qty,
         difference: qty - systemQty,
+        applied: existing?.applied ?? false,
+        saleId: existing?.saleId,
+        deferred: false,
         countDate: null,
       );
       setState(() => _saveStatus[item.itemId] = _RowSaveStatus.saved);
@@ -219,6 +281,283 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
           content: Text('Failed to save ${item.name}: ${result.message}'),
           backgroundColor: AppColors.error,
         ),
+      );
+    }
+  }
+
+  /// Bottom sheet of what can be done with this row right now: Update
+  /// Stock for a counted, unresolved gain/loss; Defer for a not-yet-counted
+  /// item; otherwise just shows why nothing is offered (matched, already
+  /// resolved, or deferred).
+  Future<void> _openRowActions(PhysicalStockItem item) async {
+    final weekCounts = _data?.counts[_activeWeek] ?? {};
+    final count = weekCounts[item.itemId];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(item.name,
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(_rowStatusLabel(count),
+                style: TextStyle(
+                    fontSize: 12.5,
+                    color: isDark
+                        ? AppColors.darkTextLight
+                        : AppColors.textLight)),
+            const SizedBox(height: 16),
+            if (count != null && count.difference != 0 && !count.isResolved)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                    count.difference > 0
+                        ? Icons.trending_up
+                        : Icons.trending_down,
+                    color: count.difference > 0
+                        ? AppColors.success
+                        : AppColors.error),
+                title: const Text('Update Stock'),
+                subtitle: Text(count.difference > 0
+                    ? 'Apply the surplus directly to on-hand stock'
+                    : 'Apply the shortage directly to on-hand stock'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _updateStock(item, count);
+                },
+              ),
+            if (count == null)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.schedule, color: AppColors.warning),
+                title: const Text('Defer to Next Stock'),
+                subtitle: const Text(
+                    "Mark handled for this week without recording a count"),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _deferItem(item);
+                },
+              ),
+            if (count != null && (count.difference == 0 || count.isResolved))
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  count.isResolved
+                      ? 'This row is already resolved and can\'t be corrected again.'
+                      : 'Physical count matches system quantity -- nothing to resolve.',
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: isDark
+                          ? AppColors.darkTextLight
+                          : AppColors.textLight),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _rowStatusLabel(PhysicalStockCount? count) {
+    if (count == null) return 'Not counted this week';
+    if (count.saleId != null)
+      return 'Resolved -- written off via Sale #${count.saleId}';
+    if (count.applied) return 'Resolved -- stock updated';
+    if (count.deferred)
+      return 'Deferred${count.deferReason?.isNotEmpty == true ? ': ${count.deferReason}' : ''}';
+    if (count.difference == 0) return 'Matched';
+    return count.difference > 0
+        ? 'Surplus, not yet resolved'
+        : 'Shortage, not yet resolved';
+  }
+
+  Future<void> _updateStock(
+      PhysicalStockItem item, PhysicalStockCount count) async {
+    final locationId = _selectedLocationId;
+    if (locationId == null || _isResolving) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Update stock?'),
+        content: Text(count.difference > 0
+            ? 'Add ${_formatQty(count.difference)} to on-hand stock for ${item.name}?'
+            : 'Remove ${_formatQty(count.difference.abs())} from on-hand stock for ${item.name}?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brandPrimary),
+            child: const Text('Update', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _isResolving = true);
+    final response = await _apiService.updatePhysicalStock(
+      countId: count.countId,
+      itemId: item.itemId,
+      locationId: locationId,
+    );
+    if (!mounted) return;
+    setState(() => _isResolving = false);
+
+    if (response.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Stock updated for ${item.name}'),
+            backgroundColor: AppColors.success),
+      );
+      _loadData(locationId: locationId);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(response.message), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  Future<void> _updateAllStock() async {
+    final locationId = _selectedLocationId;
+    final rows = _unresolvedRows;
+    if (locationId == null || rows.isEmpty || _isResolving) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Update ${rows.length} row${rows.length == 1 ? '' : 's'}?'),
+        content: const Text(
+            'Applies every gain/loss currently shown straight to on-hand stock, one at a time. Rows already resolved elsewhere are skipped.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brandPrimary),
+            child:
+                const Text('Update all', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _isResolving = true);
+    final response = await _apiService.updatePhysicalStockBulk(rows
+        .map((e) => {
+              'count_id': e.value.countId,
+              'item_id': e.key.itemId,
+              'location_id': locationId,
+            })
+        .toList());
+    if (!mounted) return;
+    setState(() => _isResolving = false);
+
+    if (response.isSuccess && response.data != null) {
+      final applied = (response.data!['applied'] as List?)?.length ?? 0;
+      final failed = (response.data!['failed'] as List?)?.length ?? 0;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(failed == 0
+              ? '$applied row${applied == 1 ? '' : 's'} updated'
+              : '$applied updated, $failed skipped'),
+          backgroundColor:
+              failed == 0 ? AppColors.success : Colors.orange.shade800,
+        ),
+      );
+      _loadData(locationId: locationId);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(response.message), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  Future<void> _deferItem(PhysicalStockItem item) async {
+    final locationId = _selectedLocationId;
+    if (locationId == null || _isResolving) return;
+
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Defer ${item.name}?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+                'Marks this item handled for this week without recording a count. It will show as "not counted" again next week.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+            child: const Text('Defer', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      controller.dispose();
+      return;
+    }
+    final reason = controller.text.trim();
+    controller.dispose();
+
+    setState(() => _isResolving = true);
+    final response = await _apiService.deferPhysicalStock(
+      itemId: item.itemId,
+      locationId: locationId,
+      weekNumber: _activeWeek,
+      reason: reason,
+    );
+    if (!mounted) return;
+    setState(() => _isResolving = false);
+
+    if (response.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('${item.name} deferred to next stock cycle'),
+            backgroundColor: AppColors.success),
+      );
+      _loadData(locationId: locationId);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(response.message), backgroundColor: AppColors.error),
       );
     }
   }
@@ -239,7 +578,7 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          if (canViewReport)
+          if (canViewReport) ...[
             IconButton(
               icon: const Icon(Icons.assessment_outlined),
               tooltip: 'Report',
@@ -249,6 +588,16 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
                     builder: (_) => const PhysicalStockReportScreen()),
               ),
             ),
+            IconButton(
+              icon: const Icon(Icons.trending_down),
+              tooltip: 'Loss Report',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const PhysicalStockLossReportScreen()),
+              ),
+            ),
+          ],
         ],
       ),
       body: _isLoading
@@ -286,6 +635,7 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
       children: [
         _buildHeaderCanopy(data, weekCounts),
         _buildSearchField(isDark),
+        _buildFilterRow(isDark),
         Expanded(
           child: items.isEmpty
               ? _buildEmptyState(isDark)
@@ -521,6 +871,63 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
     );
   }
 
+  Widget _buildFilterRow(bool isDark) {
+    final unresolved = _unresolvedRows;
+
+    Widget chip(_StatusFilter value, String label) {
+      final selected = _statusFilter == value;
+      return Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: ChoiceChip(
+          label: Text(label, style: const TextStyle(fontSize: 12.5)),
+          selected: selected,
+          onSelected: (_) => setState(() => _statusFilter = value),
+          selectedColor: AppColors.brandPrimary,
+          labelStyle: TextStyle(color: selected ? Colors.white : null),
+          backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+          side: BorderSide(
+              color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  chip(_StatusFilter.all, 'All'),
+                  chip(_StatusFilter.notCounted, 'Not counted'),
+                  chip(_StatusFilter.loss, 'Loss'),
+                  chip(_StatusFilter.gain, 'Gain'),
+                  chip(_StatusFilter.updated, 'Updated'),
+                ],
+              ),
+            ),
+          ),
+          if (unresolved.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: _isResolving ? null : _updateAllStock,
+              icon: _isResolving
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.playlist_add_check, size: 18),
+              label: Text('Update all (${unresolved.length})',
+                  style: const TextStyle(fontSize: 12.5)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyState(bool isDark) {
     return Center(
       child: Column(
@@ -580,75 +987,94 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (item.hierDepth > 0) ...[
-                                  const Icon(Icons.subdirectory_arrow_right,
-                                      size: 14, color: Colors.blueGrey),
-                                  const SizedBox(width: 3),
-                                ],
-                                Expanded(
-                                  child: Text(
-                                    item.name,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? AppColors.darkText
-                                          : AppColors.text,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 5),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.brandPrimary
-                                        .withOpacity(isDark ? 0.25 : 0.08),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'Sys ${NumberFormat('#,###.##').format(count?.systemQty ?? item.systemQty)}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? AppColors.primaryLight
-                                          : AppColors.primary,
-                                    ),
-                                  ),
-                                ),
-                                if (item.category.isNotEmpty) ...[
-                                  const SizedBox(width: 6),
-                                  Flexible(
+                        child: InkWell(
+                          onTap: () => _openRowActions(item),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (item.hierDepth > 0) ...[
+                                    const Icon(Icons.subdirectory_arrow_right,
+                                        size: 14, color: Colors.blueGrey),
+                                    const SizedBox(width: 3),
+                                  ],
+                                  Expanded(
                                     child: Text(
-                                      item.category,
-                                      overflow: TextOverflow.ellipsis,
+                                      item.name,
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
                                         color: isDark
-                                            ? AppColors.darkTextLight
-                                            : AppColors.textLight,
+                                            ? AppColors.darkText
+                                            : AppColors.text,
                                       ),
                                     ),
                                   ),
                                 ],
-                              ],
-                            ),
-                            if (count != null) ...[
+                              ),
                               const SizedBox(height: 5),
-                              _buildDifferenceChip(count.difference),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.brandPrimary
+                                          .withOpacity(isDark ? 0.25 : 0.08),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'Sys ${NumberFormat('#,###.##').format(count?.systemQty ?? item.systemQty)}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark
+                                            ? AppColors.primaryLight
+                                            : AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (item.category.isNotEmpty) ...[
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        item.category,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark
+                                              ? AppColors.darkTextLight
+                                              : AppColors.textLight,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (count != null) ...[
+                                const SizedBox(height: 5),
+                                Wrap(
+                                  spacing: 5,
+                                  runSpacing: 4,
+                                  children: [
+                                    if (!count.deferred)
+                                      _buildDifferenceChip(count.difference),
+                                    if (count.deferred)
+                                      _buildStatusBadge(
+                                          'Deferred', AppColors.warning),
+                                    if (count.applied)
+                                      _buildStatusBadge(
+                                          'Stock updated', AppColors.success),
+                                    if (count.saleId != null)
+                                      _buildStatusBadge('Sale #${count.saleId}',
+                                          AppColors.brandPrimary),
+                                  ],
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -734,6 +1160,19 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
       label = 'Matched';
     }
 
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+    );
+  }
+
+  Widget _buildStatusBadge(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
