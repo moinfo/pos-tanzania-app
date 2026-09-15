@@ -21,12 +21,19 @@ class ReceiptSms {
     final shop = ApiService.currentClient?.displayName ?? 'POS';
     final lines = <String>['$shop - Risiti #${sale.saleId}'];
 
+    // Quantities can be fractional (e.g. 2.5 kg); money never is.
+    final quantity = NumberFormat('#,##0.##');
+
     for (final item in sale.items ?? const <SaleItem>[]) {
-      final qty = money.format(item.quantity);
+      final qty = quantity.format(item.quantity);
       // Free lines carry a zero price; say so rather than printing "0".
-      final amount =
-          item.unitPrice == 0 ? 'BURE' : money.format(item.lineTotal);
-      lines.add('${item.itemName} $qty x $amount');
+      if (item.unitPrice == 0) {
+        lines.add('${item.itemName} $qty BURE');
+        continue;
+      }
+      // Price each AND the line total, so the customer can check the maths.
+      lines.add('${item.itemName} $qty @ ${money.format(item.unitPrice)}'
+          ' = ${money.format(item.lineTotal)}');
     }
 
     lines.add('JUMLA: ${money.format(sale.total)} TSh');
