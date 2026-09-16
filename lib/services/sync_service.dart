@@ -8,6 +8,7 @@ import 'api_service.dart';
 import '../models/api_response.dart';
 import '../models/sale.dart';
 import 'offline_actions.dart';
+import 'stock_signal.dart';
 
 /// Sync status enum
 enum SyncStatus {
@@ -764,6 +765,11 @@ class SyncService {
           success: true,
           serverId: serverId,
         ));
+
+        // Whatever this was, the server has now applied it -- a receiving
+        // books stock in, a sale books it out -- so any screen still holding
+        // quantities from before this upload is stale.
+        StockSignal.bump();
 
         debugPrint('SyncService: $label $entityId synced (server ID: $serverId)');
         continue;

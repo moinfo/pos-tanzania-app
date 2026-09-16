@@ -12,6 +12,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/offline_actions.dart';
 import '../../services/read_cache.dart';
+import '../../services/stock_signal.dart';
 import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../widgets/app_bottom_navigation.dart';
@@ -328,6 +329,12 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
       if (!mounted) return;
 
       if (result.isSent) {
+        // The server has taken the delivery, so every screen still holding
+        // quantities from before it is now wrong. Not for a QUEUED receiving:
+        // nothing has changed server-side yet, and refetching would only
+        // reload the same pre-delivery numbers.
+        StockSignal.bump();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Receiving created successfully!'),

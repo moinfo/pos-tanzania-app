@@ -35,6 +35,7 @@ import 'package:intl/intl.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../services/nfc_service.dart';
 import '../models/item_quantity_offer.dart';
+import '../services/stock_signal.dart';
 import '../utils/receipt_sms.dart';
 import '../utils/sale_design.dart';
 import '../widgets/sale/keypad_sheet.dart';
@@ -119,6 +120,9 @@ class _SalesScreenState extends State<SalesScreen> {
     super.initState();
     // The suffix icons depend on focus, so rebuild whenever it changes
     _searchFocusNode.addListener(_onSearchFocusChanged);
+    // A receiving booked on another screen makes the quantities loaded here
+    // wrong, and this screen only reloads on mount or a store switch.
+    StockSignal.changed.addListener(_onStockChanged);
     // Defer location initialization until after the build phase
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocation();
@@ -127,6 +131,12 @@ class _SalesScreenState extends State<SalesScreen> {
 
   void _onSearchFocusChanged() {
     if (mounted) setState(() {});
+  }
+
+  /// Stock moved server-side; the catalogue in hand is stale.
+  void _onStockChanged() {
+    if (!mounted || _isLoading) return;
+    _loadItems();
   }
 
   /// Stock location the item list was last loaded for.
@@ -1423,6 +1433,7 @@ class _SalesScreenState extends State<SalesScreen> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.removeListener(_onSearchFocusChanged);
+    StockSignal.changed.removeListener(_onStockChanged);
     _searchFocusNode.dispose();
     super.dispose();
   }

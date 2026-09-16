@@ -17,6 +17,7 @@ import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/state_views.dart';
+import '../services/stock_signal.dart';
 
 class ItemsScreen extends StatefulWidget {
   const ItemsScreen({super.key});
@@ -58,6 +59,8 @@ class _ItemsScreenState extends State<ItemsScreen> {
     _searchController.addListener(() {
       _loadItems();
     });
+    // A receiving booked elsewhere changes the quantities shown here.
+    StockSignal.changed.addListener(_onStockChanged);
   }
 
   Future<void> _initializeLocation() async {
@@ -71,8 +74,14 @@ class _ItemsScreenState extends State<ItemsScreen> {
 
   @override
   void dispose() {
+    StockSignal.changed.removeListener(_onStockChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Stock moved server-side; the list in hand is stale.
+  void _onStockChanged() {
+    if (mounted) _loadItems();
   }
 
   Future<void> _loadItems() async {
