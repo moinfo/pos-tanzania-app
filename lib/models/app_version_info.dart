@@ -13,6 +13,7 @@ class AppVersionInfo {
     this.storeUrl,
     this.releaseNotes,
     this.configured = true,
+    this.offlineEnabled = true,
   });
 
   /// 'android' or 'ios'.
@@ -48,8 +49,17 @@ class AppVersionInfo {
   /// they are ahead of the store.
   final bool configured;
 
+  /// Whether the deployment still lets the app keep new work on the device
+  /// when it cannot reach the server. See [OfflineFeature].
+  ///
+  /// Absent on a server that predates the setting, which must read as ON: the
+  /// app keeps the behaviour it already had rather than losing offline selling
+  /// because a field was missing.
+  final bool offlineEnabled;
+
   factory AppVersionInfo.fromJson(Map<String, dynamic> json) {
     return AppVersionInfo(
+      offlineEnabled: json['offline_enabled'] != false,
       platform: (json['platform'] ?? '').toString(),
       versionName: (json['version_name'] ?? '').toString(),
       versionCode: _asInt(json['version_code']),

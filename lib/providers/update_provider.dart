@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/app_version_info.dart';
+import '../services/offline_feature.dart';
 import '../services/update_service.dart';
 
 /// Holds the answer to "is there a newer version?" for the whole app.
@@ -68,6 +69,10 @@ class UpdateProvider extends ChangeNotifier {
         // not know rather than claiming the app is current.
         _state = UpdateState.checkFailed;
       } else {
+        // Carried on the same call, so switching offline mode off costs no
+        // extra request. Remembered on the device for the next cold start.
+        await OfflineFeature.applyServerFlag(published.offlineEnabled);
+
         _latest = published;
         _state = published.configured &&
                 published.versionCode > _installedVersionCode

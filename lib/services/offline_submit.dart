@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../models/api_response.dart';
 import '../providers/offline_provider.dart';
 import 'offline_actions.dart';
+import 'offline_feature.dart';
 
 /// What became of one attempt to create something.
 enum OfflineSubmitOutcome {
@@ -144,15 +145,14 @@ class OfflineSubmitter {
     // been written; we simply never heard back. Queueing it under THIS
     // attempt's key is what makes the upload replay that record instead of
     // creating a second one.
-    if (!offlineProvider.isInitialized) {
-      // No local database: offline mode is off for this client, so there is
-      // nowhere safe to keep this. Saying so plainly beats pretending.
+    if (!offlineProvider.isInitialized || !OfflineFeature.enabled) {
+      // No local database for this client, or offline mode switched off on the
+      // server: either way there is nowhere this may be kept, and saying so
+      // plainly beats pretending.
       return OfflineSubmitResult<T>(
         outcome: OfflineSubmitOutcome.lost,
         response: response,
-        message: 'No connection, and this ${action.label.toLowerCase()} could '
-            'not be saved on the device. It was NOT recorded - please try '
-            'again.',
+        message: OfflineFeature.refusal(action.label.toLowerCase()),
       );
     }
 

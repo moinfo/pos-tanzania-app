@@ -6,6 +6,7 @@ import '../services/database_service.dart';
 import '../services/sync_service.dart';
 import '../services/api_service.dart';
 import '../services/offline_actions.dart';
+import '../services/offline_feature.dart';
 import '../services/screen_prefetch.dart';
 import 'location_provider.dart';
 import 'connectivity_provider.dart';
@@ -1101,6 +1102,16 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
       // create into the queue.
       debugPrint(
           'OfflineProvider: cannot queue ${action.type} - offline mode is not enabled');
+      return false;
+    }
+
+    // The server can switch queueing off without a release. Checked here, at
+    // the one door every create goes through, rather than at each call site --
+    // a screen that forgot the check would otherwise queue into a mode that is
+    // supposed to be off. Draining what is already queued is untouched.
+    if (!OfflineFeature.enabled) {
+      debugPrint(
+          'OfflineProvider: refusing to queue ${action.type} - offline mode is switched off');
       return false;
     }
 

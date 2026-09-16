@@ -6,6 +6,7 @@ import '../models/one_time_discount.dart';
 import '../models/item_quantity_offer.dart';
 import '../models/discount_request.dart';
 import '../services/api_service.dart';
+import '../services/offline_feature.dart';
 import '../providers/offline_provider.dart';
 
 class SaleProvider with ChangeNotifier {
@@ -1177,6 +1178,18 @@ class SaleProvider with ChangeNotifier {
     int employeeId,
     String requestId,
   ) async {
+    // The server can switch offline selling off without a release. Checked
+    // before the database, so the seller is told the sale was not recorded
+    // rather than it being kept in a queue nobody expects to be filled.
+    // Sales already queued are not affected -- they still upload.
+    if (!OfflineFeature.enabled) {
+      return SaleSubmitResult(
+        success: false,
+        isOffline: true,
+        message: 'Mauzo bila mtandao yamezimwa / offline selling is switched off.',
+      );
+    }
+
     final database = offlineProvider.database;
     if (database == null) {
       return SaleSubmitResult(

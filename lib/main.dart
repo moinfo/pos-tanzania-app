@@ -17,6 +17,7 @@ import 'screens/main_navigation.dart';
 import 'screens/client_selector_screen.dart';
 import 'screens/landing/landing_screen.dart';
 import 'services/api_service.dart';
+import 'services/offline_feature.dart';
 import 'services/push_service.dart';
 import 'config/clients_config.dart';
 import 'utils/app_theme.dart';
@@ -44,6 +45,10 @@ Future<void> main() async {
   // provider's constructor meant the app painted light, then flipped -- a
   // white flash on every launch for anyone using dark mode.
   await ThemeProvider.preload();
+
+  // What the server last said about offline mode, read before any screen can
+  // queue anything. Refreshed from /api/app_version once the session starts.
+  await OfflineFeature.load();
 
   runApp(MyApp(firebaseReady: firebaseReady));
 }
