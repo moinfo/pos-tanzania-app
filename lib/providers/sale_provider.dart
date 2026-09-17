@@ -420,6 +420,8 @@ class SaleProvider with ChangeNotifier {
 
       _renumberLines();
       _syncGroupOfferLines();
+      // Emptying the cart item by item ends the order just as clearing it does.
+      if (_cartItems.isEmpty) _cartEpoch++;
       notifyListeners();
     }
   }
@@ -442,8 +444,23 @@ class SaleProvider with ChangeNotifier {
     return null;
   }
 
+  /// Bumped whenever the cart is emptied, i.e. whenever one customer's order
+  /// ends and the next begins.
+  ///
+  /// The checkout idempotency key is derived from the cart's CONTENTS, so that
+  /// retrying an order that timed out replays it instead of booking it twice.
+  /// The contents alone are not enough to tell two orders apart, though: a POS
+  /// sells the same basket over and over, and without this counter a later
+  /// customer buying exactly what an earlier one bought would inherit that
+  /// earlier attempt's key and be swallowed by the server as a replay -- money
+  /// taken, nothing recorded. Counting emptyings separates "the same order,
+  /// tried again" from "the same goods, a different customer".
+  int get cartEpoch => _cartEpoch;
+  int _cartEpoch = 0;
+
   // Clear cart
   void clearCart() {
+    _cartEpoch++;
     _cartItems.clear();
     _selectedCustomer = null;
     _payments.clear();
@@ -1186,7 +1203,10 @@ class SaleProvider with ChangeNotifier {
       return SaleSubmitResult(
         success: false,
         isOffline: true,
-        message: 'Mauzo bila mtandao yamezimwa / offline selling is switched off.',
+        // Not "could not be saved on the device": that sends the seller to
+        // restart their phone over something that is not their phone's fault.
+        // What they need is the network and a retry.
+        message: OfflineFeature.refusal('sale'),
       );
     }
 

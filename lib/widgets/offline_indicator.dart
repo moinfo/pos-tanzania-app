@@ -5,6 +5,7 @@ import '../providers/offline_provider.dart';
 import '../services/api_service.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
+import '../services/offline_feature.dart';
 
 /// Widget to display offline/online status in the app bar
 class OfflineIndicator extends StatefulWidget {
@@ -252,10 +253,24 @@ class OfflineBanner extends StatelessWidget {
         } else if (noNetwork) {
           background = AppColors.warning;
           icon = Icons.cloud_off;
-          title = 'No connection - you can keep working';
-          detail = (pending == 0 && otherPending == 0)
-              ? 'What you record is saved here and uploads by itself later.'
-              : '${_waitingWord(pending, otherPending)} saved here, uploading by itself when the network returns.';
+          // With queueing switched off this strip must not promise that work
+          // is being kept: it is shown ON the sale screen, so a seller who
+          // believes it serves the customer first and finds out afterwards.
+          // What is already queued still uploads, which is why the counts are
+          // still reported either way.
+          final canKeepWorking = OfflineFeature.enabled;
+          title = canKeepWorking
+              ? 'No connection - you can keep working'
+              : 'Hakuna mtandao / No connection';
+          if (!canKeepWorking) {
+            detail = (pending == 0 && otherPending == 0)
+                ? 'Huwezi kuuza bila mtandao. Subiri mtandao urudi. / Sales need a connection - nothing can be recorded until it returns.'
+                : '${_waitingWord(pending, otherPending)} saved earlier, uploading by itself when the network returns. New work needs a connection.';
+          } else {
+            detail = (pending == 0 && otherPending == 0)
+                ? 'What you record is saved here and uploads by itself later.'
+                : '${_waitingWord(pending, otherPending)} saved here, uploading by itself when the network returns.';
+          }
         } else if (noServer) {
           background = AppColors.warning;
           icon = Icons.cloud_off;

@@ -99,7 +99,12 @@ class _SalesScreenState extends State<SalesScreen> {
   String _cartKey(Sale sale) {
     final payload = Map<String, dynamic>.from(sale.toCreateJson())
       ..remove('sale_date');
-    return jsonEncode(payload);
+    // The cart's emptying count rides along, so an identical basket sold to a
+    // later customer is a DIFFERENT key. Contents alone made the two
+    // indistinguishable, and the second sale would be replayed away as a
+    // duplicate of the first -- see SaleProvider.cartEpoch.
+    final epoch = context.read<SaleProvider>().cartEpoch;
+    return '$epoch|${jsonEncode(payload)}';
   }
 
   /// Mint a new id only when the payload differs from the last attempt.
@@ -2594,8 +2599,10 @@ class _SalesScreenState extends State<SalesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'This sale could not be saved on the device and was NOT '
-            'recorded. ${result.message}',
+            // The provider's message already says what happened and what to
+            // do; prefixing it with "could not be saved on the device" only
+            // pointed the seller at their handset.
+            result.message,
           ),
           backgroundColor: AppColors.error,
           duration: const Duration(seconds: 8),

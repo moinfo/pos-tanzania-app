@@ -311,8 +311,8 @@ class ApiService {
         fromJson == null ? null : (data) => fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -343,6 +343,55 @@ class ApiService {
   static void _reportReachable(bool reachable) {
     final report = onServerReachability;
     if (report != null) report(reachable);
+  }
+
+  /// Report a caught exception, and say whether it means the SERVER could not
+  /// be reached.
+  ///
+  /// The catch blocks in this file wrap the whole call, not just the socket:
+  /// they also catch a JSON parse failure on a 502 HTML page, a secure-storage
+  /// PlatformException, and a TypeError while building a model. All of those
+  /// used to be announced as "no connection", which is how the app came to tell
+  /// sellers their network was down while the phone plainly had data -- and,
+  /// with offline queueing switched off, to refuse their work for it.
+  ///
+  /// Only a transport-shaped failure says anything about reachability. Anything
+  /// else means the server answered and we could not make sense of it, which is
+  /// a bug to fix, not a network to wait for.
+  static bool _reportFailure(Object e) {
+    final transport = isTransportException(e);
+    _reportReachable(!transport);
+    return transport;
+  }
+
+  /// How a caught exception should be worded.
+  ///
+  /// The wording is not cosmetic: isTransportFailure() classifies a failure by
+  /// the text when there is no status code, and every screen decides between
+  /// "you are offline" and a real error on the back of it. Labelling a parse
+  /// failure "Connection error" is what made a 502 HTML page from the server
+  /// read, all the way to the seller, as a dead network.
+  static String _failureMessage(Object e) =>
+      isTransportException(e) ? 'Connection error: $e' : 'Server error: $e';
+
+  /// Whether [e] is the network failing, as opposed to the app or the server
+  /// misbehaving.
+  static bool isTransportException(Object e) {
+    if (e is SocketException || e is TimeoutException || e is HandshakeException) {
+      return true;
+    }
+    if (e is http.ClientException) return true;
+    if (e is HttpException) return true;
+    // ClientException is sometimes wrapped; its text is the reliable tell.
+    final text = e.toString().toLowerCase();
+    return text.contains('socketexception') ||
+        text.contains('timeoutexception') ||
+        text.contains('handshakeexception') ||
+        text.contains('connection closed') ||
+        text.contains('connection refused') ||
+        text.contains('connection reset') ||
+        text.contains('network is unreachable') ||
+        text.contains('failed host lookup');
   }
 
   ApiResponse<T> _handleResponse<T>(
@@ -467,8 +516,8 @@ class ApiService {
         statusCode: response.statusCode,
       );
     } catch (e) {
-      _reportReachable(false);
-      failure = ApiResponse<T>.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      failure = ApiResponse<T>.error(message: _failureMessage(e));
     }
 
     if (!isTransportFailure(failure)) return failure;
@@ -534,7 +583,7 @@ class ApiService {
       await ReadCache.instance.write(key, raw);
       return true;
     } catch (e) {
-      _reportReachable(false);
+      _reportFailure(e);
         debugPrint('ApiService: could not refresh cached "$key": $e');
       return false;
     }
@@ -592,8 +641,8 @@ class ApiService {
         message: 'Invalid response format from server',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -630,8 +679,8 @@ class ApiService {
         (data) => User.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -655,8 +704,8 @@ class ApiService {
 
       return result;
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -680,8 +729,8 @@ class ApiService {
 
       return ApiResponse.success(message: 'Logged out successfully');
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -721,8 +770,8 @@ class ApiService {
         errorFallback: 'Failed to fetch Z reports',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -739,8 +788,8 @@ class ApiService {
         (data) => ZReportDetails.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -903,8 +952,8 @@ class ApiService {
         errorFallback: 'Failed to fetch cash submissions',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1020,8 +1069,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supervisors',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1049,8 +1098,8 @@ class ApiService {
       );
     } catch (e) {
       print('❌ Connection error: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1079,8 +1128,8 @@ class ApiService {
         errorFallback: 'Failed to fetch sellers report',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1101,8 +1150,8 @@ class ApiService {
         errorFallback: 'Failed to fetch contracts',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1119,8 +1168,8 @@ class ApiService {
         (data) => Contract.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1149,8 +1198,8 @@ class ApiService {
         errorFallback: 'Failed to fetch contract statement',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1197,8 +1246,8 @@ class ApiService {
         errorFallback: 'Failed to fetch expenses',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1215,8 +1264,8 @@ class ApiService {
         (data) => Expense.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1282,8 +1331,8 @@ class ApiService {
         errorFallback: 'Failed to fetch expense categories',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1327,8 +1376,8 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('⚠️ Customers API exception: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1364,8 +1413,8 @@ class ApiService {
         errorFallback: 'Failed to fetch customer',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1460,8 +1509,8 @@ class ApiService {
         errorFallback: 'Failed to fetch items',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1478,8 +1527,8 @@ class ApiService {
         errorFallback: 'Failed to fetch item',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1497,8 +1546,8 @@ class ApiService {
         (data) => Item.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1602,8 +1651,8 @@ class ApiService {
         (data) => Item.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1708,8 +1757,8 @@ class ApiService {
         errorFallback: 'Failed to fetch credit statement',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1726,8 +1775,8 @@ class ApiService {
         (data) => CreditBalance.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1763,8 +1812,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supervisor credits',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1788,8 +1837,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supervisor customers',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1820,8 +1869,8 @@ class ApiService {
         errorFallback: 'Failed to fetch daily debt report',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1900,8 +1949,8 @@ class ApiService {
         (data) => SaleDetails.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1919,8 +1968,8 @@ class ApiService {
         errorFallback: 'Failed to load suppliers',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1939,8 +1988,8 @@ class ApiService {
         errorFallback: 'Failed to load suppliers',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -1969,8 +2018,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supplier statement',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2019,8 +2068,8 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2087,8 +2136,8 @@ class ApiService {
         (data) => Supplier.fromJson(data as Map<String, dynamic>),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2156,8 +2205,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supplier supervisors',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2186,8 +2235,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supplier creditors',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2214,8 +2263,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supplier account',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2267,8 +2316,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supplier daily credit report',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2297,8 +2346,8 @@ class ApiService {
         errorFallback: 'Failed to fetch supplier daily debt report',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2348,8 +2397,8 @@ class ApiService {
         errorFallback: 'Failed to fetch receivings',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2366,8 +2415,8 @@ class ApiService {
         errorFallback: 'Failed to fetch receiving details',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2426,8 +2475,8 @@ class ApiService {
         errorFallback: 'Failed to fetch receiving summary',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2455,8 +2504,8 @@ class ApiService {
         errorFallback: 'Failed to fetch receiving summary',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2490,8 +2539,8 @@ class ApiService {
         errorFallback: 'Failed to fetch the main store',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2534,8 +2583,8 @@ class ApiService {
         errorFallback: 'Failed to fetch sales',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2555,8 +2604,8 @@ class ApiService {
         errorFallback: 'Failed to fetch sale',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2573,8 +2622,8 @@ class ApiService {
         (data) => (data as List).map((item) => SaleItem.fromJson(item)).toList(),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2605,8 +2654,8 @@ class ApiService {
         (data) => Sale.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2655,8 +2704,8 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2702,8 +2751,8 @@ class ApiService {
         errorFallback: 'Failed to fetch the payment summary',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2730,8 +2779,8 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2774,8 +2823,8 @@ class ApiService {
         errorFallback: 'Failed to fetch suspended sales',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2805,8 +2854,8 @@ class ApiService {
         errorFallback: 'Failed to fetch suspended sheet',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2836,8 +2885,8 @@ class ApiService {
         errorFallback: 'Failed to fetch delivery sheet',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2867,8 +2916,8 @@ class ApiService {
         errorFallback: 'Failed to fetch receipt sheet',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2895,8 +2944,8 @@ class ApiService {
         errorFallback: 'Failed to fetch customer care data',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2923,8 +2972,8 @@ class ApiService {
         errorFallback: 'Failed to fetch map route data',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -2986,8 +3035,8 @@ class ApiService {
         errorFallback: 'Failed to fetch suspended summary',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3018,8 +3067,8 @@ class ApiService {
         errorFallback: 'Failed to fetch comment',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3069,8 +3118,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3158,8 +3207,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3191,8 +3240,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3242,8 +3291,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3275,8 +3324,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3327,8 +3376,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3367,8 +3416,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3415,8 +3464,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3464,8 +3513,8 @@ class ApiService {
       return ApiResponse.error(message: message);
     } catch (e) {
       debugPrint('⚠️ Group offers API exception: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3486,8 +3535,8 @@ class ApiService {
             .toDouble(),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3531,8 +3580,8 @@ class ApiService {
         (data) => SaleSummary.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3574,8 +3623,8 @@ class ApiService {
         errorFallback: 'Failed to fetch banking',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3661,8 +3710,8 @@ class ApiService {
         errorFallback: 'Failed to fetch financial dashboard',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3725,8 +3774,8 @@ class ApiService {
         (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3800,8 +3849,8 @@ class ApiService {
         errorFallback: 'Failed to fetch EFD analysis',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3835,8 +3884,8 @@ class ApiService {
         errorFallback: 'Failed to fetch profit submissions',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3853,8 +3902,8 @@ class ApiService {
         (data) => ProfitSubmitDetails.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3932,8 +3981,8 @@ class ApiService {
         errorFallback: 'Failed to fetch allowed locations',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3953,8 +4002,8 @@ class ApiService {
         },
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -3977,8 +4026,8 @@ class ApiService {
         (data) => data['is_allowed'] as bool,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4007,8 +4056,8 @@ class ApiService {
         (data) => CustomerTransactionBalance.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4035,8 +4084,8 @@ class ApiService {
         errorFallback: 'Failed to fetch customer statement',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4069,8 +4118,8 @@ class ApiService {
         errorFallback: 'Failed to fetch deposits',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4103,8 +4152,8 @@ class ApiService {
         errorFallback: 'Failed to fetch withdrawals',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4225,8 +4274,8 @@ class ApiService {
         errorFallback: 'Failed to fetch customer balances',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4247,8 +4296,8 @@ class ApiService {
         errorFallback: 'Failed to fetch cash basis categories',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4344,8 +4393,8 @@ class ApiService {
         errorFallback: 'Failed to fetch cash basis transactions',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4440,8 +4489,8 @@ class ApiService {
         errorFallback: 'Failed to fetch bank basis categories',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4526,8 +4575,8 @@ class ApiService {
         errorFallback: 'Failed to fetch bank basis transactions',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4622,8 +4671,8 @@ class ApiService {
         errorFallback: 'Failed to fetch SIMs',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4708,8 +4757,8 @@ class ApiService {
         errorFallback: 'Failed to fetch wakala transactions',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4807,8 +4856,8 @@ class ApiService {
         errorFallback: 'Failed to fetch the wakala report',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4834,8 +4883,8 @@ class ApiService {
         errorFallback: 'Failed to fetch wakala expenses',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4913,8 +4962,8 @@ class ApiService {
         (data) => data,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -4942,8 +4991,8 @@ class ApiService {
         errorFallback: 'Failed to fetch commissions',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5025,8 +5074,8 @@ class ApiService {
         errorFallback: 'Failed to fetch capital entries',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5116,8 +5165,8 @@ class ApiService {
         errorFallback: 'Failed to fetch report',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5393,8 +5442,8 @@ class ApiService {
         (data) => ReportData.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5416,8 +5465,8 @@ class ApiService {
         (data) => ReportData.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5443,8 +5492,8 @@ class ApiService {
         (data) => SpecificReportData.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5470,8 +5519,8 @@ class ApiService {
         (data) => SpecificReportData.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5501,8 +5550,8 @@ class ApiService {
         errorFallback: 'Failed to fetch graphical report',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5531,8 +5580,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5550,8 +5599,8 @@ class ApiService {
         errorFallback: 'Failed to fetch receiving items',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5576,8 +5625,8 @@ class ApiService {
         errorFallback: 'Failed to fetch stock tracking',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5600,8 +5649,8 @@ class ApiService {
         errorFallback: 'Failed to fetch item tracking',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5627,8 +5676,8 @@ class ApiService {
         errorFallback: 'Failed to fetch items',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5645,8 +5694,8 @@ class ApiService {
         errorFallback: 'Failed to fetch locations',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5676,8 +5725,8 @@ class ApiService {
         errorFallback: 'Failed to fetch positions',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5708,8 +5757,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5798,7 +5847,7 @@ class ApiService {
     } catch (e) {
       print('❌ Dashboard error: $e');
       final failure = ApiResponse<Map<String, dynamic>>.error(
-        message: 'Connection error: $e',
+        message: _failureMessage(e),
       );
       if (!isTransportFailure(failure)) return failure;
 
@@ -5866,8 +5915,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5901,8 +5950,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5952,8 +6001,8 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error looking up customer by card: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -5991,8 +6040,8 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error registering card: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6020,8 +6069,8 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error unregistering card: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6054,8 +6103,8 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('❌ Error getting customer cards: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6096,8 +6145,8 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('❌ Error getting all cards: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6136,8 +6185,8 @@ class ApiService {
       }
     } catch (e) {
       debugPrint('❌ Error getting card balance: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6418,8 +6467,8 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('❌ Error getting statement: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6470,8 +6519,8 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('❌ Error getting confirmations: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6584,8 +6633,8 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('❌ Error getting settings: $e');
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6621,8 +6670,8 @@ class ApiService {
         errorFallback: 'Failed to fetch shops',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6639,8 +6688,8 @@ class ApiService {
         (data) => Shop.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6671,8 +6720,8 @@ class ApiService {
         );
       }
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6690,8 +6739,8 @@ class ApiService {
         (data) => Shop.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6750,8 +6799,8 @@ class ApiService {
         errorFallback: 'Failed to fetch service history',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6784,8 +6833,8 @@ class ApiService {
         errorFallback: 'Failed to fetch discount requests',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6802,8 +6851,8 @@ class ApiService {
         (data) => DiscountRequest.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6822,8 +6871,8 @@ class ApiService {
             : int.tryParse(data['pending_count']?.toString() ?? '') ?? 0,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6840,8 +6889,8 @@ class ApiService {
         errorFallback: 'Failed to fetch item prices',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -6865,8 +6914,8 @@ class ApiService {
         (data) => CheckApprovedDiscountResponse.fromJson(data),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7016,8 +7065,8 @@ class ApiService {
         errorFallback: 'Failed to fetch borrowed money',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7032,8 +7081,8 @@ class ApiService {
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7081,8 +7130,8 @@ class ApiService {
         (data) => ReturnModalData.fromJson(data as Map<String, dynamic>),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7161,8 +7210,8 @@ class ApiService {
         maxAge: CacheAge.queue,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7181,8 +7230,8 @@ class ApiService {
             0,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7200,8 +7249,8 @@ class ApiService {
         errorFallback: 'Failed to fetch approval detail',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7295,8 +7344,8 @@ class ApiService {
         maxAge: CacheAge.queue,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7319,8 +7368,8 @@ class ApiService {
         maxAge: CacheAge.reference,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7348,8 +7397,8 @@ class ApiService {
         maxAge: CacheAge.reference,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7433,8 +7482,8 @@ class ApiService {
             .toList();
       });
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7467,8 +7516,8 @@ class ApiService {
         maxAge: CacheAge.reference,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7486,8 +7535,8 @@ class ApiService {
         CustomerCreditPosition.fromJson,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7558,8 +7607,8 @@ class ApiService {
             .toList();
       });
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7596,8 +7645,8 @@ class ApiService {
         maxAge: CacheAge.queue,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7628,8 +7677,8 @@ class ApiService {
         maxAge: CacheAge.queue,
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7649,8 +7698,8 @@ class ApiService {
         errorFallback: 'Failed to fetch credit history',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7672,8 +7721,8 @@ class ApiService {
         errorFallback: 'Failed to fetch unused allowances',
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7709,8 +7758,8 @@ class ApiService {
             .toList();
       });
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7735,8 +7784,8 @@ class ApiService {
         ),
       );
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7750,8 +7799,8 @@ class ApiService {
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7764,8 +7813,8 @@ class ApiService {
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7795,8 +7844,8 @@ class ApiService {
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 
@@ -7812,8 +7861,8 @@ class ApiService {
       );
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
     } catch (e) {
-      _reportReachable(false);
-      return ApiResponse.error(message: 'Connection error: $e');
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
     }
   }
 

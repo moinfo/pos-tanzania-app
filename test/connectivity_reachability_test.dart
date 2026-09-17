@@ -97,11 +97,26 @@ void main() {
               'the badge stays stuck showing an outage that has ended.');
     });
 
-    test('a cached read reports the server as unreachable when it does not', () {
-      expect(cachedGetBody(), contains('_reportReachable(false)'),
-          reason: 'A cached endpoint served from a saved copy still failed to '
-              'reach the server, and the badge must say so -- otherwise the '
-              'app reads ONLINE while showing yesterday rows.');
+    test('a cached read reports what its failure means for the server', () {
+      // It used to hard-code "unreachable" for anything thrown. A parse
+      // failure on a 502 page is the server answering badly, not the network
+      // being down, so the verdict now comes from the exception itself --
+      // which is what stopped the app announcing an outage on a phone with
+      // working data.
+      expect(cachedGetBody(), contains('_reportFailure(e)'),
+          reason: 'A cached endpoint that could not complete must still tell '
+              'the badge what happened, or the app reads ONLINE while showing '
+              'yesterday rows.');
+    });
+
+    test('only transport failures are reported as the server being down', () {
+      final source = File('lib/services/api_service.dart').readAsStringSync();
+      expect(source, contains('static bool _reportFailure(Object e)'),
+          reason: 'The single place that decides reachability from a caught '
+              'exception has been renamed or removed.');
+      expect(source, isNot(contains('_reportReachable(false)')),
+          reason: 'Reporting the server down without looking at the exception '
+              'is how a JSON parse failure came to read as "no connection".');
     });
   });
 }

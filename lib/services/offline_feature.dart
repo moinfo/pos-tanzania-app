@@ -65,8 +65,15 @@ class OfflineFeature {
 
   /// What to tell someone whose sale or request could not be sent, when
   /// keeping it on the phone is not allowed.
+  ///
+  /// Swahili first, because that is the half that gets read, and with no
+  /// English noun spliced into the middle of it -- [what] is an English label
+  /// like "expense", and dropping it into a Swahili sentence produced
+  /// "Hakuna mtandao. expense haikutumwa...". The English half names the
+  /// record; the Swahili half says the thing that matters, which is that it
+  /// was NOT saved and what to do about it.
   static String refusal(String what) =>
-      'Hakuna mtandao. $what haikutumwa na haikuhifadhiwa kwenye simu. '
-      'Tafadhali jaribu tena ukipata mtandao. / No connection: this $what was '
-      'NOT recorded. Please try again when you are online.';
+      'Hakuna mtandao. Taarifa HAIKUHIFADHIWA. Subiri mtandao urudi kisha '
+      'jaribu tena. / No connection: this $what was NOT recorded. '
+      'Please try again once you are back online.';
 }
