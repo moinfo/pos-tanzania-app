@@ -363,6 +363,14 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
+    // Signing in re-pulled the whole catalogue every time, freshness be
+    // damned, on data bundles bought by the megabyte. The 24-hour check was
+    // written for this and was only ever consulted on startup.
+    if (!force && !await _shouldSyncMasterData()) {
+      debugPrint('OfflineProvider: Master data is fresh, skipping sync');
+      return;
+    }
+
     _isSyncingMasterData = true;
     _masterDataSyncProgress = 0.0;
     _masterDataSyncStatus = 'Starting sync...';
@@ -389,29 +397,40 @@ class OfflineProvider extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
       await _syncCustomers();
 
-      // Sync suppliers
-      _masterDataSyncStatus = 'Syncing suppliers...';
-      _masterDataSyncProgress = 0.6;
-      notifyListeners();
-      await _syncSuppliers();
+      // Everything below exists to let the OFFLINE create paths work: the
+      // supplier and category pickers on offline forms, and the discounts and
+      // offers an offline sale applies and marks locally. With queueing
+      // switched off, none of it will be read -- and it is the bulk of the
+      // download. Stock locations, items and customers stay: those feed the
+      // read cache, which still works.
+      if (OfflineFeature.enabled) {
+        // Sync suppliers
+        _masterDataSyncStatus = 'Syncing suppliers...';
+        _masterDataSyncProgress = 0.6;
+        notifyListeners();
+        await _syncSuppliers();
 
-      // Sync expense categories
-      _masterDataSyncStatus = 'Syncing expense categories...';
-      _masterDataSyncProgress = 0.7;
-      notifyListeners();
-      await _syncExpenseCategories();
+        // Sync expense categories
+        _masterDataSyncStatus = 'Syncing expense categories...';
+        _masterDataSyncProgress = 0.7;
+        notifyListeners();
+        await _syncExpenseCategories();
 
-      // Sync one-time discounts
-      _masterDataSyncStatus = 'Syncing discounts...';
-      _masterDataSyncProgress = 0.8;
-      notifyListeners();
-      await _syncOneTimeDiscounts();
+        // Sync one-time discounts
+        _masterDataSyncStatus = 'Syncing discounts...';
+        _masterDataSyncProgress = 0.8;
+        notifyListeners();
+        await _syncOneTimeDiscounts();
 
-      // Sync quantity offers
-      _masterDataSyncStatus = 'Syncing offers...';
-      _masterDataSyncProgress = 0.9;
-      notifyListeners();
-      await _syncQuantityOffers();
+        // Sync quantity offers
+        _masterDataSyncStatus = 'Syncing offers...';
+        _masterDataSyncProgress = 0.9;
+        notifyListeners();
+        await _syncQuantityOffers();
+      } else {
+        debugPrint('OfflineProvider: offline queueing is off - skipping the '
+            'suppliers, categories, discounts and offers download');
+      }
 
       _masterDataSyncStatus = 'Sync complete';
       _masterDataSyncProgress = 1.0;

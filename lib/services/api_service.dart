@@ -63,6 +63,10 @@ class ApiService {
   /// The same keep-alive + timeout client, for the other service classes.
   static http.Client get sharedHttpClient => _http;
 
+  /// Whether a screen is waiting on a request right now. Read by the
+  /// background prefetch, which stands aside while it is true.
+  static bool get foregroundBusy => _TimeoutClient.foregroundBusy;
+
   final _storage = const FlutterSecureStorage();
 
   /// Auth token, shared by every ApiService instance.
@@ -570,7 +574,9 @@ class ApiService {
     );
 
     try {
-      final response = await _http.get(uri, headers: await _getHeaders());
+      final headers = await _getHeaders()
+        ..[_TimeoutClient.prefetchHeader] = '1';
+      final response = await _http.get(uri, headers: headers);
       _reportReachable(true);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -7878,6 +7884,28 @@ class _TimeoutClient extends http.BaseClient {
 
   final http.Client _inner;
 
+  /// Fail a download that stops making progress, instead of hanging.
+  http.StreamedResponse _guardBody(
+    http.StreamedResponse response,
+    Duration stallTimeout,
+  ) {
+    return http.StreamedResponse(
+      response.stream.timeout(
+        stallTimeout,
+        onTimeout: (sink) => sink.addError(
+          TimeoutException('Download stalled', stallTimeout),
+        ),
+      ),
+      response.statusCode,
+      contentLength: response.contentLength,
+      request: response.request,
+      headers: response.headers,
+      isRedirect: response.isRedirect,
+      persistentConnection: response.persistentConnection,
+      reasonPhrase: response.reasonPhrase,
+    );
+  }
+
   /// A second copy of [request], or null when it cannot be sent twice.
   ///
   /// A plain request keeps its body in memory, so replaying it is exact. A
@@ -7898,16 +7926,49 @@ class _TimeoutClient extends http.BaseClient {
     return copy;
   }
 
+  /// A background warm-up, which must yield to whatever the seller is doing.
+  static const prefetchHeader = 'X-Prefetch';
+
+  /// Foreground requests currently in flight.
+  ///
+  /// The prefetch walks 40+ list endpoints on sign-in and on resume. On a weak
+  /// link those queue up in front of the screen the seller is actually waiting
+  /// on, and the screen then times out -- the warm-up causing the outage it
+  /// exists to soften.
+  static int _foregroundInFlight = 0;
+
+  /// Whether the seller is waiting on something right now.
+  static bool get foregroundBusy => _foregroundInFlight > 0;
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    final timeout = request is http.MultipartRequest
+    final isPrefetch = request.headers.containsKey(prefetchHeader);
+
+    // Headers, not the whole exchange: this completes as soon as the server
+    // starts answering.
+    final headerTimeout = request is http.MultipartRequest
         ? const Duration(seconds: 120)
-        : const Duration(seconds: 30);
+        : const Duration(seconds: 45);
+
+    // A body that stops arriving mid-transfer used to hang forever -- the old
+    // timeout covered only the headers, so a large list trickling in over 2G
+    // left a spinner with nothing behind it. This bounds the GAP between
+    // chunks rather than the total, so a slow-but-progressing download is
+    // allowed to finish.
+    final stallTimeout = request is http.MultipartRequest
+        ? const Duration(seconds: 120)
+        : const Duration(seconds: 45);
 
     // Identify the build on every call, for the server's minimum-version gate.
     request.headers.addAll(await ForceUpdate.headers());
 
-    final response = await _inner.send(request).timeout(timeout);
+    if (!isPrefetch) _foregroundInFlight++;
+    final http.StreamedResponse response;
+    try {
+      response = await _inner.send(request).timeout(headerTimeout);
+    } finally {
+      if (!isPrefetch) _foregroundInFlight--;
+    }
 
     // Every 401 in the app passes through here, including the 33 helpers that
     // build their own error branch and never look at the status.
@@ -7932,7 +7993,10 @@ class _TimeoutClient extends http.BaseClient {
           // connection for the retry rather than leaving it hanging.
           unawaited(response.stream.drain<void>());
           retry.headers['Authorization'] = 'Bearer ${ApiService._token}';
-          return _inner.send(retry).timeout(timeout);
+          return _guardBody(
+            await _inner.send(retry).timeout(headerTimeout),
+            stallTimeout,
+          );
         }
       }
 
@@ -7942,7 +8006,7 @@ class _TimeoutClient extends http.BaseClient {
       SessionGuard.reportUnauthorized(hadToken: hadToken && !isRenewal);
     }
 
-    if (response.statusCode != 426) return response;
+    if (response.statusCode != 426) return _guardBody(response, stallTimeout);
 
     // The server refused this build. Raise the blocking screen, then hand the
     // caller the same body so its own error handling still sees the message.

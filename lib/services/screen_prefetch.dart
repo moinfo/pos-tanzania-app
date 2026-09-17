@@ -32,6 +32,17 @@ import 'read_cache.dart';
 class ScreenPrefetch {
   ScreenPrefetch._();
 
+  /// Minimum gap between two warm-up calls, even on an idle link.
+  ///
+  /// Forty requests fired back to back saturate a 2G uplink for as long as
+  /// they take, which is exactly when the seller taps something.
+  static const Duration pacing = Duration(milliseconds: 150);
+
+  /// How long a warm-up call will wait for the foreground to go quiet before
+  /// going ahead anyway. A screen that polls continuously must not stall the
+  /// warm-up forever.
+  static const Duration foregroundWaitCap = Duration(seconds: 5);
+
   /// How often a background warm is worth the data it costs.
   ///
   /// Bundles are bought by the megabyte here, and the point is to have
@@ -218,6 +229,14 @@ class ScreenPrefetch {
       var done = 0;
       var replayed = 0;
       for (final task in tasks) {
+        // Stand aside while the seller is waiting on something.
+        //
+        // This walk is 40+ sequential list endpoints, fired on sign-in, on
+        // resume and on a store change. On a weak link they queue in front of
+        // the screen somebody is actually looking at, and that screen then
+        // times out -- the warm-up causing the outage it exists to soften.
+        await _yieldToForeground();
+
         // Announced BEFORE the call, so the label names what is being fetched
         // now rather than what finished a moment ago.
         onProgress?.call(done, total, task.label);
@@ -393,4 +412,22 @@ class PrefetchReport {
         'replayed': replayed,
         'ranAt': ranAt?.toIso8601String(),
       };
+}
+
+/// Wait, briefly, for the foreground to go quiet.
+///
+/// Capped: a screen that polls continuously must not stall the warm-up
+/// forever, and being a little late is the whole point of a background job.
+Future<void> _yieldToForeground() async {
+  const step = Duration(milliseconds: 250);
+
+  var waited = Duration.zero;
+  while (ApiService.foregroundBusy && waited < ScreenPrefetch.foregroundWaitCap) {
+    await Future<void>.delayed(step);
+    waited += step;
+  }
+
+  // A beat between calls even when nothing is in flight, so a burst of 40
+  // requests cannot monopolise a 2G link end to end.
+  await Future<void>.delayed(ScreenPrefetch.pacing);
 }
