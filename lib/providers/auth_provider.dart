@@ -10,6 +10,7 @@ import 'location_provider.dart';
 import 'connectivity_provider.dart';
 import 'sale_provider.dart';
 import 'notification_provider.dart';
+import '../services/session_guard.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -98,6 +99,9 @@ class AuthProvider with ChangeNotifier {
       if (result.isSuccess && result.data != null) {
         _user = result.data;
         _isAuthenticated = true;
+        // The stored token still works, so this is a live session like any
+        // other: a 401 later in the day means it has since died.
+        SessionGuard.arm();
         await _persistActiveUserId();
 
         // Begin polling for notifications and the approval badge. Not awaited:
@@ -167,6 +171,11 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = true;
       _isOfflineSession = true;
       _error = null;
+      // Armed even though the token was never checked -- it came out of a
+      // cache and may already be dead. That is the point: the first answer
+      // the server gives when the network returns decides, rather than the
+      // session running on forever because it began offline.
+      SessionGuard.arm();
       await _persistActiveUserId();
 
       // Permissions come from disk too. Without them every PermissionWrapper
@@ -227,6 +236,8 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = true;
         _isOfflineSession = false;
         _error = null;
+        // A session is running now, so a 401 from here on means it died.
+        SessionGuard.arm();
         await _persistActiveUserId();
 
         _notificationProvider?.start();
@@ -371,6 +382,11 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = true;
       _isOfflineSession = true;
       _error = null;
+      // Armed even though the token was never checked -- it came out of a
+      // cache and may already be dead. That is the point: the first answer
+      // the server gives when the network returns decides, rather than the
+      // session running on forever because it began offline.
+      SessionGuard.arm();
       await _persistActiveUserId();
 
       // Put the last online session's JWT back where ApiService looks for it.
@@ -441,6 +457,10 @@ class AuthProvider with ChangeNotifier {
   /// Logout user
   Future<void> logout() async {
     _isLoading = true;
+    // Before anything else: the calls below run with a token that may already
+    // be refused, and their 401s must not raise the session-expired takeover
+    // on top of a sign-out the user asked for.
+    SessionGuard.disarm();
     notifyListeners();
 
     // BEFORE _apiService.logout(), which clears the JWT. Unregistering is

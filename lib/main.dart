@@ -23,6 +23,7 @@ import 'config/clients_config.dart';
 import 'utils/app_theme.dart';
 import 'utils/constants.dart';
 import 'widgets/force_update_gate.dart';
+import 'widgets/session_expired_gate.dart';
 import 'widgets/rejection_alert.dart';
 
 /// Lets a tapped push notification navigate without a widget's BuildContext.
@@ -150,9 +151,12 @@ class MyApp extends StatelessWidget {
           // Inside a screen it would only be seen by somebody who opened that
           // screen, which is precisely the person who does not need telling.
           builder: (context, child) => ForceUpdateGate(
-            child: RejectionAlertHost(
+            child: SessionExpiredGate(
               navigatorKey: navigatorKey,
-              child: child ?? const SizedBox.shrink(),
+              child: RejectionAlertHost(
+                navigatorKey: navigatorKey,
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
           ),
         home: PushBootstrap(firebaseReady: firebaseReady, child: const SplashScreen()),

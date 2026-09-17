@@ -47,6 +47,7 @@ import '../models/borrowed_money.dart';
 import '../config/clients_config.dart';
 import 'force_update.dart';
 import 'offline_actions.dart';
+import 'session_guard.dart';
 import 'read_cache.dart';
 
 class ApiService {
@@ -261,9 +262,18 @@ class ApiService {
   void _handleUnauthorized() {
     // Clear token immediately to prevent further API calls
     _token = null;
-    // Delete from storage asynchronously (fire and forget)
-    _storage.delete(key: 'auth_token');
-    debugPrint('401 Unauthorized: Token cleared, user will be logged out');
+    // Both keys, and the result is watched rather than dropped: getToken()
+    // re-reads storage whenever the static cache is null, so a request in
+    // flight during an un-awaited delete could read the token back out and
+    // resurrect it into the cache for the rest of the process.
+    unawaited(_storage.delete(key: 'auth_token').then((_) {
+      _token = null;
+    }).catchError((Object e) {
+      debugPrint('Could not delete stored token: $e');
+    }));
+    unawaited(_storage.delete(key: 'auth_token_client_id').catchError(
+        (Object e) => debugPrint('Could not delete stored client id: $e')));
+    debugPrint('401 Unauthorized: token cleared');
   }
 
   /// POST one CREATE, under one idempotency key.
@@ -7828,6 +7838,17 @@ class _TimeoutClient extends http.BaseClient {
     request.headers.addAll(await ForceUpdate.headers());
 
     final response = await _inner.send(request).timeout(timeout);
+
+    // Every 401 in the app passes through here, including the 33 helpers that
+    // build their own error branch and never look at the status. A refusal of
+    // a request that carried a token means the session is dead; one with no
+    // token is a sign-in being refused, and belongs to the login screen.
+    if (response.statusCode == 401) {
+      SessionGuard.reportUnauthorized(
+        hadToken: request.headers.containsKey('Authorization'),
+      );
+    }
+
     if (response.statusCode != 426) return response;
 
     // The server refused this build. Raise the blocking screen, then hand the
