@@ -48,6 +48,7 @@ import '../config/clients_config.dart';
 import 'force_update.dart';
 import 'offline_actions.dart';
 import 'session_guard.dart';
+import 'token_refresher.dart';
 import 'read_cache.dart';
 
 class ApiService {
@@ -7828,6 +7829,26 @@ class _TimeoutClient extends http.BaseClient {
 
   final http.Client _inner;
 
+  /// A second copy of [request], or null when it cannot be sent twice.
+  ///
+  /// A plain request keeps its body in memory, so replaying it is exact. A
+  /// multipart or streamed one does not -- its body is a stream that has
+  /// already been consumed, and inventing a second one would risk sending a
+  /// truncated upload. Those callers get the 401 back instead, with their
+  /// session already renewed, so their own retry works.
+  http.Request? _replay(http.BaseRequest request) {
+    if (request is! http.Request) return null;
+
+    final copy = http.Request(request.method, request.url)
+      ..followRedirects = request.followRedirects
+      ..maxRedirects = request.maxRedirects
+      ..persistentConnection = request.persistentConnection
+      ..headers.addAll(request.headers)
+      ..bodyBytes = request.bodyBytes;
+
+    return copy;
+  }
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final timeout = request is http.MultipartRequest
@@ -7840,13 +7861,36 @@ class _TimeoutClient extends http.BaseClient {
     final response = await _inner.send(request).timeout(timeout);
 
     // Every 401 in the app passes through here, including the 33 helpers that
-    // build their own error branch and never look at the status. A refusal of
-    // a request that carried a token means the session is dead; one with no
-    // token is a sign-in being refused, and belongs to the login screen.
+    // build their own error branch and never look at the status.
     if (response.statusCode == 401) {
-      SessionGuard.reportUnauthorized(
-        hadToken: request.headers.containsKey('Authorization'),
-      );
+      final hadToken = request.headers.containsKey('Authorization');
+
+      // The renewal call itself must never trigger a renewal, or a dead
+      // session becomes an endless loop of them.
+      final isRenewal = request.url.path.endsWith('/auth/refresh');
+
+      if (hadToken && !isRenewal) {
+        // The token expired between requests -- the phone was asleep, out of
+        // coverage, or simply past its 24 hours. Renewing costs one round trip
+        // and saves the seller retyping their password mid-shift.
+        final alive = await TokenRefresher.instance.refreshNow();
+
+        if (alive) {
+          final retry = _replay(request);
+          if (retry == null) return response;
+
+          // The first response is finished with; draining it frees the
+          // connection for the retry rather than leaving it hanging.
+          unawaited(response.stream.drain<void>());
+          retry.headers['Authorization'] = 'Bearer ${ApiService._token}';
+          return _inner.send(retry).timeout(timeout);
+        }
+      }
+
+      // Either the request carried no token -- a sign-in being refused, which
+      // belongs to the login screen -- or renewal was refused outright, which
+      // is a session that is genuinely over.
+      SessionGuard.reportUnauthorized(hadToken: hadToken && !isRenewal);
     }
 
     if (response.statusCode != 426) return response;

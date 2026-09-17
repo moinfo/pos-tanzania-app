@@ -50,6 +50,7 @@ import 'borrowed_money/borrowed_money_list_screen.dart';
 import 'app_update_screen.dart';
 import '../providers/update_provider.dart';
 import '../widgets/update_prompt.dart';
+import '../services/token_refresher.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -137,6 +138,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       if (mounted) {
         final authProvider = context.read<AuthProvider>();
         await authProvider.checkTokenValidity();
+        // Renew the session before it lapses, so a seller is not asked for
+        // their password mid-shift once a day. Costs a local expiry read on
+        // each tick and a round trip only in the last hours of the token.
+        await TokenRefresher.instance.refreshIfExpiringSoon();
       }
     }
   }
