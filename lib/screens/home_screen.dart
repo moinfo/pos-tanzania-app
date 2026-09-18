@@ -1984,17 +1984,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ...compulsoryCredits.map((raw) {
                   final c = raw as Map<String, dynamic>;
                   final ok = c['achieved'] == true;
-                  final doc = c['document_number']?.toString();
                   return _buildCommissionLineCard(
-                    name: (doc != null && doc.isNotEmpty)
-                        ? doc
-                        : 'Customer ${c['leruma_customer_id'] ?? ''}',
+                    name: _creditTitle(c),
                     achieved: ok,
                     badge: ok ? 'COLLECTED' : 'NOT COLLECTED',
                     isDark: isDark,
                     stats: [
                       _buildMiniStat('Target', Formatters.formatCurrency(_asDouble(c['target'])), isDark),
-                      _buildMiniStat('Collected', Formatters.formatCurrency(_asDouble(c['paid'])), isDark,
+                      _buildMiniStat('Balance', Formatters.formatCurrency(_asDouble(c['balance'])), isDark),
+                      _buildMiniStat('Paid', Formatters.formatCurrency(_asDouble(c['paid'])), isDark,
                           valueColor: ok ? AppColors.success : null),
                     ],
                   );
@@ -2014,6 +2012,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     stats: [
                       _buildMiniStat('Team qty', '${_asDouble(g['qty_purchased']).toInt()}', isDark),
                       _buildMiniStat('Target', '${_asDouble(g['target']).toInt()}', isDark),
+                      _buildMiniStat('Pays', Formatters.formatCurrency(_asDouble(g['value'])), isDark),
                       _buildMiniStat('Earned', Formatters.formatCurrency(_asDouble(g['earned'])), isDark,
                           valueColor: ok ? AppColors.success : null),
                     ],
@@ -3270,17 +3269,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       ...compulsoryCredits.map((raw) {
                         final c = raw as Map<String, dynamic>;
                         final ok = c['achieved'] == true;
-                        final doc = c['document_number']?.toString();
                         return _buildCommissionLineCard(
-                          name: (doc != null && doc.isNotEmpty)
-                              ? doc
-                              : 'Customer ${c['leruma_customer_id'] ?? ''}',
+                          name: _creditTitle(c),
                           achieved: ok,
                           badge: ok ? 'COLLECTED' : 'NOT COLLECTED',
                           isDark: isDark,
                           stats: [
                             _buildMiniStat('Target', Formatters.formatCurrency(_asDouble(c['target'])), isDark),
-                            _buildMiniStat('Collected', Formatters.formatCurrency(_asDouble(c['paid'])), isDark,
+                            _buildMiniStat('Balance', Formatters.formatCurrency(_asDouble(c['balance'])), isDark),
+                            _buildMiniStat('Paid', Formatters.formatCurrency(_asDouble(c['paid'])), isDark,
                                 valueColor: ok ? AppColors.success : null),
                           ],
                         );
@@ -3474,6 +3471,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  /// "Kibamba Mpare Shop · LERUMA/CREDIT/86/202609" -- who owes it first, as
+  /// the source report names it, then the debt's document when there is one.
+  String _creditTitle(Map<String, dynamic> c) {
+    final name = c['customer_name']?.toString() ?? '';
+    final doc = c['document_number']?.toString() ?? '';
+    final who = name.isNotEmpty ? name : 'Customer #${c['leruma_customer_id'] ?? ''}';
+    return doc.isNotEmpty ? '$who · $doc' : who;
   }
 
   /// A coloured explanation at the top of the commission sheet.
