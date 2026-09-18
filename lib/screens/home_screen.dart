@@ -1539,6 +1539,8 @@ class _HomeScreenState extends State<HomeScreen> {
     late final String subtitle;
     late final double amount;
     late final double percent;
+    // Why a level pays nothing, when it is not simply "target not reached".
+    String? blocker;
 
     if (_showTeamCommission) {
       final achieved = _asDouble(data?['achieved_count']);
@@ -1550,10 +1552,21 @@ class _HomeScreenState extends State<HomeScreen> {
       final target = _asDouble(data?['target']);
       final average = _asDouble(data?['average']);
       subtitle = 'Target ${_formatCompact(target)} · avg ${_formatCompact(average)}';
-      amount = _asDouble(data?['commission']);
+      // The NET -- base, items, groups and clean sheet, less discipline --
+      // which is what the source report pays. "commission" alone is only the
+      // base, so item and group earnings used to be invisible here. A server
+      // that predates the net field still sends "commission".
+      amount = _asDouble(data?['net'] ?? data?['commission']);
       // my_commissions carries no percentage of its own; the level is reached
       // when the running average clears the target.
       percent = target > 0 ? (average / target) * 100 : 0;
+      if (data?['status'] == 'disabled') {
+        blocker = 'disabled';
+      } else if (data?['compulsory_override'] == true) {
+        // Target reached, but a compulsory item or credit was missed -- the
+        // one case where hitting the target still pays no base commission.
+        blocker = 'compulsory not met';
+      }
     }
 
     final reached = amount > 0;
@@ -1561,9 +1574,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         InkWell(
-          onTap: data == null
+          // The team figures are totals across people, without the
+          // per-person fields the detail sheet reads, so a Team row used to
+          // open a sheet of zeros stamped NOT ACHIEVED.
+          onTap: data == null || _showTeamCommission
               ? null
-              : () => _showCommissionDetail(numeral, data, badgeFg[level]!, false),
+              : () => _showCommissionDetail(numeral, data, badgeFg[level]!, _dark),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Column(
@@ -1628,9 +1644,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Text(
-                          reached
-                              ? (_showTeamCommission ? 'net' : 'commission')
-                              : 'not reached',
+                          blocker ?? (reached ? 'net' : 'not reached'),
                           style: TextStyle(
                             fontSize: 11, fontWeight: FontWeight.w700,
                             color: _inkMuted,
@@ -1638,7 +1652,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    const Icon(Icons.chevron_right, size: 15, color: Color(0xFF9AA5B4)),
+                    if (!_showTeamCommission)
+                      const Icon(Icons.chevron_right, size: 15, color: Color(0xFF9AA5B4)),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -1681,8 +1696,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 1.6 Discipline banner.
   Widget _buildDisciplineBanner() {
-    final cases = (_topStats?['total_disciplinary'] ?? 0);
-    final clean = _asDouble(cases) == 0;
+    // An AMOUNT in TSh -- the sum of disciplinary deductions -- not a count
+    // of cases. It used to be printed as "30000 disciplinary cases".
+    final deducted = _asDouble(_topStats?['total_disciplinary'] ?? 0);
+    final clean = deducted == 0;
 
     return Container(
       padding: const EdgeInsets.all(13),
@@ -1720,8 +1737,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   clean
-                      ? 'No disciplinary cases'
-                      : '${_asDouble(cases).round()} disciplinary cases',
+                      ? 'No disciplinary deductions'
+                      : 'Disciplinary deductions: ${Formatters.formatCurrency(deducted)}',
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w800,
@@ -1731,9 +1748,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Text(
+                  // Deductions come off the commission itself; nothing
+                  // here computes a "Level III bonus", so it is no longer
+                  // promised.
                   clean
-                      ? 'Keep the record clean to unlock Level III bonus'
-                      : 'Clear these to stay eligible for the Level III bonus',
+                      ? 'Keep the record clean - deductions come off commission'
+                      : 'Deducted from this month\'s commission',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -2712,19 +2732,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Show commission detail bottom sheet
   void _showCommissionDetail(String level, Map<String, dynamic> data, Color color, bool isDark) {
-    final purchases = (data['purchases'] ?? 0).toDouble();
-    final average = (data['average'] ?? 0).toDouble();
-    final target = (data['target'] ?? 0).toDouble();
+    // _asDouble throughout: the server sends some numbers as strings, and
+    // (x as num).toDouble() on one of those throws inside the sheet builder.
+    final purchases = _asDouble(data['purchases']);
+    final average = _asDouble(data['average']);
+    final target = _asDouble(data['target']);
     final days = data['days'] ?? 0;
-    final commission = (data['commission'] ?? 0).toDouble();
-    final disciplinary = (data['disciplinary'] ?? 0).toDouble();
-    final actual = (data['actual'] ?? 0).toDouble();
+    final commission = _asDouble(data['commission']);
+    final disciplinary = _asDouble(data['disciplinary']);
+    // Net = base + items + groups + clean sheet - discipline, never below 0,
+    // as the source report pays it. An older server sends only "actual".
+    final net = _asDouble(data['net'] ?? data['actual']);
     final status = data['status'] ?? 'not_achieved';
     final isAchieved = status == 'achieved';
+    final isDisabled = status == 'disabled';
     final name = data['name'] ?? '';
     final items = data['items'] as List<dynamic>? ?? [];
-    final itemSubtotal = (data['item_subtotal'] ?? 0).toDouble();
-    final totalWithItems = (data['total_with_items'] ?? 0).toDouble();
+    final groups = data['groups'] as List<dynamic>? ?? [];
+    final compulsoryItems = data['compulsory_items'] as List<dynamic>? ?? [];
+    final compulsoryCredits = data['compulsory_credits'] as List<dynamic>? ?? [];
+    final itemCommission = _asDouble(data['item_commission']);
+    final groupCommission = _asDouble(data['group_commission']);
+    final cleanSheet = _asDouble(data['clean_sheet']);
+    final cleanSheetTarget = _asDouble(data['clean_sheet_target']);
+    final itemSubtotal = _asDouble(data['item_subtotal']);
+    final totalWithItems = _asDouble(data['total_with_items']);
+    // Target reached, but a compulsory item or credit was missed.
+    final compulsoryBlocked = data['compulsory_override'] == true;
+    // The person buys from a shop whose sales this server cannot read.
+    final salesUnavailable = data['sales_available'] == false;
 
     showModalBottomSheet(
       context: context,
@@ -2809,7 +2845,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        isAchieved ? 'ACHIEVED' : 'NOT ACHIEVED',
+                        isDisabled ? 'DISABLED' : (isAchieved ? 'ACHIEVED' : 'NOT ACHIEVED'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -2827,6 +2863,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   controller: scrollController,
                   padding: const EdgeInsets.all(16),
                   children: [
+                    if (compulsoryBlocked) ...[
+                      _buildCommissionNotice(
+                        'Target reached, but a compulsory item or credit was not met, '
+                        'so the base commission is 0. Items and groups are still paid.',
+                        AppColors.error,
+                        isDark,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (salesUnavailable) ...[
+                      _buildCommissionNotice(
+                        'Your purchases are recorded in another shop\'s system, '
+                        'which this app cannot read - check the report there.',
+                        AppColors.warning,
+                        isDark,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     // Summary Card
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -2841,13 +2895,88 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildDetailRow('Target', Formatters.formatCurrency(target), isDark),
                           _buildDetailRow('Days', '$days', isDark),
                           const Divider(height: 24),
-                          _buildDetailRow('Commission', Formatters.formatCurrency(commission), isDark, valueColor: AppColors.success),
+                          _buildDetailRow('Base commission', Formatters.formatCurrency(commission), isDark, valueColor: AppColors.success),
+                          if (items.isNotEmpty)
+                            _buildDetailRow('Items', Formatters.formatCurrency(itemCommission), isDark, valueColor: AppColors.success),
+                          if (groups.isNotEmpty)
+                            _buildDetailRow('Groups', Formatters.formatCurrency(groupCommission), isDark, valueColor: AppColors.success),
+                          if (cleanSheetTarget > 0)
+                            _buildDetailRow('Clean sheet', Formatters.formatCurrency(cleanSheet), isDark, valueColor: AppColors.success),
                           _buildDetailRow('Disciplinary', Formatters.formatCurrency(disciplinary), isDark, valueColor: AppColors.error),
-                          _buildDetailRow('Actual', Formatters.formatCurrency(actual), isDark, valueColor: AppColors.success, isBold: true),
+                          _buildDetailRow('Net', Formatters.formatCurrency(net), isDark, valueColor: AppColors.success, isBold: true),
                         ],
                       ),
                     ),
                     const SizedBox(height: 20),
+
+                    // Compulsory items: every one must be met, or an achieved
+                    // base pays 0.
+                    if (compulsoryItems.isNotEmpty) ...[
+                      _buildSheetHeading('Compulsory Items', isDark),
+                      ...compulsoryItems.map((raw) {
+                        final c = raw as Map<String, dynamic>;
+                        final ok = c['achieved'] == true;
+                        return _buildCommissionLineCard(
+                          name: c['item_name']?.toString() ?? 'Unknown Item',
+                          achieved: ok,
+                          badge: ok ? 'MET' : 'NOT MET',
+                          isDark: isDark,
+                          stats: [
+                            _buildMiniStat('Required', '${_asDouble(c['qty_required']).toInt()}', isDark),
+                            _buildMiniStat('Sold', '${_asDouble(c['qty_sold']).toInt()}', isDark),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // Compulsory credits: debt repayments that must be
+                    // collected this period.
+                    if (compulsoryCredits.isNotEmpty) ...[
+                      _buildSheetHeading('Compulsory Credits', isDark),
+                      ...compulsoryCredits.map((raw) {
+                        final c = raw as Map<String, dynamic>;
+                        final ok = c['achieved'] == true;
+                        final doc = c['document_number']?.toString();
+                        return _buildCommissionLineCard(
+                          name: (doc != null && doc.isNotEmpty)
+                              ? doc
+                              : 'Customer ${c['leruma_customer_id'] ?? ''}',
+                          achieved: ok,
+                          badge: ok ? 'COLLECTED' : 'NOT COLLECTED',
+                          isDark: isDark,
+                          stats: [
+                            _buildMiniStat('Target', Formatters.formatCurrency(_asDouble(c['target'])), isDark),
+                            _buildMiniStat('Collected', Formatters.formatCurrency(_asDouble(c['paid'])), isDark,
+                                valueColor: ok ? AppColors.success : null),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // Groups pay a flat amount once the summed quantity
+                    // across the group's items reaches the target.
+                    if (groups.isNotEmpty) ...[
+                      _buildSheetHeading('Group Commissions', isDark),
+                      ...groups.map((raw) {
+                        final g = raw as Map<String, dynamic>;
+                        final ok = g['status'] == 'achieved';
+                        return _buildCommissionLineCard(
+                          name: g['name']?.toString() ?? 'Group',
+                          achieved: ok,
+                          badge: g['status'] == 'disabled' ? 'DISABLED' : (ok ? 'ACHIEVED' : 'NOT ACHIEVED'),
+                          isDark: isDark,
+                          stats: [
+                            _buildMiniStat('Qty Purchased', '${_asDouble(g['qty_purchased']).toInt()}', isDark),
+                            _buildMiniStat('Qty Target', '${_asDouble(g['qty_target']).toInt()}', isDark),
+                            _buildMiniStat('Commission', Formatters.formatCurrency(_asDouble(g['commission'])), isDark,
+                                valueColor: ok ? AppColors.success : null),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
 
                     // Items Section
                     if (items.isNotEmpty) ...[
@@ -2863,11 +2992,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ...items.map((item) {
                         final itemData = item as Map<String, dynamic>;
                         final itemName = itemData['item_name'] ?? 'Unknown Item';
-                        final qtyPurchased = (itemData['qty_purchased'] ?? 0).toDouble();
-                        final qtyTarget = (itemData['qty_target'] ?? 0).toDouble();
-                        final ratePerUnit = (itemData['rate_per_unit'] ?? 0).toDouble();
+                        final qtyPurchased = _asDouble(itemData['qty_purchased']);
+                        final qtyTarget = _asDouble(itemData['qty_target']);
+                        final ratePerUnit = _asDouble(itemData['rate_per_unit']);
                         final itemStatus = itemData['status'] ?? 'not_achieved';
-                        final itemCommission = (itemData['commission'] ?? 0).toDouble();
+                        final itemCommission = _asDouble(itemData['commission']);
                         final itemAchieved = itemStatus == 'achieved';
 
                         return Container(
@@ -2903,7 +3032,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      itemAchieved ? 'ACHIEVED' : 'NOT ACHIEVED',
+                                      itemStatus == 'disabled'
+                                          ? 'DISABLED'
+                                          : (itemAchieved ? 'ACHIEVED' : 'NOT ACHIEVED'),
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -2944,9 +3075,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: Column(
                           children: [
-                            _buildDetailRow('Item Subtotal', Formatters.formatCurrency(itemSubtotal), isDark),
+                            _buildDetailRow('Items, groups & clean sheet', Formatters.formatCurrency(itemSubtotal), isDark),
                             const Divider(height: 16),
-                            _buildDetailRow('Total (Base + Items)', Formatters.formatCurrency(totalWithItems), isDark,
+                            _buildDetailRow('Total before deductions', Formatters.formatCurrency(totalWithItems), isDark,
                                 valueColor: AppColors.success, isBold: true),
                           ],
                         ),
@@ -2973,6 +3104,110 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// A coloured explanation at the top of the commission sheet.
+  Widget _buildCommissionNotice(String text, Color tone, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: isDark ? 0.18 : 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: tone.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: tone),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkText : AppColors.text,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSheetHeading(String text, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: isDark ? AppColors.darkText : AppColors.text,
+        ),
+      ),
+    );
+  }
+
+  /// One rule in the commission sheet: a name, a met/not-met badge and a
+  /// row of figures. Shared by compulsory items, compulsory credits and
+  /// groups so they read the same way as the item cards.
+  Widget _buildCommissionLineCard({
+    required String name,
+    required bool achieved,
+    required String badge,
+    required bool isDark,
+    required List<Widget> stats,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: achieved
+              ? AppColors.success.withValues(alpha: 0.3)
+              : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkText : AppColors.text,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (achieved ? AppColors.success : AppColors.error).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  badge,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: achieved ? AppColors.success : AppColors.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(children: [for (final s in stats) Expanded(child: s)]),
+        ],
       ),
     );
   }
