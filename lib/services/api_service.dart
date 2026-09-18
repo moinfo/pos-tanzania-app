@@ -264,22 +264,55 @@ class ApiService {
   }
 
   /// Handle unauthorized access - clear token to trigger logout
-  void _handleUnauthorized() {
-    // Clear token immediately to prevent further API calls
+  void _handleUnauthorized(http.BaseResponse response) {
+    final refused = bearerOf(response.request?.headers);
+
+    // Only the token that was actually refused may be cleared.
+    //
+    // A 401 can land long after it was sent: the sync timer, the prefetch and
+    // the pollers keep requests in flight across a sign-out. With fingerprint
+    // sign-in the new session exists within a second, so those stragglers'
+    // 401s arrived AFTER the new token was saved -- and this used to clear
+    // whatever token was current, wiping the fresh one. Every request after
+    // that went out with no token at all, and the server answered
+    // "Authorization token required" to someone who had just signed in.
+    if (refused == null) return; // carried no token; nothing of ours to clear
+    if (_token != null && _token != refused) return; // stale: a newer token exists
+
     _token = null;
-    // Both keys, and the result is watched rather than dropped: getToken()
-    // re-reads storage whenever the static cache is null, so a request in
-    // flight during an un-awaited delete could read the token back out and
-    // resurrect it into the cache for the rest of the process.
-    unawaited(_storage.delete(key: 'auth_token').then((_) {
-      _token = null;
-    }).catchError((Object e) {
-      debugPrint('Could not delete stored token: $e');
-    }));
-    unawaited(_storage.delete(key: 'auth_token_client_id').catchError(
-        (Object e) => debugPrint('Could not delete stored client id: $e')));
-    debugPrint('401 Unauthorized: token cleared');
+    unawaited(_deleteStoredTokenIf(refused));
+    debugPrint('401 Unauthorized: refused token cleared');
   }
+
+  /// Delete the stored token only if it is still the one that was refused. A
+  /// sign-in between the 401 and this running has already saved a new one.
+  Future<void> _deleteStoredTokenIf(String refused) async {
+    try {
+      final stored = await _storage.read(key: 'auth_token');
+      if (stored != refused) return;
+      await _storage.delete(key: 'auth_token');
+      await _storage.delete(key: 'auth_token_client_id');
+    } catch (e) {
+      debugPrint('Could not delete stored token: $e');
+    }
+  }
+
+  /// The bearer token a request carried, or null if it carried none.
+  static String? bearerOf(Map<String, String>? headers) {
+    if (headers == null) return null;
+    for (final entry in headers.entries) {
+      if (entry.key.toLowerCase() != 'authorization') continue;
+      final value = entry.value.trim();
+      if (!value.toLowerCase().startsWith('bearer ')) return null;
+      final token = value.substring(7).trim();
+      return token.isEmpty || token == 'null' ? null : token;
+    }
+    return null;
+  }
+
+  /// The token in memory right now, for the shared client to compare against.
+  static String? get currentTokenSync => _token;
+
 
   /// POST one CREATE, under one idempotency key.
   ///
@@ -422,7 +455,7 @@ class ApiService {
       } else {
         // Handle 401 Unauthorized - trigger automatic logout
         if (statusCode == 401) {
-          _handleUnauthorized();
+          _handleUnauthorized(response);
         }
 
         // Error
@@ -514,7 +547,7 @@ class ApiService {
         }
       }
 
-      if (response.statusCode == 401) _handleUnauthorized();
+      if (response.statusCode == 401) _handleUnauthorized(response);
       return ApiResponse<T>.error(
         message: _extractErrorMessage(response.body, fallback: errorFallback),
         statusCode: response.statusCode,
@@ -580,7 +613,7 @@ class ApiService {
       _reportReachable(true);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        if (response.statusCode == 401) _handleUnauthorized();
+        if (response.statusCode == 401) _handleUnauthorized(response);
         return false;
       }
 
@@ -726,7 +759,6 @@ class ApiService {
       );
 
       // Clear only session data - preserve biometric credentials
-      await clearToken();
       // Note: We intentionally do NOT clear:
       // - biometric_enabled
       // - biometric_username
@@ -737,6 +769,12 @@ class ApiService {
     } catch (e) {
       _reportFailure(e);
       return ApiResponse.error(message: _failureMessage(e));
+    } finally {
+      // Whether or not the server heard about it. The server keeps no session
+      // to end -- its logout is a no-op -- so the sign-out that matters is this
+      // one, and it used to be skipped whenever the POST failed on the network,
+      // leaving the old token in place for the next person on the phone.
+      await clearToken();
     }
   }
 
@@ -7973,7 +8011,16 @@ class _TimeoutClient extends http.BaseClient {
     // Every 401 in the app passes through here, including the 33 helpers that
     // build their own error branch and never look at the status.
     if (response.statusCode == 401) {
-      final hadToken = request.headers.containsKey('Authorization');
+      final refusedToken = ApiService.bearerOf(request.headers);
+      final hadToken = refusedToken != null;
+
+      // A 401 for a token that is no longer the current one is a straggler
+      // from before the latest sign-in or renewal. Renewing on it, or ending
+      // the session over it, would punish the new session for the old one.
+      final current = ApiService.currentTokenSync;
+      if (hadToken && current != null && current != refusedToken) {
+        return _guardBody(response, stallTimeout);
+      }
 
       // The renewal call itself must never trigger a renewal, or a dead
       // session becomes an endless loop of them.
@@ -7985,14 +8032,22 @@ class _TimeoutClient extends http.BaseClient {
         // and saves the seller retyping their password mid-shift.
         final alive = await TokenRefresher.instance.refreshNow();
 
+        // "Alive" also covers a renewal that could not reach the server, in
+        // which case there is no new token to replay with -- sending
+        // "Bearer null" would only earn another refusal.
         if (alive) {
-          final retry = _replay(request);
-          if (retry == null) return response;
+          final renewed = ApiService.currentTokenSync;
+          final retry = renewed == null ? null : _replay(request);
+
+          // No replay possible -- a spent multipart body, or a renewal that
+          // could not reach the server. The caller gets the 401 and retries on
+          // its own; the session is NOT ended over a network blip.
+          if (retry == null) return _guardBody(response, stallTimeout);
 
           // The first response is finished with; draining it frees the
           // connection for the retry rather than leaving it hanging.
           unawaited(response.stream.drain<void>());
-          retry.headers['Authorization'] = 'Bearer ${ApiService._token}';
+          retry.headers['Authorization'] = 'Bearer $renewed';
           return _guardBody(
             await _inner.send(retry).timeout(headerTimeout),
             stallTimeout,

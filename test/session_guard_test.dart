@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:convert';
 
+import 'package:pos_tanzania_mobile/services/api_service.dart';
 import 'package:pos_tanzania_mobile/services/session_guard.dart';
 import 'package:pos_tanzania_mobile/services/token_refresher.dart';
 
@@ -80,6 +81,26 @@ void main() {
           .encode(utf8.encode(json.encode({'sub': 1})))
           .replaceAll('=', '');
       expect(TokenRefresher.expiryOf('header.$noExp.sig'), isNull);
+    });
+  });
+
+  // A 401 may only clear the token it refused. Reading that token back off the
+  // request is what lets a stale answer be told apart from a live one.
+  group('reading the token a request carried', () {
+    test('a bearer token is read back exactly', () {
+      expect(ApiService.bearerOf({'Authorization': 'Bearer abc.def.ghi'}),
+          'abc.def.ghi');
+    });
+
+    test('the header name is matched case-insensitively', () {
+      expect(ApiService.bearerOf({'authorization': 'Bearer xyz'}), 'xyz');
+    });
+
+    test('no header, an empty one, or "Bearer null" carried no token', () {
+      expect(ApiService.bearerOf(null), isNull);
+      expect(ApiService.bearerOf({'Accept': 'application/json'}), isNull);
+      expect(ApiService.bearerOf({'Authorization': 'Bearer '}), isNull);
+      expect(ApiService.bearerOf({'Authorization': 'Bearer null'}), isNull);
     });
   });
 }
