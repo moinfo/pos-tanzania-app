@@ -79,6 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _progressCommission;
   Map<String, dynamic>? _progressCustomers;
   Map<String, dynamic>? _myCommissions; // User's individual commission data
+  /// Present only when the signed-in user is mapped to report-analysis
+  /// manager records; null for everyone else, and the section is hidden.
+  Map<String, dynamic>? _managerCommission;
 
   // Transactions Dashboard data (Come & Save)
   WakalaReport? _transactionsDashboardData;
@@ -468,6 +471,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _progressCommission = data['progress_commission'] as Map<String, dynamic>?;
       _progressCustomers = data['progress_customers'] as Map<String, dynamic>?;
       _myCommissions = data['my_commissions'] as Map<String, dynamic>?;
+      _managerCommission = data['manager_commission'] as Map<String, dynamic>?;
 
       final todaySummary = _salesSummary?['today'] as Map<String, dynamic>?;
       if (todaySummary != null) {
@@ -1335,6 +1339,13 @@ class _HomeScreenState extends State<HomeScreen> {
         // Commission"), which showed six near-identical cards at once.
         _buildCommissionsSection(),
 
+        // Managers only: the manager's own commission per level, which until
+        // now existed only on the web dashboard.
+        if (_managerCommission != null) ...[
+          const SizedBox(height: 18),
+          _buildManagerCommissionSection(),
+        ],
+
         const SizedBox(height: 14),
 
         // 1.6 Discipline banner.
@@ -1691,6 +1702,328 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!isLast)
           Divider(height: 1, thickness: 1, color: _hairline),
       ],
+    );
+  }
+
+  /// The signed-in manager's commission, Levels I-III -- the report-analysis
+  /// manager table: base on the team's average, plus the staff share and
+  /// group items, less the manager's own deductions.
+  Widget _buildManagerCommissionSection() {
+    final levels = _managerCommission?['levels'] as Map<String, dynamic>? ?? const {};
+    const accents = {
+      'i': Color(0xFF12833C), 'ii': Color(0xFF8A5F0B), 'iii': Color(0xFF1668A6)
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Manager commission',
+          style: TextStyle(
+            fontSize: 16.5, fontWeight: FontWeight.w800,
+            letterSpacing: -0.3, color: _inkStrong,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          decoration: BoxDecoration(
+            color: _cardBg,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: _cardShadow,
+          ),
+          child: Column(
+            children: [
+              for (final level in const ['i', 'ii', 'iii'])
+                if (levels['level_$level'] is Map<String, dynamic>)
+                  _buildManagerLevelRow(
+                    level,
+                    levels['level_$level'] as Map<String, dynamic>,
+                    accents[level]!,
+                    isLast: level == 'iii' ||
+                        (level == 'ii' && levels['level_iii'] == null),
+                  ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildManagerLevelRow(String level, Map<String, dynamic> data, Color accent,
+      {required bool isLast}) {
+    final numeral = level.toUpperCase();
+    final team = _asDouble(data['total_customers']).round();
+    final achieving = _asDouble(data['achieving_customers']).round();
+    final total = _asDouble(data['total']);
+    final status = data['status'];
+
+    // Why the manager's own base is 0 when the team average is not the reason.
+    final String label;
+    if (status == 'disabled') {
+      label = 'disabled';
+    } else if (data['compulsory_override'] == true) {
+      label = 'compulsory not met';
+    } else {
+      label = 'total';
+    }
+
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => _showManagerCommissionDetail(numeral, data, accent),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    numeral,
+                    style: TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4, color: accent,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Level $numeral',
+                        style: TextStyle(
+                          fontSize: 14.5, fontWeight: FontWeight.w800,
+                          color: _inkStrong,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$achieving / $team staff achieving · '
+                        'avg ${_formatCompact(_asDouble(data['average']))}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600,
+                          color: _inkMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _formatCompact(total),
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w800,
+                        // Manager net is not floored in the source, so a
+                        // total can be negative; say so in red.
+                        color: total > 0
+                            ? accent
+                            : (total < 0 ? AppColors.error : _inkMuted),
+                      ),
+                    ),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w700,
+                        color: _inkMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                const Icon(Icons.chevron_right, size: 15, color: Color(0xFF9AA5B4)),
+              ],
+            ),
+          ),
+        ),
+        if (!isLast) Divider(height: 1, thickness: 1, color: _hairline),
+      ],
+    );
+  }
+
+  void _showManagerCommissionDetail(String level, Map<String, dynamic> data, Color color) {
+    final isDark = _dark;
+    final status = data['status'];
+    final groups = data['group_items'] as List<dynamic>? ?? [];
+    final compulsoryItems = data['compulsory_items'] as List<dynamic>? ?? [];
+    final compulsoryCredits = data['compulsory_credits'] as List<dynamic>? ?? [];
+    final net = _asDouble(data['net']);
+    final total = _asDouble(data['total']);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(16),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Manager Commission Level $level',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkText : AppColors.text,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (status == 'achieved' ? AppColors.success : color).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      status == 'disabled'
+                          ? 'DISABLED'
+                          : (status == 'achieved' ? 'ACHIEVED' : 'NOT ACHIEVED'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: status == 'achieved' ? AppColors.success : color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (data['compulsory_override'] == true) ...[
+                _buildCommissionNotice(
+                  'The team reached your target, but a manager compulsory item or '
+                  'credit was not met, so your own base commission is 0. The staff '
+                  'share and group items are still paid.',
+                  AppColors.error,
+                  isDark,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (data['sales_available'] == false) ...[
+                _buildCommissionNotice(
+                  'Part of your team buys from another shop\'s system, which this app '
+                  'cannot read - those sales are not counted here.',
+                  AppColors.warning,
+                  isDark,
+                ),
+                const SizedBox(height: 12),
+              ],
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailRow('Team', '${_asDouble(data['achieving_customers']).round()} of '
+                        '${_asDouble(data['total_customers']).round()} achieving', isDark),
+                    _buildDetailRow('Team sales', Formatters.formatCurrency(_asDouble(data['total_sales'])), isDark),
+                    _buildDetailRow('Team average', Formatters.formatCurrency(_asDouble(data['average'])), isDark),
+                    _buildDetailRow('Your target', Formatters.formatCurrency(_asDouble(data['target'])), isDark),
+                    const Divider(height: 24),
+                    _buildDetailRow('Base commission', Formatters.formatCurrency(_asDouble(data['base'])), isDark,
+                        valueColor: AppColors.success),
+                    _buildDetailRow('Your deductions', Formatters.formatCurrency(_asDouble(data['mgr_deduct'])), isDark,
+                        valueColor: AppColors.error),
+                    _buildDetailRow('Net', Formatters.formatCurrency(net), isDark,
+                        valueColor: net < 0 ? AppColors.error : null),
+                    _buildDetailRow('Staff share', Formatters.formatCurrency(_asDouble(data['staff'])), isDark,
+                        valueColor: AppColors.success),
+                    _buildDetailRow('Group items', Formatters.formatCurrency(_asDouble(data['group_item'])), isDark,
+                        valueColor: AppColors.success),
+                    const Divider(height: 24),
+                    _buildDetailRow('Total', Formatters.formatCurrency(total), isDark,
+                        valueColor: total < 0 ? AppColors.error : AppColors.success, isBold: true),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (compulsoryItems.isNotEmpty) ...[
+                _buildSheetHeading('Compulsory Items (team)', isDark),
+                ...compulsoryItems.map((raw) {
+                  final c = raw as Map<String, dynamic>;
+                  final ok = c['achieved'] == true;
+                  return _buildCommissionLineCard(
+                    name: c['item_name']?.toString() ?? 'Unknown Item',
+                    achieved: ok,
+                    badge: ok ? 'MET' : 'NOT MET',
+                    isDark: isDark,
+                    stats: [
+                      _buildMiniStat('Required', '${_asDouble(c['qty_required']).toInt()}', isDark),
+                      _buildMiniStat('Team sold', '${_asDouble(c['qty_sold']).toInt()}', isDark),
+                    ],
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+              if (compulsoryCredits.isNotEmpty) ...[
+                _buildSheetHeading('Compulsory Credits', isDark),
+                ...compulsoryCredits.map((raw) {
+                  final c = raw as Map<String, dynamic>;
+                  final ok = c['achieved'] == true;
+                  final doc = c['document_number']?.toString();
+                  return _buildCommissionLineCard(
+                    name: (doc != null && doc.isNotEmpty)
+                        ? doc
+                        : 'Customer ${c['leruma_customer_id'] ?? ''}',
+                    achieved: ok,
+                    badge: ok ? 'COLLECTED' : 'NOT COLLECTED',
+                    isDark: isDark,
+                    stats: [
+                      _buildMiniStat('Target', Formatters.formatCurrency(_asDouble(c['target'])), isDark),
+                      _buildMiniStat('Collected', Formatters.formatCurrency(_asDouble(c['paid'])), isDark,
+                          valueColor: ok ? AppColors.success : null),
+                    ],
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+              if (groups.isNotEmpty) ...[
+                _buildSheetHeading('Group Items (team)', isDark),
+                ...groups.map((raw) {
+                  final g = raw as Map<String, dynamic>;
+                  final ok = g['achieved'] == true;
+                  return _buildCommissionLineCard(
+                    name: g['name']?.toString() ?? 'Group',
+                    achieved: ok,
+                    badge: ok ? 'ACHIEVED' : 'NOT ACHIEVED',
+                    isDark: isDark,
+                    stats: [
+                      _buildMiniStat('Team qty', '${_asDouble(g['qty_purchased']).toInt()}', isDark),
+                      _buildMiniStat('Target', '${_asDouble(g['target']).toInt()}', isDark),
+                      _buildMiniStat('Earned', Formatters.formatCurrency(_asDouble(g['earned'])), isDark,
+                          valueColor: ok ? AppColors.success : null),
+                    ],
+                  );
+                }),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 
