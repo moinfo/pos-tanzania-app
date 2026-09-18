@@ -3295,17 +3295,52 @@ class _HomeScreenState extends State<HomeScreen> {
                       ...groups.map((raw) {
                         final g = raw as Map<String, dynamic>;
                         final ok = g['status'] == 'achieved';
+                        final breakdown = g['item_breakdown'] as List<dynamic>? ?? [];
                         return _buildCommissionLineCard(
                           name: g['name']?.toString() ?? 'Group',
                           achieved: ok,
                           badge: g['status'] == 'disabled' ? 'DISABLED' : (ok ? 'ACHIEVED' : 'NOT ACHIEVED'),
                           isDark: isDark,
                           stats: [
-                            _buildMiniStat('Qty Purchased', '${_asDouble(g['qty_purchased']).toInt()}', isDark),
-                            _buildMiniStat('Qty Target', '${_asDouble(g['qty_target']).toInt()}', isDark),
-                            _buildMiniStat('Commission', Formatters.formatCurrency(_asDouble(g['commission'])), isDark,
+                            _buildMiniStat('Sold', '${_asDouble(g['qty_purchased']).toInt()}', isDark),
+                            _buildMiniStat('Target', '${_asDouble(g['qty_target']).toInt()}', isDark),
+                            // What the group pays once reached -- the thing a
+                            // seller is working towards, shown by the source.
+                            _buildMiniStat('Pays', Formatters.formatCurrency(_asDouble(g['value'])), isDark),
+                            _buildMiniStat('Earned', Formatters.formatCurrency(_asDouble(g['commission'])), isDark,
                                 valueColor: ok ? AppColors.success : null),
                           ],
+                          footer: breakdown.isEmpty
+                              ? null
+                              : Column(
+                                  children: [
+                                    for (final raw in breakdown)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                '\u21B3 ${(raw as Map<String, dynamic>)['item_name'] ?? ''}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              '${_asDouble(raw['qty']).toInt()}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
                         );
                       }),
                       const SizedBox(height: 8),
@@ -3493,6 +3528,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required String badge,
     required bool isDark,
     required List<Widget> stats,
+    Widget? footer,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -3540,6 +3576,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Row(children: [for (final s in stats) Expanded(child: s)]),
+          if (footer != null) ...[
+            const SizedBox(height: 6),
+            footer,
+          ],
         ],
       ),
     );
