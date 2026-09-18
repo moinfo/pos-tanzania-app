@@ -14,6 +14,7 @@ class AppVersionInfo {
     this.releaseNotes,
     this.configured = true,
     this.offlineEnabled = true,
+    this.minVersionCode = 0,
   });
 
   /// 'android' or 'ios'.
@@ -57,9 +58,18 @@ class AppVersionInfo {
   /// because a field was missing.
   final bool offlineEnabled;
 
+  /// The oldest build this deployment still accepts; 0 when none is set.
+  ///
+  /// Below it, the update is not an offer: the server already refuses every
+  /// request with 426. Reading it here lets the app say so at once, instead of
+  /// offering a "Later" button on a prompt the seller can dismiss -- which is
+  /// how a mandatory update came to be put off for days.
+  final int minVersionCode;
+
   factory AppVersionInfo.fromJson(Map<String, dynamic> json) {
     return AppVersionInfo(
       offlineEnabled: json['offline_enabled'] != false,
+      minVersionCode: _asInt(json['min_version_code']),
       platform: (json['platform'] ?? '').toString(),
       versionName: (json['version_name'] ?? '').toString(),
       versionCode: _asInt(json['version_code']),

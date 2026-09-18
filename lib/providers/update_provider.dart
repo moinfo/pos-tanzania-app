@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/app_version_info.dart';
+import '../services/force_update.dart';
 import '../services/offline_feature.dart';
 import '../services/update_service.dart';
 
@@ -74,6 +75,17 @@ class UpdateProvider extends ChangeNotifier {
         await OfflineFeature.applyServerFlag(published.offlineEnabled);
 
         _latest = published;
+
+        // Below the minimum, block now. Waiting for a request to come back
+        // 426 would leave this build usable until it happened to call
+        // something -- and the optional prompt would offer "Later" meanwhile.
+        if (published.minVersionCode > 0 &&
+            _installedVersionCode < published.minVersionCode) {
+          ForceUpdate.require(
+            minVersionCode: published.minVersionCode,
+            storeUrl: published.storeUrl,
+          );
+        }
         _state = published.configured &&
                 published.versionCode > _installedVersionCode
             ? UpdateState.updateAvailable
@@ -96,6 +108,9 @@ class UpdateProvider extends ChangeNotifier {
   /// been shown yet this session.
   Future<bool> shouldPrompt() async {
     if (!updateAvailable || _promptedThisSession) return false;
+    // A required update has its own screen with no way out; a dismissable
+    // prompt on top of it would only suggest there is one.
+    if (ForceUpdate.required.value != null) return false;
     return !await _service.isSnoozed(_latest!.versionCode);
   }
 

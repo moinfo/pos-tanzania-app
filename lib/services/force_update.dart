@@ -52,6 +52,19 @@ class ForceUpdate {
     );
   }
 
+  /// Block this build because the version check says it is below the minimum.
+  ///
+  /// The same screen a 426 raises, reached without waiting for one.
+  static void require({required int minVersionCode, String? storeUrl}) {
+    if (required.value != null) return;
+    required.value = ForceUpdateInfo(
+      message: 'Toleo jipya ni la lazima. Tafadhali sasisha app ili uendelee. '
+          '/ This update is required. Please update the app to continue.',
+      minVersionCode: minVersionCode,
+      storeUrl: storeUrl,
+    );
+  }
+
   /// Record a 426 response body.
   static void reportRefusal(List<int> bodyBytes) {
     var message = 'Please update the app to continue.';
