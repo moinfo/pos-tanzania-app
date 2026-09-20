@@ -3,6 +3,7 @@ import '../../services/customer_api_service.dart';
 import '../../models/contract.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'portal_change_password_screen.dart';
 import 'portal_contract_detail_screen.dart';
 import 'portal_login_screen.dart';
 
@@ -432,6 +433,24 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
               style: const TextStyle(color: AppColors.textLight)),
         ),
         const SizedBox(height: 32),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: ListTile(
+            leading: const Icon(Icons.lock_outline, color: AppColors.primary),
+            title: const Text('Badilisha Password'),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const PortalChangePasswordScreen()),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         Card(
           elevation: 0,
           shape: RoundedRectangleBorder(

@@ -54,6 +54,70 @@ class _PortalContractDetailScreenState
     });
   }
 
+  /// Lets the customer set/change the WhatsApp number on this contract
+  /// (separate from their phone above, which is their login identity and
+  /// not editable here). Falls back to that phone for WhatsApp sends when
+  /// left blank -- see Contract::send_contract_message() on the backend.
+  Future<void> _editWhatsappNumber() async {
+    final controller = TextEditingController(
+        text: _detail?.contract.whatsappPhone ?? widget.contract.whatsappPhone);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Namba ya WhatsApp'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Kama unatumia namba tofauti kwa WhatsApp, iweke hapa. '
+              'Acha wazi kama ni namba ile ile unayotumia kwa SMS.',
+              style: TextStyle(fontSize: 12.5, color: AppColors.textLight),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Namba ya WhatsApp',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Ghairi'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Hifadhi'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null) return;
+    final response =
+        await _service.updateWhatsappPhone(widget.contract.id, result);
+    if (!mounted) return;
+    if (response.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Namba ya WhatsApp imehifadhiwa'),
+            backgroundColor: AppColors.success),
+      );
+      _load();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(response.message), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = widget.contract.contractDescription.isNotEmpty
@@ -85,6 +149,8 @@ class _PortalContractDetailScreenState
                         PortalStatementScreen(contract: widget.contract),
                   ),
                 );
+              } else if (value == 'whatsapp') {
+                _editWhatsappNumber();
               }
             },
             itemBuilder: (context) => const [
@@ -101,6 +167,14 @@ class _PortalContractDetailScreenState
                 child: ListTile(
                   leading: Icon(Icons.description_outlined),
                   title: Text('Taarifa (Statement)'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'whatsapp',
+                child: ListTile(
+                  leading: Icon(Icons.chat_outlined),
+                  title: Text('Namba ya WhatsApp'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -268,6 +342,8 @@ class _PortalContractDetailScreenState
       MapEntry('Muda', '${c.contractTime} miezi'),
       MapEntry('Kiwango cha kila siku',
           'TSH ${Formatters.formatCurrency(c.returnAmount)}'),
+      MapEntry('Namba ya WhatsApp',
+          (c.whatsappPhone ?? '').isNotEmpty ? c.whatsappPhone! : 'Haijawekwa'),
       if (c.guarantor1.isNotEmpty)
         MapEntry('Mdhamini 1', '${c.guarantor1} · ${c.phoneGuarantor1}'),
       if (c.guarantor2.isNotEmpty)

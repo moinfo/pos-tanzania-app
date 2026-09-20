@@ -256,4 +256,44 @@ class CustomerApiService {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
+
+  /// Self-service change password while logged in (separate from the
+  /// logged-out OTP-based resetPassword() above).
+  Future<ApiResponse<Map<String, dynamic>>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/portal/change-password'),
+        headers: await _headers(),
+        body: json.encode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        }),
+      );
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Set/change the WhatsApp number on one of the customer's own
+  /// contracts. Pass an empty string to clear it (falls back to the
+  /// contract's regular phone for WhatsApp sends).
+  Future<ApiResponse<Map<String, dynamic>>> updateWhatsappPhone(
+    int contractId,
+    String whatsappPhone,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/portal/contracts/$contractId/whatsapp-phone'),
+        headers: await _headers(),
+        body: json.encode({'whatsapp_phone': whatsappPhone}),
+      );
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
 }
