@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
 import '../models/contract.dart';
+import '../models/permission_model.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/skeleton_loader.dart';
 import 'contract_details_screen.dart';
+import 'contract_form_screen.dart';
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -47,10 +50,33 @@ class _ContractsScreenState extends State<ContractsScreen> {
     });
   }
 
+  Future<void> _openNewContract({Contract? renewFrom}) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+          builder: (_) => ContractFormScreen(renewFrom: renewFrom)),
+    );
+    if (saved == true) _loadContracts();
+  }
+
+  /// Awaits the detail screen's pop value -- it pops `true` after a renewal
+  /// started from inside it, so the list picks up the new contract too.
+  Future<void> _openDetails(Contract contract) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+          builder: (_) => ContractDetailsScreen(contract: contract)),
+    );
+    if (changed == true) _loadContracts();
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode;
+    final canAdd = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.contractsAdd);
 
     return Scaffold(
       appBar: AppBar(
@@ -58,6 +84,14 @@ class _ContractsScreenState extends State<ContractsScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
       ),
+      floatingActionButton: canAdd
+          ? FloatingActionButton.extended(
+              onPressed: () => _openNewContract(),
+              icon: const Icon(Icons.add),
+              label: const Text('New Contract'),
+              backgroundColor: AppColors.primary,
+            )
+          : null,
       body: _isLoading
           ? _buildSkeletonList(isDark)
           : _errorMessage != null
@@ -116,14 +150,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ContractDetailsScreen(contract: contract),
-            ),
-          );
-        },
+        onTap: () => _openDetails(contract),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -236,25 +263,29 @@ class _ContractsScreenState extends State<ContractsScreen> {
               ),
               const SizedBox(height: 8),
 
-              // View button
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ContractDetailsScreen(contract: contract),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (context
+                      .watch<PermissionProvider>()
+                      .hasPermission(PermissionIds.contractsAdd))
+                    TextButton.icon(
+                      onPressed: () => _openNewContract(renewFrom: contract),
+                      icon: const Icon(Icons.autorenew, size: 18),
+                      label: const Text('Renew'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.success,
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_forward),
-                  label: const Text('View Statement'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                    ),
+                  TextButton.icon(
+                    onPressed: () => _openDetails(contract),
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text('View Statement'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),

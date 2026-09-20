@@ -1709,6 +1709,57 @@ class ApiService {
     }
   }
 
+  /// Create a contract. Requires PermissionIds.contractsAdd. `date` can be
+  /// any day, past or future -- also the entry point for "renew": the
+  /// caller pre-fills these fields from an existing contract and this just
+  /// creates a normal new one, same as web Contracts::addContract().
+  Future<ApiResponse<Map<String, dynamic>>> createContract({
+    required String name,
+    required String date,
+    required String endDate,
+    required int contractTime,
+    required double returnAmount,
+    required double contractCost,
+    required double contractAmount,
+    String? phone,
+    String? guarantor1,
+    String? phoneGuarantor1,
+    String? guarantor2,
+    String? phoneGuarantor2,
+    String? contractDescription,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/create'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'name': name,
+          'date': date,
+          'end_date': endDate,
+          'contract_time': contractTime,
+          'return_amount': returnAmount,
+          'contract_cost': contractCost,
+          'contract_amount': contractAmount,
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
+          if (guarantor1 != null && guarantor1.isNotEmpty)
+            'guarantor1': guarantor1,
+          if (phoneGuarantor1 != null && phoneGuarantor1.isNotEmpty)
+            'phone_guarantor1': phoneGuarantor1,
+          if (guarantor2 != null && guarantor2.isNotEmpty)
+            'guarantor2': guarantor2,
+          if (phoneGuarantor2 != null && phoneGuarantor2.isNotEmpty)
+            'phone_guarantor2': phoneGuarantor2,
+          if (contractDescription != null && contractDescription.isNotEmpty)
+            'contract_description': contractDescription,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ============ EXPENSES ENDPOINTS ============
 
   /// Get all expenses

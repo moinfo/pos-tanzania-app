@@ -9,6 +9,7 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
+import 'contract_form_screen.dart';
 
 class ContractDetailsScreen extends StatefulWidget {
   final Contract contract;
@@ -224,12 +225,31 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     final canAddPayment = context
         .watch<PermissionProvider>()
         .hasPermission(PermissionIds.contractsPaymentsAdd);
+    final canAdd = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.contractsAdd);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_contract.name),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          if (canAdd)
+            IconButton(
+              icon: const Icon(Icons.autorenew),
+              tooltip: 'Renew',
+              onPressed: () async {
+                final saved = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ContractFormScreen(renewFrom: _contract),
+                  ),
+                );
+                if (saved == true && mounted) Navigator.pop(context, true);
+              },
+            ),
+        ],
       ),
       floatingActionButton: canAddPayment
           ? FloatingActionButton.extended(
