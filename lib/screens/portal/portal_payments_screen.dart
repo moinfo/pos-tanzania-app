@@ -4,6 +4,9 @@ import '../../models/contract.dart';
 import '../../models/portal_contract_detail.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import '../../l10n/portal_locale.dart';
+import '../../l10n/portal_strings.dart';
+import '../../l10n/portal_language_switch.dart';
 
 /// Full, unrestricted payment history for one contract -- the same ledger
 /// embedded (capped at 15 + "show more") on the contract detail screen,
@@ -48,20 +51,24 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: const Text('Malipo'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? _buildError()
-                : _buildList(_detail!),
+    return ValueListenableBuilder<String>(
+      valueListenable: PortalLocale.instance.language,
+      builder: (context, _, __) => Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        appBar: AppBar(
+          title: Text(PortalStrings.t('malipo')),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          actions: const [PortalLanguageSwitch()],
+        ),
+        body: RefreshIndicator(
+          onRefresh: _load,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? _buildError()
+                  : _buildList(_detail!),
+        ),
       ),
     );
   }
@@ -87,11 +94,11 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
     final payments = detail.paymentsList.reversed.toList();
     if (payments.isEmpty) {
       return ListView(
-        children: const [
-          SizedBox(height: 80),
-          Icon(Icons.receipt_long, size: 48, color: AppColors.textLight),
-          SizedBox(height: 12),
-          Center(child: Text('Hakuna malipo yaliyorekodiwa bado.')),
+        children: [
+          const SizedBox(height: 80),
+          const Icon(Icons.receipt_long, size: 48, color: AppColors.textLight),
+          const SizedBox(height: 12),
+          Center(child: Text(PortalStrings.t('no_payments_yet'))),
         ],
       );
     }
@@ -135,7 +142,7 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
                         fontSize: 13, fontWeight: FontWeight.w600)),
                 Text(
                     payment.description.isEmpty
-                        ? 'Malipo'
+                        ? PortalStrings.t('malipo')
                         : payment.description,
                     style: const TextStyle(
                         fontSize: 11.5, color: AppColors.textLight)),

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/customer_api_service.dart';
 import '../../utils/constants.dart';
+import '../../l10n/portal_locale.dart';
+import '../../l10n/portal_strings.dart';
+import '../../l10n/portal_language_switch.dart';
 import 'portal_dashboard_screen.dart';
 
 class PortalVerifyRegistrationScreen extends StatefulWidget {
@@ -59,63 +62,66 @@ class _PortalVerifyRegistrationScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: const Text('Verify Phone'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.sms, size: 48, color: AppColors.primary),
-                const SizedBox(height: 12),
-                Text(
-                  'If ${widget.phone} is eligible, we sent a 6-digit code by SMS. '
-                  'Enter it below to activate your account.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 13.5, color: AppColors.textLight),
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _otpController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 22, letterSpacing: 6),
-                  decoration: const InputDecoration(
-                    counterText: '',
-                    border: OutlineInputBorder(),
+    return ValueListenableBuilder<String>(
+      valueListenable: PortalLocale.instance.language,
+      builder: (context, _, __) => Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        appBar: AppBar(
+          title: Text(PortalStrings.t('verify_phone')),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          actions: const [PortalLanguageSwitch()],
+        ),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.sms, size: 48, color: AppColors.primary),
+                  const SizedBox(height: 12),
+                  Text(
+                    PortalStrings.t('verify_intro', {'0': widget.phone}),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 13.5, color: AppColors.textLight),
                   ),
-                  onSubmitted: (_) => _verify(),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _verify,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 22, letterSpacing: 6),
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      border: OutlineInputBorder(),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Verify'),
+                    onSubmitted: (_) => _verify(),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _verify,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(PortalStrings.t('verify')),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

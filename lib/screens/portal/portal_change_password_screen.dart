@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/customer_api_service.dart';
 import '../../utils/constants.dart';
+import '../../l10n/portal_locale.dart';
+import '../../l10n/portal_strings.dart';
+import '../../l10n/portal_language_switch.dart';
 
 /// Self-service "change my password" while logged in -- current password
 /// + new password, separate from the logged-out OTP forgot/reset flow.
@@ -34,7 +37,7 @@ class _PortalChangePasswordScreenState
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_newController.text != _confirmController.text) {
-      _showSnack('Password mpya hazifanani', isError: true);
+      _showSnack(PortalStrings.t('new_passwords_no_match'), isError: true);
       return;
     }
 
@@ -47,7 +50,7 @@ class _PortalChangePasswordScreenState
     setState(() => _isSaving = false);
 
     if (response.isSuccess) {
-      _showSnack('Password imebadilishwa');
+      _showSnack(PortalStrings.t('password_changed'));
       Navigator.pop(context);
     } else {
       _showSnack(response.message, isError: true);
@@ -65,81 +68,87 @@ class _PortalChangePasswordScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: const Text('Badilisha Password'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            TextFormField(
-              controller: _currentController,
-              obscureText: _obscureCurrent,
-              decoration: InputDecoration(
-                labelText: 'Password ya sasa',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureCurrent
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
-                  onPressed: () =>
-                      setState(() => _obscureCurrent = !_obscureCurrent),
+    return ValueListenableBuilder<String>(
+      valueListenable: PortalLocale.instance.language,
+      builder: (context, _, __) => Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        appBar: AppBar(
+          title: Text(PortalStrings.t('change_password_title')),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          actions: const [PortalLanguageSwitch()],
+        ),
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              TextFormField(
+                controller: _currentController,
+                obscureText: _obscureCurrent,
+                decoration: InputDecoration(
+                  labelText: PortalStrings.t('current_password'),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureCurrent
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureCurrent = !_obscureCurrent),
+                  ),
                 ),
+                validator: (v) => (v == null || v.isEmpty)
+                    ? PortalStrings.t('enter_current_password')
+                    : null,
               ),
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Weka password ya sasa' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _newController,
-              obscureText: _obscureNew,
-              decoration: InputDecoration(
-                labelText: 'Password mpya',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureNew
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
-                  onPressed: () => setState(() => _obscureNew = !_obscureNew),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _newController,
+                obscureText: _obscureNew,
+                decoration: InputDecoration(
+                  labelText: PortalStrings.t('new_password_field'),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureNew
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                    onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                  ),
                 ),
+                validator: (v) => (v == null || v.length < 6)
+                    ? PortalStrings.t('new_password_min')
+                    : null,
               ),
-              validator: (v) => (v == null || v.length < 6)
-                  ? 'Password iwe na herufi 6 au zaidi'
-                  : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _confirmController,
-              obscureText: _obscureNew,
-              decoration: const InputDecoration(
-                labelText: 'Rudia password mpya',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _confirmController,
+                obscureText: _obscureNew,
+                decoration: InputDecoration(
+                  labelText: PortalStrings.t('confirm_new_password_field'),
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.isEmpty)
+                    ? PortalStrings.t('confirm_new_password_required')
+                    : null,
               ),
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Rudia password mpya' : null,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isSaving ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(48),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isSaving ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text(PortalStrings.t('save')),
               ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Text('Hifadhi'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

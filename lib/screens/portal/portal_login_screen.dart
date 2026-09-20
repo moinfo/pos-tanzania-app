@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/customer_api_service.dart';
 import '../../utils/constants.dart';
+import '../../l10n/portal_locale.dart';
+import '../../l10n/portal_strings.dart';
+import '../../l10n/portal_language_switch.dart';
 import 'portal_dashboard_screen.dart';
 import 'portal_register_screen.dart';
 import 'portal_forgot_password_screen.dart';
@@ -27,6 +30,7 @@ class _PortalLoginScreenState extends State<PortalLoginScreen> {
   @override
   void initState() {
     super.initState();
+    PortalLocale.instance.load();
     _prefillTenantCode();
   }
 
@@ -72,91 +76,98 @@ class _PortalLoginScreenState extends State<PortalLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: const Text('Customer Login'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.receipt_long,
-                      size: 56, color: AppColors.primary),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'View your contract & payment history',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: AppColors.textLight),
-                  ),
-                  const SizedBox(height: 28),
-                  _field(_tenantCodeController, 'Business Code',
-                      hint: 'e.g. leruma-shop', required: true),
-                  const SizedBox(height: 14),
-                  _field(_phoneController, 'Phone Number',
-                      keyboardType: TextInputType.phone, required: true),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off),
-                        onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
+    return ValueListenableBuilder<String>(
+      valueListenable: PortalLocale.instance.language,
+      builder: (context, _, __) => Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        appBar: AppBar(
+          title: Text(PortalStrings.t('customer_login')),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          actions: const [PortalLanguageSwitch()],
+        ),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.receipt_long,
+                        size: 56, color: AppColors.primary),
+                    const SizedBox(height: 12),
+                    Text(
+                      PortalStrings.t('view_history'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 14, color: AppColors.textLight),
+                    ),
+                    const SizedBox(height: 28),
+                    _field(
+                        _tenantCodeController, PortalStrings.t('business_code'),
+                        hint: 'e.g. leruma-shop', required: true),
+                    const SizedBox(height: 14),
+                    _field(_phoneController, PortalStrings.t('phone_number'),
+                        keyboardType: TextInputType.phone, required: true),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: PortalStrings.t('password'),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
                       ),
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? PortalStrings.t('required')
+                          : null,
+                      onFieldSubmitted: (_) => _login(),
                     ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Required' : null,
-                    onFieldSubmitted: (_) => _login(),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(PortalStrings.t('login')),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Login'),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const PortalForgotPasswordScreen()),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PortalForgotPasswordScreen()),
+                      ),
+                      child: Text(PortalStrings.t('forgot_password_q')),
                     ),
-                    child: const Text('Forgot password?'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const PortalRegisterScreen()),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PortalRegisterScreen()),
+                      ),
+                      child: Text(PortalStrings.t('no_account_register')),
                     ),
-                    child: const Text("Don't have an account? Register"),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -180,8 +191,9 @@ class _PortalLoginScreenState extends State<PortalLoginScreen> {
         hintText: hint,
         border: const OutlineInputBorder(),
       ),
-      validator: (v) =>
-          (required && (v == null || v.isEmpty)) ? 'Required' : null,
+      validator: (v) => (required && (v == null || v.isEmpty))
+          ? PortalStrings.t('required')
+          : null,
     );
   }
 }

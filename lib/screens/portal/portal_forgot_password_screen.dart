@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/customer_api_service.dart';
 import '../../utils/constants.dart';
+import '../../l10n/portal_locale.dart';
+import '../../l10n/portal_strings.dart';
+import '../../l10n/portal_language_switch.dart';
 import 'portal_reset_password_screen.dart';
 
 class PortalForgotPasswordScreen extends StatefulWidget {
@@ -70,68 +73,74 @@ class _PortalForgotPasswordScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: const Text('Forgot Password'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "We'll text a code to confirm it's you, then let you set a new password.",
-                    textAlign: TextAlign.center,
-                    style:
-                        TextStyle(fontSize: 13.5, color: AppColors.textLight),
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _tenantCodeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Business Code',
-                      border: OutlineInputBorder(),
+    return ValueListenableBuilder<String>(
+      valueListenable: PortalLocale.instance.language,
+      builder: (context, _, __) => Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        appBar: AppBar(
+          title: Text(PortalStrings.t('forgot_password_title')),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          actions: const [PortalLanguageSwitch()],
+        ),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      PortalStrings.t('forgot_intro'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 13.5, color: AppColors.textLight),
                     ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone Number',
-                      border: OutlineInputBorder(),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _tenantCodeController,
+                      decoration: InputDecoration(
+                        labelText: PortalStrings.t('business_code'),
+                        border: const OutlineInputBorder(),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? PortalStrings.t('required')
+                          : null,
                     ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: PortalStrings.t('phone_number'),
+                        border: const OutlineInputBorder(),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? PortalStrings.t('required')
+                          : null,
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Send Code'),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(PortalStrings.t('send_code')),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

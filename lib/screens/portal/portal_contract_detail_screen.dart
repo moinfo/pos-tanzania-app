@@ -4,6 +4,9 @@ import '../../models/contract.dart';
 import '../../models/portal_contract_detail.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import '../../l10n/portal_locale.dart';
+import '../../l10n/portal_strings.dart';
+import '../../l10n/portal_language_switch.dart';
 import 'portal_payments_screen.dart';
 import 'portal_statement_screen.dart';
 
@@ -64,23 +67,23 @@ class _PortalContractDetailScreenState
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Namba ya WhatsApp'),
+        title: Text(PortalStrings.t('whatsapp_dialog_title')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Kama unatumia namba tofauti kwa WhatsApp, iweke hapa. '
-              'Acha wazi kama ni namba ile ile unayotumia kwa SMS.',
-              style: TextStyle(fontSize: 12.5, color: AppColors.textLight),
+            Text(
+              PortalStrings.t('whatsapp_dialog_body'),
+              style:
+                  const TextStyle(fontSize: 12.5, color: AppColors.textLight),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: controller,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Namba ya WhatsApp',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: PortalStrings.t('whatsapp_number_field'),
+                border: const OutlineInputBorder(),
                 isDense: true,
               ),
             ),
@@ -89,11 +92,11 @@ class _PortalContractDetailScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Ghairi'),
+            child: Text(PortalStrings.t('cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Hifadhi'),
+            child: Text(PortalStrings.t('save')),
           ),
         ],
       ),
@@ -105,8 +108,8 @@ class _PortalContractDetailScreenState
     if (!mounted) return;
     if (response.isSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Namba ya WhatsApp imehifadhiwa'),
+        SnackBar(
+            content: Text(PortalStrings.t('whatsapp_saved')),
             backgroundColor: AppColors.success),
       );
       _load();
@@ -120,78 +123,84 @@ class _PortalContractDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.contract.contractDescription.isNotEmpty
-        ? widget.contract.contractDescription
-        : 'Contract #${widget.contract.id}';
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'payments') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        PortalPaymentsScreen(contract: widget.contract),
+    return ValueListenableBuilder<String>(
+      valueListenable: PortalLocale.instance.language,
+      builder: (context, _, __) {
+        final title = widget.contract.contractDescription.isNotEmpty
+            ? widget.contract.contractDescription
+            : '${PortalStrings.t('contract_label')} #${widget.contract.id}';
+        return Scaffold(
+          backgroundColor: AppColors.lightBackground,
+          appBar: AppBar(
+            title: Text(title),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            actions: [
+              const PortalLanguageSwitch(),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) {
+                  if (value == 'payments') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            PortalPaymentsScreen(contract: widget.contract),
+                      ),
+                    );
+                  } else if (value == 'statement') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            PortalStatementScreen(contract: widget.contract),
+                      ),
+                    );
+                  } else if (value == 'whatsapp') {
+                    _editWhatsappNumber();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'payments',
+                    child: ListTile(
+                      leading: const Icon(Icons.receipt_long),
+                      title: Text(PortalStrings.t('payments_menu')),
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
-                );
-              } else if (value == 'statement') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        PortalStatementScreen(contract: widget.contract),
+                  PopupMenuItem(
+                    value: 'statement',
+                    child: ListTile(
+                      leading: const Icon(Icons.description_outlined),
+                      title: Text(PortalStrings.t('statement_menu')),
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
-                );
-              } else if (value == 'whatsapp') {
-                _editWhatsappNumber();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'payments',
-                child: ListTile(
-                  leading: Icon(Icons.receipt_long),
-                  title: Text('Malipo'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              PopupMenuItem(
-                value: 'statement',
-                child: ListTile(
-                  leading: Icon(Icons.description_outlined),
-                  title: Text('Taarifa (Statement)'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              PopupMenuItem(
-                value: 'whatsapp',
-                child: ListTile(
-                  leading: Icon(Icons.chat_outlined),
-                  title: Text('Namba ya WhatsApp'),
-                  contentPadding: EdgeInsets.zero,
-                ),
+                  PopupMenuItem(
+                    value: 'whatsapp',
+                    child: ListTile(
+                      leading: const Icon(Icons.chat_outlined),
+                      title: Text(PortalStrings.t('whatsapp_menu')),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? _buildError()
-                : _detail == null
+          body: RefreshIndicator(
+            onRefresh: _load,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
                     ? _buildError()
-                    : _buildBody(_detail!),
-      ),
+                    : _detail == null
+                        ? _buildError()
+                        : _buildBody(_detail!),
+          ),
+        );
+      },
     );
   }
 
@@ -228,11 +237,11 @@ class _PortalContractDetailScreenState
         _buildLedgerHeader(detail),
         const SizedBox(height: 8),
         if (detail.paymentsList.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
-                child: Text('Hakuna malipo yaliyorekodiwa bado.',
-                    style: TextStyle(color: AppColors.textLight))),
+                child: Text(PortalStrings.t('no_payments_yet'),
+                    style: const TextStyle(color: AppColors.textLight))),
           )
         else
           _buildLedger(detail),
@@ -255,8 +264,11 @@ class _PortalContractDetailScreenState
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Mkataba huu umesitishwa'
-              '${(c.terminationReason?.isNotEmpty ?? false) ? ': ${c.terminationReason}' : '.'}',
+              PortalStrings.t('terminated_banner', {
+                '0': (c.terminationReason?.isNotEmpty ?? false)
+                    ? ': ${c.terminationReason}'
+                    : '.'
+              }),
               style: const TextStyle(
                   color: AppColors.error,
                   fontSize: 12.5,
@@ -271,24 +283,37 @@ class _PortalContractDetailScreenState
   Widget _buildStatGrid(PortalContractDetail detail) {
     final c = detail.contract;
     final cards = [
-      _StatCardData('Gharama ya mkataba', c.contractCost,
-          const Color(0xFF233A5C), 'Kiasi kilichotolewa'),
+      _StatCardData(PortalStrings.t('contract_cost'), c.contractCost,
+          const Color(0xFF233A5C), PortalStrings.t('amount_disbursed')),
       _StatCardData(
-          'Deni hadi sasa',
+          PortalStrings.t('debt_to_date'),
           detail.owedToDate,
           const Color(0xFF55677A),
-          '${Formatters.formatCurrency(c.returnAmount)}/siku × ${c.days} siku'),
-      _StatCardData('Jumla iliyolipwa', c.payments, AppColors.success,
-          '${detail.paymentsList.length} malipo'),
+          PortalStrings.t('debt_to_date_sub', {
+            '0': Formatters.formatCurrency(c.returnAmount),
+            '1': '${c.days}',
+          })),
       _StatCardData(
-          'Deni lililochelewa',
+          PortalStrings.t('total_paid'),
+          c.payments,
+          AppColors.success,
+          PortalStrings.t(
+              'n_payments', {'0': '${detail.paymentsList.length}'})),
+      _StatCardData(
+          PortalStrings.t('overdue_debt'),
           c.currentUnpaid,
           AppColors.error,
           c.currentUnpaid > 0
-              ? 'Amechelewa siku ${c.daysUnpaid.toInt()}'
-              : 'Hakuna linalochelewa'),
-      _StatCardData('Salio la mkataba', c.balance > 0 ? c.balance : 0,
-          const Color(0xFF2C7A68), c.balance <= 0 ? 'Imekamilika' : 'Inabaki'),
+              ? PortalStrings.t(
+                  'overdue_days', {'0': '${c.daysUnpaid.toInt()}'})
+              : PortalStrings.t('nothing_overdue')),
+      _StatCardData(
+          PortalStrings.t('contract_balance'),
+          c.balance > 0 ? c.balance : 0,
+          const Color(0xFF2C7A68),
+          c.balance <= 0
+              ? PortalStrings.t('fully_paid_small')
+              : PortalStrings.t('remaining')),
     ];
 
     return GridView.count(
@@ -337,25 +362,31 @@ class _PortalContractDetailScreenState
 
   Widget _buildDetailsCard(Contract c) {
     final rows = <MapEntry<String, String>>[
-      MapEntry('Kuanza', c.date),
-      MapEntry('Kumalizika', c.endDate),
-      MapEntry('Muda', '${c.contractTime} miezi'),
-      MapEntry('Kiwango cha kila siku',
+      MapEntry(PortalStrings.t('starts'), c.date),
+      MapEntry(PortalStrings.t('ends'), c.endDate),
+      MapEntry(PortalStrings.t('duration'),
+          PortalStrings.t('n_months', {'0': '${c.contractTime}'})),
+      MapEntry(PortalStrings.t('daily_rate_label'),
           'TSH ${Formatters.formatCurrency(c.returnAmount)}'),
-      MapEntry('Namba ya WhatsApp',
-          (c.whatsappPhone ?? '').isNotEmpty ? c.whatsappPhone! : 'Haijawekwa'),
+      MapEntry(
+          PortalStrings.t('whatsapp_number_field'),
+          (c.whatsappPhone ?? '').isNotEmpty
+              ? c.whatsappPhone!
+              : PortalStrings.t('not_set')),
       if (c.guarantor1.isNotEmpty)
-        MapEntry('Mdhamini 1', '${c.guarantor1} · ${c.phoneGuarantor1}'),
+        MapEntry(PortalStrings.t('guarantor_1'),
+            '${c.guarantor1} · ${c.phoneGuarantor1}'),
       if (c.guarantor2.isNotEmpty)
-        MapEntry('Mdhamini 2', '${c.guarantor2} · ${c.phoneGuarantor2}'),
+        MapEntry(PortalStrings.t('guarantor_2'),
+            '${c.guarantor2} · ${c.phoneGuarantor2}'),
       if ((c.assetPlateNumber ?? '').isNotEmpty)
-        MapEntry('Namba ya Plate', c.assetPlateNumber!),
+        MapEntry(PortalStrings.t('plate_number'), c.assetPlateNumber!),
       if ((c.assetChassisNumber ?? '').isNotEmpty)
-        MapEntry('Chassis', c.assetChassisNumber!),
+        MapEntry(PortalStrings.t('chassis'), c.assetChassisNumber!),
       if ((c.assetInsuranceProvider ?? '').isNotEmpty)
-        MapEntry('Bima', c.assetInsuranceProvider!),
+        MapEntry(PortalStrings.t('insurance'), c.assetInsuranceProvider!),
       if ((c.assetInsuranceExpiry ?? '').isNotEmpty)
-        MapEntry('Bima inaisha', c.assetInsuranceExpiry!),
+        MapEntry(PortalStrings.t('insurance_expiry'), c.assetInsuranceExpiry!),
     ];
 
     return Container(
@@ -368,8 +399,8 @@ class _PortalContractDetailScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('MAELEZO YA MKATABA',
-              style: TextStyle(
+          Text(PortalStrings.t('contract_details_header'),
+              style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textLight,
@@ -413,8 +444,9 @@ class _PortalContractDetailScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Maendeleo ya malipo',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(PortalStrings.t('payment_progress'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13)),
               Text('$pct%',
                   style: const TextStyle(
                       fontWeight: FontWeight.bold,
@@ -439,7 +471,9 @@ class _PortalContractDetailScreenState
               Text(c.date,
                   style: const TextStyle(
                       fontSize: 10.5, color: AppColors.textLight)),
-              Text('Leo ${Formatters.getTodayFormatted()}',
+              Text(
+                  PortalStrings.t(
+                      'today_label', {'0': Formatters.getTodayFormatted()}),
                   style: const TextStyle(
                       fontSize: 10.5, color: AppColors.textLight)),
               Text(c.endDate,
@@ -456,8 +490,8 @@ class _PortalContractDetailScreenState
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
-        'Jumla ya malipo inajumuisha TSH ${Formatters.formatCurrency(undatedTotal)} '
-        'kutoka kwenye rekodi za zamani zisizo na tarehe kamili.',
+        PortalStrings.t(
+            'undated_note', {'0': Formatters.formatCurrency(undatedTotal)}),
         style: const TextStyle(fontSize: 11.5, color: AppColors.textLight),
       ),
     );
@@ -466,8 +500,8 @@ class _PortalContractDetailScreenState
   Widget _buildLedgerHeader(PortalContractDetail detail) {
     return Row(
       children: [
-        const Text('Malipo',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text(PortalStrings.t('payments_header'),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         const SizedBox(width: 6),
         Text('(${detail.paymentsList.length})',
             style: const TextStyle(fontSize: 13, color: AppColors.textLight)),
@@ -503,7 +537,8 @@ class _PortalContractDetailScreenState
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Center(
                   child: Text(
-                    'Onyesha malipo yote (${newestFirst.length - _visibleCount} zaidi ya awali)',
+                    PortalStrings.t('show_all_payments',
+                        {'0': '${newestFirst.length - _visibleCount}'}),
                     style: const TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,
@@ -544,7 +579,7 @@ class _PortalContractDetailScreenState
                         fontSize: 12.5, fontWeight: FontWeight.w600)),
                 Text(
                     payment.description.isEmpty
-                        ? 'Malipo'
+                        ? PortalStrings.t('malipo')
                         : payment.description,
                     style: const TextStyle(
                         fontSize: 11, color: AppColors.textLight)),

@@ -3,17 +3,20 @@ import '../../services/customer_api_service.dart';
 import '../../models/contract.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import '../../l10n/portal_locale.dart';
+import '../../l10n/portal_strings.dart';
+import '../../l10n/portal_language_switch.dart';
 import 'portal_change_password_screen.dart';
 import 'portal_contract_detail_screen.dart';
 import 'portal_login_screen.dart';
 import 'portal_payments_screen.dart';
 import 'portal_statement_screen.dart';
 
-/// Customer portal shell: bottom-nav Dashboard / Malipo / Taarifa / Account
-/// -- previously a single bare list with only a logout icon, and Malipo/
-/// Taarifa hidden behind a "..." menu on the contract detail screen that
-/// wasn't visible/discoverable enough, moved here so they're always one
-/// tap away.
+/// Customer portal shell: bottom-nav Dashboard / Mikataba / Malipo / Taarifa
+/// / Account. Dashboard is a summary only (total balance owed); the full
+/// contract list lives in its own Mikataba tab -- previously Dashboard did
+/// both jobs at once, and Malipo/Taarifa were hidden behind a "..." menu on
+/// the contract detail screen that wasn't discoverable.
 class PortalDashboardScreen extends StatefulWidget {
   const PortalDashboardScreen({super.key});
 
@@ -34,6 +37,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    PortalLocale.instance.load();
     _load();
   }
 
@@ -72,118 +76,65 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = [
-      _buildDashboardTab(),
-      _buildContractScopedTab(
-        icon: Icons.receipt_long,
-        emptyLabel: 'Hakuna mkataba wa kuonyesha malipo yake.',
-        builder: (contract) => PortalPaymentsScreen(contract: contract),
-      ),
-      _buildContractScopedTab(
-        icon: Icons.description_outlined,
-        emptyLabel: 'Hakuna mkataba wa kuonyesha taarifa yake.',
-        builder: (contract) => PortalStatementScreen(contract: contract),
-      ),
-      _buildAccountTab(),
-    ];
+    return ValueListenableBuilder<String>(
+      valueListenable: PortalLocale.instance.language,
+      builder: (context, _, __) {
+        final tabs = [
+          _buildDashboardTab(),
+          _buildMikatabaTab(),
+          _buildContractScopedTab(
+            icon: Icons.receipt_long,
+            emptyKey: 'no_contract_for_payments',
+            builder: (contract) => PortalPaymentsScreen(contract: contract),
+          ),
+          _buildContractScopedTab(
+            icon: Icons.description_outlined,
+            emptyKey: 'no_contract_for_statement',
+            builder: (contract) => PortalStatementScreen(contract: contract),
+          ),
+          _buildAccountTab(),
+        ];
 
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(child: tabs[_tabIndex]),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _tabIndex,
-        onTap: (i) => setState(() => _tabIndex = i),
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textLight,
-        type: BottomNavigationBarType.fixed,
-        selectedFontSize: 11,
-        unselectedFontSize: 10.5,
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long_outlined),
-              activeIcon: Icon(Icons.receipt_long),
-              label: 'Malipo'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.description_outlined),
-              activeIcon: Icon(Icons.description),
-              label: 'Taarifa'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Account'),
-        ],
-      ),
-    );
-  }
-
-  /// Malipo/Taarifa belong to a specific contract, not the account as a
-  /// whole -- shows a contract picker above the tab when there's more than
-  /// one, otherwise goes straight to the customer's only contract.
-  Widget _buildContractScopedTab({
-    required IconData icon,
-    required String emptyLabel,
-    required Widget Function(Contract contract) builder,
-  }) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    final contracts = _contracts ?? [];
-    if (contracts.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 48, color: AppColors.textLight),
-              const SizedBox(height: 12),
-              Text(emptyLabel, textAlign: TextAlign.center),
+        return Scaffold(
+          backgroundColor: AppColors.lightBackground,
+          body: SafeArea(child: tabs[_tabIndex]),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _tabIndex,
+            onTap: (i) => setState(() => _tabIndex = i),
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: AppColors.textLight,
+            type: BottomNavigationBarType.fixed,
+            selectedFontSize: 10.5,
+            unselectedFontSize: 10,
+            items: [
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.dashboard_outlined),
+                  activeIcon: const Icon(Icons.dashboard),
+                  label: PortalStrings.t('dashboard')),
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.two_wheeler_outlined),
+                  activeIcon: const Icon(Icons.two_wheeler),
+                  label: PortalStrings.t('mikataba')),
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  activeIcon: const Icon(Icons.receipt_long),
+                  label: PortalStrings.t('malipo')),
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.description_outlined),
+                  activeIcon: const Icon(Icons.description),
+                  label: PortalStrings.t('taarifa')),
+              BottomNavigationBarItem(
+                  icon: const Icon(Icons.person_outline),
+                  activeIcon: const Icon(Icons.person),
+                  label: PortalStrings.t('account')),
             ],
           ),
-        ),
-      );
-    }
-    final index =
-        _selectedContractIndex < contracts.length ? _selectedContractIndex : 0;
-    final selected = contracts[index];
-
-    return Column(
-      children: [
-        if (contracts.length > 1)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: DropdownButtonFormField<int>(
-              initialValue: index,
-              decoration: const InputDecoration(
-                labelText: 'Mkataba',
-                border: OutlineInputBorder(),
-                isDense: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              items: [
-                for (var i = 0; i < contracts.length; i++)
-                  DropdownMenuItem(
-                    value: i,
-                    child: Text(
-                      contracts[i].contractDescription.isNotEmpty
-                          ? contracts[i].contractDescription
-                          : 'Mkataba #${contracts[i].id}',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-              ],
-              onChanged: (i) => setState(() => _selectedContractIndex = i ?? 0),
-            ),
-          ),
-        Expanded(child: builder(selected)),
-      ],
+        );
+      },
     );
   }
+
+  // ── Dashboard: summary only ───────────────────────────────────────────
 
   Widget _buildDashboardTab() {
     return RefreshIndicator(
@@ -192,57 +143,77 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? _buildError()
-              : _buildList(),
+              : _buildSummary(),
     );
   }
 
-  Widget _buildError() {
-    return ListView(
-      children: [
-        const SizedBox(height: 80),
-        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-        const SizedBox(height: 12),
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(_error ?? 'Something went wrong',
-                textAlign: TextAlign.center),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildList() {
+  Widget _buildSummary() {
     final contracts = _contracts ?? [];
     final activeContracts = contracts.where((c) => !c.isTerminated).toList();
     final totalOwed = activeContracts.fold<double>(
         0, (sum, c) => sum + (c.balance > 0 ? c.balance : 0));
+    final totalPaid = contracts.fold<double>(0, (sum, c) => sum + c.payments);
+    final overdueCount =
+        activeContracts.where((c) => c.currentUnpaid > 0).length;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
+        const Align(
+          alignment: Alignment.centerRight,
+          child: PortalLanguageSwitch.themed(dark: true),
+        ),
         _buildHero(totalOwed),
-        const SizedBox(height: 20),
         if (contracts.isNotEmpty) ...[
+          const SizedBox(height: 16),
           Row(
             children: [
-              const Text('Mikataba Yako',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.text)),
-              const SizedBox(width: 6),
-              Text('(${contracts.length})',
-                  style: const TextStyle(
-                      fontSize: 14, color: AppColors.textLight)),
+              Expanded(
+                  child: _summaryTile(Icons.two_wheeler, '${contracts.length}',
+                      PortalStrings.t('mikataba'))),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _summaryTile(
+                      Icons.payments_outlined,
+                      'TSH ${Formatters.formatCurrency(totalPaid)}',
+                      PortalStrings.t('paid_so_far'))),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _summaryTile(Icons.warning_amber_rounded,
+                      '$overdueCount', PortalStrings.t('days_overdue'))),
             ],
           ),
-          const SizedBox(height: 12),
-          ...contracts.map(_buildContractCard),
         ] else
           _buildEmpty(),
       ],
+    );
+  }
+
+  Widget _summaryTile(IconData icon, String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(height: 6),
+          Text(value,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(label,
+              style: const TextStyle(fontSize: 9.5, color: AppColors.textLight),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+        ],
+      ),
     );
   }
 
@@ -253,7 +224,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
         children: [
           const Icon(Icons.receipt_long, size: 48, color: AppColors.textLight),
           const SizedBox(height: 12),
-          const Text('No contracts found for this phone number.'),
+          Text(PortalStrings.t('no_contracts')),
           const SizedBox(height: 4),
           Text(_phone, style: const TextStyle(color: AppColors.textLight)),
         ],
@@ -276,7 +247,10 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_tenantName.isEmpty ? 'Deni lako lote kwa sasa' : _tenantName,
+          Text(
+              _tenantName.isEmpty
+                  ? PortalStrings.t('total_owed_label')
+                  : _tenantName,
               style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 12.5,
@@ -297,17 +271,209 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
               ],
             )
           else
-            const Text('Umeshalipa deni lako lote',
-                style: TextStyle(
+            Text(PortalStrings.t('fully_paid'),
+                style: const TextStyle(
                     color: Color(0xFF6FCF97),
                     fontSize: 20,
                     fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-          Text('Namba ya simu: $_phone',
+          Text(PortalStrings.t('phone_number_colon', {'0': _phone}),
               style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
         ],
       ),
     );
+  }
+
+  Widget _buildError() {
+    return ListView(
+      children: [
+        const SizedBox(height: 80),
+        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+        const SizedBox(height: 12),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(_error ?? 'Something went wrong',
+                textAlign: TextAlign.center),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Mikataba: full contract list ──────────────────────────────────────
+
+  Widget _buildMikatabaTab() {
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _buildError()
+              : _buildContractList(),
+    );
+  }
+
+  Widget _buildContractList() {
+    final contracts = _contracts ?? [];
+    if (contracts.isEmpty) {
+      return ListView(children: [_buildEmpty()]);
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(PortalStrings.t('your_contracts'),
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.text)),
+                const SizedBox(width: 6),
+                Text('(${contracts.length})',
+                    style: const TextStyle(
+                        fontSize: 14, color: AppColors.textLight)),
+              ],
+            ),
+            const PortalLanguageSwitch.themed(dark: true),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ...contracts.map(_buildContractCard),
+      ],
+    );
+  }
+
+  // ── Malipo / Taarifa: scoped to one contract ──────────────────────────
+
+  /// Malipo/Taarifa belong to a specific contract, not the account as a
+  /// whole -- shows a contract picker above the tab when there's more than
+  /// one, otherwise goes straight to the customer's only contract.
+  Widget _buildContractScopedTab({
+    required IconData icon,
+    required String emptyKey,
+    required Widget Function(Contract contract) builder,
+  }) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final contracts = _contracts ?? [];
+    if (contracts.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 48, color: AppColors.textLight),
+              const SizedBox(height: 12),
+              Text(PortalStrings.t(emptyKey), textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
+    final index =
+        _selectedContractIndex < contracts.length ? _selectedContractIndex : 0;
+    final selected = contracts[index];
+
+    return Column(
+      children: [
+        if (contracts.length > 1) _buildContractSwitcher(contracts, index),
+        Expanded(child: builder(selected)),
+      ],
+    );
+  }
+
+  /// A tappable chip naming the contract in scope, opening a sheet to pick
+  /// a different one -- only shown when there's more than one, so most
+  /// customers (one contract) never see it.
+  Widget _buildContractSwitcher(List<Contract> contracts, int index) {
+    final selected = contracts[index];
+    final label = selected.contractDescription.isNotEmpty
+        ? selected.contractDescription
+        : '${PortalStrings.t('contract_label')} #${selected.id}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      color: Colors.white,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => _pickContract(contracts, index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.lightBackground,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.two_wheeler, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(label,
+                    style: const TextStyle(
+                        fontSize: 13.5, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const Icon(Icons.unfold_more,
+                  size: 18, color: AppColors.textLight),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickContract(List<Contract> contracts, int current) async {
+    final choice = await showModalBottomSheet<int>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (var i = 0; i < contracts.length; i++)
+              ListTile(
+                leading: Icon(Icons.two_wheeler,
+                    color:
+                        i == current ? AppColors.primary : AppColors.textLight),
+                title: Text(
+                  contracts[i].contractDescription.isNotEmpty
+                      ? contracts[i].contractDescription
+                      : '${PortalStrings.t('contract_label')} #${contracts[i].id}',
+                  style: TextStyle(
+                      fontWeight:
+                          i == current ? FontWeight.bold : FontWeight.normal),
+                ),
+                trailing: i == current
+                    ? const Icon(Icons.check, color: AppColors.primary)
+                    : null,
+                onTap: () => Navigator.pop(context, i),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (choice != null) setState(() => _selectedContractIndex = choice);
   }
 
   Widget _buildContractCard(Contract contract) {
@@ -348,7 +514,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                         Text(
                           contract.contractDescription.isNotEmpty
                               ? contract.contractDescription
-                              : 'Mkataba #${contract.id}',
+                              : '${PortalStrings.t('contract_label')} #${contract.id}',
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 14.5),
                         ),
@@ -369,8 +535,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                         border: Border.all(
                             color: AppColors.success.withOpacity(0.4)),
                       ),
-                      child: const Text('Imelipwa',
-                          style: TextStyle(
+                      child: Text(PortalStrings.t('status_completed'),
+                          style: const TextStyle(
                               color: AppColors.success,
                               fontSize: 11,
                               fontWeight: FontWeight.bold)),
@@ -383,8 +549,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                             'TSH ${Formatters.formatCurrency(contract.balance)}',
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 13.5)),
-                        const Text('salio',
-                            style: TextStyle(
+                        Text(PortalStrings.t('balance_label'),
+                            style: const TextStyle(
                                 fontSize: 10.5, color: AppColors.textLight)),
                       ],
                     ),
@@ -417,7 +583,9 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                             fontWeight: FontWeight.bold,
                             color: statusStyle.color)),
                   ),
-                  Text('${(paidFraction * 100).round()}% imelipwa',
+                  Text(
+                      PortalStrings.t('percent_paid',
+                          {'0': (paidFraction * 100).round().toString()}),
                       style: const TextStyle(
                           fontSize: 11, color: AppColors.textLight)),
                 ],
@@ -437,27 +605,31 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   /// and how many days behind (if any).
   Widget _buildMiniStats(Contract contract) {
     final stats = <(String, String)>[
-      ('Siku ya mkataba', 'Siku ${contract.days}'),
       (
-        'Amepitisha siku',
-        contract.daysUnpaid > 0
-            ? '${contract.daysUnpaid.toInt()} siku'
-            : 'Hakuna'
+        PortalStrings.t('day_of_contract'),
+        PortalStrings.t('n_days', {'0': '${contract.days}'})
       ),
       (
-        'Amelipa hadi sasa',
+        PortalStrings.t('days_overdue'),
+        contract.daysUnpaid > 0
+            ? PortalStrings.t(
+                'n_days', {'0': contract.daysUnpaid.toInt().toString()})
+            : PortalStrings.t('none')
+      ),
+      (
+        PortalStrings.t('paid_so_far'),
         'TSH ${Formatters.formatCurrency(contract.payments)}'
       ),
       (
-        'Salio linalobaki',
+        PortalStrings.t('balance_remaining'),
         'TSH ${Formatters.formatCurrency(contract.balance)}'
       ),
       (
-        'Anadaiwa hadi leo',
+        PortalStrings.t('owed_today'),
         'TSH ${Formatters.formatCurrency(contract.currentUnpaid)}'
       ),
       (
-        'Kiwango cha kila siku',
+        PortalStrings.t('daily_rate_label'),
         'TSH ${Formatters.formatCurrency(contract.returnAmount)}'
       ),
     ];
@@ -489,23 +661,44 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   ({Color color, String label}) _statusStyle(String status) {
     switch (status) {
       case 'terminated':
-        return (color: Colors.grey, label: 'Umesitishwa');
+        return (
+          color: Colors.grey,
+          label: PortalStrings.t('status_terminated')
+        );
       case 'completed':
-        return (color: AppColors.success, label: 'Imelipwa kamili');
+        return (
+          color: AppColors.success,
+          label: PortalStrings.t('status_completed')
+        );
       case 'on_track':
-        return (color: AppColors.success, label: 'Inaendelea vizuri');
+        return (
+          color: AppColors.success,
+          label: PortalStrings.t('status_on_track')
+        );
       case 'behind':
-        return (color: AppColors.warning, label: 'Umechelewa');
+        return (
+          color: AppColors.warning,
+          label: PortalStrings.t('status_behind')
+        );
       default:
-        return (color: AppColors.error, label: 'Umechelewa sana');
+        return (
+          color: AppColors.error,
+          label: PortalStrings.t('status_overdue')
+        );
     }
   }
+
+  // ── Account ────────────────────────────────────────────────────────
 
   Widget _buildAccountTab() {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const SizedBox(height: 12),
+        const Align(
+          alignment: Alignment.centerRight,
+          child: PortalLanguageSwitch.themed(dark: true),
+        ),
+        const SizedBox(height: 4),
         Center(
           child: CircleAvatar(
             radius: 36,
@@ -533,7 +726,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           ),
           child: ListTile(
             leading: const Icon(Icons.lock_outline, color: AppColors.primary),
-            title: const Text('Badilisha Password'),
+            title: Text(PortalStrings.t('change_password_tile')),
             trailing: const Icon(Icons.chevron_right, size: 20),
             onTap: () => Navigator.push(
               context,
@@ -551,7 +744,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           ),
           child: ListTile(
             leading: const Icon(Icons.logout, color: AppColors.error),
-            title: const Text('Toka', style: TextStyle(color: AppColors.error)),
+            title: Text(PortalStrings.t('logout'),
+                style: const TextStyle(color: AppColors.error)),
             onTap: _logout,
           ),
         ),
