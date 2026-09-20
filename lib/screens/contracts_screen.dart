@@ -143,23 +143,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: contract.balance > 0
-                          ? AppColors.warning.withOpacity(0.1)
-                          : AppColors.success.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      contract.balance > 0 ? 'Active' : 'Paid',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: contract.balance > 0 ? AppColors.warning : AppColors.success,
-                      ),
-                    ),
-                  ),
+                  _buildStatusBadge(contract),
                 ],
               ),
               const SizedBox(height: 8),
@@ -168,13 +152,19 @@ class _ContractsScreenState extends State<ContractsScreen> {
               if (contract.phone.isNotEmpty)
                 Row(
                   children: [
-                    Icon(Icons.phone, size: 16, color: isDark ? AppColors.darkTextLight : AppColors.textLight),
+                    Icon(Icons.phone,
+                        size: 16,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight),
                     const SizedBox(width: 4),
                     Text(
                       contract.phone,
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight,
                       ),
                     ),
                   ],
@@ -200,15 +190,27 @@ class _ContractsScreenState extends State<ContractsScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildInfoRow('Contract Amount', Formatters.formatCurrency(contract.contractAmount), isDark: isDark),
+                    _buildInfoRow('Contract Amount',
+                        Formatters.formatCurrency(contract.contractAmount),
+                        isDark: isDark),
                     const Divider(height: 16),
-                    _buildInfoRow('Payments', Formatters.formatCurrency(contract.payments), color: AppColors.success, isDark: isDark),
+                    _buildInfoRow('Payments',
+                        Formatters.formatCurrency(contract.payments),
+                        color: AppColors.success, isDark: isDark),
                     const Divider(height: 16),
-                    _buildInfoRow('Balance', Formatters.formatCurrency(contract.balance),
-                        color: contract.balance > 0 ? AppColors.error : AppColors.success, isDark: isDark),
+                    _buildInfoRow(
+                        'Balance', Formatters.formatCurrency(contract.balance),
+                        color: contract.balance > 0
+                            ? AppColors.error
+                            : AppColors.success,
+                        isDark: isDark),
                     const Divider(height: 16),
-                    _buildInfoRow('Profit', Formatters.formatCurrency(contract.profit),
-                        color: contract.profit >= 0 ? AppColors.success : AppColors.error, isDark: isDark),
+                    _buildInfoRow(
+                        'Profit', Formatters.formatCurrency(contract.profit),
+                        color: contract.profit >= 0
+                            ? AppColors.success
+                            : AppColors.error,
+                        isDark: isDark),
                   ],
                 ),
               ),
@@ -218,10 +220,18 @@ class _ContractsScreenState extends State<ContractsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildDayInfo('Days', contract.days.toString(), isDark: isDark),
-                  _buildDayInfo('Paid', contract.daysPaid.toStringAsFixed(0), color: AppColors.success, isDark: isDark),
-                  _buildDayInfo('Unpaid', contract.daysUnpaid.toStringAsFixed(0),
-                      color: contract.daysUnpaid > 0 ? AppColors.error : (isDark ? AppColors.darkTextLight : AppColors.textLight), isDark: isDark),
+                  _buildDayInfo('Days', contract.days.toString(),
+                      isDark: isDark),
+                  _buildDayInfo('Paid', contract.daysPaid.toStringAsFixed(0),
+                      color: AppColors.success, isDark: isDark),
+                  _buildDayInfo(
+                      'Unpaid', contract.daysUnpaid.toStringAsFixed(0),
+                      color: contract.daysUnpaid > 0
+                          ? AppColors.error
+                          : (isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight),
+                      isDark: isDark),
                 ],
               ),
               const SizedBox(height: 8),
@@ -234,7 +244,8 @@ class _ContractsScreenState extends State<ContractsScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ContractDetailsScreen(contract: contract),
+                        builder: (_) =>
+                            ContractDetailsScreen(contract: contract),
                       ),
                     );
                   },
@@ -252,7 +263,47 @@ class _ContractsScreenState extends State<ContractsScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {Color? color, required bool isDark}) {
+  /// Mirrors the web list's badge (completed/on_track/behind/overdue),
+  /// reading Contract.status straight from the server instead of the
+  /// screen's own balance>0 guess -- that couldn't tell "paid off" from
+  /// "still within term" apart, and never showed "Completed" at all.
+  Widget _buildStatusBadge(Contract contract) {
+    final Color color;
+    final String label;
+    switch (contract.status) {
+      case 'completed':
+        color = AppColors.success;
+        label = 'Completed';
+        break;
+      case 'on_track':
+        color = AppColors.success;
+        label = 'On Track';
+        break;
+      case 'behind':
+        color = AppColors.warning;
+        label = 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d';
+        break;
+      default:
+        color = AppColors.error;
+        label = 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style:
+            TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value,
+      {Color? color, required bool isDark}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -275,7 +326,8 @@ class _ContractsScreenState extends State<ContractsScreen> {
     );
   }
 
-  Widget _buildDayInfo(String label, String value, {Color? color, required bool isDark}) {
+  Widget _buildDayInfo(String label, String value,
+      {Color? color, required bool isDark}) {
     return Column(
       children: [
         Text(
@@ -319,32 +371,38 @@ class _ContractsScreenState extends State<ContractsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 SkeletonLoader(width: 150, height: 18, isDark: isDark),
-                SkeletonLoader(width: 80, height: 24, borderRadius: 12, isDark: isDark),
+                SkeletonLoader(
+                    width: 80, height: 24, borderRadius: 12, isDark: isDark),
               ],
             ),
             const SizedBox(height: 12),
             SkeletonLoader(width: 200, height: 14, isDark: isDark),
             const SizedBox(height: 16),
-            ...List.generate(4, (i) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SkeletonLoader(width: 100, height: 14, isDark: isDark),
-                  SkeletonLoader(width: 80, height: 14, isDark: isDark),
-                ],
-              ),
-            )),
+            ...List.generate(
+                4,
+                (i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SkeletonLoader(
+                              width: 100, height: 14, isDark: isDark),
+                          SkeletonLoader(width: 80, height: 14, isDark: isDark),
+                        ],
+                      ),
+                    )),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(3, (i) => Column(
-                children: [
-                  SkeletonLoader(width: 40, height: 20, isDark: isDark),
-                  const SizedBox(height: 4),
-                  SkeletonLoader(width: 50, height: 12, isDark: isDark),
-                ],
-              )),
+              children: List.generate(
+                  3,
+                  (i) => Column(
+                        children: [
+                          SkeletonLoader(width: 40, height: 20, isDark: isDark),
+                          const SizedBox(height: 4),
+                          SkeletonLoader(width: 50, height: 12, isDark: isDark),
+                        ],
+                      )),
             ),
           ],
         ),

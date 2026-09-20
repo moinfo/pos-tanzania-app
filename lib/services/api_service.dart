@@ -1680,6 +1680,35 @@ class ApiService {
     }
   }
 
+  /// Record a payment against a contract. Requires
+  /// PermissionIds.contractsPaymentsAdd, a separate grant from just viewing
+  /// contracts. Response carries the contract's fresh metrics (balance,
+  /// days_unpaid, status, ...) so the caller can update its display without
+  /// a second round trip -- see api/Contracts::add_payment on the backend.
+  Future<ApiResponse<Map<String, dynamic>>> addContractPayment(
+    int contractId, {
+    required double amount,
+    required String date,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/$contractId/payments'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'amount': amount,
+          'date': date,
+          if (description != null && description.isNotEmpty)
+            'description': description,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ============ EXPENSES ENDPOINTS ============
 
   /// Get all expenses

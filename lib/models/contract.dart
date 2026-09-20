@@ -23,6 +23,15 @@ class Contract {
   final double daysUnpaid;
   final double currentUnpaid;
 
+  /// Server-computed (Contract::compute_metrics on the backend) rather than
+  /// derived client-side from balance alone: 'completed' (paid in full),
+  /// 'on_track', 'behind' (<=7 days), or 'overdue' (>7 days). A contract
+  /// stops accruing new "unpaid" days once either the term ends or the
+  /// balance is paid off -- see isExpired/isCompleted.
+  final String status;
+  final bool isExpired;
+  final bool isCompleted;
+
   Contract({
     required this.id,
     required this.name,
@@ -47,6 +56,9 @@ class Contract {
     required this.daysPaid,
     required this.daysUnpaid,
     required this.currentUnpaid,
+    this.status = 'on_track',
+    this.isExpired = false,
+    this.isCompleted = false,
   });
 
   factory Contract.fromJson(Map<String, dynamic> json) {
@@ -74,6 +86,9 @@ class Contract {
       daysPaid: (json['days_paid'] as num).toDouble(),
       daysUnpaid: (json['days_unpaid'] as num).toDouble(),
       currentUnpaid: (json['current_unpaid'] as num).toDouble(),
+      status: json['status'] as String? ?? 'on_track',
+      isExpired: json['is_expired'] as bool? ?? false,
+      isCompleted: json['is_completed'] as bool? ?? false,
     );
   }
 
@@ -102,6 +117,9 @@ class Contract {
       'days_paid': daysPaid,
       'days_unpaid': daysUnpaid,
       'current_unpaid': currentUnpaid,
+      'status': status,
+      'is_expired': isExpired,
+      'is_completed': isCompleted,
     };
   }
 }

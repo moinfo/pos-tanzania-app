@@ -195,7 +195,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (contractsResponse.isSuccess) {
         final contracts = contractsResponse.data ?? [];
         for (var contract in contracts) {
-          totalUnpaid += (contract.daysUnpaid * 10000);
+          // Server-computed (Contract::compute_metrics), not recomputed
+          // here -- this used to hardcode *10000 regardless of the
+          // contract's own daily rate, a second site with the same bug
+          // just fixed in the backend and API model.
+          totalUnpaid += contract.currentUnpaid;
         }
       }
     }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/permission_provider.dart';
 import '../services/api_service.dart';
 import '../models/contract.dart';
+import '../models/permission_model.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -25,9 +27,16 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
 
+  // Mutable copy of widget.contract -- refreshed after a payment so the
+  // summary card reflects the new balance/status without leaving the
+  // screen (widget.contract itself is a snapshot from the list screen).
+  late Contract _contract;
+  bool _isAddingPayment = false;
+
   @override
   void initState() {
     super.initState();
+    _contract = widget.contract;
     // Default to current month
     _startDate = DateTime(_startDate.year, _startDate.month, 1);
     _endDate = DateTime(_endDate.year, _endDate.month + 1, 0);
@@ -41,7 +50,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     });
 
     final result = await _apiService.getContractStatement(
-      widget.contract.id,
+      _contract.id,
       startDate: Formatters.formatDateForApi(_startDate),
       endDate: Formatters.formatDateForApi(_endDate),
     );
@@ -49,7 +58,8 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     setState(() {
       if (result.isSuccess && result.data != null) {
         final statementData = result.data!['statement'] as List;
-        _statement = statementData.map((item) => StatementEntry.fromJson(item)).toList();
+        _statement =
+            statementData.map((item) => StatementEntry.fromJson(item)).toList();
         _errorMessage = null;
       } else {
         _statement = null;
@@ -85,17 +95,157 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     }
   }
 
+  Future<void> _addPayment() async {
+    final amountController = TextEditingController();
+    final descriptionController = TextEditingController();
+    DateTime paymentDate = DateTime.now();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Add Payment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                  'Daily rate: ${Formatters.formatCurrency(_contract.returnAmount)}'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Amount',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: paymentDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null)
+                    setDialogState(() => paymentDate = picked);
+                },
+                icon: const Icon(Icons.calendar_today, size: 16),
+                label: Text(Formatters.formatDate(
+                    Formatters.formatDateForApi(paymentDate))),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+              child: const Text('Save', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true) {
+      amountController.dispose();
+      descriptionController.dispose();
+      return;
+    }
+
+    final amount = double.tryParse(amountController.text.trim());
+    final description = descriptionController.text.trim();
+    amountController.dispose();
+    descriptionController.dispose();
+
+    if (amount == null || amount <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Enter a valid amount'),
+            backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    setState(() => _isAddingPayment = true);
+    final response = await _apiService.addContractPayment(
+      _contract.id,
+      amount: amount,
+      date: Formatters.formatDateForApi(paymentDate),
+      description: description,
+    );
+    if (!mounted) return;
+    setState(() => _isAddingPayment = false);
+
+    if (response.isSuccess && response.data != null) {
+      final updated = response.data!['contract'] as Map<String, dynamic>?;
+      if (updated != null) {
+        setState(() =>
+            _contract = Contract.fromJson({..._contract.toJson(), ...updated}));
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(response.message ?? 'Payment recorded'),
+            backgroundColor: AppColors.success),
+      );
+      _loadStatement();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(response.message ?? 'Failed to record payment'),
+            backgroundColor: AppColors.error),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode;
+    final canAddPayment = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.contractsPaymentsAdd);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.contract.name),
+        title: Text(_contract.name),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
       ),
+      floatingActionButton: canAddPayment
+          ? FloatingActionButton.extended(
+              onPressed: _isAddingPayment ? null : _addPayment,
+              icon: _isAddingPayment
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.add),
+              label: const Text('Add Payment'),
+              backgroundColor: AppColors.success,
+            )
+          : null,
       body: Column(
         children: [
           // Contract summary card
@@ -106,28 +256,40 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.contract.contractDescription,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkText : AppColors.text,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _contract.contractDescription,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkText : AppColors.text,
+                          ),
+                        ),
+                      ),
+                      _buildStatusBadge(_contract),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildSummaryItem('Balance', Formatters.formatCurrency(widget.contract.balance), isDark),
-                      _buildSummaryItem('Profit', Formatters.formatCurrency(widget.contract.profit), isDark),
+                      _buildSummaryItem('Balance',
+                          Formatters.formatCurrency(_contract.balance), isDark),
+                      _buildSummaryItem('Profit',
+                          Formatters.formatCurrency(_contract.profit), isDark),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildSummaryItem('Days Paid', widget.contract.daysPaid.toStringAsFixed(0), isDark),
-                      _buildSummaryItem('Days Unpaid', widget.contract.daysUnpaid.toStringAsFixed(0), isDark),
+                      _buildSummaryItem('Days Paid',
+                          _contract.daysPaid.toStringAsFixed(0), isDark),
+                      _buildSummaryItem('Days Unpaid',
+                          _contract.daysUnpaid.toStringAsFixed(0), isDark),
                     ],
                   ),
                 ],
@@ -145,7 +307,8 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                     onPressed: _selectStartDate,
                     icon: const Icon(Icons.calendar_today, size: 16),
                     label: Text(
-                      Formatters.formatDate(Formatters.formatDateForApi(_startDate)),
+                      Formatters.formatDate(
+                          Formatters.formatDateForApi(_startDate)),
                       style: const TextStyle(fontSize: 12),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -155,14 +318,19 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('to', style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                  child: Text('to',
+                      style: TextStyle(
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight)),
                 ),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _selectEndDate,
                     icon: const Icon(Icons.calendar_today, size: 16),
                     label: Text(
-                      Formatters.formatDate(Formatters.formatDateForApi(_endDate)),
+                      Formatters.formatDate(
+                          Formatters.formatDateForApi(_endDate)),
                       style: const TextStyle(fontSize: 12),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -197,7 +365,9 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: isDark ? AppColors.darkText : AppColors.text,
+                                  color: isDark
+                                      ? AppColors.darkText
+                                      : AppColors.text,
                                 ),
                               ),
                               const SizedBox(height: 24),
@@ -215,11 +385,13 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                         ),
                       )
                     : _statement == null || _statement!.isEmpty
-                        ? const Center(child: Text('No statement data available'))
+                        ? const Center(
+                            child: Text('No statement data available'))
                         : RefreshIndicator(
                             onRefresh: _loadStatement,
                             child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: _statement!.length,
                               itemBuilder: (context, index) {
                                 final entry = _statement![index];
@@ -231,6 +403,42 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
         ],
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: 4),
+    );
+  }
+
+  /// Same status scheme as ContractsScreen's card -- see its doc comment.
+  Widget _buildStatusBadge(Contract contract) {
+    final Color color;
+    final String label;
+    switch (contract.status) {
+      case 'completed':
+        color = AppColors.success;
+        label = 'Completed';
+        break;
+      case 'on_track':
+        color = AppColors.success;
+        label = 'On Track';
+        break;
+      case 'behind':
+        color = AppColors.warning;
+        label = 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d';
+        break;
+      default:
+        color = AppColors.error;
+        label = 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style:
+            TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+      ),
     );
   }
 
@@ -266,7 +474,11 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: isSpecial ? 2 : 1,
-      color: isSpecial ? (isDark ? AppColors.darkSurface : AppColors.primary.withOpacity(0.05)) : null,
+      color: isSpecial
+          ? (isDark
+              ? AppColors.darkSurface
+              : AppColors.primary.withOpacity(0.05))
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -288,7 +500,8 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                   Formatters.formatDate(entry.date),
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight,
                     fontWeight: isSpecial ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
@@ -336,7 +549,8 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     );
   }
 
-  Widget _buildAmountColumn(String label, double amount, Color color, {bool isBold = false, required bool isDark}) {
+  Widget _buildAmountColumn(String label, double amount, Color color,
+      {bool isBold = false, required bool isDark}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -353,7 +567,9 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            color: amount == 0 ? (isDark ? AppColors.darkTextLight : AppColors.textLight) : color,
+            color: amount == 0
+                ? (isDark ? AppColors.darkTextLight : AppColors.textLight)
+                : color,
           ),
         ),
       ],
@@ -376,7 +592,8 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            SkeletonLoader(width: 40, height: 40, borderRadius: 8, isDark: isDark),
+            SkeletonLoader(
+                width: 40, height: 40, borderRadius: 8, isDark: isDark),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

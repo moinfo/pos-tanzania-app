@@ -95,6 +95,9 @@ class PermissionIds {
   static const String config = 'config';
   static const String office = 'office';
   static const String contracts = 'contracts';
+  // Recording a payment is a separate grant from just viewing contracts,
+  // same rollout convention as itemsApprove/transfersApprove.
+  static const String contractsPaymentsAdd = 'contracts_payments_add';
   static const String expenses = 'expenses';
   static const String withdrawal = 'withdrawal';
   static const String cashSubmit = 'cash_submit';
