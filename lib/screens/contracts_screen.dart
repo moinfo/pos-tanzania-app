@@ -10,6 +10,7 @@ import '../utils/formatters.dart';
 import '../widgets/skeleton_loader.dart';
 import 'contract_details_screen.dart';
 import 'contract_form_screen.dart';
+import 'contract_settings_screen.dart';
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -83,6 +84,18 @@ class _ContractsScreenState extends State<ContractsScreen> {
         title: const Text('Contracts'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          if (canAdd)
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'Contract Rules',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const ContractSettingsScreen()),
+              ),
+            ),
+        ],
       ),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(

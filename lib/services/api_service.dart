@@ -13,6 +13,7 @@ import '../models/banking.dart';
 import '../models/financial_banking.dart';
 import '../models/profit_submit.dart';
 import '../models/contract.dart';
+import '../models/contract_settings.dart';
 import '../models/discount_request.dart';
 import '../models/item_approval.dart';
 import '../models/transfer_approval.dart';
@@ -1826,6 +1827,37 @@ class ApiService {
       final response = await http.get(uri, headers: await _getHeaders());
 
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Contract Rules / Message Templates -- same tenant-wide settings web
+  /// edits at My Subscription -> Contract Rules. Requires
+  /// PermissionIds.contractsAdd, same as creating/renewing a contract.
+  Future<ApiResponse<ContractSettings>> getContractSettings() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/contract-settings'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<ContractSettings>(
+          response, (data) => ContractSettings.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<ContractSettings>> saveContractSettings(
+      ContractSettings settings) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contract-settings/save'),
+        headers: await _getHeaders(),
+        body: json.encode(settings.toJson()),
+      );
+      return _handleResponse<ContractSettings>(
+          response, (data) => ContractSettings.fromJson(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
