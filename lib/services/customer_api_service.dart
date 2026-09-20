@@ -122,8 +122,11 @@ class CustomerApiService {
     }
   }
 
+  /// [tenantCode] is optional -- a customer no more knows which tenant
+  /// they belong to than staff do, so when it's omitted the backend tries
+  /// every tenant with an active account matching the phone number.
   Future<ApiResponse<Map<String, dynamic>>> login({
-    required String tenantCode,
+    String? tenantCode,
     required String phone,
     required String password,
   }) async {
@@ -131,8 +134,12 @@ class CustomerApiService {
       final response = await http.post(
         Uri.parse('$_baseUrl/portal/login'),
         headers: await _headers(auth: false),
-        body: json.encode(
-            {'tenant_code': tenantCode, 'phone': phone, 'password': password}),
+        body: json.encode({
+          if (tenantCode != null && tenantCode.isNotEmpty)
+            'tenant_code': tenantCode,
+          'phone': phone,
+          'password': password,
+        }),
       );
       final result =
           _handle<Map<String, dynamic>>(response, (data) => data ?? {});

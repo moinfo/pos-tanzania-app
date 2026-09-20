@@ -19,7 +19,9 @@ import 'main_navigation.dart';
 import 'client_selector_screen.dart';
 import 'landing/landing_screen.dart';
 import 'register_screen.dart';
-import 'portal/portal_login_screen.dart';
+import 'portal/portal_register_screen.dart';
+import 'portal/portal_dashboard_screen.dart';
+import '../services/customer_api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -126,6 +128,15 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else if (mounted) {
+      // Not a staff account -- try the customer self-service portal before
+      // giving up, so there's one login form rather than staff needing a
+      // separate "are you a customer?" screen. Only worth trying where
+      // Contracts exists at all; mirrors Login::login_check() on the web.
+      final hasContracts =
+          ApiService.currentClient?.features.hasContracts ?? false;
+      if (hasContracts && await _tryCustomerLogin()) return;
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? 'Login failed'),
@@ -133,6 +144,21 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     }
+  }
+
+  /// Returns true (and navigates) if [_usernameController]/[_passwordController]
+  /// matched a customer portal account instead of a staff one.
+  Future<bool> _tryCustomerLogin() async {
+    final response = await CustomerApiService().login(
+      phone: _usernameController.text.trim(),
+      password: _passwordController.text,
+    );
+    if (!response.isSuccess) return false;
+    if (!mounted) return true;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const PortalDashboardScreen()),
+    );
+    return true;
   }
 
   /// Handle biometric login
@@ -649,9 +675,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Customer self-service portal entry point -- only where
-                    // Contracts exists at all (the boda-boda hire-purchase
-                    // flavor), a completely separate login from staff above.
+                    // Customers use the SAME login form above (phone +
+                    // password) -- _handleLogin() falls back to a customer
+                    // login when staff auth fails, see _tryCustomerLogin().
+                    // This link is only for someone who doesn't have an
+                    // account yet at all.
                     if (ApiService.currentClient?.features.hasContracts ??
                         false)
                       TextButton.icon(
@@ -659,7 +687,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => const PortalLoginScreen()),
+                                builder: (_) => const PortalRegisterScreen()),
                           );
                         },
                         icon: Icon(
@@ -668,7 +696,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           size: 18,
                         ),
                         label: Text(
-                          'Are you a customer? View your contract',
+                          'New customer? Register to view your contract',
                           style: TextStyle(
                             color: isDark ? AppColors.darkText : Colors.white,
                             fontSize: 13,
