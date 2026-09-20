@@ -544,6 +544,8 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                           color: AppColors.error),
                     ),
                   ],
+                  const Divider(height: 24),
+                  _buildAssetInfo(isDark, canAdd),
                 ],
               ),
             ),
@@ -696,6 +698,178 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
             TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
       ),
     );
+  }
+
+  Widget _buildAssetInfo(bool isDark, bool canEdit) {
+    final hasInfo = (_contract.assetPlateNumber?.isNotEmpty ?? false) ||
+        (_contract.assetChassisNumber?.isNotEmpty ?? false) ||
+        (_contract.assetInsuranceProvider?.isNotEmpty ?? false);
+    final expiry = _contract.assetInsuranceExpiry;
+    final insuranceExpired = expiry != null &&
+        expiry.compareTo(Formatters.formatDateForApi(DateTime.now())) < 0;
+    final textColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: hasInfo
+              ? Wrap(
+                  spacing: 12,
+                  runSpacing: 4,
+                  children: [
+                    if (_contract.assetPlateNumber?.isNotEmpty ?? false)
+                      Text('Plate: ${_contract.assetPlateNumber}',
+                          style: TextStyle(fontSize: 12, color: textColor)),
+                    if (_contract.assetChassisNumber?.isNotEmpty ?? false)
+                      Text('Chassis: ${_contract.assetChassisNumber}',
+                          style: TextStyle(fontSize: 12, color: textColor)),
+                    if (_contract.assetInsuranceProvider?.isNotEmpty ?? false)
+                      Text(
+                        'Insurance: ${_contract.assetInsuranceProvider}'
+                        '${expiry != null ? ' (expires $expiry${insuranceExpired ? ' -- EXPIRED' : ''})' : ''}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: insuranceExpired ? AppColors.error : textColor,
+                          fontWeight: insuranceExpired
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                  ],
+                )
+              : Text('No asset info recorded.',
+                  style: TextStyle(fontSize: 12, color: textColor)),
+        ),
+        if (canEdit)
+          InkWell(
+            onTap: _editAssetInfo,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Icon(Icons.edit, size: 16, color: textColor),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _editAssetInfo() async {
+    final plateController =
+        TextEditingController(text: _contract.assetPlateNumber ?? '');
+    final chassisController =
+        TextEditingController(text: _contract.assetChassisNumber ?? '');
+    final insuranceController =
+        TextEditingController(text: _contract.assetInsuranceProvider ?? '');
+    DateTime? expiry = _contract.assetInsuranceExpiry != null
+        ? DateTime.tryParse(_contract.assetInsuranceExpiry!)
+        : null;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Edit Asset Info'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: plateController,
+                  decoration: const InputDecoration(labelText: 'Plate Number'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: chassisController,
+                  decoration:
+                      const InputDecoration(labelText: 'Chassis Number'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: insuranceController,
+                  decoration:
+                      const InputDecoration(labelText: 'Insurance Provider'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: dialogContext,
+                      initialDate: expiry ?? DateTime.now(),
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate:
+                          DateTime.now().add(const Duration(days: 365 * 3)),
+                      helpText: 'Insurance expiry date',
+                    );
+                    if (picked != null) {
+                      setDialogState(() => expiry = picked);
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(expiry == null
+                      ? 'Insurance Expiry'
+                      : 'Expiry: ${Formatters.formatDate(Formatters.formatDateForApi(expiry!))}'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+
+    final response = await _apiService.updateContractAsset(
+      _contract.id,
+      assetPlateNumber: plateController.text.trim(),
+      assetChassisNumber: chassisController.text.trim(),
+      assetInsuranceProvider: insuranceController.text.trim(),
+      assetInsuranceExpiry:
+          expiry == null ? null : Formatters.formatDateForApi(expiry!),
+    );
+
+    if (!mounted) return;
+
+    if (response.isSuccess) {
+      final updated = response.data ??
+          {
+            'asset_plate_number': plateController.text.trim().isEmpty
+                ? null
+                : plateController.text.trim(),
+            'asset_chassis_number': chassisController.text.trim().isEmpty
+                ? null
+                : chassisController.text.trim(),
+            'asset_insurance_provider': insuranceController.text.trim().isEmpty
+                ? null
+                : insuranceController.text.trim(),
+            'asset_insurance_expiry':
+                expiry == null ? null : Formatters.formatDateForApi(expiry!),
+          };
+      setState(() =>
+          _contract = Contract.fromJson({..._contract.toJson(), ...updated}));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Asset info updated'),
+            backgroundColor: AppColors.success),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message ?? 'Failed to update asset info'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Widget _buildSummaryItem(String label, String value, bool isDark) {

@@ -42,6 +42,11 @@ class Contract {
   final bool isTerminated;
   final String? terminationReason;
 
+  final String? assetPlateNumber;
+  final String? assetChassisNumber;
+  final String? assetInsuranceProvider;
+  final String? assetInsuranceExpiry;
+
   Contract({
     required this.id,
     required this.name,
@@ -72,6 +77,10 @@ class Contract {
     this.isCompleted = false,
     this.isTerminated = false,
     this.terminationReason,
+    this.assetPlateNumber,
+    this.assetChassisNumber,
+    this.assetInsuranceProvider,
+    this.assetInsuranceExpiry,
   });
 
   factory Contract.fromJson(Map<String, dynamic> json) {
@@ -105,6 +114,10 @@ class Contract {
       isCompleted: json['is_completed'] as bool? ?? false,
       isTerminated: json['is_terminated'] as bool? ?? false,
       terminationReason: json['termination_reason'] as String?,
+      assetPlateNumber: json['asset_plate_number'] as String?,
+      assetChassisNumber: json['asset_chassis_number'] as String?,
+      assetInsuranceProvider: json['asset_insurance_provider'] as String?,
+      assetInsuranceExpiry: json['asset_insurance_expiry'] as String?,
     );
   }
 
@@ -139,6 +152,10 @@ class Contract {
       'is_completed': isCompleted,
       'is_terminated': isTerminated,
       'termination_reason': terminationReason,
+      'asset_plate_number': assetPlateNumber,
+      'asset_chassis_number': assetChassisNumber,
+      'asset_insurance_provider': assetInsuranceProvider,
+      'asset_insurance_expiry': assetInsuranceExpiry,
     };
   }
 }

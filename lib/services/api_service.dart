@@ -1727,6 +1727,10 @@ class ApiService {
     String? guarantor2,
     String? phoneGuarantor2,
     String? contractDescription,
+    String? assetPlateNumber,
+    String? assetChassisNumber,
+    String? assetInsuranceProvider,
+    String? assetInsuranceExpiry,
   }) async {
     try {
       final response = await http.post(
@@ -1751,6 +1755,44 @@ class ApiService {
             'phone_guarantor2': phoneGuarantor2,
           if (contractDescription != null && contractDescription.isNotEmpty)
             'contract_description': contractDescription,
+          if (assetPlateNumber != null && assetPlateNumber.isNotEmpty)
+            'asset_plate_number': assetPlateNumber,
+          if (assetChassisNumber != null && assetChassisNumber.isNotEmpty)
+            'asset_chassis_number': assetChassisNumber,
+          if (assetInsuranceProvider != null &&
+              assetInsuranceProvider.isNotEmpty)
+            'asset_insurance_provider': assetInsuranceProvider,
+          if (assetInsuranceExpiry != null && assetInsuranceExpiry.isNotEmpty)
+            'asset_insurance_expiry': assetInsuranceExpiry,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update just a contract's asset (vehicle) identity fields -- insurance
+  /// renewed, a typo'd plate number fixed, etc. Requires
+  /// PermissionIds.contractsAdd, same grant as create. See
+  /// api/Contracts::update_asset on the backend.
+  Future<ApiResponse<Map<String, dynamic>>> updateContractAsset(
+    int contractId, {
+    String? assetPlateNumber,
+    String? assetChassisNumber,
+    String? assetInsuranceProvider,
+    String? assetInsuranceExpiry,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/$contractId/asset'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'asset_plate_number': assetPlateNumber,
+          'asset_chassis_number': assetChassisNumber,
+          'asset_insurance_provider': assetInsuranceProvider,
+          'asset_insurance_expiry': assetInsuranceExpiry,
         }),
       );
 

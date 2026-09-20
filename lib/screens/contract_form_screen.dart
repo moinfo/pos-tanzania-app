@@ -40,8 +40,14 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
   late final TextEditingController _returnAmountController;
   late final TextEditingController _contractCostController;
   late final TextEditingController _contractAmountController;
+  late final TextEditingController _assetPlateController;
+  late final TextEditingController _assetChassisController;
+  late final TextEditingController _assetInsuranceProviderController;
 
   DateTime _startDate = DateTime.now();
+  // Asset info is per-vehicle, so a renewal never inherits it -- the old
+  // contract's bike/insurance almost never carries over to the new one.
+  DateTime? _assetInsuranceExpiry;
   bool _isSaving = false;
 
   bool get _isRenewal => widget.renewFrom != null;
@@ -68,6 +74,9 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
         text: from == null ? '' : _formatNum(from.contractCost));
     _contractAmountController = TextEditingController(
         text: from == null ? '' : _formatNum(from.contractAmount));
+    _assetPlateController = TextEditingController();
+    _assetChassisController = TextEditingController();
+    _assetInsuranceProviderController = TextEditingController();
   }
 
   String _formatNum(double v) =>
@@ -86,6 +95,9 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     _returnAmountController.dispose();
     _contractCostController.dispose();
     _contractAmountController.dispose();
+    _assetPlateController.dispose();
+    _assetChassisController.dispose();
+    _assetInsuranceProviderController.dispose();
     super.dispose();
   }
 
@@ -104,6 +116,17 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
       helpText: 'Contract start date',
     );
     if (picked != null) setState(() => _startDate = picked);
+  }
+
+  Future<void> _pickInsuranceExpiry() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _assetInsuranceExpiry ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+      helpText: 'Insurance expiry date',
+    );
+    if (picked != null) setState(() => _assetInsuranceExpiry = picked);
   }
 
   Future<void> _submit() async {
@@ -129,6 +152,12 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
       guarantor2: _guarantor2Controller.text.trim(),
       phoneGuarantor2: _phoneGuarantor2Controller.text.trim(),
       contractDescription: _descriptionController.text.trim(),
+      assetPlateNumber: _assetPlateController.text.trim(),
+      assetChassisNumber: _assetChassisController.text.trim(),
+      assetInsuranceProvider: _assetInsuranceProviderController.text.trim(),
+      assetInsuranceExpiry: _assetInsuranceExpiry == null
+          ? null
+          : Formatters.formatDateForApi(_assetInsuranceExpiry!),
     );
 
     if (!mounted) return;
@@ -236,6 +265,21 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
             _textField(
                 _contractAmountController, 'Contract Amount (total owed)',
                 required: true, isNumeric: true),
+            const SizedBox(height: 8),
+            _sectionLabel('Vehicle / Asset Info (optional)', isDark),
+            _textField(_assetPlateController, 'Plate Number'),
+            _textField(_assetChassisController, 'Chassis Number'),
+            _textField(_assetInsuranceProviderController, 'Insurance Provider'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: OutlinedButton.icon(
+                onPressed: _pickInsuranceExpiry,
+                icon: const Icon(Icons.calendar_today, size: 16),
+                label: Text(_assetInsuranceExpiry == null
+                    ? 'Insurance Expiry'
+                    : 'Insurance Expiry: ${Formatters.formatDate(Formatters.formatDateForApi(_assetInsuranceExpiry!))}'),
+              ),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isSaving ? null : _submit,
