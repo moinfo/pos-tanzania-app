@@ -534,6 +534,16 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                           _contract.daysUnpaid.toStringAsFixed(0), isDark),
                     ],
                   ),
+                  if (_contract.penalty > 0) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Includes ${Formatters.formatCurrency(_contract.penalty)} late fee',
+                      style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error),
+                    ),
+                  ],
                 ],
               ),
             ),

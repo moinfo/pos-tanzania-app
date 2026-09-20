@@ -23,6 +23,12 @@ class Contract {
   final double daysUnpaid;
   final double currentUnpaid;
 
+  /// Already folded into currentUnpaid -- broken out separately so the UI
+  /// can show it as its own line rather than leaving it invisible inside
+  /// one number. Zero unless the tenant has set a late fee (My Subscription
+  /// -> Contract Rules) and this contract is past the grace period.
+  final double penalty;
+
   /// Server-computed (Contract::compute_metrics on the backend) rather than
   /// derived client-side from balance alone: 'terminated' (defaulted/
   /// repossessed -- overrides everything else), 'completed' (paid in
@@ -60,6 +66,7 @@ class Contract {
     required this.daysPaid,
     required this.daysUnpaid,
     required this.currentUnpaid,
+    this.penalty = 0,
     this.status = 'on_track',
     this.isExpired = false,
     this.isCompleted = false,
@@ -92,6 +99,7 @@ class Contract {
       daysPaid: (json['days_paid'] as num).toDouble(),
       daysUnpaid: (json['days_unpaid'] as num).toDouble(),
       currentUnpaid: (json['current_unpaid'] as num).toDouble(),
+      penalty: (json['penalty'] as num?)?.toDouble() ?? 0,
       status: json['status'] as String? ?? 'on_track',
       isExpired: json['is_expired'] as bool? ?? false,
       isCompleted: json['is_completed'] as bool? ?? false,
@@ -125,6 +133,7 @@ class Contract {
       'days_paid': daysPaid,
       'days_unpaid': daysUnpaid,
       'current_unpaid': currentUnpaid,
+      'penalty': penalty,
       'status': status,
       'is_expired': isExpired,
       'is_completed': isCompleted,
