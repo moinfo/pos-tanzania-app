@@ -140,6 +140,15 @@ class PortalStrings {
     'percent_paid': {'en': '{0}% paid', 'sw': '{0}% imelipwa'},
     'day_of_contract': {'en': 'Day of contract', 'sw': 'Siku ya mkataba'},
     'days_overdue': {'en': 'Days overdue', 'sw': 'Amepitisha siku'},
+    'overdue_contracts_count': {
+      'en': 'Overdue contracts',
+      'sw': 'Mikataba iliyochelewa',
+    },
+    'current_contract': {'en': 'Current contract', 'sw': 'Mkataba wa sasa'},
+    'recent_payments': {
+      'en': 'Recent payments',
+      'sw': 'Malipo ya hivi karibuni'
+    },
     'none': {'en': 'None', 'sw': 'Hakuna'},
     'n_days': {'en': '{0} days', 'sw': 'siku {0}'},
     'paid_so_far': {'en': 'Paid so far', 'sw': 'Amelipa hadi sasa'},

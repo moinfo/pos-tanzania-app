@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../services/customer_api_service.dart';
 import '../../models/contract.dart';
+import '../../models/portal_contract_detail.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../l10n/portal_locale.dart';
@@ -34,6 +36,13 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   int _tabIndex = 0;
   int _selectedContractIndex = 0;
 
+  /// The contract the Dashboard's chart section focuses on -- the first
+  /// still-active one (not paid off, not terminated), so the customer sees
+  /// the contract that actually needs their attention rather than an old
+  /// completed one. Falls back to the first contract if all are settled.
+  PortalContractDetail? _currentContractDetail;
+  bool _isLoadingCurrentContract = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +70,25 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
       } else {
         _error = response.message;
       }
+    });
+
+    _loadCurrentContractDetail();
+  }
+
+  Future<void> _loadCurrentContractDetail() async {
+    final contracts = _contracts ?? [];
+    if (contracts.isEmpty) return;
+    final current = contracts.firstWhere(
+      (c) => !c.isTerminated && !c.isCompleted,
+      orElse: () => contracts.first,
+    );
+
+    setState(() => _isLoadingCurrentContract = true);
+    final response = await _service.getContractDetail(current.id);
+    if (!mounted) return;
+    setState(() {
+      _isLoadingCurrentContract = false;
+      if (response.isSuccess) _currentContractDetail = response.data;
     });
   }
 
@@ -179,14 +207,249 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                       PortalStrings.t('paid_so_far'))),
               const SizedBox(width: 10),
               Expanded(
-                  child: _summaryTile(Icons.warning_amber_rounded,
-                      '$overdueCount', PortalStrings.t('days_overdue'))),
+                  child: _summaryTile(
+                      Icons.warning_amber_rounded,
+                      '$overdueCount',
+                      PortalStrings.t('overdue_contracts_count'))),
             ],
           ),
+          const SizedBox(height: 20),
+          _buildCurrentContractSection(),
         ] else
           _buildEmpty(),
       ],
     );
+  }
+
+  Widget _buildCurrentContractSection() {
+    if (_isLoadingCurrentContract) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final detail = _currentContractDetail;
+    if (detail == null) return const SizedBox.shrink();
+    final c = detail.contract;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PortalContractDetailScreen(contract: c),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(PortalStrings.t('current_contract'),
+                          style: const TextStyle(
+                              fontSize: 10.5,
+                              color: AppColors.textLight,
+                              fontWeight: FontWeight.w600)),
+                      Text(
+                          c.contractDescription.isNotEmpty
+                              ? c.contractDescription
+                              : '${PortalStrings.t('contract_label')} #${c.id}',
+                          style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right,
+                    color: AppColors.textLight, size: 20),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildPaidDonut(c),
+              const SizedBox(width: 20),
+              Expanded(child: _buildCurrentContractStats(c)),
+            ],
+          ),
+          if (detail.paymentsList.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(PortalStrings.t('recent_payments'),
+                style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textLight)),
+            const SizedBox(height: 10),
+            SizedBox(
+                height: 100,
+                child: _buildRecentPaymentsChart(detail.paymentsList)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaidDonut(Contract c) {
+    final amount = c.contractAmount;
+    final paid = amount > 0 ? (amount - c.balance).clamp(0, amount) : 0;
+    final remaining = amount > 0 ? c.balance.clamp(0, amount) : 0;
+    final pct = amount > 0 ? (paid / amount * 100).round() : 0;
+
+    return SizedBox(
+      width: 96,
+      height: 96,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          PieChart(
+            PieChartData(
+              startDegreeOffset: -90,
+              sectionsSpace: amount > 0 ? 2 : 0,
+              centerSpaceRadius: 32,
+              sections: amount > 0
+                  ? [
+                      PieChartSectionData(
+                          value: paid.toDouble(),
+                          color: AppColors.success,
+                          showTitle: false,
+                          radius: 16),
+                      PieChartSectionData(
+                          value: remaining.toDouble(),
+                          color: Colors.grey.shade200,
+                          showTitle: false,
+                          radius: 16),
+                    ]
+                  : [
+                      PieChartSectionData(
+                          value: 1,
+                          color: Colors.grey.shade200,
+                          showTitle: false,
+                          radius: 16),
+                    ],
+            ),
+          ),
+          Text('$pct%',
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentContractStats(Contract c) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _statLine(PortalStrings.t('balance_remaining'),
+            'TSH ${Formatters.formatCurrency(c.balance)}', AppColors.text),
+        const SizedBox(height: 6),
+        _statLine(
+            PortalStrings.t('owed_today'),
+            'TSH ${Formatters.formatCurrency(c.currentUnpaid)}',
+            c.currentUnpaid > 0 ? AppColors.error : AppColors.success),
+        const SizedBox(height: 6),
+        _statLine(PortalStrings.t('day_of_contract'),
+            PortalStrings.t('n_days', {'0': '${c.days}'}), AppColors.text),
+      ],
+    );
+  }
+
+  Widget _statLine(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(fontSize: 10.5, color: AppColors.textLight)),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: valueColor)),
+      ],
+    );
+  }
+
+  Widget _buildRecentPaymentsChart(List<PortalPayment> payments) {
+    final recent =
+        payments.length > 6 ? payments.sublist(payments.length - 6) : payments;
+    final maxAmount =
+        recent.map((p) => p.amount).fold<double>(0, (a, b) => a > b ? a : b);
+
+    return BarChart(
+      BarChartData(
+        maxY: maxAmount > 0 ? maxAmount * 1.2 : 1,
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        barTouchData: BarTouchData(enabled: false),
+        titlesData: FlTitlesData(
+          leftTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 22,
+              getTitlesWidget: (value, meta) {
+                final i = value.toInt();
+                if (i < 0 || i >= recent.length) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(_shortDate(recent[i].date),
+                      style: const TextStyle(
+                          fontSize: 9, color: AppColors.textLight)),
+                );
+              },
+            ),
+          ),
+        ),
+        barGroups: [
+          for (var i = 0; i < recent.length; i++)
+            BarChartGroupData(x: i, barRods: [
+              BarChartRodData(
+                toY: recent[i].amount,
+                color: AppColors.primary,
+                width: 18,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ]),
+        ],
+      ),
+    );
+  }
+
+  String _shortDate(String isoDate) {
+    try {
+      final d = DateTime.parse(isoDate);
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${d.day} ${months[d.month - 1]}';
+    } catch (_) {
+      return isoDate;
+    }
   }
 
   Widget _summaryTile(IconData icon, String value, String label) {

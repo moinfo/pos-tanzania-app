@@ -52,6 +52,9 @@ dependencies:
   pdf: ^3.10.7
   printing: ^5.12.0
 
+  # Charts (customer portal dashboard)
+  fl_chart: ^0.69.0
+
   # PDF viewing
   flutter_pdfview: ^1.3.2
 
