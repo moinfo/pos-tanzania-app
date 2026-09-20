@@ -302,6 +302,10 @@ class _ContractsScreenState extends State<ContractsScreen> {
     final Color color;
     final String label;
     switch (contract.status) {
+      case 'terminated':
+        color = Colors.grey;
+        label = 'Terminated';
+        break;
       case 'completed':
         color = AppColors.success;
         label = 'Completed';

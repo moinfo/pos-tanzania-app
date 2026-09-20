@@ -33,6 +33,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
   // screen (widget.contract itself is a snapshot from the list screen).
   late Contract _contract;
   bool _isAddingPayment = false;
+  bool _isTerminating = false;
 
   @override
   void initState() {
@@ -218,16 +219,217 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     }
   }
 
+  Future<void> _terminateContract() async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Terminate ${_contract.name}\'s contract?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Marks this contract defaulted/repossessed. This cannot be undone from here.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              autofocus: true,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child:
+                const Text('Terminate', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      reasonController.dispose();
+      return;
+    }
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
+
+    setState(() => _isTerminating = true);
+    final response =
+        await _apiService.terminateContract(_contract.id, reason: reason);
+    if (!mounted) return;
+    setState(() => _isTerminating = false);
+
+    if (response.isSuccess && response.data != null) {
+      setState(() => _contract =
+          Contract.fromJson({..._contract.toJson(), ...response.data!}));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Contract terminated'),
+            backgroundColor: AppColors.success),
+      );
+      _offerTransfer();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(response.message ?? 'Failed to terminate contract'),
+            backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  /// After repossessing the asset, the natural next step in this business
+  /// is handing it to someone else -- offers starting a new contract right
+  /// away, either for a brand new customer or an existing one (picked from
+  /// past contracts, same identity-carryover as Renew).
+  Future<void> _offerTransfer() async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Transfer to someone?'),
+        content: const Text(
+            'Start a new contract for this asset -- for a new customer, or one already in the system.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, 'skip'),
+              child: const Text('Not now')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, 'existing'),
+              child: const Text('Existing Customer')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, 'new'),
+            child: const Text('New Customer'),
+          ),
+        ],
+      ),
+    );
+
+    if (choice == 'new') {
+      if (!mounted) return;
+      final saved = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => const ContractFormScreen()),
+      );
+      if (saved == true && mounted) Navigator.pop(context, true);
+    } else if (choice == 'existing') {
+      await _pickExistingCustomerAndTransfer();
+    }
+  }
+
+  Future<void> _pickExistingCustomerAndTransfer() async {
+    final response = await _apiService.getContracts();
+    if (!mounted) return;
+    if (!response.isSuccess || response.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(response.message ?? 'Failed to load customers'),
+            backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    final contracts = response.data!;
+    final searchController = TextEditingController();
+
+    final picked = await showModalBottomSheet<Contract>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final query = searchController.text.trim().toLowerCase();
+          final filtered = query.isEmpty
+              ? contracts
+              : contracts
+                  .where((c) =>
+                      c.name.toLowerCase().contains(query) ||
+                      c.phone.toLowerCase().contains(query))
+                  .toList();
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.7,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select existing customer',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: searchController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Search by name or phone',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (_) => setSheetState(() {}),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(child: Text('No customers found'))
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (_, i) {
+                              final c = filtered[i];
+                              return ListTile(
+                                title: Text(c.name),
+                                subtitle: Text(c.phone),
+                                onTap: () => Navigator.pop(ctx, c),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    searchController.dispose();
+
+    if (picked == null || !mounted) return;
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => ContractFormScreen(renewFrom: picked)),
+    );
+    if (saved == true && mounted) Navigator.pop(context, true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode;
     final canAddPayment = context
-        .watch<PermissionProvider>()
-        .hasPermission(PermissionIds.contractsPaymentsAdd);
+            .watch<PermissionProvider>()
+            .hasPermission(PermissionIds.contractsPaymentsAdd) &&
+        !_contract.isTerminated;
     final canAdd = context
         .watch<PermissionProvider>()
         .hasPermission(PermissionIds.contractsAdd);
+    final canTerminate = context
+        .watch<PermissionProvider>()
+        .hasPermission(PermissionIds.contractsTerminate);
 
     return Scaffold(
       appBar: AppBar(
@@ -235,6 +437,12 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
+          if (canTerminate && !_contract.isTerminated)
+            IconButton(
+              icon: const Icon(Icons.block),
+              tooltip: 'Terminate',
+              onPressed: _isTerminating ? null : _terminateContract,
+            ),
           if (canAdd)
             IconButton(
               icon: const Icon(Icons.autorenew),
@@ -292,6 +500,20 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                       _buildStatusBadge(_contract),
                     ],
                   ),
+                  if (_contract.isTerminated &&
+                      (_contract.terminationReason?.isNotEmpty ?? false)) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Reason: ${_contract.terminationReason}',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontStyle: FontStyle.italic,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -431,6 +653,10 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     final Color color;
     final String label;
     switch (contract.status) {
+      case 'terminated':
+        color = Colors.grey;
+        label = 'Terminated';
+        break;
       case 'completed':
         color = AppColors.success;
         label = 'Completed';

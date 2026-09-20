@@ -1760,6 +1760,30 @@ class ApiService {
     }
   }
 
+  /// Terminate a contract (customer defaulted, asset repossessed). Requires
+  /// PermissionIds.contractsTerminate, a separate, admin-only-by-default
+  /// grant from viewing or paying. Refused server-side if already
+  /// terminated. Response carries the contract's fresh metrics (status
+  /// becomes 'terminated').
+  Future<ApiResponse<Map<String, dynamic>>> terminateContract(
+    int contractId, {
+    String? reason,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/$contractId/terminate'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   // ============ EXPENSES ENDPOINTS ============
 
   /// Get all expenses

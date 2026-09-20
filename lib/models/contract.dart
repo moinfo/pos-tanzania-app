@@ -24,13 +24,17 @@ class Contract {
   final double currentUnpaid;
 
   /// Server-computed (Contract::compute_metrics on the backend) rather than
-  /// derived client-side from balance alone: 'completed' (paid in full),
-  /// 'on_track', 'behind' (<=7 days), or 'overdue' (>7 days). A contract
-  /// stops accruing new "unpaid" days once either the term ends or the
-  /// balance is paid off -- see isExpired/isCompleted.
+  /// derived client-side from balance alone: 'terminated' (defaulted/
+  /// repossessed -- overrides everything else), 'completed' (paid in
+  /// full), 'on_track', 'behind' (<=7 days), or 'overdue' (>7 days). A
+  /// contract stops accruing new "unpaid" days once its term ends, the
+  /// balance is paid off, or it's terminated -- see isExpired/isCompleted/
+  /// isTerminated.
   final String status;
   final bool isExpired;
   final bool isCompleted;
+  final bool isTerminated;
+  final String? terminationReason;
 
   Contract({
     required this.id,
@@ -59,6 +63,8 @@ class Contract {
     this.status = 'on_track',
     this.isExpired = false,
     this.isCompleted = false,
+    this.isTerminated = false,
+    this.terminationReason,
   });
 
   factory Contract.fromJson(Map<String, dynamic> json) {
@@ -89,6 +95,8 @@ class Contract {
       status: json['status'] as String? ?? 'on_track',
       isExpired: json['is_expired'] as bool? ?? false,
       isCompleted: json['is_completed'] as bool? ?? false,
+      isTerminated: json['is_terminated'] as bool? ?? false,
+      terminationReason: json['termination_reason'] as String?,
     );
   }
 
@@ -120,6 +128,8 @@ class Contract {
       'status': status,
       'is_expired': isExpired,
       'is_completed': isCompleted,
+      'is_terminated': isTerminated,
+      'termination_reason': terminationReason,
     };
   }
 }

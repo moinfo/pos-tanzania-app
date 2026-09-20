@@ -99,6 +99,9 @@ class PermissionIds {
   // same rollout convention as itemsApprove/transfersApprove.
   static const String contractsPaymentsAdd = 'contracts_payments_add';
   static const String contractsAdd = 'contracts_add';
+  // Marking a contract defaulted/repossessed -- admin-only by default,
+  // same rollout as contractsDelete (not yet exposed in the app).
+  static const String contractsTerminate = 'contracts_terminate';
   static const String expenses = 'expenses';
   static const String withdrawal = 'withdrawal';
   static const String cashSubmit = 'cash_submit';
