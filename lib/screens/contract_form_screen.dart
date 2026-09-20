@@ -50,6 +50,10 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
   DateTime? _assetInsuranceExpiry;
   bool _isSaving = false;
 
+  final _phoneFocusNode = FocusNode();
+  Map<String, dynamic>? _customerHistory;
+  bool _isLoadingHistory = false;
+
   bool get _isRenewal => widget.renewFrom != null;
 
   @override
@@ -77,6 +81,33 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     _assetPlateController = TextEditingController();
     _assetChassisController = TextEditingController();
     _assetInsuranceProviderController = TextEditingController();
+
+    _phoneFocusNode.addListener(() {
+      if (!_phoneFocusNode.hasFocus) _lookupCustomerHistory();
+    });
+    // Renewal already knows the phone number -- look it up right away
+    // instead of waiting for the user to touch a pre-filled field.
+    if (_isRenewal && _phoneController.text.trim().isNotEmpty) {
+      _lookupCustomerHistory();
+    }
+  }
+
+  Future<void> _lookupCustomerHistory() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      setState(() => _customerHistory = null);
+      return;
+    }
+    setState(() => _isLoadingHistory = true);
+    final response = await _apiService.getCustomerHistory(
+      phone,
+      excludeContractId: widget.renewFrom?.id,
+    );
+    if (!mounted) return;
+    setState(() {
+      _isLoadingHistory = false;
+      _customerHistory = response.isSuccess ? response.data : null;
+    });
   }
 
   String _formatNum(double v) =>
@@ -98,6 +129,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     _assetPlateController.dispose();
     _assetChassisController.dispose();
     _assetInsuranceProviderController.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -224,7 +256,8 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
             _sectionLabel('Customer', isDark),
             _textField(_nameController, 'Full Name', required: true),
             _textField(_phoneController, 'Phone',
-                keyboardType: TextInputType.phone),
+                keyboardType: TextInputType.phone, focusNode: _phoneFocusNode),
+            _buildCustomerHistoryPanel(isDark),
             _textField(_guarantor1Controller, 'Guarantor 1 Name'),
             _textField(_phoneGuarantor1Controller, 'Guarantor 1 Phone',
                 keyboardType: TextInputType.phone),
@@ -327,11 +360,13 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     TextInputType? keyboardType,
     int maxLines = 1,
     ValueChanged<String>? onChanged,
+    FocusNode? focusNode,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
+        focusNode: focusNode,
         maxLines: maxLines,
         keyboardType: isNumeric
             ? const TextInputType.numberWithOptions(decimal: true)
@@ -350,6 +385,69 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
           return null;
         },
         onChanged: onChanged,
+      ),
+    );
+  }
+
+  /// Repayment history trust signal, looked up by phone number the moment
+  /// that field loses focus (or immediately for a renewal, which already
+  /// knows the phone) -- see ApiService.getCustomerHistory.
+  Widget _buildCustomerHistoryPanel(bool isDark) {
+    if (_isLoadingHistory) {
+      return const Padding(
+        padding: EdgeInsets.only(bottom: 12),
+        child: Text('Checking history...',
+            style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+      );
+    }
+    final history = _customerHistory;
+    if (history == null) return const SizedBox.shrink();
+
+    final total = history['total_contracts'] as int? ?? 0;
+    if (total == 0) {
+      return const Padding(
+        padding: EdgeInsets.only(bottom: 12),
+        child: Text('No prior contracts on record for this phone number.',
+            style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+      );
+    }
+
+    final completed = history['completed_count'] as int? ?? 0;
+    final terminated = history['terminated_count'] as int? ?? 0;
+    final totalPaid = (history['total_paid'] as num?)?.toDouble() ?? 0;
+    final hasDefault = terminated > 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: (hasDefault ? AppColors.error : AppColors.primary)
+            .withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$total prior contract(s): $completed completed, $terminated terminated.',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          Text(
+            'Total paid: ${Formatters.formatCurrency(totalPaid)}',
+            style: const TextStyle(fontSize: 12),
+          ),
+          if (hasDefault)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Has had a contract terminated/defaulted before -- review before approving.',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.error),
+              ),
+            ),
+        ],
       ),
     );
   }

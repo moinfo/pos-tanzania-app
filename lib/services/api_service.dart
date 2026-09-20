@@ -1802,6 +1802,30 @@ class ApiService {
     }
   }
 
+  /// A customer's repayment history by phone number -- trust signal shown
+  /// on the New Contract / Renew form. See api/Contracts::customer_history
+  /// on the backend; there's no separate Customer record, so this matches
+  /// by phone number across the tenant's past contracts.
+  Future<ApiResponse<Map<String, dynamic>>> getCustomerHistory(
+    String phone, {
+    int? excludeContractId,
+  }) async {
+    try {
+      final params = {
+        'phone': phone,
+        if (excludeContractId != null)
+          'exclude_id': excludeContractId.toString(),
+      };
+      final uri = Uri.parse('$baseUrlSync/contracts/customer-history')
+          .replace(queryParameters: params);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Terminate a contract (customer defaulted, asset repossessed). Requires
   /// PermissionIds.contractsTerminate, a separate, admin-only-by-default
   /// grant from viewing or paying. Refused server-side if already
