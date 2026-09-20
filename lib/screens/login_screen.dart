@@ -19,6 +19,7 @@ import 'main_navigation.dart';
 import 'client_selector_screen.dart';
 import 'landing/landing_screen.dart';
 import 'register_screen.dart';
+import 'portal/portal_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -163,7 +164,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No saved credentials found. Please login with password.'),
+              content: Text(
+                  'No saved credentials found. Please login with password.'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -270,7 +272,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final isDark = themeProvider.isDarkMode;
     final client = ApiService.currentClient;
     final branding = client?.branding;
-    final brandPrimary = branding != null ? Color(branding.primaryColor) : AppColors.primary;
+    final brandPrimary =
+        branding != null ? Color(branding.primaryColor) : AppColors.primary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : brandPrimary,
@@ -283,399 +286,463 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                // App Logo
-                Container(
-                  width: 120,
-                  height: 120,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCard : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
+                    // App Logo
+                    Container(
+                      width: 120,
+                      height: 120,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkCard : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Image.asset(
-                    client?.logoUrl ?? 'logo.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(height: 24),
+                      child: Image.asset(
+                        client?.logoUrl ?? 'logo.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
-                // App Title
-                Text(
-                  branding?.appTitle ?? AppConstants.appName,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkText : Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  branding?.tagline ?? 'Making technology work for you',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isDark ? AppColors.darkTextLight : Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 48),
+                    // App Title
+                    Text(
+                      branding?.appTitle ?? AppConstants.appName,
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkText : Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      branding?.tagline ?? 'Making technology work for you',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color:
+                            isDark ? AppColors.darkTextLight : Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 48),
 
-                // Login Form Card with Glassmorphism
-                GlassmorphicCard(
-                  isDark: isDark,
-                  onColoredBackground: !isDark, // Use glass style on colored background in light mode
-                  borderRadius: 20,
-                  padding: const EdgeInsets.all(24.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Login',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkText : Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                          const SizedBox(height: 24),
-
-                          // Username Field
-                          TextFormField(
-                            controller: _usernameController,
-                            style: TextStyle(
-                              color: isDark ? AppColors.darkText : Colors.white,
+                    // Login Form Card with Glassmorphism
+                    GlassmorphicCard(
+                      isDark: isDark,
+                      onColoredBackground:
+                          !isDark, // Use glass style on colored background in light mode
+                      borderRadius: 20,
+                      padding: const EdgeInsets.all(24.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    isDark ? AppColors.darkText : Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            decoration: InputDecoration(
-                              labelText: 'Username',
-                              labelStyle: TextStyle(
-                                color: isDark ? AppColors.darkTextLight : Colors.white70,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.person,
-                                color: isDark ? AppColors.darkTextLight : Colors.white70,
-                              ),
-                              filled: true,
-                              fillColor: isDark
-                                  ? Colors.white.withOpacity(0.1)
-                                  : Colors.white.withOpacity(0.2),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.6),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your username';
-                              }
-                              return null;
-                            },
-                            textInputAction: TextInputAction.next,
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 24),
 
-                          // Password Field
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            style: TextStyle(
-                              color: isDark ? AppColors.darkText : Colors.white,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              labelStyle: TextStyle(
-                                color: isDark ? AppColors.darkTextLight : Colors.white70,
+                            // Username Field
+                            TextFormField(
+                              controller: _usernameController,
+                              style: TextStyle(
+                                color:
+                                    isDark ? AppColors.darkText : Colors.white,
                               ),
-                              prefixIcon: Icon(
-                                Icons.lock,
-                                color: isDark ? AppColors.darkTextLight : Colors.white70,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                  color: isDark ? AppColors.darkTextLight : Colors.white70,
+                              decoration: InputDecoration(
+                                labelText: 'Username',
+                                labelStyle: TextStyle(
+                                  color: isDark
+                                      ? AppColors.darkTextLight
+                                      : Colors.white70,
                                 ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              filled: true,
-                              fillColor: isDark
-                                  ? Colors.white.withOpacity(0.1)
-                                  : Colors.white.withOpacity(0.2),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.3),
+                                prefixIcon: Icon(
+                                  Icons.person,
+                                  color: isDark
+                                      ? AppColors.darkTextLight
+                                      : Colors.white70,
                                 ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.6),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
-                              }
-                              return null;
-                            },
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _handleLogin(),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Login Button
-                          Consumer<AuthProvider>(
-                            builder: (context, authProvider, child) {
-                              return ElevatedButton(
-                                onPressed: authProvider.isLoading
-                                    ? null
-                                    : _handleLogin,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isDark
-                                      ? brandPrimary
-                                      : Colors.white,
-                                  foregroundColor: isDark
-                                      ? Colors.white
-                                      : brandPrimary,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
+                                filled: true,
+                                fillColor: isDark
+                                    ? Colors.white.withOpacity(0.1)
+                                    : Colors.white.withOpacity(0.2),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.3),
                                   ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.6),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your username';
+                                }
+                                return null;
+                              },
+                              textInputAction: TextInputAction.next,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Password Field
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              style: TextStyle(
+                                color:
+                                    isDark ? AppColors.darkText : Colors.white,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                labelStyle: TextStyle(
+                                  color: isDark
+                                      ? AppColors.darkTextLight
+                                      : Colors.white70,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.lock,
+                                  color: isDark
+                                      ? AppColors.darkTextLight
+                                      : Colors.white70,
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                    color: isDark
+                                        ? AppColors.darkTextLight
+                                        : Colors.white70,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
+                                filled: true,
+                                fillColor: isDark
+                                    ? Colors.white.withOpacity(0.1)
+                                    : Colors.white.withOpacity(0.2),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.6),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your password';
+                                }
+                                return null;
+                              },
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _handleLogin(),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Login Button
+                            Consumer<AuthProvider>(
+                              builder: (context, authProvider, child) {
+                                return ElevatedButton(
+                                  onPressed: authProvider.isLoading
+                                      ? null
+                                      : _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        isDark ? brandPrimary : Colors.white,
+                                    foregroundColor:
+                                        isDark ? Colors.white : brandPrimary,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  child: authProvider.isLoading
+                                      ? SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: isDark
+                                                ? Colors.white
+                                                : brandPrimary,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Login',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                );
+                              },
+                            ),
+
+                            // Create Account (only for clients with self-service
+                            // registration, and never on iOS -- App Review
+                            // rejected 1.0.2 under 3.1.1 for exactly this).
+                            if ((ApiService.currentClient?.features
+                                        .hasRegistration ??
+                                    false) &&
+                                PlatformRules.allowsSelfSignup) ...[
+                              const SizedBox(height: 12),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const RegisterScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  "Don't have an account? Create one",
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? AppColors.darkTextLight
+                                        : Colors.white,
+                                    fontSize: 14,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: isDark
+                                        ? AppColors.darkTextLight
+                                        : Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            // Biometric Login Button (if enabled)
+                            if (_isBiometricAvailable &&
+                                _isBiometricEnabled) ...[
+                              const SizedBox(height: 16),
+                              const Row(
+                                children: [
+                                  Expanded(
+                                      child: Divider(color: Colors.white38)),
+                                  Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text(
+                                      'OR',
+                                      style: TextStyle(
+                                        color: Colors.white60,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                      child: Divider(color: Colors.white38)),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: _loginWithBiometric,
+                                icon: Icon(
+                                  _biometricType == 'Face ID'
+                                      ? Icons.face
+                                      : Icons.fingerprint,
+                                  size: 24,
+                                ),
+                                label: Text('Login with $_biometricType'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: isDark
+                                      ? AppColors.darkText
+                                      : Colors.white,
+                                  side: BorderSide(
+                                    color: isDark
+                                        ? AppColors.darkText.withOpacity(0.5)
+                                        : Colors.white.withOpacity(0.5),
+                                    width: 2,
+                                  ),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  elevation: 2,
-                                ),
-                                child: authProvider.isLoading
-                                    ? SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          color: isDark
-                                              ? Colors.white
-                                              : brandPrimary,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Login',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                              );
-                            },
-                          ),
-
-                          // Create Account (only for clients with self-service
-                          // registration, and never on iOS -- App Review
-                          // rejected 1.0.2 under 3.1.1 for exactly this).
-                          if ((ApiService.currentClient?.features.hasRegistration ?? false) &&
-                              PlatformRules.allowsSelfSignup) ...[
-                            const SizedBox(height: 12),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const RegisterScreen(),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                "Don't have an account? Create one",
-                                style: TextStyle(
-                                  color: isDark ? AppColors.darkTextLight : Colors.white,
-                                  fontSize: 14,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: isDark ? AppColors.darkTextLight : Colors.white,
                                 ),
                               ),
-                            ),
+                            ],
                           ],
-
-                          // Biometric Login Button (if enabled)
-                          if (_isBiometricAvailable && _isBiometricEnabled) ...[
-                            const SizedBox(height: 16),
-                            const Row(
-                              children: [
-                                Expanded(child: Divider(color: Colors.white38)),
-                                Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text(
-                                    'OR',
-                                    style: TextStyle(
-                                      color: Colors.white60,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(child: Divider(color: Colors.white38)),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            OutlinedButton.icon(
-                              onPressed: _loginWithBiometric,
-                              icon: Icon(
-                                _biometricType == 'Face ID'
-                                    ? Icons.face
-                                    : Icons.fingerprint,
-                                size: 24,
-                              ),
-                              label: Text('Login with $_biometricType'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: isDark ? AppColors.darkText : Colors.white,
-                                side: BorderSide(
-                                  color: isDark
-                                      ? AppColors.darkText.withOpacity(0.5)
-                                      : Colors.white.withOpacity(0.5),
-                                  width: 2,
-                                ),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-
-                // Browse Shop Button (only for clients with landing page enabled)
-                if (ApiService.currentClient?.features.hasLandingPage ?? ClientsConfig.getDefaultClient().features.hasLandingPage)
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => const LandingScreen(),
                         ),
-                      );
-                    },
-                    icon: Icon(
-                      Icons.storefront,
-                      color: isDark ? AppColors.darkText : Colors.white,
-                    ),
-                    label: Text(
-                      'Browse Shop',
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkText : Colors.white,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: isDark ? AppColors.darkText : Colors.white,
-                        width: 2,
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
+                    const SizedBox(height: 16),
 
-                const SizedBox(height: 12),
-
-                // Change Client Button (only in debug mode)
-                if (ClientsConfig.isClientSwitchingEnabled)
-                  TextButton.icon(
-                    onPressed: () async {
-                      await ApiService.clearCurrentClient();
-                      if (mounted) {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => const ClientSelectorScreen(),
+                    // Browse Shop Button (only for clients with landing page enabled)
+                    if (ApiService.currentClient?.features.hasLandingPage ??
+                        ClientsConfig.getDefaultClient()
+                            .features
+                            .hasLandingPage)
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const LandingScreen(),
+                            ),
+                          );
+                        },
+                        icon: Icon(
+                          Icons.storefront,
+                          color: isDark ? AppColors.darkText : Colors.white,
+                        ),
+                        label: Text(
+                          'Browse Shop',
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkText : Colors.white,
+                            fontWeight: FontWeight.w600,
                           ),
-                        );
-                      }
-                    },
-                    icon: Icon(
-                      Icons.swap_horiz,
-                      color: isDark ? AppColors.darkTextLight : Colors.white70,
-                      size: 18,
-                    ),
-                    label: Text(
-                      'Change Client (${ApiService.currentClient?.displayName ?? "Not Set"})',
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : Colors.white70,
-                        fontSize: 13,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: isDark ? AppColors.darkText : Colors.white,
+                            width: 2,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14, horizontal: 24),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
 
-                const SizedBox(height: 16),
-
-                // Powered By Footer
-                Column(
-                  children: [
-                    Text(
-                      'Powered by',
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Moinfotech',
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkText : Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
                     const SizedBox(height: 12),
-                    Text(
-                      _appVersion,
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : Colors.white70,
-                        fontSize: 11,
+
+                    // Customer self-service portal entry point -- only where
+                    // Contracts exists at all (the boda-boda hire-purchase
+                    // flavor), a completely separate login from staff above.
+                    if (ApiService.currentClient?.features.hasContracts ??
+                        false)
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const PortalLoginScreen()),
+                          );
+                        },
+                        icon: Icon(
+                          Icons.receipt_long,
+                          color: isDark ? AppColors.darkText : Colors.white,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Are you a customer? View your contract',
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkText : Colors.white,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
+
+                    // Change Client Button (only in debug mode)
+                    if (ClientsConfig.isClientSwitchingEnabled)
+                      TextButton.icon(
+                        onPressed: () async {
+                          await ApiService.clearCurrentClient();
+                          if (mounted) {
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => const ClientSelectorScreen(),
+                              ),
+                            );
+                          }
+                        },
+                        icon: Icon(
+                          Icons.swap_horiz,
+                          color:
+                              isDark ? AppColors.darkTextLight : Colors.white70,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Change Client (${ApiService.currentClient?.displayName ?? "Not Set"})',
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.darkTextLight
+                                : Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 16),
+
+                    // Powered By Footer
+                    Column(
+                      children: [
+                        Text(
+                          'Powered by',
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.darkTextLight
+                                : Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Moinfotech',
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkText : Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _appVersion,
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.darkTextLight
+                                : Colors.white70,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
                   ],
                 ),
               ),
@@ -693,13 +760,18 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Consumer<ThemeProvider>(
                 builder: (context, themeProvider, child) => IconButton(
                   icon: Icon(
-                    themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                    color: themeProvider.isDarkMode ? AppColors.darkText : Colors.white,
+                    themeProvider.isDarkMode
+                        ? Icons.light_mode
+                        : Icons.dark_mode,
+                    color: themeProvider.isDarkMode
+                        ? AppColors.darkText
+                        : Colors.white,
                   ),
                   onPressed: () {
                     themeProvider.toggleTheme();
                   },
-                  tooltip: themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
+                  tooltip:
+                      themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
                 ),
               ),
             ),
