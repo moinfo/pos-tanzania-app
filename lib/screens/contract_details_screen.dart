@@ -514,6 +514,11 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                       ),
                     ),
                   ],
+                  if (!_contract.isTerminated &&
+                      _contract.collectionStage != null) ...[
+                    const SizedBox(height: 6),
+                    _buildCollectionStageChip(_contract.collectionStage!),
+                  ],
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -538,6 +543,16 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Includes ${Formatters.formatCurrency(_contract.penalty)} late fee',
+                      style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error),
+                    ),
+                  ],
+                  if (_contract.repossessionFeeCharged > 0) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Includes ${Formatters.formatCurrency(_contract.repossessionFeeCharged)} repossession fee',
                       style: const TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
@@ -696,6 +711,40 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
         label,
         style:
             TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+
+  /// Which collection-escalation tier this contract is in -- see
+  /// Contract::compute_metrics()'s collection_stage on the backend. Purely
+  /// informational for staff; only shown while the contract is still active.
+  Widget _buildCollectionStageChip(String stage) {
+    final Color color;
+    final String label;
+    switch (stage) {
+      case 'final_notice':
+        color = AppColors.error;
+        label = 'Final Notice';
+        break;
+      case 'warning':
+        color = AppColors.warning;
+        label = 'Warning';
+        break;
+      default:
+        color = AppColors.primary;
+        label = 'Reminder Sent';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+            fontSize: 10.5, fontWeight: FontWeight.w600, color: color),
       ),
     );
   }

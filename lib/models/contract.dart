@@ -47,6 +47,17 @@ class Contract {
   final String? assetInsuranceProvider;
   final String? assetInsuranceExpiry;
 
+  /// One-time fee frozen onto the contract when it was terminated (My
+  /// Subscription -> Contract Rules -> repossession fee). Already folded
+  /// into balance -- broken out so the UI can show it as its own line.
+  final double repossessionFeeCharged;
+
+  /// Which collection-escalation tier a delinquent contract is in right
+  /// now: null (not behind), 'reminder', 'warning', or 'final_notice' --
+  /// see Contract::compute_metrics() on the backend. Purely informational;
+  /// termination itself is still driven by status/isTerminated.
+  final String? collectionStage;
+
   Contract({
     required this.id,
     required this.name,
@@ -81,6 +92,8 @@ class Contract {
     this.assetChassisNumber,
     this.assetInsuranceProvider,
     this.assetInsuranceExpiry,
+    this.repossessionFeeCharged = 0,
+    this.collectionStage,
   });
 
   factory Contract.fromJson(Map<String, dynamic> json) {
@@ -118,6 +131,9 @@ class Contract {
       assetChassisNumber: json['asset_chassis_number'] as String?,
       assetInsuranceProvider: json['asset_insurance_provider'] as String?,
       assetInsuranceExpiry: json['asset_insurance_expiry'] as String?,
+      repossessionFeeCharged:
+          (json['repossession_fee_charged'] as num?)?.toDouble() ?? 0,
+      collectionStage: json['collection_stage'] as String?,
     );
   }
 
@@ -156,6 +172,8 @@ class Contract {
       'asset_chassis_number': assetChassisNumber,
       'asset_insurance_provider': assetInsuranceProvider,
       'asset_insurance_expiry': assetInsuranceExpiry,
+      'repossession_fee_charged': repossessionFeeCharged,
+      'collection_stage': collectionStage,
     };
   }
 }
