@@ -6,11 +6,14 @@ import '../../utils/formatters.dart';
 import 'portal_change_password_screen.dart';
 import 'portal_contract_detail_screen.dart';
 import 'portal_login_screen.dart';
+import 'portal_payments_screen.dart';
+import 'portal_statement_screen.dart';
 
-/// Customer portal shell: a bottom-nav Dashboard (hero balance + contract
-/// cards, mirroring web's portal/dashboard.php) and an Account tab (phone,
-/// business, logout) -- previously a single bare list with only a logout
-/// icon, no real navigation or summary.
+/// Customer portal shell: bottom-nav Dashboard / Malipo / Taarifa / Account
+/// -- previously a single bare list with only a logout icon, and Malipo/
+/// Taarifa hidden behind a "..." menu on the contract detail screen that
+/// wasn't visible/discoverable enough, moved here so they're always one
+/// tap away.
 class PortalDashboardScreen extends StatefulWidget {
   const PortalDashboardScreen({super.key});
 
@@ -26,6 +29,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   String _tenantName = '';
   String _phone = '';
   int _tabIndex = 0;
+  int _selectedContractIndex = 0;
 
   @override
   void initState() {
@@ -68,28 +72,116 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tabs = [
+      _buildDashboardTab(),
+      _buildContractScopedTab(
+        icon: Icons.receipt_long,
+        emptyLabel: 'Hakuna mkataba wa kuonyesha malipo yake.',
+        builder: (contract) => PortalPaymentsScreen(contract: contract),
+      ),
+      _buildContractScopedTab(
+        icon: Icons.description_outlined,
+        emptyLabel: 'Hakuna mkataba wa kuonyesha taarifa yake.',
+        builder: (contract) => PortalStatementScreen(contract: contract),
+      ),
+      _buildAccountTab(),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: _tabIndex == 0 ? _buildDashboardTab() : _buildAccountTab(),
-      ),
+      body: SafeArea(child: tabs[_tabIndex]),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _tabIndex,
         onTap: (i) => setState(() => _tabIndex = i),
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textLight,
         type: BottomNavigationBarType.fixed,
+        selectedFontSize: 11,
+        unselectedFontSize: 10.5,
         items: const [
           BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_outlined),
               activeIcon: Icon(Icons.dashboard),
               label: 'Dashboard'),
           BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long_outlined),
+              activeIcon: Icon(Icons.receipt_long),
+              label: 'Malipo'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.description_outlined),
+              activeIcon: Icon(Icons.description),
+              label: 'Taarifa'),
+          BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: 'Account'),
         ],
       ),
+    );
+  }
+
+  /// Malipo/Taarifa belong to a specific contract, not the account as a
+  /// whole -- shows a contract picker above the tab when there's more than
+  /// one, otherwise goes straight to the customer's only contract.
+  Widget _buildContractScopedTab({
+    required IconData icon,
+    required String emptyLabel,
+    required Widget Function(Contract contract) builder,
+  }) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final contracts = _contracts ?? [];
+    if (contracts.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 48, color: AppColors.textLight),
+              const SizedBox(height: 12),
+              Text(emptyLabel, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
+    final index =
+        _selectedContractIndex < contracts.length ? _selectedContractIndex : 0;
+    final selected = contracts[index];
+
+    return Column(
+      children: [
+        if (contracts.length > 1)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: DropdownButtonFormField<int>(
+              initialValue: index,
+              decoration: const InputDecoration(
+                labelText: 'Mkataba',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: [
+                for (var i = 0; i < contracts.length; i++)
+                  DropdownMenuItem(
+                    value: i,
+                    child: Text(
+                      contracts[i].contractDescription.isNotEmpty
+                          ? contracts[i].contractDescription
+                          : 'Mkataba #${contracts[i].id}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: (i) => setState(() => _selectedContractIndex = i ?? 0),
+            ),
+          ),
+        Expanded(child: builder(selected)),
+      ],
     );
   }
 
