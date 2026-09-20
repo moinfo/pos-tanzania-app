@@ -222,4 +222,38 @@ class CustomerApiService {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
+
+  /// The classic date-ranged credit/debit/balance/opening/closing statement
+  /// -- same api/Portal::contract() endpoint as getContractDetail(), just
+  /// asking for the day-by-day `statement` field with an explicit date
+  /// range instead of the stat-card fields. Backend defaults to the
+  /// current month when start/end are omitted.
+  Future<ApiResponse<ContractStatement>> getContractStatement(
+    int contractId, {
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final params = <String, String>{
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+      };
+      final uri = Uri.parse('$_baseUrl/portal/contracts/$contractId')
+          .replace(queryParameters: params.isEmpty ? null : params);
+      final response = await http.get(uri, headers: await _headers());
+      return _handle<ContractStatement>(response, (data) {
+        final statementList = (data['statement'] as List?) ?? [];
+        return ContractStatement(
+          contract: Contract.fromJson(data as Map<String, dynamic>),
+          statement: statementList
+              .map((e) => StatementEntry.fromJson(e as Map<String, dynamic>))
+              .toList(),
+          startDate: data['start_date'] as String? ?? '',
+          endDate: data['end_date'] as String? ?? '',
+        );
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
 }

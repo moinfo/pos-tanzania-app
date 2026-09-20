@@ -9,6 +9,7 @@ import '../models/suspended_sheet.dart';
 import '../models/suspended_sheet2.dart';
 import '../models/suspended_sheet3.dart';
 import '../models/sale.dart';
+import '../models/contract.dart';
 
 class PdfService {
   static final NumberFormat _currencyFormat = NumberFormat('#,##0', 'en_US');
@@ -104,11 +105,13 @@ class PdfService {
                   children: [
                     pw.Text(
                       'Total Items: ${sale.items.length}',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                          fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text(
                       'Date: ${sale.formattedTime}',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                          fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                   ],
                 ),
@@ -126,7 +129,8 @@ class PdfService {
     return pdf.save();
   }
 
-  static pw.Widget _buildHeader(String? companyName, String? companyAddress, String? companyPhone) {
+  static pw.Widget _buildHeader(
+      String? companyName, String? companyAddress, String? companyPhone) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
@@ -203,7 +207,8 @@ class PdfService {
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    if (sale.customerPhone != null && sale.customerPhone!.isNotEmpty)
+                    if (sale.customerPhone != null &&
+                        sale.customerPhone!.isNotEmpty)
                       pw.Padding(
                         padding: const pw.EdgeInsets.only(top: 6),
                         child: pw.Text(
@@ -224,7 +229,8 @@ class PdfService {
                 decoration: pw.BoxDecoration(
                   color: PdfColors.amber50,
                   borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
+                  border: pw.Border(
+                      left: pw.BorderSide(color: PdfColors.amber, width: 5)),
                 ),
                 child: pw.Text(
                   'Comment: ${sale.comment}',
@@ -281,9 +287,12 @@ class PdfService {
             children: [
               _tableCell('${idx + 1}'),
               _tableCell(item.itemName),
-              _tableCell(item.quantity.toStringAsFixed(0), align: pw.TextAlign.center),
-              _tableCell(_currencyFormat.format(item.unitPrice), align: pw.TextAlign.right),
-              _tableCell(_currencyFormat.format(item.lineTotal), align: pw.TextAlign.right),
+              _tableCell(item.quantity.toStringAsFixed(0),
+                  align: pw.TextAlign.center),
+              _tableCell(_currencyFormat.format(item.unitPrice),
+                  align: pw.TextAlign.right),
+              _tableCell(_currencyFormat.format(item.lineTotal),
+                  align: pw.TextAlign.right),
             ],
           );
         }),
@@ -291,7 +300,8 @@ class PdfService {
     );
   }
 
-  static pw.Widget _tableCell(String text, {bool isHeader = false, pw.TextAlign align = pw.TextAlign.left}) {
+  static pw.Widget _tableCell(String text,
+      {bool isHeader = false, pw.TextAlign align = pw.TextAlign.left}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       child: pw.Text(
@@ -354,7 +364,8 @@ class PdfService {
           // Header
           pw.Container(
             width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+            padding:
+                const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 14),
             decoration: pw.BoxDecoration(
               color: PdfColors.grey700,
               borderRadius: pw.BorderRadius.circular(8),
@@ -397,12 +408,15 @@ class PdfService {
             children: [
               pw.Text(
                 'Receiver Name / Jina la Mpokezi: ',
-                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                style:
+                    pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
               ),
               pw.Expanded(
                 child: pw.Container(
                   decoration: pw.BoxDecoration(
-                    border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey600, width: 2)),
+                    border: pw.Border(
+                        bottom:
+                            pw.BorderSide(color: PdfColors.grey600, width: 2)),
                   ),
                   height: 32,
                 ),
@@ -433,12 +447,15 @@ class PdfService {
             children: [
               pw.Text(
                 'Date / Tarehe: ',
-                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                style:
+                    pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
               ),
               pw.Container(
                 width: 180,
                 decoration: pw.BoxDecoration(
-                  border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey600, width: 2)),
+                  border: pw.Border(
+                      bottom:
+                          pw.BorderSide(color: PdfColors.grey600, width: 2)),
                 ),
                 height: 32,
               ),
@@ -504,7 +521,8 @@ class PdfService {
     );
 
     final directory = await getApplicationDocumentsDirectory();
-    final fileName = 'Suspended_Sale_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final fileName =
+        'Suspended_Sale_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final file = File('${directory.path}/$fileName');
     await file.writeAsBytes(pdfData);
 
@@ -528,7 +546,8 @@ class PdfService {
 
     await Printing.sharePdf(
       bytes: pdfData,
-      filename: 'Suspended_Sale_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
+      filename:
+          'Suspended_Sale_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
     );
   }
 
@@ -548,7 +567,8 @@ class PdfService {
 
     await Printing.sharePdf(
       bytes: pdfData,
-      filename: 'Suspended_Sale_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
+      filename:
+          'Suspended_Sale_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
     );
   }
 
@@ -581,7 +601,8 @@ class PdfService {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               // Header
-              _buildHeader(companyName ?? 'DELIVERY SHEET', companyAddress, companyPhone),
+              _buildHeader(companyName ?? 'DELIVERY SHEET', companyAddress,
+                  companyPhone),
               pw.SizedBox(height: 24),
 
               // Title
@@ -619,7 +640,8 @@ class PdfService {
               pw.Container(
                 alignment: pw.Alignment.centerRight,
                 child: pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                  padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 32, vertical: 18),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.blue700,
                     borderRadius: pw.BorderRadius.circular(12),
@@ -648,11 +670,13 @@ class PdfService {
                   children: [
                     pw.Text(
                       'Total Items: ${sale.items.length}',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                          fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text(
                       'Date: ${sale.formattedTime}',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                          fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                   ],
                 ),
@@ -713,7 +737,8 @@ class PdfService {
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    if (sale.customerPhone != null && sale.customerPhone!.isNotEmpty)
+                    if (sale.customerPhone != null &&
+                        sale.customerPhone!.isNotEmpty)
                       pw.Padding(
                         padding: const pw.EdgeInsets.only(top: 6),
                         child: pw.Text(
@@ -734,7 +759,8 @@ class PdfService {
                 decoration: pw.BoxDecoration(
                   color: PdfColors.amber50,
                   borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
+                  border: pw.Border(
+                      left: pw.BorderSide(color: PdfColors.amber, width: 5)),
                 ),
                 child: pw.Text(
                   'Comment: ${sale.comment}',
@@ -789,12 +815,15 @@ class PdfService {
             children: [
               _tableCell('${idx + 1}'),
               _tableCell(item.itemName),
-              _tableCell(item.quantity.toStringAsFixed(0), align: pw.TextAlign.center),
+              _tableCell(item.quantity.toStringAsFixed(0),
+                  align: pw.TextAlign.center),
               item.freeQuantity > 0
                   ? pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 12),
                       child: pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: pw.BoxDecoration(
                           color: PdfColors.green100,
                           borderRadius: pw.BorderRadius.circular(12),
@@ -854,7 +883,8 @@ class PdfService {
 
     await Printing.sharePdf(
       bytes: pdfData,
-      filename: 'Delivery_Sheet_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
+      filename:
+          'Delivery_Sheet_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
     );
   }
 
@@ -874,7 +904,8 @@ class PdfService {
 
     await Printing.sharePdf(
       bytes: pdfData,
-      filename: 'Delivery_Sheet_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
+      filename:
+          'Delivery_Sheet_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
     );
   }
 
@@ -907,7 +938,8 @@ class PdfService {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               // Header
-              _buildHeader(companyName ?? 'RECEIPT SHEET', companyAddress, companyPhone),
+              _buildHeader(
+                  companyName ?? 'RECEIPT SHEET', companyAddress, companyPhone),
               pw.SizedBox(height: 24),
 
               // Title
@@ -945,7 +977,8 @@ class PdfService {
               pw.Container(
                 alignment: pw.Alignment.centerRight,
                 child: pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                  padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 32, vertical: 18),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.green700,
                     borderRadius: pw.BorderRadius.circular(12),
@@ -987,11 +1020,13 @@ class PdfService {
                   children: [
                     pw.Text(
                       'Total Items: ${sale.items.length}',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                          fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text(
                       'Date: ${sale.formattedTime}',
-                      style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                          fontSize: 18, fontWeight: pw.FontWeight.bold),
                     ),
                   ],
                 ),
@@ -1052,7 +1087,8 @@ class PdfService {
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
-                    if (sale.customerPhone != null && sale.customerPhone!.isNotEmpty)
+                    if (sale.customerPhone != null &&
+                        sale.customerPhone!.isNotEmpty)
                       pw.Padding(
                         padding: const pw.EdgeInsets.only(top: 6),
                         child: pw.Text(
@@ -1073,7 +1109,8 @@ class PdfService {
                 decoration: pw.BoxDecoration(
                   color: PdfColors.amber50,
                   borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
+                  border: pw.Border(
+                      left: pw.BorderSide(color: PdfColors.amber, width: 5)),
                 ),
                 child: pw.Text(
                   'Comment: ${sale.comment}',
@@ -1132,12 +1169,15 @@ class PdfService {
             children: [
               _tableCell('${idx + 1}'),
               _tableCell(item.itemName),
-              _tableCell(item.quantity.toStringAsFixed(0), align: pw.TextAlign.center),
+              _tableCell(item.quantity.toStringAsFixed(0),
+                  align: pw.TextAlign.center),
               item.freeQuantity > 0
                   ? pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 10),
                       child: pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
                         decoration: pw.BoxDecoration(
                           color: PdfColors.green100,
                           borderRadius: pw.BorderRadius.circular(10),
@@ -1154,8 +1194,10 @@ class PdfService {
                       ),
                     )
                   : _tableCell('-', align: pw.TextAlign.center),
-              _tableCell(_currencyFormat.format(item.unitPrice), align: pw.TextAlign.right),
-              _tableCell(_currencyFormat.format(item.lineTotal), align: pw.TextAlign.right),
+              _tableCell(_currencyFormat.format(item.unitPrice),
+                  align: pw.TextAlign.right),
+              _tableCell(_currencyFormat.format(item.lineTotal),
+                  align: pw.TextAlign.right),
             ],
           );
         }),
@@ -1199,7 +1241,8 @@ class PdfService {
 
     await Printing.sharePdf(
       bytes: pdfData,
-      filename: 'Receipt_Sheet_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
+      filename:
+          'Receipt_Sheet_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
     );
   }
 
@@ -1219,7 +1262,8 @@ class PdfService {
 
     await Printing.sharePdf(
       bytes: pdfData,
-      filename: 'Receipt_Sheet_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
+      filename:
+          'Receipt_Sheet_${sale.saleId}_${sale.customerName.replaceAll(' ', '_')}.pdf',
     );
   }
 
@@ -1267,7 +1311,8 @@ class PdfService {
                   decoration: pw.BoxDecoration(
                     border: pw.Border(
                       top: pw.BorderSide(color: PdfColors.green700, width: 4),
-                      bottom: pw.BorderSide(color: PdfColors.green700, width: 4),
+                      bottom:
+                          pw.BorderSide(color: PdfColors.green700, width: 4),
                     ),
                   ),
                   child: pw.Center(
@@ -1293,14 +1338,16 @@ class PdfService {
           return pw.Container(
             padding: const pw.EdgeInsets.only(bottom: 16),
             decoration: const pw.BoxDecoration(
-              border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey400, width: 1)),
+              border: pw.Border(
+                  bottom: pw.BorderSide(color: PdfColors.grey400, width: 1)),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
                   'SALES RECEIPT #${sale.saleId}',
-                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(
+                      fontSize: 18, fontWeight: pw.FontWeight.bold),
                 ),
                 pw.Text(
                   'Page ${context.pageNumber}',
@@ -1394,10 +1441,12 @@ class PdfService {
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('Card UID:', style: const pw.TextStyle(fontSize: 18)),
+                          pw.Text('Card UID:',
+                              style: const pw.TextStyle(fontSize: 18)),
                           pw.Text(
                             nfcCardUid,
-                            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                            style: pw.TextStyle(
+                                fontSize: 18, fontWeight: pw.FontWeight.bold),
                           ),
                         ],
                       ),
@@ -1405,7 +1454,8 @@ class PdfService {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('Amount Deducted:', style: const pw.TextStyle(fontSize: 18)),
+                        pw.Text('Amount Deducted:',
+                            style: const pw.TextStyle(fontSize: 18)),
                         pw.Text(
                           'TZS ${NumberFormat('#,##0').format(nfcAmountUsed)}',
                           style: pw.TextStyle(
@@ -1421,7 +1471,8 @@ class PdfService {
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('Remaining Balance:', style: const pw.TextStyle(fontSize: 18)),
+                          pw.Text('Remaining Balance:',
+                              style: const pw.TextStyle(fontSize: 18)),
                           pw.Text(
                             'TZS ${NumberFormat('#,##0').format(nfcBalanceAfter)}',
                             style: pw.TextStyle(
@@ -1578,7 +1629,8 @@ class PdfService {
             children: [
               _tableCellLarge('${idx + 1}'),
               pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
@@ -1589,7 +1641,8 @@ class PdfService {
                     if (isFreeItem)
                       pw.Container(
                         margin: const pw.EdgeInsets.only(top: 6),
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: pw.BoxDecoration(
                           color: PdfColors.green700,
                           borderRadius: pw.BorderRadius.circular(8),
@@ -1606,9 +1659,12 @@ class PdfService {
                   ],
                 ),
               ),
-              _tableCellLarge(item.quantity.toStringAsFixed(0), align: pw.TextAlign.center),
-              _tableCellLarge(_currencyFormat.format(item.unitPrice), align: pw.TextAlign.right),
-              _tableCellLarge(_currencyFormat.format(item.lineTotal), align: pw.TextAlign.right),
+              _tableCellLarge(item.quantity.toStringAsFixed(0),
+                  align: pw.TextAlign.center),
+              _tableCellLarge(_currencyFormat.format(item.unitPrice),
+                  align: pw.TextAlign.right),
+              _tableCellLarge(_currencyFormat.format(item.lineTotal),
+                  align: pw.TextAlign.right),
             ],
           );
         }),
@@ -1617,7 +1673,8 @@ class PdfService {
   }
 
   // Large table cell for sale receipts
-  static pw.Widget _tableCellLarge(String text, {bool isHeader = false, pw.TextAlign align = pw.TextAlign.left}) {
+  static pw.Widget _tableCellLarge(String text,
+      {bool isHeader = false, pw.TextAlign align = pw.TextAlign.left}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       child: pw.Text(
@@ -1634,7 +1691,8 @@ class PdfService {
 
   static pw.Widget _buildSaleReceiptTotals(Sale sale) {
     final hasDiscount = sale.items?.any((item) => item.discount > 0) ?? false;
-    final totalDiscount = sale.items?.fold<double>(0, (sum, item) => sum + item.discount) ?? 0;
+    final totalDiscount =
+        sale.items?.fold<double>(0, (sum, item) => sum + item.discount) ?? 0;
 
     return pw.Container(
       alignment: pw.Alignment.centerRight,
@@ -1652,7 +1710,8 @@ class PdfService {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 20)),
-                pw.Text('${_currencyFormat.format(sale.subtotal)} TSh', style: const pw.TextStyle(fontSize: 20)),
+                pw.Text('${_currencyFormat.format(sale.subtotal)} TSh',
+                    style: const pw.TextStyle(fontSize: 20)),
               ],
             ),
             if (hasDiscount) ...[
@@ -1660,8 +1719,12 @@ class PdfService {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Discount:', style: pw.TextStyle(fontSize: 20, color: PdfColors.red700)),
-                  pw.Text('-${_currencyFormat.format(totalDiscount)} TSh', style: pw.TextStyle(fontSize: 20, color: PdfColors.red700)),
+                  pw.Text('Discount:',
+                      style:
+                          pw.TextStyle(fontSize: 20, color: PdfColors.red700)),
+                  pw.Text('-${_currencyFormat.format(totalDiscount)} TSh',
+                      style:
+                          pw.TextStyle(fontSize: 20, color: PdfColors.red700)),
                 ],
               ),
             ],
@@ -1670,14 +1733,17 @@ class PdfService {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text('Tax:', style: const pw.TextStyle(fontSize: 20)),
-                pw.Text('${_currencyFormat.format(sale.taxTotal)} TSh', style: const pw.TextStyle(fontSize: 20)),
+                pw.Text('${_currencyFormat.format(sale.taxTotal)} TSh',
+                    style: const pw.TextStyle(fontSize: 20)),
               ],
             ),
             pw.Divider(height: 20, color: PdfColors.grey400),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('TOTAL:', style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold)),
+                pw.Text('TOTAL:',
+                    style: pw.TextStyle(
+                        fontSize: 26, fontWeight: pw.FontWeight.bold)),
                 pw.Text(
                   '${_currencyFormat.format(sale.total)} TSh',
                   style: pw.TextStyle(
@@ -1707,17 +1773,21 @@ class PdfService {
       child: pw.Column(
         children: sale.payments!.map((payment) {
           return pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding:
+                const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: pw.BoxDecoration(
-              border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 1)),
+              border: pw.Border(
+                  bottom: pw.BorderSide(color: PdfColors.grey200, width: 1)),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text(payment.paymentType, style: const pw.TextStyle(fontSize: 20)),
+                pw.Text(payment.paymentType,
+                    style: const pw.TextStyle(fontSize: 20)),
                 pw.Text(
                   '${_currencyFormat.format(payment.amount)} TSh',
-                  style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(
+                      fontSize: 20, fontWeight: pw.FontWeight.bold),
                 ),
               ],
             ),
@@ -1824,7 +1894,8 @@ class PdfService {
               if (companyAddress != null)
                 pw.Text(companyAddress, style: const pw.TextStyle(fontSize: 8)),
               if (companyPhone != null)
-                pw.Text('Tel: $companyPhone', style: const pw.TextStyle(fontSize: 8)),
+                pw.Text('Tel: $companyPhone',
+                    style: const pw.TextStyle(fontSize: 8)),
               pw.SizedBox(height: 8),
 
               // Title
@@ -1884,7 +1955,8 @@ class PdfService {
                 width: double.infinity,
                 child: pw.Column(
                   children: [
-                    _buildReceiptRow('Previous Balance:', 'TZS ${_currencyFormat.format(balanceBefore)}'),
+                    _buildReceiptRow('Previous Balance:',
+                        'TZS ${_currencyFormat.format(balanceBefore)}'),
                     pw.SizedBox(height: 4),
                     pw.Container(
                       width: double.infinity,
@@ -1904,7 +1976,8 @@ class PdfService {
                       ),
                     ),
                     pw.SizedBox(height: 4),
-                    _buildReceiptRow('New Balance:', 'TZS ${_currencyFormat.format(balanceAfter)}',
+                    _buildReceiptRow('New Balance:',
+                        'TZS ${_currencyFormat.format(balanceAfter)}',
                         isBold: true),
                   ],
                 ),
@@ -1972,7 +2045,8 @@ class PdfService {
     return pdf.save();
   }
 
-  static pw.Widget _buildReceiptRow(String label, String value, {bool isBold = false}) {
+  static pw.Widget _buildReceiptRow(String label, String value,
+      {bool isBold = false}) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
@@ -2048,7 +2122,218 @@ class PdfService {
 
     await Printing.sharePdf(
       bytes: pdfData,
-      filename: 'NFC_Deposit_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf',
+      filename:
+          'NFC_Deposit_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf',
+    );
+  }
+
+  /// Contract statement (customer portal) -- date/credit/debit/balance
+  /// rows with opening/closing balance, same shape as the day-by-day
+  /// statement web's customer portal and the staff app already show,
+  /// just as a document the customer can save/share themselves (parity
+  /// with web's "Pakua PDF" window.print()).
+  static Future<Uint8List> generateContractStatementPdf({
+    required String contractName,
+    required String contractDescription,
+    required List<StatementEntry> statement,
+    required String startDate,
+    required String endDate,
+    String? companyName,
+    String? companyAddress,
+    String? companyPhone,
+  }) async {
+    await _loadFonts();
+
+    final pdf = pw.Document();
+    final theme = pw.ThemeData.withFont(base: _regularFont!, bold: _boldFont!);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        theme: theme,
+        header: (pw.Context context) {
+          if (context.pageNumber == 1) {
+            return pw.Column(
+              children: [
+                _buildHeader(companyName, companyAddress, companyPhone),
+                pw.SizedBox(height: 20),
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.symmetric(vertical: 14),
+                  decoration: const pw.BoxDecoration(
+                    border: pw.Border(
+                      top: pw.BorderSide(color: PdfColors.blue700, width: 3),
+                      bottom: pw.BorderSide(color: PdfColors.blue700, width: 3),
+                    ),
+                  ),
+                  child: pw.Center(
+                    child: pw.Text(
+                      'TAARIFA YA MKATABA',
+                      style: pw.TextStyle(
+                          fontSize: 26,
+                          fontWeight: pw.FontWeight.bold,
+                          letterSpacing: 2),
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 14),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(contractName,
+                            style: pw.TextStyle(
+                                fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                        if (contractDescription.isNotEmpty)
+                          pw.Text(contractDescription,
+                              style: const pw.TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                    pw.Text('$startDate  →  $endDate',
+                        style: const pw.TextStyle(fontSize: 12)),
+                  ],
+                ),
+                pw.SizedBox(height: 16),
+              ],
+            );
+          }
+          return pw.Container(
+            padding: const pw.EdgeInsets.only(bottom: 12),
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(
+                  bottom: pw.BorderSide(color: PdfColors.grey400, width: 1)),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(contractName,
+                    style: pw.TextStyle(
+                        fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                pw.Text('Page ${context.pageNumber}',
+                    style: const pw.TextStyle(fontSize: 11)),
+              ],
+            ),
+          );
+        },
+        footer: (pw.Context context) => pw.Container(
+          alignment: pw.Alignment.centerRight,
+          margin: const pw.EdgeInsets.only(top: 12),
+          child: pw.Text('Page ${context.pageNumber} of ${context.pagesCount}',
+              style:
+                  const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+        ),
+        build: (pw.Context context) => [_buildStatementTable(statement)],
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  static pw.Widget _buildStatementTable(List<StatementEntry> statement) {
+    return pw.Table(
+      border: pw.TableBorder(
+        left: pw.BorderSide(color: PdfColors.grey400, width: 1),
+        right: pw.BorderSide(color: PdfColors.grey400, width: 1),
+        top: pw.BorderSide(color: PdfColors.grey400, width: 1),
+        bottom: pw.BorderSide(color: PdfColors.grey400, width: 1),
+        horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: .5),
+      ),
+      columnWidths: const {
+        0: pw.FixedColumnWidth(70),
+        1: pw.FlexColumnWidth(3),
+        2: pw.FixedColumnWidth(80),
+        3: pw.FixedColumnWidth(80),
+        4: pw.FixedColumnWidth(90),
+      },
+      children: [
+        pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.blue700),
+          children: [
+            _statementCell('Date', isHeader: true),
+            _statementCell('Description', isHeader: true),
+            _statementCell('Credit', isHeader: true, align: pw.TextAlign.right),
+            _statementCell('Debit', isHeader: true, align: pw.TextAlign.right),
+            _statementCell('Balance',
+                isHeader: true, align: pw.TextAlign.right),
+          ],
+        ),
+        ...statement.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final row = entry.value;
+          final isSpecial = row.type == 'opening' || row.type == 'closing';
+          return pw.TableRow(
+            decoration: pw.BoxDecoration(
+              color: isSpecial
+                  ? PdfColors.blue50
+                  : (idx % 2 == 0 ? PdfColors.white : PdfColors.grey100),
+            ),
+            children: [
+              _statementCell(row.date, bold: isSpecial),
+              _statementCell(row.description, bold: isSpecial),
+              _statementCell(
+                  row.credit > 0 ? _currencyFormat.format(row.credit) : '—',
+                  align: pw.TextAlign.right,
+                  bold: isSpecial),
+              _statementCell(
+                  row.debit > 0 ? _currencyFormat.format(row.debit) : '—',
+                  align: pw.TextAlign.right,
+                  bold: isSpecial),
+              _statementCell(_currencyFormat.format(row.balance),
+                  align: pw.TextAlign.right, bold: isSpecial),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  static pw.Widget _statementCell(String text,
+      {bool isHeader = false,
+      bool bold = false,
+      pw.TextAlign align = pw.TextAlign.left}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: pw.Text(
+        text,
+        textAlign: align,
+        style: pw.TextStyle(
+          fontSize: 10.5,
+          fontWeight:
+              (isHeader || bold) ? pw.FontWeight.bold : pw.FontWeight.normal,
+          color: isHeader ? PdfColors.white : PdfColors.black,
+        ),
+      ),
+    );
+  }
+
+  /// Generate + open the share sheet for a contract statement PDF.
+  static Future<void> shareContractStatementPdf({
+    required String contractName,
+    required String contractDescription,
+    required List<StatementEntry> statement,
+    required String startDate,
+    required String endDate,
+    String? companyName,
+    String? companyAddress,
+    String? companyPhone,
+  }) async {
+    final pdfData = await generateContractStatementPdf(
+      contractName: contractName,
+      contractDescription: contractDescription,
+      statement: statement,
+      startDate: startDate,
+      endDate: endDate,
+      companyName: companyName,
+      companyAddress: companyAddress,
+      companyPhone: companyPhone,
+    );
+    await Printing.sharePdf(
+      bytes: pdfData,
+      filename:
+          'Statement_${contractName.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')}_$startDate.pdf',
     );
   }
 }

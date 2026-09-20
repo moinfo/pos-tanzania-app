@@ -4,6 +4,8 @@ import '../../models/contract.dart';
 import '../../models/portal_contract_detail.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'portal_payments_screen.dart';
+import 'portal_statement_screen.dart';
 
 /// Full statement page for one contract -- mirrors web's portal/contract.php
 /// (stat cards, terms/guarantor/asset details, progress bar, real payment
@@ -63,6 +65,48 @@ class _PortalContractDetailScreenState
         title: Text(title),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'payments') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        PortalPaymentsScreen(contract: widget.contract),
+                  ),
+                );
+              } else if (value == 'statement') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        PortalStatementScreen(contract: widget.contract),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'payments',
+                child: ListTile(
+                  leading: Icon(Icons.receipt_long),
+                  title: Text('Malipo'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'statement',
+                child: ListTile(
+                  leading: Icon(Icons.description_outlined),
+                  title: Text('Taarifa (Statement)'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _load,

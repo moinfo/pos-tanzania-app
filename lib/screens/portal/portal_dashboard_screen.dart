@@ -329,10 +329,67 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                           fontSize: 11, color: AppColors.textLight)),
                 ],
               ),
+              const Divider(height: 20),
+              _buildMiniStats(contract),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// At-a-glance daily status the customer would otherwise have to tap
+  /// into the contract to see: which day of the contract today is, what's
+  /// been paid/remains, what's overdue as of today, the daily obligation,
+  /// and how many days behind (if any).
+  Widget _buildMiniStats(Contract contract) {
+    final stats = <(String, String)>[
+      ('Siku ya mkataba', 'Siku ${contract.days}'),
+      (
+        'Amepitisha siku',
+        contract.daysUnpaid > 0
+            ? '${contract.daysUnpaid.toInt()} siku'
+            : 'Hakuna'
+      ),
+      (
+        'Amelipa hadi sasa',
+        'TSH ${Formatters.formatCurrency(contract.payments)}'
+      ),
+      (
+        'Salio linalobaki',
+        'TSH ${Formatters.formatCurrency(contract.balance)}'
+      ),
+      (
+        'Anadaiwa hadi leo',
+        'TSH ${Formatters.formatCurrency(contract.currentUnpaid)}'
+      ),
+      (
+        'Kiwango cha kila siku',
+        'TSH ${Formatters.formatCurrency(contract.returnAmount)}'
+      ),
+    ];
+
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 4,
+      crossAxisSpacing: 12,
+      childAspectRatio: 3.4,
+      children: stats
+          .map((s) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(s.$1,
+                      style: const TextStyle(
+                          fontSize: 10, color: AppColors.textLight)),
+                  Text(s.$2,
+                      style: const TextStyle(
+                          fontSize: 12.5, fontWeight: FontWeight.w600)),
+                ],
+              ))
+          .toList(),
     );
   }
 
