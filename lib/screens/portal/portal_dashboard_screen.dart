@@ -6,6 +6,10 @@ import '../../utils/formatters.dart';
 import 'portal_contract_detail_screen.dart';
 import 'portal_login_screen.dart';
 
+/// Customer portal shell: a bottom-nav Dashboard (hero balance + contract
+/// cards, mirroring web's portal/dashboard.php) and an Account tab (phone,
+/// business, logout) -- previously a single bare list with only a logout
+/// icon, no real navigation or summary.
 class PortalDashboardScreen extends StatefulWidget {
   const PortalDashboardScreen({super.key});
 
@@ -20,6 +24,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   String? _error;
   String _tenantName = '';
   String _phone = '';
+  int _tabIndex = 0;
 
   @override
   void initState() {
@@ -64,25 +69,37 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: Text(_tenantName.isEmpty ? 'My Contracts' : _tenantName),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _logout,
-              tooltip: 'Logout'),
+      body: SafeArea(
+        child: _tabIndex == 0 ? _buildDashboardTab() : _buildAccountTab(),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _tabIndex,
+        onTap: (i) => setState(() => _tabIndex = i),
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textLight,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_outlined),
+              activeIcon: Icon(Icons.dashboard),
+              label: 'Dashboard'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Account'),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? _buildError()
-                : _buildList(),
-      ),
+    );
+  }
+
+  Widget _buildDashboardTab() {
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _buildError()
+              : _buildList(),
     );
   }
 
@@ -105,92 +122,272 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   Widget _buildList() {
     final contracts = _contracts ?? [];
-    if (contracts.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 80),
-          const Icon(Icons.receipt_long, size: 48, color: AppColors.textLight),
-          const SizedBox(height: 12),
-          const Center(
-              child: Text('No contracts found for this phone number.')),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(_phone,
-                  style: const TextStyle(color: AppColors.textLight)),
-            ),
-          ),
-        ],
-      );
-    }
+    final activeContracts = contracts.where((c) => !c.isTerminated).toList();
+    final totalOwed = activeContracts.fold<double>(
+        0, (sum, c) => sum + (c.balance > 0 ? c.balance : 0));
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: contracts.length,
-      itemBuilder: (context, index) {
-        final contract = contracts[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            title: Text(contract.contractDescription.isNotEmpty
-                ? contract.contractDescription
-                : 'Contract #${contract.id}'),
-            subtitle: Text('${contract.date} → ${contract.endDate}'),
-            trailing: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _buildStatusBadge(contract.status),
-                const SizedBox(height: 4),
-                Text(Formatters.formatCurrency(contract.balance),
-                    style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PortalContractDetailScreen(contract: contract),
-              ),
-            ),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        _buildHero(totalOwed),
+        const SizedBox(height: 20),
+        if (contracts.isNotEmpty) ...[
+          Row(
+            children: [
+              const Text('Mikataba Yako',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.text)),
+              const SizedBox(width: 6),
+              Text('(${contracts.length})',
+                  style: const TextStyle(
+                      fontSize: 14, color: AppColors.textLight)),
+            ],
           ),
-        );
-      },
+          const SizedBox(height: 12),
+          ...contracts.map(_buildContractCard),
+        ] else
+          _buildEmpty(),
+      ],
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    final Color color;
-    final String label;
+  Widget _buildEmpty() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 60),
+      child: Column(
+        children: [
+          const Icon(Icons.receipt_long, size: 48, color: AppColors.textLight),
+          const SizedBox(height: 12),
+          const Text('No contracts found for this phone number.'),
+          const SizedBox(height: 4),
+          Text(_phone, style: const TextStyle(color: AppColors.textLight)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHero(double totalOwed) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1B2C45), Color(0xFF2C4165)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_tenantName.isEmpty ? 'Deni lako lote kwa sasa' : _tenantName,
+              style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          if (totalOwed > 0)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                const Text('TSH ',
+                    style: TextStyle(color: Colors.white54, fontSize: 14)),
+                Text(Formatters.formatCurrency(totalOwed),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold)),
+              ],
+            )
+          else
+            const Text('Umeshalipa deni lako lote',
+                style: TextStyle(
+                    color: Color(0xFF6FCF97),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          Text('Namba ya simu: $_phone',
+              style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContractCard(Contract contract) {
+    final status = contract.status;
+    final amount = contract.contractAmount;
+    final paidFraction = amount > 0
+        ? ((amount - contract.balance) / amount).clamp(0.0, 1.0)
+        : 0.0;
+    final statusStyle = _statusStyle(status);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PortalContractDetailScreen(contract: contract),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          contract.contractDescription.isNotEmpty
+                              ? contract.contractDescription
+                              : 'Mkataba #${contract.id}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14.5),
+                        ),
+                        const SizedBox(height: 2),
+                        Text('${contract.date} → ${contract.endDate}',
+                            style: const TextStyle(
+                                fontSize: 11.5, color: AppColors.textLight)),
+                      ],
+                    ),
+                  ),
+                  if (status == 'completed')
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                            color: AppColors.success.withOpacity(0.4)),
+                      ),
+                      child: const Text('Imelipwa',
+                          style: TextStyle(
+                              color: AppColors.success,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold)),
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                            'TSH ${Formatters.formatCurrency(contract.balance)}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13.5)),
+                        const Text('salio',
+                            style: TextStyle(
+                                fontSize: 10.5, color: AppColors.textLight)),
+                      ],
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: paidFraction,
+                  minHeight: 6,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation(statusStyle.color),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusStyle.color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(statusStyle.label,
+                        style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: statusStyle.color)),
+                  ),
+                  Text('${(paidFraction * 100).round()}% imelipwa',
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textLight)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  ({Color color, String label}) _statusStyle(String status) {
     switch (status) {
       case 'terminated':
-        color = Colors.grey;
-        label = 'Terminated';
-        break;
+        return (color: Colors.grey, label: 'Umesitishwa');
       case 'completed':
-        color = AppColors.success;
-        label = 'Completed';
-        break;
+        return (color: AppColors.success, label: 'Imelipwa kamili');
       case 'on_track':
-        color = AppColors.success;
-        label = 'On Track';
-        break;
+        return (color: AppColors.success, label: 'Inaendelea vizuri');
       case 'behind':
-        color = AppColors.warning;
-        label = 'Behind';
-        break;
+        return (color: AppColors.warning, label: 'Umechelewa');
       default:
-        color = AppColors.error;
-        label = 'Overdue';
+        return (color: AppColors.error, label: 'Umechelewa sana');
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 10.5, fontWeight: FontWeight.bold, color: color)),
+  }
+
+  Widget _buildAccountTab() {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const SizedBox(height: 12),
+        Center(
+          child: CircleAvatar(
+            radius: 36,
+            backgroundColor: AppColors.primary.withOpacity(0.1),
+            child: const Icon(Icons.person, size: 36, color: AppColors.primary),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: Text(_phone,
+              style:
+                  const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(height: 4),
+        Center(
+          child: Text(_tenantName,
+              style: const TextStyle(color: AppColors.textLight)),
+        ),
+        const SizedBox(height: 32),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: ListTile(
+            leading: const Icon(Icons.logout, color: AppColors.error),
+            title: const Text('Toka', style: TextStyle(color: AppColors.error)),
+            onTap: _logout,
+          ),
+        ),
+      ],
     );
   }
 }

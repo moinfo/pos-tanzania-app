@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/api_response.dart';
 import '../models/contract.dart';
+import '../models/portal_contract_detail.dart';
 import 'api_service.dart';
 
 /// Backs the customer self-service portal's "customer mode" inside this
@@ -208,30 +209,15 @@ class CustomerApiService {
     }
   }
 
-  Future<ApiResponse<ContractStatement>> getContractDetail(
-    int contractId, {
-    String? startDate,
-    String? endDate,
-  }) async {
+  Future<ApiResponse<PortalContractDetail>> getContractDetail(
+      int contractId) async {
     try {
-      final params = <String, String>{
-        if (startDate != null) 'start_date': startDate,
-        if (endDate != null) 'end_date': endDate,
-      };
-      final uri = Uri.parse('$_baseUrl/portal/contracts/$contractId')
-          .replace(queryParameters: params.isEmpty ? null : params);
+      final uri = Uri.parse('$_baseUrl/portal/contracts/$contractId');
       final response = await http.get(uri, headers: await _headers());
-      return _handle<ContractStatement>(response, (data) {
-        final statementList = (data['statement'] as List?) ?? [];
-        return ContractStatement(
-          contract: Contract.fromJson(data as Map<String, dynamic>),
-          statement: statementList
-              .map((e) => StatementEntry.fromJson(e as Map<String, dynamic>))
-              .toList(),
-          startDate: data['start_date'] as String? ?? '',
-          endDate: data['end_date'] as String? ?? '',
-        );
-      });
+      return _handle<PortalContractDetail>(
+        response,
+        (data) => PortalContractDetail.fromJson(data as Map<String, dynamic>),
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
