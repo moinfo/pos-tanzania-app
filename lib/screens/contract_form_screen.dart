@@ -70,8 +70,8 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
         TextEditingController(text: from?.phoneGuarantor2 ?? '');
     _descriptionController =
         TextEditingController(text: from?.contractDescription ?? '');
-    _contractTimeController =
-        TextEditingController(text: (from?.contractTime ?? 30).toString());
+    _contractTimeController = TextEditingController(
+        text: from != null ? from.contractTime.toString() : '');
     _returnAmountController = TextEditingController(
         text: from == null ? '' : _formatNum(from.returnAmount));
     _contractCostController = TextEditingController(
@@ -133,11 +133,27 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     super.dispose();
   }
 
-  int get _contractTimeDays =>
+  /// contract_time is stored in MONTHS, confirmed against real data
+  /// (TIMESTAMPDIFF(MONTH, date, end_date) matches it exactly for every
+  /// live contract) -- and that's what the web Add Contract form already
+  /// assumes (its end-date JS does d.setMonth(d.getMonth() + months)).
+  /// This used to be treated as days here, which silently computed a wildly
+  /// wrong end date for any contract actually meant to run N months.
+  int get _contractTimeMonths =>
       int.tryParse(_contractTimeController.text.trim()) ?? 0;
 
-  DateTime get _endDate => _startDate
-      .add(Duration(days: _contractTimeDays > 0 ? _contractTimeDays - 1 : 0));
+  DateTime get _endDate => _addMonths(_startDate, _contractTimeMonths);
+
+  /// Dart has no built-in "add months" -- rolls the year over and clamps
+  /// the day into the target month (e.g. Jan 31 + 1 month -> Feb 28/29,
+  /// not March 3), matching how JS Date.setMonth() behaves on the web form.
+  static DateTime _addMonths(DateTime date, int months) {
+    final totalMonths = date.month - 1 + months;
+    final year = date.year + totalMonths ~/ 12;
+    final month = totalMonths % 12 + 1;
+    final daysInTargetMonth = DateTime(year, month + 1, 0).day;
+    return DateTime(year, month, date.day.clamp(1, daysInTargetMonth));
+  }
 
   Future<void> _pickStartDate() async {
     final picked = await showDatePicker(
@@ -163,8 +179,8 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_contractTimeDays <= 0) {
-      _showSnack('Contract time must be at least 1 day', isError: true);
+    if (_contractTimeMonths <= 0) {
+      _showSnack('Contract time must be at least 1 month', isError: true);
       return;
     }
 
@@ -174,7 +190,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
       name: _nameController.text.trim(),
       date: Formatters.formatDateForApi(_startDate),
       endDate: Formatters.formatDateForApi(_endDate),
-      contractTime: _contractTimeDays,
+      contractTime: _contractTimeMonths,
       returnAmount: double.parse(_returnAmountController.text.trim()),
       contractCost: double.parse(_contractCostController.text.trim()),
       contractAmount: double.parse(_contractAmountController.text.trim()),
@@ -276,7 +292,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
             const SizedBox(height: 12),
             _textField(
               _contractTimeController,
-              'Contract Time (days)',
+              'Contract Time (months)',
               required: true,
               keyboardType: TextInputType.number,
               onChanged: (_) => setState(() {}),
