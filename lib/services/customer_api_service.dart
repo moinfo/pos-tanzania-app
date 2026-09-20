@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/api_response.dart';
 import '../models/contract.dart';
 import '../models/portal_contract_detail.dart';
+import '../models/monthly_payment_total.dart';
 import 'api_service.dart';
 
 /// Backs the customer self-service portal's "customer mode" inside this
@@ -292,6 +293,26 @@ class CustomerApiService {
         body: json.encode({'whatsapp_phone': whatsappPhone}),
       );
       return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Monthly payment totals across ALL of the customer's contracts --
+  /// aggregated server-side (api/Portal::payment_history()), not summed
+  /// from individual payment records client-side.
+  Future<ApiResponse<List<MonthlyPaymentTotal>>> getPaymentHistory(
+      {int months = 6}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/portal/payments/history')
+          .replace(queryParameters: {'months': '$months'});
+      final response = await http.get(uri, headers: await _headers());
+      return _handle<List<MonthlyPaymentTotal>>(response, (data) {
+        final list = (data['months'] as List?) ?? [];
+        return list
+            .map((e) => MonthlyPaymentTotal.fromJson(e as Map<String, dynamic>))
+            .toList();
+      });
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }

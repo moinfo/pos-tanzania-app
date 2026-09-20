@@ -149,6 +149,10 @@ class PortalStrings {
       'en': 'Recent payments',
       'sw': 'Malipo ya hivi karibuni'
     },
+    'payment_history': {
+      'en': 'Payment history (last 6 months)',
+      'sw': 'Historia ya malipo (miezi 6 iliyopita)',
+    },
     'none': {'en': 'None', 'sw': 'Hakuna'},
     'n_days': {'en': '{0} days', 'sw': 'siku {0}'},
     'paid_so_far': {'en': 'Paid so far', 'sw': 'Amelipa hadi sasa'},

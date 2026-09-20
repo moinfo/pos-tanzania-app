@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../services/customer_api_service.dart';
 import '../../models/contract.dart';
 import '../../models/portal_contract_detail.dart';
+import '../../models/monthly_payment_total.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../l10n/portal_locale.dart';
@@ -43,6 +44,12 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   PortalContractDetail? _currentContractDetail;
   bool _isLoadingCurrentContract = false;
 
+  /// Monthly totals across ALL of the customer's contracts, independent of
+  /// which one is "current" -- shown even when the current contract itself
+  /// has no payments yet (e.g. a brand-new renewal).
+  List<MonthlyPaymentTotal>? _paymentHistory;
+  bool _isLoadingPaymentHistory = false;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +80,17 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     });
 
     _loadCurrentContractDetail();
+    _loadPaymentHistory();
+  }
+
+  Future<void> _loadPaymentHistory() async {
+    setState(() => _isLoadingPaymentHistory = true);
+    final response = await _service.getPaymentHistory(months: 6);
+    if (!mounted) return;
+    setState(() {
+      _isLoadingPaymentHistory = false;
+      if (response.isSuccess) _paymentHistory = response.data;
+    });
   }
 
   Future<void> _loadCurrentContractDetail() async {
@@ -215,6 +233,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           ),
           const SizedBox(height: 20),
           _buildCurrentContractSection(),
+          const SizedBox(height: 16),
+          _buildPaymentHistorySection(),
         ] else
           _buildEmpty(),
       ],
@@ -298,6 +318,135 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
         ],
       ),
     );
+  }
+
+  /// Monthly totals across every contract the customer has ever had here,
+  /// not just the "current" one -- so it still shows something meaningful
+  /// even when the current contract is brand new and has no payments yet.
+  Widget _buildPaymentHistorySection() {
+    if (_isLoadingPaymentHistory) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final history = _paymentHistory;
+    if (history == null || history.isEmpty) return const SizedBox.shrink();
+
+    final total = history.fold<double>(0, (sum, m) => sum + m.total);
+    if (total <= 0) return const SizedBox.shrink();
+
+    final maxTotal =
+        history.map((m) => m.total).fold<double>(0, (a, b) => a > b ? a : b);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(PortalStrings.t('payment_history'),
+              style: const TextStyle(
+                  fontSize: 10.5,
+                  color: AppColors.textLight,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Text('TSH ${Formatters.formatCurrency(total)}',
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 130,
+            child: BarChart(
+              BarChartData(
+                maxY: maxTotal > 0 ? maxTotal * 1.2 : 1,
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => AppColors.primary,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        'TSH ${Formatters.formatCurrency(rod.toY)}',
+                        const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      getTitlesWidget: (value, meta) {
+                        final i = value.toInt();
+                        if (i < 0 || i >= history.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(_monthLabel(history[i].month),
+                              style: const TextStyle(
+                                  fontSize: 9.5, color: AppColors.textLight)),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: [
+                  for (var i = 0; i < history.length; i++)
+                    BarChartGroupData(x: i, barRods: [
+                      BarChartRodData(
+                        toY: history[i].total,
+                        color: history[i].total > 0
+                            ? AppColors.primary
+                            : Colors.grey.shade200,
+                        width: 22,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ]),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _monthLabel(String ym) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final parts = ym.split('-');
+    if (parts.length != 2) return ym;
+    final monthIndex = int.tryParse(parts[1]);
+    if (monthIndex == null || monthIndex < 1 || monthIndex > 12) return ym;
+    return months[monthIndex - 1];
   }
 
   Widget _buildPaidDonut(Contract c) {
