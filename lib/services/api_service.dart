@@ -1731,6 +1731,7 @@ class ApiService {
     String? assetChassisNumber,
     String? assetInsuranceProvider,
     String? assetInsuranceExpiry,
+    bool isRenewal = false,
   }) async {
     try {
       final response = await http.post(
@@ -1764,6 +1765,7 @@ class ApiService {
             'asset_insurance_provider': assetInsuranceProvider,
           if (assetInsuranceExpiry != null && assetInsuranceExpiry.isNotEmpty)
             'asset_insurance_expiry': assetInsuranceExpiry,
+          'is_renewal': isRenewal,
         }),
       );
 

@@ -206,6 +206,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
       assetInsuranceExpiry: _assetInsuranceExpiry == null
           ? null
           : Formatters.formatDateForApi(_assetInsuranceExpiry!),
+      isRenewal: _isRenewal,
     );
 
     if (!mounted) return;
