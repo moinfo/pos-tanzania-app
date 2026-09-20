@@ -1722,6 +1722,7 @@ class ApiService {
     required double contractCost,
     required double contractAmount,
     String? phone,
+    String? whatsappPhone,
     String? guarantor1,
     String? phoneGuarantor1,
     String? guarantor2,
@@ -1746,6 +1747,8 @@ class ApiService {
           'contract_cost': contractCost,
           'contract_amount': contractAmount,
           if (phone != null && phone.isNotEmpty) 'phone': phone,
+          if (whatsappPhone != null && whatsappPhone.isNotEmpty)
+            'whatsapp_phone': whatsappPhone,
           if (guarantor1 != null && guarantor1.isNotEmpty)
             'guarantor1': guarantor1,
           if (phoneGuarantor1 != null && phoneGuarantor1.isNotEmpty)

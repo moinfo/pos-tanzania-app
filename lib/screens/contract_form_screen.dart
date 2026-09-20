@@ -31,6 +31,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
 
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _whatsappPhoneController;
   late final TextEditingController _guarantor1Controller;
   late final TextEditingController _phoneGuarantor1Controller;
   late final TextEditingController _guarantor2Controller;
@@ -62,6 +63,8 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
     final from = widget.renewFrom;
     _nameController = TextEditingController(text: from?.name ?? '');
     _phoneController = TextEditingController(text: from?.phone ?? '');
+    _whatsappPhoneController =
+        TextEditingController(text: from?.whatsappPhone ?? '');
     _guarantor1Controller = TextEditingController(text: from?.guarantor1 ?? '');
     _phoneGuarantor1Controller =
         TextEditingController(text: from?.phoneGuarantor1 ?? '');
@@ -117,6 +120,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _whatsappPhoneController.dispose();
     _guarantor1Controller.dispose();
     _phoneGuarantor1Controller.dispose();
     _guarantor2Controller.dispose();
@@ -195,6 +199,7 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
       contractCost: double.parse(_contractCostController.text.trim()),
       contractAmount: double.parse(_contractAmountController.text.trim()),
       phone: _phoneController.text.trim(),
+      whatsappPhone: _whatsappPhoneController.text.trim(),
       guarantor1: _guarantor1Controller.text.trim(),
       phoneGuarantor1: _phoneGuarantor1Controller.text.trim(),
       guarantor2: _guarantor2Controller.text.trim(),
@@ -275,6 +280,8 @@ class _ContractFormScreenState extends State<ContractFormScreen> {
             _textField(_phoneController, 'Phone',
                 keyboardType: TextInputType.phone, focusNode: _phoneFocusNode),
             _buildCustomerHistoryPanel(isDark),
+            _textField(_whatsappPhoneController, 'WhatsApp (if different)',
+                keyboardType: TextInputType.phone),
             _textField(_guarantor1Controller, 'Guarantor 1 Name'),
             _textField(_phoneGuarantor1Controller, 'Guarantor 1 Phone',
                 keyboardType: TextInputType.phone),

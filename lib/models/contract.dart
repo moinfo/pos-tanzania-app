@@ -2,6 +2,10 @@ class Contract {
   final int id;
   final String name;
   final String phone;
+
+  /// Separate WhatsApp number, if the customer uses a different line for
+  /// WhatsApp than the phone above -- null/empty falls back to [phone].
+  final String? whatsappPhone;
   final String date;
   final String endDate;
   final String contractDescription;
@@ -62,6 +66,7 @@ class Contract {
     required this.id,
     required this.name,
     required this.phone,
+    this.whatsappPhone,
     required this.date,
     required this.endDate,
     required this.contractDescription,
@@ -101,6 +106,7 @@ class Contract {
       id: json['id'] as int,
       name: json['name'] as String,
       phone: json['phone'] as String? ?? '',
+      whatsappPhone: json['whatsapp_phone'] as String?,
       date: json['date'] as String,
       endDate: json['end_date'] as String,
       contractDescription: json['contract_description'] as String? ?? '',
@@ -142,6 +148,7 @@ class Contract {
       'id': id,
       'name': name,
       'phone': phone,
+      'whatsapp_phone': whatsappPhone,
       'date': date,
       'end_date': endDate,
       'contract_description': contractDescription,
