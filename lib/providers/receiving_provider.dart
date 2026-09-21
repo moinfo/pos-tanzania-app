@@ -90,10 +90,10 @@ class ReceivingProvider with ChangeNotifier {
   /// per sale -- so copying sale A then sale B kept only B, and an item bought
   /// in five sales came in as five lines.
   ///
-  /// A line that nets to zero or below -- a return (-20) against its sale
-  /// (+20) -- is dropped rather than kept: the web keeps it, but the mobile
-  /// receiving API refuses any quantity that is not positive, which would
-  /// fail the whole receiving over one line.
+  /// Negative quantities are kept: a Main Store return (SM ORG x-2) is
+  /// received as -2, taking the stock back out, as the web does. Only a line
+  /// that nets to exactly zero -- a return cancelling its own sale -- is
+  /// dropped, because it moves nothing.
   void mergeReceivingItem(ReceivingItem item) {
     final index = _cartItems.indexWhere(
       (c) => c.itemId == item.itemId && c.itemLocation == item.itemLocation,
@@ -101,16 +101,26 @@ class ReceivingProvider with ChangeNotifier {
 
     if (index >= 0) {
       final merged = _cartItems[index].quantity + item.quantity;
-      if (merged <= 0) {
+      if (merged == 0) {
         _cartItems.removeAt(index);
         _renumber();
       } else {
         // The existing line keeps its price, as the web's does.
         _cartItems[index] = _cartItems[index].copyWith(quantity: merged);
       }
-    } else if (item.quantity > 0) {
+    } else if (item.quantity != 0) {
       _cartItems.add(item.copyWith(line: _cartItems.length + 1));
     }
+    notifyListeners();
+  }
+
+  /// Empty the cart's LINES, keeping the supplier, reference and comment.
+  ///
+  /// Main Store copies start from an empty cart, so a second copy replaces
+  /// the first instead of piling on top of it. clearCart() would also wipe
+  /// the supplier the clerk already picked, which the copy has no reason to.
+  void clearItems() {
+    _cartItems.clear();
     notifyListeners();
   }
 
@@ -130,7 +140,10 @@ class ReceivingProvider with ChangeNotifier {
   // Update item quantity
   void updateQuantity(int index, double quantity) {
     if (index >= 0 && index < _cartItems.length) {
-      if (quantity <= 0) {
+      // Zero removes the line. Below zero is a real quantity -- a return
+      // copied from Main Store -- and must survive the stepper; it used to
+      // delete such a line on the first tap.
+      if (quantity == 0) {
         removeItem(index);
       } else {
         _cartItems[index] = _cartItems[index].copyWith(quantity: quantity);
@@ -278,10 +291,11 @@ class ReceivingProvider with ChangeNotifier {
       return 'Stock location is not set. Please go back and try again.';
     }
 
-    // Check for items with zero or negative quantity
+    // Zero is meaningless; a negative quantity is a return and is allowed,
+    // as on the web.
     for (var item in _cartItems) {
-      if (item.quantity <= 0) {
-        return 'Item "${item.itemName}" has invalid quantity.';
+      if (item.quantity == 0) {
+        return 'Item "${item.itemName}" has a quantity of 0.';
       }
       if (item.costPrice < 0) {
         return 'Item "${item.itemName}" has invalid cost price.';
