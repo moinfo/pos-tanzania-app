@@ -8,7 +8,8 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../l10n/portal_locale.dart';
 import '../../l10n/portal_strings.dart';
-import '../../l10n/portal_language_switch.dart';
+import '../../widgets/curved_bottom_navigation.dart';
+import '../../widgets/portal_top_bar.dart';
 import 'portal_change_password_screen.dart';
 import 'portal_contract_detail_screen.dart';
 import 'portal_login_screen.dart';
@@ -131,47 +132,43 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           _buildContractScopedTab(
             icon: Icons.receipt_long,
             emptyKey: 'no_contract_for_payments',
-            builder: (contract) => PortalPaymentsScreen(contract: contract),
+            builder: (contract) =>
+                PortalPaymentsScreen(contract: contract, embedded: true),
           ),
           _buildContractScopedTab(
             icon: Icons.description_outlined,
             emptyKey: 'no_contract_for_statement',
-            builder: (contract) => PortalStatementScreen(contract: contract),
+            builder: (contract) =>
+                PortalStatementScreen(contract: contract, embedded: true),
           ),
           _buildAccountTab(),
         ];
 
         return Scaffold(
           backgroundColor: AppColors.lightBackground,
-          body: SafeArea(child: tabs[_tabIndex]),
-          bottomNavigationBar: BottomNavigationBar(
+          appBar: PortalTopBar(tenantName: _tenantName),
+          body: tabs[_tabIndex],
+          bottomNavigationBar: CurvedBottomNavigation(
             currentIndex: _tabIndex,
             onTap: (i) => setState(() => _tabIndex = i),
             selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.textLight,
-            type: BottomNavigationBarType.fixed,
-            selectedFontSize: 10.5,
-            unselectedFontSize: 10,
+            backgroundColor: Colors.white,
             items: [
-              BottomNavigationBarItem(
-                  icon: const Icon(Icons.dashboard_outlined),
-                  activeIcon: const Icon(Icons.dashboard),
+              CurvedNavItem(
+                  icon: Icons.dashboard_outlined,
                   label: PortalStrings.t('dashboard')),
-              BottomNavigationBarItem(
-                  icon: const Icon(Icons.two_wheeler_outlined),
-                  activeIcon: const Icon(Icons.two_wheeler),
+              CurvedNavItem(
+                  icon: Icons.two_wheeler_outlined,
                   label: PortalStrings.t('mikataba')),
-              BottomNavigationBarItem(
-                  icon: const Icon(Icons.receipt_long_outlined),
-                  activeIcon: const Icon(Icons.receipt_long),
+              CurvedNavItem(
+                  icon: Icons.receipt_long_outlined,
                   label: PortalStrings.t('malipo')),
-              BottomNavigationBarItem(
-                  icon: const Icon(Icons.description_outlined),
-                  activeIcon: const Icon(Icons.description),
+              CurvedNavItem(
+                  icon: Icons.description_outlined,
                   label: PortalStrings.t('taarifa')),
-              BottomNavigationBarItem(
-                  icon: const Icon(Icons.person_outline),
-                  activeIcon: const Icon(Icons.person),
+              CurvedNavItem(
+                  icon: Icons.person_outline,
                   label: PortalStrings.t('account')),
             ],
           ),
@@ -205,10 +202,6 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const Align(
-          alignment: Alignment.centerRight,
-          child: PortalLanguageSwitch.themed(dark: true),
-        ),
         _buildHero(totalOwed),
         if (contracts.isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -735,22 +728,16 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Text(PortalStrings.t('your_contracts'),
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.text)),
-                const SizedBox(width: 6),
-                Text('(${contracts.length})',
-                    style: const TextStyle(
-                        fontSize: 14, color: AppColors.textLight)),
-              ],
-            ),
-            const PortalLanguageSwitch.themed(dark: true),
+            Text(PortalStrings.t('your_contracts'),
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.text)),
+            const SizedBox(width: 6),
+            Text('(${contracts.length})',
+                style:
+                    const TextStyle(fontSize: 14, color: AppColors.textLight)),
           ],
         ),
         const SizedBox(height: 4),
@@ -1106,11 +1093,6 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Align(
-          alignment: Alignment.centerRight,
-          child: PortalLanguageSwitch.themed(dark: true),
-        ),
-        const SizedBox(height: 4),
         Center(
           child: CircleAvatar(
             radius: 36,

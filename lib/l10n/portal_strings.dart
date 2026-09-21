@@ -153,6 +153,49 @@ class PortalStrings {
       'en': 'Payment history (last 6 months)',
       'sw': 'Historia ya malipo (miezi 6 iliyopita)',
     },
+    'submit_payment': {'en': 'Submit Payment', 'sw': 'Tuma Malipo'},
+    'submit_payment_intro': {
+      'en':
+          "Already paid? Enter the amount and attach your receipt -- we'll confirm it and update your balance once reviewed.",
+      'sw':
+          'Tayari umelipa? Weka kiasi na ambatisha risiti yako -- tutathibitisha na kusasisha salio lako baada ya kukagua.',
+    },
+    'amount_paid': {'en': 'Amount Paid', 'sw': 'Kiasi Ulicholipa'},
+    'enter_valid_amount': {
+      'en': 'Enter a valid amount',
+      'sw': 'Weka kiasi sahihi',
+    },
+    'receipt_photo': {'en': 'Receipt Photo', 'sw': 'Picha ya Risiti'},
+    'tap_to_add_receipt': {
+      'en': 'Tap to add a receipt photo',
+      'sw': 'Gusa kuongeza picha ya risiti',
+    },
+    'take_photo': {'en': 'Take Photo', 'sw': 'Piga Picha'},
+    'choose_from_gallery': {
+      'en': 'Choose from Gallery',
+      'sw': 'Chagua kwenye Picha',
+    },
+    'receipt_required': {
+      'en': 'A receipt photo is required',
+      'sw': 'Picha ya risiti inahitajika',
+    },
+    'submit_for_review': {'en': 'Submit for Review', 'sw': 'Tuma Ukaguliwe'},
+    'payment_submitted': {
+      'en': 'Payment submitted -- we\'ll review it shortly',
+      'sw': 'Malipo yametumwa -- tutayakagua hivi karibuni',
+    },
+    'add_receipt': {'en': 'Add Receipt', 'sw': 'Ongeza Risiti'},
+    'receipt_attached': {
+      'en': 'Receipt attached',
+      'sw': 'Risiti imeambatishwa',
+    },
+    'my_payment_requests': {
+      'en': 'My Submissions',
+      'sw': 'Nilizowasilisha',
+    },
+    'status_pending': {'en': 'Pending review', 'sw': 'Inasubiri ukaguzi'},
+    'status_approved': {'en': 'Approved', 'sw': 'Imethibitishwa'},
+    'status_rejected': {'en': 'Rejected', 'sw': 'Haikuthibitishwa'},
     'none': {'en': 'None', 'sw': 'Hakuna'},
     'n_days': {'en': '{0} days', 'sw': 'siku {0}'},
     'paid_so_far': {'en': 'Paid so far', 'sw': 'Amelipa hadi sasa'},

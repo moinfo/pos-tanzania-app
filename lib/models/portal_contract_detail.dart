@@ -11,12 +11,19 @@ class PortalPayment {
   final double amount;
   final double runningBalance;
 
+  /// Null when staff entered this payment directly without one -- the
+  /// customer can still attach one after the fact (see
+  /// CustomerApiService.attachPaymentReceipt()), but can't change the
+  /// amount/date of the already-applied payment.
+  final String? receiptUrl;
+
   const PortalPayment({
     required this.id,
     required this.date,
     required this.description,
     required this.amount,
     required this.runningBalance,
+    this.receiptUrl,
   });
 
   factory PortalPayment.fromJson(Map<String, dynamic> json) {
@@ -26,6 +33,7 @@ class PortalPayment {
       description: json['description'] as String? ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       runningBalance: (json['running_balance'] as num?)?.toDouble() ?? 0,
+      receiptUrl: json['receipt_url'] as String?,
     );
   }
 }

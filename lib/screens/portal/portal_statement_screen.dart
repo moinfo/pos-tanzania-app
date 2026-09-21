@@ -20,7 +20,15 @@ import '../../l10n/portal_language_switch.dart';
 class PortalStatementScreen extends StatefulWidget {
   final Contract contract;
 
-  const PortalStatementScreen({super.key, required this.contract});
+  /// True when shown as the portal shell's Taarifa tab, under the shared
+  /// [PortalTopBar] -- suppresses this screen's own pinned SliverAppBar (the
+  /// share action moves into the date-range bar instead) so the shared bar
+  /// and this screen's bar don't stack. False (default) for the standalone,
+  /// pushed route from the contract detail screen's menu.
+  final bool embedded;
+
+  const PortalStatementScreen(
+      {super.key, required this.contract, this.embedded = false});
 
   @override
   State<PortalStatementScreen> createState() => _PortalStatementScreenState();
@@ -119,86 +127,132 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
-      builder: (context, _, __) => Scaffold(
-        backgroundColor: AppColors.lightBackground,
-        body: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 0,
-              backgroundColor: _ink,
-              foregroundColor: Colors.white,
-              title: Text(PortalStrings.t('taarifa')),
-              actions: [
-                const PortalLanguageSwitch(),
-                IconButton(
-                  icon: _isSharing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.ios_share),
-                  tooltip: PortalStrings.t('share_pdf'),
-                  onPressed:
-                      (_statement == null || _statement!.isEmpty || _isSharing)
-                          ? null
-                          : _share,
-                ),
-              ],
-            ),
-            SliverToBoxAdapter(child: _buildRangeBar()),
-            if (_isLoading)
-              const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_error != null)
-              SliverFillRemaining(child: _buildError())
-            else if (_statement == null || _statement!.isEmpty)
-              SliverFillRemaining(
-                child:
-                    Center(child: Text(PortalStrings.t('no_data_for_range'))),
-              )
-            else
-              _buildLedgerSliver(_statement!),
-          ],
-        ),
-      ),
+      builder: (context, _, __) {
+        final contentSlivers = <Widget>[
+          SliverToBoxAdapter(child: _buildRangeBar(showShare: widget.embedded)),
+          if (_isLoading)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            SliverFillRemaining(child: _buildError())
+          else if (_statement == null || _statement!.isEmpty)
+            SliverFillRemaining(
+              child: Center(child: Text(PortalStrings.t('no_data_for_range'))),
+            )
+          else
+            _buildLedgerSliver(_statement!),
+        ];
+
+        final scrollView = CustomScrollView(
+          slivers: widget.embedded
+              ? contentSlivers
+              : [
+                  SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 0,
+                    backgroundColor: _ink,
+                    foregroundColor: Colors.white,
+                    title: Text(PortalStrings.t('taarifa')),
+                    actions: [
+                      const PortalLanguageSwitch(),
+                      IconButton(
+                        icon: _isSharing
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.ios_share),
+                        tooltip: PortalStrings.t('share_pdf'),
+                        onPressed: (_statement == null ||
+                                _statement!.isEmpty ||
+                                _isSharing)
+                            ? null
+                            : _share,
+                      ),
+                    ],
+                  ),
+                  ...contentSlivers,
+                ],
+        );
+
+        if (widget.embedded) {
+          return ColoredBox(
+              color: AppColors.lightBackground, child: scrollView);
+        }
+
+        return Scaffold(
+          backgroundColor: AppColors.lightBackground,
+          body: scrollView,
+        );
+      },
     );
   }
 
-  Widget _buildRangeBar() {
+  /// [showShare] adds a share icon after the range picker -- used only when
+  /// [PortalStatementScreen.embedded] is true and this bar is the sole home
+  /// for the share action (the standalone route keeps it in its AppBar
+  /// instead).
+  Widget _buildRangeBar({bool showShare = false}) {
     return Container(
       color: _ink,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: _pickRange,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white24),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 15, color: Colors.white70),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '${Formatters.formatDate(Formatters.formatDateForApi(_startDate))}'
-                  '  →  '
-                  '${Formatters.formatDate(Formatters.formatDateForApi(_endDate))}',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: _pickRange,
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today,
+                        size: 15, color: Colors.white70),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${Formatters.formatDate(Formatters.formatDateForApi(_startDate))}'
+                        '  →  '
+                        '${Formatters.formatDate(Formatters.formatDateForApi(_endDate))}',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const Icon(Icons.expand_more,
+                        size: 18, color: Colors.white70),
+                  ],
                 ),
               ),
-              const Icon(Icons.expand_more, size: 18, color: Colors.white70),
-            ],
+            ),
           ),
-        ),
+          if (showShare) ...[
+            const SizedBox(width: 10),
+            IconButton(
+              icon: _isSharing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.ios_share, color: Colors.white),
+              tooltip: PortalStrings.t('share_pdf'),
+              onPressed:
+                  (_statement == null || _statement!.isEmpty || _isSharing)
+                      ? null
+                      : _share,
+            ),
+          ],
+        ],
       ),
     );
   }

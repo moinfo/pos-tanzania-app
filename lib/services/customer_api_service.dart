@@ -5,6 +5,7 @@ import '../models/api_response.dart';
 import '../models/contract.dart';
 import '../models/portal_contract_detail.dart';
 import '../models/monthly_payment_total.dart';
+import '../models/payment_request.dart';
 import 'api_service.dart';
 
 /// Backs the customer self-service portal's "customer mode" inside this
@@ -313,6 +314,142 @@ class CustomerApiService {
             .map((e) => MonthlyPaymentTotal.fromJson(e as Map<String, dynamic>))
             .toList();
       });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Submit a payment claim for staff to review -- doesn't touch the
+  /// balance until approved. [receiptDataUri] is a base64 data URI
+  /// ("data:image/jpeg;base64,...").
+  Future<ApiResponse<Map<String, dynamic>>> submitPaymentRequest({
+    required int contractId,
+    required double amount,
+    required String date,
+    required String receiptDataUri,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/portal/contracts/$contractId/payment-requests'),
+        headers: await _headers(),
+        body: json.encode({
+          'amount': amount,
+          'date': date,
+          'receipt': receiptDataUri,
+        }),
+      );
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// The customer's own submission history, across all their contracts.
+  Future<ApiResponse<List<PaymentRequest>>> getPaymentRequests() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/portal/payment-requests'),
+        headers: await _headers(),
+      );
+      return _handle<List<PaymentRequest>>(response, (data) {
+        final list = (data['requests'] as List?) ?? [];
+        return list
+            .map((e) => PaymentRequest.fromJson(e as Map<String, dynamic>))
+            .toList();
+      });
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Attach a receipt photo to a payment staff already entered without one
+  /// -- doesn't change that payment's amount/date, only adds the receipt.
+  Future<ApiResponse<Map<String, dynamic>>> attachPaymentReceipt({
+    required int contractId,
+    required int paymentId,
+    required String receiptDataUri,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+            '$_baseUrl/portal/contracts/$contractId/payments/$paymentId/receipt'),
+        headers: await _headers(),
+        body: json.encode({'receipt': receiptDataUri}),
+      );
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ── Push notifications ────────────────────────────────────────────────
+
+  Future<ApiResponse<Map<String, dynamic>>> registerDevice({
+    required String token,
+    required String platform,
+    String? appVersion,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/portal/notifications/register'),
+        headers: await _headers(),
+        body: json.encode({
+          'token': token,
+          'platform': platform,
+          if (appVersion != null) 'app_version': appVersion,
+        }),
+      );
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> unregisterDevice(
+      String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/portal/notifications/unregister'),
+        headers: await _headers(),
+        body: json.encode({'token': token}),
+      );
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getNotifications(
+      {int limit = 50, int offset = 0}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/portal/notifications')
+          .replace(queryParameters: {'limit': '$limit', 'offset': '$offset'});
+      final response = await http.get(uri, headers: await _headers());
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> markNotificationRead(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/portal/notifications/$id/read'),
+        headers: await _headers(),
+      );
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> markAllNotificationsRead() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/portal/notifications/read-all'),
+        headers: await _headers(),
+      );
+      return _handle<Map<String, dynamic>>(response, (data) => data ?? {});
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
