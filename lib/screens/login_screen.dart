@@ -19,7 +19,6 @@ import 'main_navigation.dart';
 import 'client_selector_screen.dart';
 import 'landing/landing_screen.dart';
 import 'register_screen.dart';
-import 'portal/portal_register_screen.dart';
 import 'portal/portal_dashboard_screen.dart';
 import '../services/customer_api_service.dart';
 
@@ -675,34 +674,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Customers use the SAME login form above (phone +
-                    // password) -- _handleLogin() falls back to a customer
-                    // login when staff auth fails, see _tryCustomerLogin().
-                    // This link is only for someone who doesn't have an
-                    // account yet at all.
-                    if (ApiService.currentClient?.features.hasContracts ??
-                        false)
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const PortalRegisterScreen()),
-                          );
-                        },
-                        icon: Icon(
-                          Icons.receipt_long,
-                          color: isDark ? AppColors.darkText : Colors.white,
-                          size: 18,
-                        ),
-                        label: Text(
-                          'New customer? Register to view your contract',
-                          style: TextStyle(
-                            color: isDark ? AppColors.darkText : Colors.white,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
+                    // Customer accounts are created by staff, not
+                    // self-registered -- removed the "New customer?
+                    // Register" entry point that used to link to
+                    // PortalRegisterScreen here.
 
                     // Change Client Button (only in debug mode)
                     if (ClientsConfig.isClientSwitchingEnabled)

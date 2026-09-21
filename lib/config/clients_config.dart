@@ -22,14 +22,14 @@ class ClientsConfig {
 //
 //   # Android App Bundle
 
-
 //   # Android App Bundle
 //   flutter build appbundle --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
 //
 //   # iOS
 //   flutter build ios --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
 
-  static const String _buildFlavor = String.fromEnvironment('FLAVOR', defaultValue: '');
+  static const String _buildFlavor =
+      String.fromEnvironment('FLAVOR', defaultValue: '');
 
   // Map flavor names to client IDs
   static const Map<String, String> _flavorToClientId = {
@@ -85,6 +85,7 @@ class ClientsConfig {
       devApiUrl: localBaseUrl,
       prodApiUrl: 'https://mopos.co.tz/api',
       logoUrl: 'assets/images/sada-logo.png',
+      branding: const ClientBranding(appTitle: 'Mopos'),
       features: const ClientFeatures(
         hasContracts: true,
         hasOfflineMode: false,
@@ -109,7 +110,8 @@ class ClientsConfig {
         hasOfflineMode: false,
         hasLandingPage: true, // Public shop landing page enabled
         hasLocationBasedPricing: true, // Different prices per stock location
-        hasLandingStockDisplay: true, // Show stock and validate orders on landing page
+        hasLandingStockDisplay:
+            true, // Show stock and validate orders on landing page
       ),
     ),
     // Kariakoo Shops
@@ -121,8 +123,8 @@ class ClientsConfig {
       prodApiUrl: 'https://kariakooshops.co.tz/api',
       logoUrl: 'assets/images/kariakoo-logo.png',
       branding: const ClientBranding(
-        primaryColor: 0xFF1B8C30,      // Kariakoo green
-        primaryDarkColor: 0xFF0A6B1A,  // Dark green
+        primaryColor: 0xFF1B8C30, // Kariakoo green
+        primaryDarkColor: 0xFF0A6B1A, // Dark green
         appTitle: 'Kariakoo Shops',
         tagline: 'Your Marketplace Destination',
       ),

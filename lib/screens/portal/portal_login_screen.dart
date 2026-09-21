@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../services/push_service.dart';
 import '../../utils/constants.dart';
@@ -8,7 +6,6 @@ import '../../l10n/portal_locale.dart';
 import '../../l10n/portal_strings.dart';
 import '../../l10n/portal_language_switch.dart';
 import 'portal_dashboard_screen.dart';
-import 'portal_register_screen.dart';
 import 'portal_forgot_password_screen.dart';
 
 /// Entry point for "customer mode" -- a customer logging into their own
@@ -80,12 +77,13 @@ class _PortalLoginScreenState extends State<PortalLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    // Deliberately NOT theme-aware -- this is the shared branded entry
+    // point every customer sees, on-brand regardless of whatever dark/light
+    // preference was left set from a previous session (e.g. after logout).
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) => Scaffold(
-        backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        backgroundColor: AppColors.lightBackground,
         appBar: AppBar(
           title: Text(PortalStrings.t('customer_login')),
           backgroundColor: AppColors.primary,
@@ -108,11 +106,8 @@ class _PortalLoginScreenState extends State<PortalLoginScreen> {
                     Text(
                       PortalStrings.t('view_history'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: isDark
-                              ? AppColors.darkTextLight
-                              : AppColors.textLight),
+                      style: const TextStyle(
+                          fontSize: 14, color: AppColors.textLight),
                     ),
                     const SizedBox(height: 28),
                     _field(
@@ -167,14 +162,10 @@ class _PortalLoginScreenState extends State<PortalLoginScreen> {
                       ),
                       child: Text(PortalStrings.t('forgot_password_q')),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const PortalRegisterScreen()),
-                      ),
-                      child: Text(PortalStrings.t('no_account_register')),
-                    ),
+                    // Customer accounts are created by staff, not
+                    // self-registered -- see login_screen.dart's removed
+                    // "New customer? Register" entry point for the same
+                    // policy change.
                   ],
                 ),
               ),

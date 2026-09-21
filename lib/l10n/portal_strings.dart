@@ -34,10 +34,6 @@ class PortalStrings {
       'en': 'Forgot password?',
       'sw': 'Umesahau password?',
     },
-    'no_account_register': {
-      'en': "Don't have an account? Register",
-      'sw': 'Huna akaunti? Jisajili',
-    },
 
     // Register
     'register_title': {'en': 'Register', 'sw': 'Jisajili'},
