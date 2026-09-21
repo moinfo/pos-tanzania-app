@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../utils/constants.dart';
 import '../../l10n/portal_locale.dart';
@@ -68,10 +70,12 @@ class _PortalChangePasswordScreenState
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) => Scaffold(
-        backgroundColor: AppColors.lightBackground,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.lightBackground,
         appBar: AppBar(
           title: Text(PortalStrings.t('change_password_title')),
           backgroundColor: AppColors.primary,

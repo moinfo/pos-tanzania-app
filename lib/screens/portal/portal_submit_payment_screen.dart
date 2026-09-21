@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../models/contract.dart';
 import '../../utils/constants.dart';
@@ -138,10 +140,12 @@ class _PortalSubmitPaymentScreenState extends State<PortalSubmitPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) => Scaffold(
-        backgroundColor: AppColors.lightBackground,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.lightBackground,
         appBar: AppBar(
           title: Text(PortalStrings.t('submit_payment')),
           backgroundColor: AppColors.primary,
@@ -155,8 +159,10 @@ class _PortalSubmitPaymentScreenState extends State<PortalSubmitPaymentScreen> {
             children: [
               Text(
                 PortalStrings.t('submit_payment_intro'),
-                style:
-                    const TextStyle(fontSize: 13, color: AppColors.textLight),
+                style: TextStyle(
+                    fontSize: 13,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight),
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -199,11 +205,13 @@ class _PortalSubmitPaymentScreenState extends State<PortalSubmitPaymentScreen> {
                   height: 180,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? AppColors.darkCard : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                         color: _receiptFile == null
-                            ? Colors.grey.shade300
+                            ? (isDark
+                                ? AppColors.darkDivider
+                                : Colors.grey.shade300)
                             : AppColors.primary,
                         style: BorderStyle.solid),
                   ),
@@ -211,13 +219,18 @@ class _PortalSubmitPaymentScreenState extends State<PortalSubmitPaymentScreen> {
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.add_a_photo,
-                                size: 36, color: AppColors.textLight),
+                            Icon(Icons.add_a_photo,
+                                size: 36,
+                                color: isDark
+                                    ? AppColors.darkTextLight
+                                    : AppColors.textLight),
                             const SizedBox(height: 8),
                             Text(PortalStrings.t('tap_to_add_receipt'),
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12.5,
-                                    color: AppColors.textLight)),
+                                    color: isDark
+                                        ? AppColors.darkTextLight
+                                        : AppColors.textLight)),
                           ],
                         )
                       : ClipRRect(

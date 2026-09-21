@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../utils/constants.dart';
 import '../../l10n/portal_locale.dart';
@@ -78,10 +80,12 @@ class _PortalRegisterScreenState extends State<PortalRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) => Scaffold(
-        backgroundColor: AppColors.lightBackground,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.lightBackground,
         appBar: AppBar(
           title: Text(PortalStrings.t('register_title')),
           backgroundColor: AppColors.primary,
@@ -101,8 +105,11 @@ class _PortalRegisterScreenState extends State<PortalRegisterScreen> {
                     Text(
                       PortalStrings.t('register_intro'),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 13.5, color: AppColors.textLight),
+                      style: TextStyle(
+                          fontSize: 13.5,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight),
                     ),
                     const SizedBox(height: 24),
                     TextFormField(

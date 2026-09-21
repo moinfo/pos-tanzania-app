@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../utils/constants.dart';
 import '../../l10n/portal_locale.dart';
@@ -61,10 +63,12 @@ class _PortalNotificationsScreenState extends State<PortalNotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) => Scaffold(
-        backgroundColor: AppColors.lightBackground,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.lightBackground,
         appBar: AppBar(
           title: Text(PortalStrings.t('notifications')),
           backgroundColor: AppColors.primary,
@@ -83,7 +87,7 @@ class _PortalNotificationsScreenState extends State<PortalNotificationsScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _error != null
                   ? _buildError()
-                  : _buildList(),
+                  : _buildList(isDark),
         ),
       ),
     );
@@ -106,7 +110,7 @@ class _PortalNotificationsScreenState extends State<PortalNotificationsScreen> {
     );
   }
 
-  Widget _buildList() {
+  Widget _buildList(bool isDark) {
     final notifications = _notifications ?? [];
     if (notifications.isEmpty) {
       return ListView(
@@ -124,11 +128,12 @@ class _PortalNotificationsScreenState extends State<PortalNotificationsScreen> {
       padding: const EdgeInsets.all(12),
       itemCount: notifications.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => _notificationCard(notifications[index]),
+      itemBuilder: (context, index) =>
+          _notificationCard(notifications[index], isDark),
     );
   }
 
-  Widget _notificationCard(Map<String, dynamic> n) {
+  Widget _notificationCard(Map<String, dynamic> n, bool isDark) {
     final isRead = n['is_read'] == true;
     final type = n['type'] as String? ?? 'general';
     final icon = type == 'payment_request_reviewed'
@@ -143,11 +148,13 @@ class _PortalNotificationsScreenState extends State<PortalNotificationsScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isRead ? Colors.white : AppColors.primary.withOpacity(0.05),
+          color: isRead
+              ? (isDark ? AppColors.darkCard : Colors.white)
+              : AppColors.primary.withOpacity(isDark ? 0.18 : 0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: isRead
-                  ? Colors.grey.shade200
+                  ? (isDark ? AppColors.darkDivider : Colors.grey.shade200)
                   : AppColors.primary.withOpacity(0.2)),
         ),
         child: Row(
@@ -155,7 +162,9 @@ class _PortalNotificationsScreenState extends State<PortalNotificationsScreen> {
           children: [
             Icon(icon,
                 size: 20,
-                color: isRead ? AppColors.textLight : AppColors.primary),
+                color: isRead
+                    ? (isDark ? AppColors.darkTextLight : AppColors.textLight)
+                    : AppColors.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -168,12 +177,18 @@ class _PortalNotificationsScreenState extends State<PortalNotificationsScreen> {
                               isRead ? FontWeight.w600 : FontWeight.bold)),
                   const SizedBox(height: 2),
                   Text(n['body'] as String? ?? '',
-                      style: const TextStyle(
-                          fontSize: 12.5, color: AppColors.textLight)),
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight)),
                   const SizedBox(height: 4),
                   Text(n['created_at'] as String? ?? '',
-                      style: const TextStyle(
-                          fontSize: 10.5, color: AppColors.textLight)),
+                      style: TextStyle(
+                          fontSize: 10.5,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight)),
                 ],
               ),
             ),

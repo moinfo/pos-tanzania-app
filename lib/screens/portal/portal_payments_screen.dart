@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../models/contract.dart';
 import '../../models/portal_contract_detail.dart';
@@ -62,6 +64,7 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) {
@@ -71,15 +74,19 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _error != null
                   ? _buildError()
-                  : _buildList(_detail!),
+                  : _buildList(_detail!, isDark),
         );
 
         if (widget.embedded) {
-          return ColoredBox(color: AppColors.lightBackground, child: body);
+          return ColoredBox(
+              color:
+                  isDark ? AppColors.darkBackground : AppColors.lightBackground,
+              child: body);
         }
 
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor:
+              isDark ? AppColors.darkBackground : AppColors.lightBackground,
           appBar: AppBar(
             title: Text(PortalStrings.t('malipo')),
             backgroundColor: AppColors.primary,
@@ -134,7 +141,7 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
     );
   }
 
-  Widget _buildList(PortalContractDetail detail) {
+  Widget _buildList(PortalContractDetail detail, bool isDark) {
     final payments = detail.paymentsList.reversed.toList();
     if (payments.isEmpty) {
       return ListView(
@@ -157,13 +164,13 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
         if (index == 0) return _submitButton();
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _paymentCard(payments[index - 1]),
+          child: _paymentCard(payments[index - 1], isDark),
         );
       },
     );
   }
 
-  Widget _paymentCard(PortalPayment payment) {
+  Widget _paymentCard(PortalPayment payment, bool isDark) {
     final bal = payment.runningBalance.round();
     final behind = bal > 0;
     final even = bal == 0;
@@ -179,9 +186,10 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? AppColors.darkDivider : Colors.grey.shade200),
       ),
       child: Row(
         children: [
@@ -196,8 +204,11 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
                     payment.description.isEmpty
                         ? PortalStrings.t('malipo')
                         : payment.description,
-                    style: const TextStyle(
-                        fontSize: 11.5, color: AppColors.textLight)),
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight)),
               ],
             ),
           ),
@@ -208,7 +219,7 @@ class _PortalPaymentsScreenState extends State<PortalPaymentsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: pillColor.withOpacity(0.1),
+              color: pillColor.withOpacity(isDark ? 0.22 : 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(pillText,
