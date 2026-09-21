@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'api_service.dart';
+import 'customer_api_service.dart';
 
 /// Handles a notification the user tapped. Set by main.dart so this service
 /// stays free of navigation and can be used before a Navigator exists.
@@ -170,6 +171,72 @@ class PushService {
       await _apiService.unregisterDevice(_token!);
     } catch (e) {
       debugPrint('PushService: unregister failed: $e');
+    }
+    _token = null;
+  }
+
+  /// Customer-portal twin of registerForCurrentUser() -- same Firebase
+  /// instance and local-notification channel (already started once from
+  /// main.dart regardless of which mode the app is in), just registers the
+  /// token against the customer's own account (CustomerApiService) instead
+  /// of staff's. Called after portal login/registration succeeds, not at
+  /// launch, for the same reasons as the staff version: needs a token to
+  /// authenticate the request, and asking for the OS permission before the
+  /// customer has seen anything is the surest way to have it denied.
+  Future<void> registerForCurrentCustomer() async {
+    if (!_enabled) return;
+    if (!_initialised) await initialise(onTap: _onTap);
+    if (!_initialised) return;
+
+    try {
+      final settings = await FirebaseMessaging.instance.requestPermission();
+
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        debugPrint('PushService: customer permission denied');
+        return;
+      }
+
+      if (Platform.isIOS) {
+        await FirebaseMessaging.instance.getAPNSToken();
+      }
+
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null) {
+        debugPrint('PushService: no FCM token yet');
+        return;
+      }
+
+      await _sendCustomer(token);
+      FirebaseMessaging.instance.onTokenRefresh.listen(_sendCustomer);
+    } catch (e) {
+      debugPrint('PushService: customer register failed: $e');
+    }
+  }
+
+  Future<void> _sendCustomer(String token) async {
+    _token = token;
+    final info = await PackageInfo.fromPlatform();
+
+    final response = await CustomerApiService().registerDevice(
+      token: token,
+      platform: Platform.isIOS ? 'ios' : 'android',
+      appVersion: '${info.version}+${info.buildNumber}',
+    );
+
+    debugPrint(response.isSuccess
+        ? 'PushService: customer device registered'
+        : 'PushService: customer register rejected: ${response.message}');
+  }
+
+  /// Drop this device's customer registration -- called on portal logout,
+  /// same reasoning as unregister() for staff.
+  Future<void> unregisterCustomer() async {
+    if (!_enabled || _token == null) return;
+
+    try {
+      await CustomerApiService().unregisterDevice(_token!);
+    } catch (e) {
+      debugPrint('PushService: customer unregister failed: $e');
     }
     _token = null;
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/customer_api_service.dart';
+import '../../services/push_service.dart';
 import '../../utils/constants.dart';
 import '../../l10n/portal_locale.dart';
 import '../../l10n/portal_strings.dart';
@@ -47,6 +48,7 @@ class _PortalVerifyRegistrationScreenState
     setState(() => _isLoading = false);
 
     if (response.isSuccess) {
+      PushService.instance.registerForCurrentCustomer();
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const PortalDashboardScreen()),

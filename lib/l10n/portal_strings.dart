@@ -196,6 +196,14 @@ class PortalStrings {
     'status_pending': {'en': 'Pending review', 'sw': 'Inasubiri ukaguzi'},
     'status_approved': {'en': 'Approved', 'sw': 'Imethibitishwa'},
     'status_rejected': {'en': 'Rejected', 'sw': 'Haikuthibitishwa'},
+    // 'Arifa', not 'Taarifa' (already used for the Statement tab) -- using
+    // the same Swahili word for two different sections would be confusing.
+    'notifications': {'en': 'Notifications', 'sw': 'Arifa'},
+    'mark_all_read': {'en': 'Mark all read', 'sw': 'Zote zimesomwa'},
+    'no_notifications': {
+      'en': 'No notifications yet',
+      'sw': 'Hakuna taarifa bado',
+    },
     'none': {'en': 'None', 'sw': 'Hakuna'},
     'n_days': {'en': '{0} days', 'sw': 'siku {0}'},
     'paid_so_far': {'en': 'Paid so far', 'sw': 'Amelipa hadi sasa'},

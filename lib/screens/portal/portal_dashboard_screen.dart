@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/customer_api_service.dart';
+import '../../services/push_service.dart';
 import '../../models/contract.dart';
 import '../../models/portal_contract_detail.dart';
 import '../../models/monthly_payment_total.dart';
@@ -112,6 +113,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   }
 
   Future<void> _logout() async {
+    await PushService.instance.unregisterCustomer();
     await _service.logout();
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
