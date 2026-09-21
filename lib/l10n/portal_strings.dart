@@ -139,6 +139,10 @@ class PortalStrings {
     'balance_label': {'en': 'balance', 'sw': 'salio'},
     'percent_paid': {'en': '{0}% paid', 'sw': '{0}% imelipwa'},
     'day_of_contract': {'en': 'Day of contract', 'sw': 'Siku ya mkataba'},
+    'contract_end_date': {
+      'en': 'Contract end date',
+      'sw': 'Tarehe ya mwisho ya mkataba'
+    },
     'days_overdue': {'en': 'Days overdue', 'sw': 'Amepitisha siku'},
     'overdue_contracts_count': {
       'en': 'Overdue contracts',

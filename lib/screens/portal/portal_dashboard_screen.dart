@@ -223,7 +223,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
               Expanded(
                   child: _summaryTile(
                       Icons.payments_outlined,
-                      'TSH ${Formatters.formatCurrency(totalPaid)}',
+                      'TSH ${Formatters.formatCompactCurrency(totalPaid)}',
                       PortalStrings.t('paid_so_far'),
                       isDark)),
               const SizedBox(width: 10),
@@ -526,9 +526,14 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   Widget _buildCurrentContractStats(Contract c, bool isDark) {
     final textColor = isDark ? AppColors.darkText : AppColors.text;
+    // End date first -- the tenant asked for it to stand out, it's what a
+    // customer most needs to know at a glance (when the contract is due).
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _statLine(PortalStrings.t('contract_end_date'),
+            Formatters.formatDate(c.endDate), AppColors.primary, isDark),
+        const SizedBox(height: 2),
         _statLine(PortalStrings.t('balance_remaining'),
             'TSH ${Formatters.formatCurrency(c.balance)}', textColor, isDark),
         const SizedBox(height: 2),
