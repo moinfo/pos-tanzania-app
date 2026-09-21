@@ -24,6 +24,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
   List<Contract>? _contracts;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _showCompleted = false;
 
   @override
   void initState() {
@@ -146,15 +147,77 @@ class _ContractsScreenState extends State<ContractsScreen> {
                   ? const Center(child: Text('No contracts available'))
                   : RefreshIndicator(
                       onRefresh: _loadContracts,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _contracts!.length,
-                        itemBuilder: (context, index) {
-                          final contract = _contracts![index];
-                          return _buildContractCard(contract, isDark);
-                        },
-                      ),
+                      child: _buildContractsList(isDark),
                     ),
+    );
+  }
+
+  /// Completed contracts are done -- collapsed into a single "Completed"
+  /// section by default so a tenant with a long history isn't scrolling
+  /// past dozens of finished contracts to see the ones still active.
+  Widget _buildContractsList(bool isDark) {
+    final active = _contracts!.where((c) => c.status != 'completed').toList();
+    final completed =
+        _contracts!.where((c) => c.status == 'completed').toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ...active.map((c) => _buildContractCard(c, isDark)),
+        if (completed.isNotEmpty) _buildCompletedSection(completed, isDark),
+      ],
+    );
+  }
+
+  Widget _buildCompletedSection(List<Contract> completed, bool isDark) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 1,
+      color: isDark ? AppColors.darkSurface : Colors.grey.shade50,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _showCompleted = !_showCompleted),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle,
+                          size: 18, color: AppColors.success),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Completed (${completed.length})',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.darkText : AppColors.text,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Icon(
+                    _showCompleted ? Icons.expand_less : Icons.expand_more,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_showCompleted)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                children: completed
+                    .map((c) => _buildContractCard(c, isDark))
+                    .toList(),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
