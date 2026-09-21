@@ -98,6 +98,10 @@ class PermissionIds {
   // Recording a payment is a separate grant from just viewing contracts,
   // same rollout convention as itemsApprove/transfersApprove.
   static const String contractsPaymentsAdd = 'contracts_payments_add';
+  // Approving/rejecting a customer-submitted payment request -- split out
+  // from contractsPaymentsAdd so a tenant can grant the two separately; no
+  // mobile approval UI exists yet, this is just for permission-list parity.
+  static const String contractsPaymentsApprove = 'contracts_payments_approve';
   static const String contractsAdd = 'contracts_add';
   // Marking a contract defaulted/repossessed -- admin-only by default,
   // same rollout as contractsDelete (not yet exposed in the app).
