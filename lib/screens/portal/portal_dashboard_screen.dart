@@ -534,6 +534,12 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
         _statLine(PortalStrings.t('contract_end_date'),
             Formatters.formatDate(c.endDate), AppColors.primary, isDark),
         const SizedBox(height: 2),
+        _statLine(
+            PortalStrings.t('paid_so_far'),
+            'TSH ${Formatters.formatCurrency(c.payments)}',
+            AppColors.success,
+            isDark),
+        const SizedBox(height: 2),
         _statLine(PortalStrings.t('balance_remaining'),
             'TSH ${Formatters.formatCurrency(c.balance)}', textColor, isDark),
         const SizedBox(height: 2),
