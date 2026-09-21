@@ -209,11 +209,11 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
         activeContracts.where((c) => c.currentUnpaid > 0).length;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       children: [
         _buildHero(totalOwed),
         if (contracts.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -235,9 +235,9 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                       isDark)),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           _buildCurrentContractSection(isDark),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           _buildPaymentHistorySection(isDark),
         ] else
           _buildEmpty(isDark),
@@ -257,7 +257,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     final c = detail.contract;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -303,27 +303,27 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildPaidDonut(c, isDark),
-              const SizedBox(width: 20),
+              const SizedBox(width: 16),
               Expanded(child: _buildCurrentContractStats(c, isDark)),
             ],
           ),
           if (detail.paymentsList.isNotEmpty) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             Text(PortalStrings.t('recent_payments'),
                 style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: isDark
                         ? AppColors.darkTextLight
                         : AppColors.textLight)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             SizedBox(
-                height: 100,
+                height: 72,
                 child: _buildRecentPaymentsChart(detail.paymentsList, isDark)),
           ],
         ],
@@ -351,7 +351,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
         history.map((m) => m.total).fold<double>(0, (a, b) => a > b ? a : b);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -370,9 +370,15 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           Text('TSH ${Formatters.formatCurrency(total)}',
               style:
                   const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+          // Fixed height chosen to comfortably fit the bar-plot area PLUS
+          // the full reserved height for the bottom month-label row below
+          // it -- previously the reserved size was tight enough that the
+          // labels (esp. at larger system font scales) got clipped by this
+          // SizedBox's bottom edge instead of shrinking the bar area, so
+          // they silently rendered off-screen with no scroll affordance.
           SizedBox(
-            height: 130,
+            height: 112,
             child: BarChart(
               BarChartData(
                 maxY: maxTotal > 0 ? maxTotal * 1.2 : 1,
@@ -402,7 +408,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 22,
+                      reservedSize: 26,
+                      interval: 1,
                       getTitlesWidget: (value, meta) {
                         final i = value.toInt();
                         if (i < 0 || i >= history.length) {
@@ -473,8 +480,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     final pct = amount > 0 ? (paid / amount * 100).round() : 0;
 
     return SizedBox(
-      width: 96,
-      height: 96,
+      width: 84,
+      height: 84,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -482,21 +489,21 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
             PieChartData(
               startDegreeOffset: -90,
               sectionsSpace: amount > 0 ? 2 : 0,
-              centerSpaceRadius: 32,
+              centerSpaceRadius: 28,
               sections: amount > 0
                   ? [
                       PieChartSectionData(
                           value: paid.toDouble(),
                           color: AppColors.success,
                           showTitle: false,
-                          radius: 16),
+                          radius: 14),
                       PieChartSectionData(
                           value: remaining.toDouble(),
                           color: isDark
                               ? AppColors.darkDivider
                               : Colors.grey.shade200,
                           showTitle: false,
-                          radius: 16),
+                          radius: 14),
                     ]
                   : [
                       PieChartSectionData(
@@ -505,13 +512,13 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                               ? AppColors.darkDivider
                               : Colors.grey.shade200,
                           showTitle: false,
-                          radius: 16),
+                          radius: 14),
                     ],
             ),
           ),
           Text('$pct%',
               style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         ],
       ),
     );
@@ -524,13 +531,13 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
       children: [
         _statLine(PortalStrings.t('balance_remaining'),
             'TSH ${Formatters.formatCurrency(c.balance)}', textColor, isDark),
-        const SizedBox(height: 6),
+        const SizedBox(height: 2),
         _statLine(
             PortalStrings.t('owed_today'),
             'TSH ${Formatters.formatCurrency(c.currentUnpaid)}',
             c.currentUnpaid > 0 ? AppColors.error : AppColors.success,
             isDark),
-        const SizedBox(height: 6),
+        const SizedBox(height: 2),
         _statLine(PortalStrings.t('day_of_contract'),
             PortalStrings.t('n_days', {'0': '${c.days}'}), textColor, isDark),
       ],
@@ -543,11 +550,11 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
       children: [
         Text(label,
             style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 9.5,
                 color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
         Text(value,
             style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.bold, color: valueColor)),
+                fontSize: 12, fontWeight: FontWeight.bold, color: valueColor)),
       ],
     );
   }
@@ -574,7 +581,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 22,
+              reservedSize: 24,
+              interval: 1,
               getTitlesWidget: (value, meta) {
                 final i = value.toInt();
                 if (i < 0 || i >= recent.length) return const SizedBox.shrink();
@@ -631,7 +639,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   Widget _summaryTile(IconData icon, String value, String label, bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -640,14 +648,14 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
       ),
       child: Column(
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(height: 6),
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(height: 4),
           Text(value,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
           Text(label,
               style: TextStyle(
                   fontSize: 9.5,
@@ -680,7 +688,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   Widget _buildHero(double totalOwed) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(18, 13, 18, 13),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -700,18 +708,18 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                   color: Colors.white70,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           if (totalOwed > 0)
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
                 const Text('TSH ',
-                    style: TextStyle(color: Colors.white54, fontSize: 14)),
+                    style: TextStyle(color: Colors.white54, fontSize: 13)),
                 Text(Formatters.formatCurrency(totalOwed),
                     style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold)),
               ],
             )
@@ -719,9 +727,9 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
             Text(PortalStrings.t('fully_paid'),
                 style: const TextStyle(
                     color: Color(0xFF6FCF97),
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Text(PortalStrings.t('phone_number_colon', {'0': _phone}),
               style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
         ],
