@@ -65,14 +65,18 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
     });
   }
 
-  /// Load preloaded items into the cart
+  /// Load preloaded (Main Store) items into the cart, as the web does:
+  /// ADDED to what is already there, the same item at the same location
+  /// summed into one line.
+  ///
+  /// This used to clear the cart first -- so copying sale A and then sale B
+  /// left only B, and it also wiped the supplier, reference and comment -- and
+  /// added one line per sale, so an item bought in five sales arrived as five
+  /// lines. The web lets sales be copied one after another into one cart.
   void _loadPreloadedItems() {
     final receivingProvider = context.read<ReceivingProvider>();
-    // Clear existing items first
-    receivingProvider.clearCart();
-    // Add each preloaded item using addReceivingItem method
     for (final item in widget.preloadedItems!) {
-      receivingProvider.addReceivingItem(item);
+      receivingProvider.mergeReceivingItem(item);
     }
   }
 

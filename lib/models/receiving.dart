@@ -241,6 +241,10 @@ class MainStoreSaleItem {
   final double quantity;
   final double mainstoreUnitPrice;
   final double lerumaUnitPrice;
+
+  /// Leruma's cost price -- what the web receives at (add_ms_to_cart). Null
+  /// only from a server that predates the field.
+  final double? lerumaCostPrice;
   final String status; // 'match' or 'mismatch'
   final double total;
 
@@ -251,6 +255,7 @@ class MainStoreSaleItem {
     required this.quantity,
     required this.mainstoreUnitPrice,
     required this.lerumaUnitPrice,
+    this.lerumaCostPrice,
     required this.status,
     required this.total,
   });
@@ -263,6 +268,9 @@ class MainStoreSaleItem {
       quantity: (json['quantity'] ?? 0).toDouble(),
       mainstoreUnitPrice: (json['mainstore_unit_price'] ?? 0).toDouble(),
       lerumaUnitPrice: (json['leruma_unit_price'] ?? 0).toDouble(),
+      lerumaCostPrice: json['leruma_cost_price'] == null
+          ? null
+          : double.tryParse(json['leruma_cost_price'].toString()),
       status: json['status'] ?? 'mismatch',
       total: (json['total'] ?? 0).toDouble(),
     );

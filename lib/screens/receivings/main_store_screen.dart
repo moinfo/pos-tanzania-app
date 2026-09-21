@@ -152,16 +152,44 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
     // on screen. _mainStoreData.locationId is exactly that location: it is
     // what getMainStore() was called with to produce the items being copied.
     final itemLocation = _mainStoreData?.locationId ?? 1;
-    final receivingItems = items.map((item) => ReceivingItem(
-      itemId: item.itemId,
-      itemName: item.itemName,
-      itemNumber: item.itemNumber,
-      line: 0,
-      quantity: item.quantity,
-      costPrice: item.lerumaUnitPrice, // Use leruma price as cost
-      unitPrice: item.lerumaUnitPrice,
-      itemLocation: itemLocation,
-    )).toList();
+
+    // As the web's add_ms_to_cart: receive at Leruma's COST price, and skip
+    // an item that has none. This used the selling price as the cost, which
+    // overstated the value of everything received through Main Store. A
+    // server that predates leruma_cost_price sends none; then the selling
+    // price is the only figure there is, as before.
+    final receivingItems = <ReceivingItem>[];
+    var skipped = 0;
+    for (final item in items) {
+      final cost = item.lerumaCostPrice ?? item.lerumaUnitPrice;
+      if (cost <= 0) {
+        skipped++;
+        continue;
+      }
+      receivingItems.add(ReceivingItem(
+        itemId: item.itemId,
+        itemName: item.itemName,
+        itemNumber: item.itemNumber,
+        line: 0,
+        quantity: item.quantity,
+        costPrice: cost,
+        unitPrice: item.lerumaUnitPrice,
+        itemLocation: itemLocation,
+      ));
+    }
+
+    // The web's flash message, plus why anything was left out.
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(SnackBar(
+      content: Text(
+        receivingItems.isEmpty
+            ? 'No items added: none of them has a cost price in Leruma.'
+            : '${receivingItems.length} item(s) added to cart'
+                '${skipped > 0 ? ' - $skipped skipped (no cost price)' : ''}',
+      ),
+      backgroundColor: receivingItems.isEmpty ? AppColors.error : AppColors.success,
+    ));
+    if (receivingItems.isEmpty) return;
 
     Navigator.push(
       context,

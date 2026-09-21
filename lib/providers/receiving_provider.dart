@@ -82,6 +82,44 @@ class ReceivingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Add an item the way the web cart does (Receiving_lib::add_item): the
+  /// same item at the same stock location is ONE line whose quantity grows,
+  /// and nothing already in the cart is touched.
+  ///
+  /// Main Store copies used to replace the whole cart and add a separate line
+  /// per sale -- so copying sale A then sale B kept only B, and an item bought
+  /// in five sales came in as five lines.
+  ///
+  /// A line that nets to zero or below -- a return (-20) against its sale
+  /// (+20) -- is dropped rather than kept: the web keeps it, but the mobile
+  /// receiving API refuses any quantity that is not positive, which would
+  /// fail the whole receiving over one line.
+  void mergeReceivingItem(ReceivingItem item) {
+    final index = _cartItems.indexWhere(
+      (c) => c.itemId == item.itemId && c.itemLocation == item.itemLocation,
+    );
+
+    if (index >= 0) {
+      final merged = _cartItems[index].quantity + item.quantity;
+      if (merged <= 0) {
+        _cartItems.removeAt(index);
+        _renumber();
+      } else {
+        // The existing line keeps its price, as the web's does.
+        _cartItems[index] = _cartItems[index].copyWith(quantity: merged);
+      }
+    } else if (item.quantity > 0) {
+      _cartItems.add(item.copyWith(line: _cartItems.length + 1));
+    }
+    notifyListeners();
+  }
+
+  void _renumber() {
+    for (var i = 0; i < _cartItems.length; i++) {
+      _cartItems[i] = _cartItems[i].copyWith(line: i + 1);
+    }
+  }
+
   // Add ReceivingItem directly to cart
   void addReceivingItem(ReceivingItem item) {
     final receivingItem = item.copyWith(line: _cartItems.length + 1);
