@@ -15,7 +15,7 @@ import '../../widgets/curved_bottom_navigation.dart';
 import '../../widgets/portal_top_bar.dart';
 import 'portal_change_password_screen.dart';
 import 'portal_contract_detail_screen.dart';
-import 'portal_login_screen.dart';
+import '../login_screen.dart';
 import 'portal_payments_screen.dart';
 import 'portal_statement_screen.dart';
 
@@ -118,9 +118,12 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     await PushService.instance.unregisterCustomer();
     await _service.logout();
     if (!mounted) return;
+    // Back to the main app login (staff form, phone+password also logs a
+    // customer in -- see LoginScreen._tryCustomerLogin()), not the separate
+    // PortalLoginScreen -- there's one shared entry point now.
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const PortalLoginScreen()),
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
     );
   }
