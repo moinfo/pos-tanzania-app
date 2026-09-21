@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
 import '../services/customer_api_service.dart';
 import '../utils/constants.dart';
@@ -12,8 +14,9 @@ import '../screens/portal/portal_notifications_screen.dart';
 ///
 /// Deliberately leaner than the staff bar: no drawer menu (the portal has no
 /// drawer), no "switch business" icon (that's a staff-only, multi-tenant
-/// employee feature -- a customer belongs to exactly one tenant), and no
-/// dark-mode toggle (the portal doesn't support a dark theme).
+/// employee feature -- a customer belongs to exactly one tenant). Dark-mode
+/// toggle mirrors [MainNavigation]'s -- same ThemeProvider, same persisted
+/// preference, shared across the whole app.
 ///
 /// Shows the customer's own tenant/business name (as already surfaced on the
 /// Dashboard hero card) rather than the generic "Mopos" app name, since that
@@ -32,6 +35,8 @@ class PortalTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
     final barColor = AppColors.brandPrimary;
     final title = (tenantName != null && tenantName!.isNotEmpty)
         ? tenantName!
@@ -70,6 +75,15 @@ class PortalTopBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               const _NotificationBell(),
+              IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode : Icons.dark_mode,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                onPressed: () => themeProvider.toggleTheme(),
+                tooltip: isDark ? 'Light Mode' : 'Dark Mode',
+              ),
               const PortalLanguageSwitch(),
               const SizedBox(width: 8),
             ],
