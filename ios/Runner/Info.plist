@@ -63,5 +63,7 @@
 	<string>We need your location to register shop GPS coordinates for accurate shop mapping</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location to register shop GPS coordinates for accurate shop mapping</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
