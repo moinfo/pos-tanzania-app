@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../services/pdf_service.dart';
 import '../../models/contract.dart';
@@ -125,6 +127,7 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) {
@@ -141,7 +144,7 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
               child: Center(child: Text(PortalStrings.t('no_data_for_range'))),
             )
           else
-            _buildLedgerSliver(_statement!),
+            _buildLedgerSliver(_statement!, isDark),
         ];
 
         final scrollView = CustomScrollView(
@@ -179,11 +182,14 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
 
         if (widget.embedded) {
           return ColoredBox(
-              color: AppColors.lightBackground, child: scrollView);
+              color:
+                  isDark ? AppColors.darkBackground : AppColors.lightBackground,
+              child: scrollView);
         }
 
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor:
+              isDark ? AppColors.darkBackground : AppColors.lightBackground,
           body: scrollView,
         );
       },
@@ -273,7 +279,7 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
     );
   }
 
-  Widget _buildLedgerSliver(List<StatementEntry> statement) {
+  Widget _buildLedgerSliver(List<StatementEntry> statement, bool isDark) {
     // Opening/closing bookend the ledger; everything between them is a
     // dated accrual/payment row rendered as a single continuous document
     // (hairline-divided rows) rather than separately-shadowed cards.
@@ -296,17 +302,26 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
           ),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? AppColors.darkCard : Colors.white,
               border: Border(
-                left: BorderSide(color: Colors.grey.shade200),
-                right: BorderSide(color: Colors.grey.shade200),
+                left: BorderSide(
+                    color:
+                        isDark ? AppColors.darkDivider : Colors.grey.shade200),
+                right: BorderSide(
+                    color:
+                        isDark ? AppColors.darkDivider : Colors.grey.shade200),
               ),
             ),
             child: Column(
               children: [
                 for (int i = 0; i < rows.length; i++) ...[
-                  if (i > 0) Divider(height: 1, color: Colors.grey.shade100),
-                  _buildRow(rows[i]),
+                  if (i > 0)
+                    Divider(
+                        height: 1,
+                        color: isDark
+                            ? AppColors.darkDivider
+                            : Colors.grey.shade100),
+                  _buildRow(rows[i], isDark),
                 ],
               ],
             ),
@@ -370,7 +385,7 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
     );
   }
 
-  Widget _buildRow(StatementEntry entry) {
+  Widget _buildRow(StatementEntry entry, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
       child: Row(
@@ -379,8 +394,10 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
             width: 62,
             child: Text(
               _shortDate(entry.date),
-              style:
-                  const TextStyle(fontSize: 11.5, color: AppColors.textLight),
+              style: TextStyle(
+                  fontSize: 11.5,
+                  color:
+                      isDark ? AppColors.darkTextLight : AppColors.textLight),
             ),
           ),
           Expanded(
@@ -388,13 +405,13 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
                 ? _amountPill(
                     'TSH ${Formatters.formatCurrency(entry.credit)}',
                     _rust,
-                    _rustBg,
+                    isDark ? _rust.withOpacity(0.22) : _rustBg,
                   )
                 : entry.debit > 0
                     ? _amountPill(
                         'TSH ${Formatters.formatCurrency(entry.debit)}',
                         _green,
-                        _greenBg,
+                        isDark ? _green.withOpacity(0.22) : _greenBg,
                       )
                     : const SizedBox.shrink(),
           ),
@@ -403,11 +420,11 @@ class _PortalStatementScreenState extends State<PortalStatementScreen> {
             child: Text(
               Formatters.formatCurrency(entry.balance),
               textAlign: TextAlign.right,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.text,
-                fontFeatures: [FontFeature.tabularFigures()],
+                color: isDark ? AppColors.darkText : AppColors.text,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),

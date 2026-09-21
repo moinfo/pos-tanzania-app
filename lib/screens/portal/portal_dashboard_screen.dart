@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../services/push_service.dart';
 import '../../models/contract.dart';
@@ -125,37 +127,42 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) {
         final tabs = [
-          _buildDashboardTab(),
-          _buildMikatabaTab(),
+          _buildDashboardTab(isDark),
+          _buildMikatabaTab(isDark),
           _buildContractScopedTab(
             icon: Icons.receipt_long,
             emptyKey: 'no_contract_for_payments',
+            isDark: isDark,
             builder: (contract) =>
                 PortalPaymentsScreen(contract: contract, embedded: true),
           ),
           _buildContractScopedTab(
             icon: Icons.description_outlined,
             emptyKey: 'no_contract_for_statement',
+            isDark: isDark,
             builder: (contract) =>
                 PortalStatementScreen(contract: contract, embedded: true),
           ),
-          _buildAccountTab(),
+          _buildAccountTab(isDark),
         ];
 
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor:
+              isDark ? AppColors.darkBackground : AppColors.lightBackground,
           appBar: PortalTopBar(tenantName: _tenantName),
           body: tabs[_tabIndex],
           bottomNavigationBar: CurvedBottomNavigation(
             currentIndex: _tabIndex,
             onTap: (i) => setState(() => _tabIndex = i),
             selectedItemColor: AppColors.primary,
-            unselectedItemColor: AppColors.textLight,
-            backgroundColor: Colors.white,
+            unselectedItemColor:
+                isDark ? AppColors.darkTextLight : AppColors.textLight,
+            backgroundColor: isDark ? AppColors.darkCard : Colors.white,
             items: [
               CurvedNavItem(
                   icon: Icons.dashboard_outlined,
@@ -181,18 +188,18 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   // ── Dashboard: summary only ───────────────────────────────────────────
 
-  Widget _buildDashboardTab() {
+  Widget _buildDashboardTab(bool isDark) {
     return RefreshIndicator(
       onRefresh: _load,
       child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? _buildError()
-              : _buildSummary(),
+              : _buildSummary(isDark),
     );
   }
 
-  Widget _buildSummary() {
+  Widget _buildSummary(bool isDark) {
     final contracts = _contracts ?? [];
     final activeContracts = contracts.where((c) => !c.isTerminated).toList();
     final totalOwed = activeContracts.fold<double>(
@@ -211,32 +218,34 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
             children: [
               Expanded(
                   child: _summaryTile(Icons.two_wheeler, '${contracts.length}',
-                      PortalStrings.t('mikataba'))),
+                      PortalStrings.t('mikataba'), isDark)),
               const SizedBox(width: 10),
               Expanded(
                   child: _summaryTile(
                       Icons.payments_outlined,
                       'TSH ${Formatters.formatCurrency(totalPaid)}',
-                      PortalStrings.t('paid_so_far'))),
+                      PortalStrings.t('paid_so_far'),
+                      isDark)),
               const SizedBox(width: 10),
               Expanded(
                   child: _summaryTile(
                       Icons.warning_amber_rounded,
                       '$overdueCount',
-                      PortalStrings.t('overdue_contracts_count'))),
+                      PortalStrings.t('overdue_contracts_count'),
+                      isDark)),
             ],
           ),
           const SizedBox(height: 20),
-          _buildCurrentContractSection(),
+          _buildCurrentContractSection(isDark),
           const SizedBox(height: 16),
-          _buildPaymentHistorySection(),
+          _buildPaymentHistorySection(isDark),
         ] else
-          _buildEmpty(),
+          _buildEmpty(isDark),
       ],
     );
   }
 
-  Widget _buildCurrentContractSection() {
+  Widget _buildCurrentContractSection(bool isDark) {
     if (_isLoadingCurrentContract) {
       return const Padding(
         padding: EdgeInsets.only(top: 40),
@@ -250,9 +259,10 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? AppColors.darkDivider : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,9 +281,11 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(PortalStrings.t('current_contract'),
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 10.5,
-                              color: AppColors.textLight,
+                              color: isDark
+                                  ? AppColors.darkTextLight
+                                  : AppColors.textLight,
                               fontWeight: FontWeight.w600)),
                       Text(
                           c.contractDescription.isNotEmpty
@@ -284,8 +296,10 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right,
-                    color: AppColors.textLight, size: 20),
+                Icon(Icons.chevron_right,
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    size: 20),
               ],
             ),
           ),
@@ -293,22 +307,24 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildPaidDonut(c),
+              _buildPaidDonut(c, isDark),
               const SizedBox(width: 20),
-              Expanded(child: _buildCurrentContractStats(c)),
+              Expanded(child: _buildCurrentContractStats(c, isDark)),
             ],
           ),
           if (detail.paymentsList.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(PortalStrings.t('recent_payments'),
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textLight)),
+                    color: isDark
+                        ? AppColors.darkTextLight
+                        : AppColors.textLight)),
             const SizedBox(height: 10),
             SizedBox(
                 height: 100,
-                child: _buildRecentPaymentsChart(detail.paymentsList)),
+                child: _buildRecentPaymentsChart(detail.paymentsList, isDark)),
           ],
         ],
       ),
@@ -318,7 +334,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   /// Monthly totals across every contract the customer has ever had here,
   /// not just the "current" one -- so it still shows something meaningful
   /// even when the current contract is brand new and has no payments yet.
-  Widget _buildPaymentHistorySection() {
+  Widget _buildPaymentHistorySection(bool isDark) {
     if (_isLoadingPaymentHistory) {
       return const Padding(
         padding: EdgeInsets.only(top: 8),
@@ -337,17 +353,18 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? AppColors.darkDivider : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(PortalStrings.t('payment_history'),
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 10.5,
-                  color: AppColors.textLight,
+                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
           Text('TSH ${Formatters.formatCurrency(total)}',
@@ -394,8 +411,11 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(_monthLabel(history[i].month),
-                              style: const TextStyle(
-                                  fontSize: 9.5, color: AppColors.textLight)),
+                              style: TextStyle(
+                                  fontSize: 9.5,
+                                  color: isDark
+                                      ? AppColors.darkTextLight
+                                      : AppColors.textLight)),
                         );
                       },
                     ),
@@ -408,7 +428,9 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                         toY: history[i].total,
                         color: history[i].total > 0
                             ? AppColors.primary
-                            : Colors.grey.shade200,
+                            : (isDark
+                                ? AppColors.darkDivider
+                                : Colors.grey.shade200),
                         width: 22,
                         borderRadius: BorderRadius.circular(4),
                       ),
@@ -444,7 +466,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     return months[monthIndex - 1];
   }
 
-  Widget _buildPaidDonut(Contract c) {
+  Widget _buildPaidDonut(Contract c, bool isDark) {
     final amount = c.contractAmount;
     final paid = amount > 0 ? (amount - c.balance).clamp(0, amount) : 0;
     final remaining = amount > 0 ? c.balance.clamp(0, amount) : 0;
@@ -470,14 +492,18 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                           radius: 16),
                       PieChartSectionData(
                           value: remaining.toDouble(),
-                          color: Colors.grey.shade200,
+                          color: isDark
+                              ? AppColors.darkDivider
+                              : Colors.grey.shade200,
                           showTitle: false,
                           radius: 16),
                     ]
                   : [
                       PieChartSectionData(
                           value: 1,
-                          color: Colors.grey.shade200,
+                          color: isDark
+                              ? AppColors.darkDivider
+                              : Colors.grey.shade200,
                           showTitle: false,
                           radius: 16),
                     ],
@@ -491,30 +517,34 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     );
   }
 
-  Widget _buildCurrentContractStats(Contract c) {
+  Widget _buildCurrentContractStats(Contract c, bool isDark) {
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _statLine(PortalStrings.t('balance_remaining'),
-            'TSH ${Formatters.formatCurrency(c.balance)}', AppColors.text),
+            'TSH ${Formatters.formatCurrency(c.balance)}', textColor, isDark),
         const SizedBox(height: 6),
         _statLine(
             PortalStrings.t('owed_today'),
             'TSH ${Formatters.formatCurrency(c.currentUnpaid)}',
-            c.currentUnpaid > 0 ? AppColors.error : AppColors.success),
+            c.currentUnpaid > 0 ? AppColors.error : AppColors.success,
+            isDark),
         const SizedBox(height: 6),
         _statLine(PortalStrings.t('day_of_contract'),
-            PortalStrings.t('n_days', {'0': '${c.days}'}), AppColors.text),
+            PortalStrings.t('n_days', {'0': '${c.days}'}), textColor, isDark),
       ],
     );
   }
 
-  Widget _statLine(String label, String value, Color valueColor) {
+  Widget _statLine(String label, String value, Color valueColor, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(fontSize: 10.5, color: AppColors.textLight)),
+            style: TextStyle(
+                fontSize: 10.5,
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
         Text(value,
             style: TextStyle(
                 fontSize: 13, fontWeight: FontWeight.bold, color: valueColor)),
@@ -522,7 +552,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     );
   }
 
-  Widget _buildRecentPaymentsChart(List<PortalPayment> payments) {
+  Widget _buildRecentPaymentsChart(List<PortalPayment> payments, bool isDark) {
     final recent =
         payments.length > 6 ? payments.sublist(payments.length - 6) : payments;
     final maxAmount =
@@ -551,8 +581,11 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(_shortDate(recent[i].date),
-                      style: const TextStyle(
-                          fontSize: 9, color: AppColors.textLight)),
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight)),
                 );
               },
             ),
@@ -596,13 +629,14 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     }
   }
 
-  Widget _summaryTile(IconData icon, String value, String label) {
+  Widget _summaryTile(IconData icon, String value, String label, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? AppColors.darkDivider : Colors.grey.shade200),
       ),
       child: Column(
         children: [
@@ -615,7 +649,10 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
               overflow: TextOverflow.ellipsis),
           const SizedBox(height: 2),
           Text(label,
-              style: const TextStyle(fontSize: 9.5, color: AppColors.textLight),
+              style: TextStyle(
+                  fontSize: 9.5,
+                  color:
+                      isDark ? AppColors.darkTextLight : AppColors.textLight),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis),
@@ -624,16 +661,17 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     );
   }
 
-  Widget _buildEmpty() {
+  Widget _buildEmpty(bool isDark) {
+    final textLight = isDark ? AppColors.darkTextLight : AppColors.textLight;
     return Padding(
       padding: const EdgeInsets.only(top: 60),
       child: Column(
         children: [
-          const Icon(Icons.receipt_long, size: 48, color: AppColors.textLight),
+          Icon(Icons.receipt_long, size: 48, color: textLight),
           const SizedBox(height: 12),
           Text(PortalStrings.t('no_contracts')),
           const SizedBox(height: 4),
-          Text(_phone, style: const TextStyle(color: AppColors.textLight)),
+          Text(_phone, style: TextStyle(color: textLight)),
         ],
       ),
     );
@@ -710,21 +748,21 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   // ── Mikataba: full contract list ──────────────────────────────────────
 
-  Widget _buildMikatabaTab() {
+  Widget _buildMikatabaTab(bool isDark) {
     return RefreshIndicator(
       onRefresh: _load,
       child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? _buildError()
-              : _buildContractList(),
+              : _buildContractList(isDark),
     );
   }
 
-  Widget _buildContractList() {
+  Widget _buildContractList(bool isDark) {
     final contracts = _contracts ?? [];
     if (contracts.isEmpty) {
-      return ListView(children: [_buildEmpty()]);
+      return ListView(children: [_buildEmpty(isDark)]);
     }
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -732,18 +770,21 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
         Row(
           children: [
             Text(PortalStrings.t('your_contracts'),
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.text)),
+                    color: isDark ? AppColors.darkText : AppColors.text)),
             const SizedBox(width: 6),
             Text('(${contracts.length})',
-                style:
-                    const TextStyle(fontSize: 14, color: AppColors.textLight)),
+                style: TextStyle(
+                    fontSize: 14,
+                    color: isDark
+                        ? AppColors.darkTextLight
+                        : AppColors.textLight)),
           ],
         ),
         const SizedBox(height: 4),
-        ...contracts.map(_buildContractCard),
+        ...contracts.map((c) => _buildContractCard(c, isDark)),
       ],
     );
   }
@@ -756,6 +797,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   Widget _buildContractScopedTab({
     required IconData icon,
     required String emptyKey,
+    required bool isDark,
     required Widget Function(Contract contract) builder,
   }) {
     if (_isLoading) {
@@ -769,7 +811,10 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 48, color: AppColors.textLight),
+              Icon(icon,
+                  size: 48,
+                  color:
+                      isDark ? AppColors.darkTextLight : AppColors.textLight),
               const SizedBox(height: 12),
               Text(PortalStrings.t(emptyKey), textAlign: TextAlign.center),
             ],
@@ -783,7 +828,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
     return Column(
       children: [
-        if (contracts.length > 1) _buildContractSwitcher(contracts, index),
+        if (contracts.length > 1)
+          _buildContractSwitcher(contracts, index, isDark),
         Expanded(child: builder(selected)),
       ],
     );
@@ -792,7 +838,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   /// A tappable chip naming the contract in scope, opening a sheet to pick
   /// a different one -- only shown when there's more than one, so most
   /// customers (one contract) never see it.
-  Widget _buildContractSwitcher(List<Contract> contracts, int index) {
+  Widget _buildContractSwitcher(
+      List<Contract> contracts, int index, bool isDark) {
     final selected = contracts[index];
     final label = selected.contractDescription.isNotEmpty
         ? selected.contractDescription
@@ -801,16 +848,17 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      color: Colors.white,
+      color: isDark ? AppColors.darkCard : Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () => _pickContract(contracts, index),
+        onTap: () => _pickContract(contracts, index, isDark),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.lightBackground,
+            color: isDark ? AppColors.darkSurface : AppColors.lightBackground,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(
+                color: isDark ? AppColors.darkDivider : Colors.grey.shade300),
           ),
           child: Row(
             children: [
@@ -822,8 +870,10 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                         fontSize: 13.5, fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis),
               ),
-              const Icon(Icons.unfold_more,
-                  size: 18, color: AppColors.textLight),
+              Icon(Icons.unfold_more,
+                  size: 18,
+                  color:
+                      isDark ? AppColors.darkTextLight : AppColors.textLight),
             ],
           ),
         ),
@@ -831,7 +881,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     );
   }
 
-  Future<void> _pickContract(List<Contract> contracts, int current) async {
+  Future<void> _pickContract(
+      List<Contract> contracts, int current, bool isDark) async {
     final choice = await showModalBottomSheet<int>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -846,7 +897,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: isDark ? AppColors.darkDivider : Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -854,8 +905,11 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
             for (var i = 0; i < contracts.length; i++)
               ListTile(
                 leading: Icon(Icons.two_wheeler,
-                    color:
-                        i == current ? AppColors.primary : AppColors.textLight),
+                    color: i == current
+                        ? AppColors.primary
+                        : (isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight)),
                 title: Text(
                   contracts[i].contractDescription.isNotEmpty
                       ? contracts[i].contractDescription
@@ -877,20 +931,22 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
     if (choice != null) setState(() => _selectedContractIndex = choice);
   }
 
-  Widget _buildContractCard(Contract contract) {
+  Widget _buildContractCard(Contract contract, bool isDark) {
     final status = contract.status;
     final amount = contract.contractAmount;
     final paidFraction = amount > 0
         ? ((amount - contract.balance) / amount).clamp(0.0, 1.0)
         : 0.0;
     final statusStyle = _statusStyle(status);
+    final textLight = isDark ? AppColors.darkTextLight : AppColors.textLight;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(
+            color: isDark ? AppColors.darkDivider : Colors.grey.shade200),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -921,8 +977,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text('${contract.date} → ${contract.endDate}',
-                            style: const TextStyle(
-                                fontSize: 11.5, color: AppColors.textLight)),
+                            style: TextStyle(fontSize: 11.5, color: textLight)),
                       ],
                     ),
                   ),
@@ -931,7 +986,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.12),
+                        color:
+                            AppColors.success.withOpacity(isDark ? 0.22 : 0.12),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
                             color: AppColors.success.withOpacity(0.4)),
@@ -951,8 +1007,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 13.5)),
                         Text(PortalStrings.t('balance_label'),
-                            style: const TextStyle(
-                                fontSize: 10.5, color: AppColors.textLight)),
+                            style: TextStyle(fontSize: 10.5, color: textLight)),
                       ],
                     ),
                 ],
@@ -963,7 +1018,8 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                 child: LinearProgressIndicator(
                   value: paidFraction,
                   minHeight: 6,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor:
+                      isDark ? AppColors.darkDivider : Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation(statusStyle.color),
                 ),
               ),
@@ -975,7 +1031,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: statusStyle.color.withOpacity(0.1),
+                      color: statusStyle.color.withOpacity(isDark ? 0.22 : 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(statusStyle.label,
@@ -987,12 +1043,11 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                   Text(
                       PortalStrings.t('percent_paid',
                           {'0': (paidFraction * 100).round().toString()}),
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textLight)),
+                      style: TextStyle(fontSize: 11, color: textLight)),
                 ],
               ),
               const Divider(height: 20),
-              _buildMiniStats(contract),
+              _buildMiniStats(contract, isDark),
             ],
           ),
         ),
@@ -1004,7 +1059,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
   /// into the contract to see: which day of the contract today is, what's
   /// been paid/remains, what's overdue as of today, the daily obligation,
   /// and how many days behind (if any).
-  Widget _buildMiniStats(Contract contract) {
+  Widget _buildMiniStats(Contract contract, bool isDark) {
     final stats = <(String, String)>[
       (
         PortalStrings.t('day_of_contract'),
@@ -1048,8 +1103,11 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(s.$1,
-                      style: const TextStyle(
-                          fontSize: 10, color: AppColors.textLight)),
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight)),
                   Text(s.$2,
                       style: const TextStyle(
                           fontSize: 12.5, fontWeight: FontWeight.w600)),
@@ -1091,14 +1149,15 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
 
   // ── Account ────────────────────────────────────────────────────────
 
-  Widget _buildAccountTab() {
+  Widget _buildAccountTab(bool isDark) {
+    final borderColor = isDark ? AppColors.darkDivider : Colors.grey.shade200;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         Center(
           child: CircleAvatar(
             radius: 36,
-            backgroundColor: AppColors.primary.withOpacity(0.1),
+            backgroundColor: AppColors.primary.withOpacity(isDark ? 0.22 : 0.1),
             child: const Icon(Icons.person, size: 36, color: AppColors.primary),
           ),
         ),
@@ -1111,14 +1170,16 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
         const SizedBox(height: 4),
         Center(
           child: Text(_tenantName,
-              style: const TextStyle(color: AppColors.textLight)),
+              style: TextStyle(
+                  color:
+                      isDark ? AppColors.darkTextLight : AppColors.textLight)),
         ),
         const SizedBox(height: 32),
         Card(
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade200),
+            side: BorderSide(color: borderColor),
           ),
           child: ListTile(
             leading: const Icon(Icons.lock_outline, color: AppColors.primary),
@@ -1136,7 +1197,7 @@ class _PortalDashboardScreenState extends State<PortalDashboardScreen> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade200),
+            side: BorderSide(color: borderColor),
           ),
           child: ListTile(
             leading: const Icon(Icons.logout, color: AppColors.error),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/customer_api_service.dart';
 import '../../models/contract.dart';
 import '../../models/portal_contract_detail.dart';
@@ -62,6 +64,7 @@ class _PortalContractDetailScreenState
   /// not editable here). Falls back to that phone for WhatsApp sends when
   /// left blank -- see Contract::send_contract_message() on the backend.
   Future<void> _editWhatsappNumber() async {
+    final isDark = context.read<ThemeProvider>().isDarkMode;
     final controller = TextEditingController(
         text: _detail?.contract.whatsappPhone ?? widget.contract.whatsappPhone);
     final result = await showDialog<String>(
@@ -74,8 +77,10 @@ class _PortalContractDetailScreenState
           children: [
             Text(
               PortalStrings.t('whatsapp_dialog_body'),
-              style:
-                  const TextStyle(fontSize: 12.5, color: AppColors.textLight),
+              style: TextStyle(
+                  fontSize: 12.5,
+                  color:
+                      isDark ? AppColors.darkTextLight : AppColors.textLight),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -123,6 +128,7 @@ class _PortalContractDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return ValueListenableBuilder<String>(
       valueListenable: PortalLocale.instance.language,
       builder: (context, _, __) {
@@ -130,7 +136,8 @@ class _PortalContractDetailScreenState
             ? widget.contract.contractDescription
             : '${PortalStrings.t('contract_label')} #${widget.contract.id}';
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor:
+              isDark ? AppColors.darkBackground : AppColors.lightBackground,
           appBar: AppBar(
             title: Text(title),
             backgroundColor: AppColors.primary,
@@ -197,7 +204,7 @@ class _PortalContractDetailScreenState
                     ? _buildError()
                     : _detail == null
                         ? _buildError()
-                        : _buildBody(_detail!),
+                        : _buildBody(_detail!, isDark),
           ),
         );
       },
@@ -221,40 +228,44 @@ class _PortalContractDetailScreenState
     );
   }
 
-  Widget _buildBody(PortalContractDetail detail) {
+  Widget _buildBody(PortalContractDetail detail, bool isDark) {
     final c = detail.contract;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
-        if (c.isTerminated) _buildTerminatedBanner(c),
+        if (c.isTerminated) _buildTerminatedBanner(c, isDark),
         _buildStatGrid(detail),
         const SizedBox(height: 16),
-        _buildDetailsCard(c),
+        _buildDetailsCard(c, isDark),
         const SizedBox(height: 16),
-        _buildProgress(c, detail),
+        _buildProgress(c, detail, isDark),
         const SizedBox(height: 20),
-        if (detail.undatedTotal > 0) _buildUndatedNote(detail.undatedTotal),
-        _buildLedgerHeader(detail),
+        if (detail.undatedTotal > 0)
+          _buildUndatedNote(detail.undatedTotal, isDark),
+        _buildLedgerHeader(detail, isDark),
         const SizedBox(height: 8),
         if (detail.paymentsList.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
                 child: Text(PortalStrings.t('no_payments_yet'),
-                    style: const TextStyle(color: AppColors.textLight))),
+                    style: TextStyle(
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight))),
           )
         else
-          _buildLedger(detail),
+          _buildLedger(detail, isDark),
       ],
     );
   }
 
-  Widget _buildTerminatedBanner(Contract c) {
+  Widget _buildTerminatedBanner(Contract c, bool isDark) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.08),
+        color: AppColors.error.withOpacity(isDark ? 0.22 : 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.error.withOpacity(0.3)),
       ),
@@ -360,7 +371,7 @@ class _PortalContractDetailScreenState
     );
   }
 
-  Widget _buildDetailsCard(Contract c) {
+  Widget _buildDetailsCard(Contract c, bool isDark) {
     final rows = <MapEntry<String, String>>[
       MapEntry(PortalStrings.t('starts'), c.date),
       MapEntry(PortalStrings.t('ends'), c.endDate),
@@ -389,21 +400,23 @@ class _PortalContractDetailScreenState
         MapEntry(PortalStrings.t('insurance_expiry'), c.assetInsuranceExpiry!),
     ];
 
+    final textLight = isDark ? AppColors.darkTextLight : AppColors.textLight;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? AppColors.darkDivider : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(PortalStrings.t('contract_details_header'),
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textLight,
+                  color: textLight,
                   letterSpacing: .3)),
           const SizedBox(height: 10),
           for (final row in rows)
@@ -413,8 +426,7 @@ class _PortalContractDetailScreenState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(row.key,
-                      style: const TextStyle(
-                          fontSize: 12.5, color: AppColors.textLight)),
+                      style: TextStyle(fontSize: 12.5, color: textLight)),
                   Flexible(
                     child: Text(row.value,
                         textAlign: TextAlign.right,
@@ -429,14 +441,16 @@ class _PortalContractDetailScreenState
     );
   }
 
-  Widget _buildProgress(Contract c, PortalContractDetail detail) {
+  Widget _buildProgress(Contract c, PortalContractDetail detail, bool isDark) {
     final pct = detail.progressPct.clamp(0, 100);
+    final textLight = isDark ? AppColors.darkTextLight : AppColors.textLight;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? AppColors.darkDivider : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,7 +474,8 @@ class _PortalContractDetailScreenState
             child: LinearProgressIndicator(
               value: pct / 100,
               minHeight: 8,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor:
+                  isDark ? AppColors.darkDivider : Colors.grey.shade200,
               valueColor: const AlwaysStoppedAnimation(AppColors.success),
             ),
           ),
@@ -468,17 +483,13 @@ class _PortalContractDetailScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(c.date,
-                  style: const TextStyle(
-                      fontSize: 10.5, color: AppColors.textLight)),
+              Text(c.date, style: TextStyle(fontSize: 10.5, color: textLight)),
               Text(
                   PortalStrings.t(
                       'today_label', {'0': Formatters.getTodayFormatted()}),
-                  style: const TextStyle(
-                      fontSize: 10.5, color: AppColors.textLight)),
+                  style: TextStyle(fontSize: 10.5, color: textLight)),
               Text(c.endDate,
-                  style: const TextStyle(
-                      fontSize: 10.5, color: AppColors.textLight)),
+                  style: TextStyle(fontSize: 10.5, color: textLight)),
             ],
           ),
         ],
@@ -486,30 +497,34 @@ class _PortalContractDetailScreenState
     );
   }
 
-  Widget _buildUndatedNote(double undatedTotal) {
+  Widget _buildUndatedNote(double undatedTotal, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         PortalStrings.t(
             'undated_note', {'0': Formatters.formatCurrency(undatedTotal)}),
-        style: const TextStyle(fontSize: 11.5, color: AppColors.textLight),
+        style: TextStyle(
+            fontSize: 11.5,
+            color: isDark ? AppColors.darkTextLight : AppColors.textLight),
       ),
     );
   }
 
-  Widget _buildLedgerHeader(PortalContractDetail detail) {
+  Widget _buildLedgerHeader(PortalContractDetail detail, bool isDark) {
     return Row(
       children: [
         Text(PortalStrings.t('payments_header'),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         const SizedBox(width: 6),
         Text('(${detail.paymentsList.length})',
-            style: const TextStyle(fontSize: 13, color: AppColors.textLight)),
+            style: TextStyle(
+                fontSize: 13,
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
       ],
     );
   }
 
-  Widget _buildLedger(PortalContractDetail detail) {
+  Widget _buildLedger(PortalContractDetail detail, bool isDark) {
     final newestFirst = detail.paymentsList.reversed.toList();
     final hasMore = newestFirst.length > _visibleCount;
     final visible = (_showAllPayments || !hasMore)
@@ -518,15 +533,16 @@ class _PortalContractDetailScreenState
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? AppColors.darkDivider : Colors.grey.shade200),
       ),
       child: Column(
         children: [
           for (int i = 0; i < visible.length; i++) ...[
             if (i > 0) const Divider(height: 1),
-            _paymentRow(visible[i]),
+            _paymentRow(visible[i], isDark),
           ],
           if (hasMore && !_showAllPayments)
             InkWell(
@@ -552,12 +568,12 @@ class _PortalContractDetailScreenState
     );
   }
 
-  Widget _paymentRow(PortalPayment payment) {
+  Widget _paymentRow(PortalPayment payment, bool isDark) {
     final bal = payment.runningBalance.round();
     final behind = bal > 0;
     final even = bal == 0;
     final pillColor = even
-        ? AppColors.textLight
+        ? (isDark ? AppColors.darkTextLight : AppColors.textLight)
         : (behind ? AppColors.error : AppColors.success);
     final pillText = even
         ? '0'
@@ -581,8 +597,11 @@ class _PortalContractDetailScreenState
                     payment.description.isEmpty
                         ? PortalStrings.t('malipo')
                         : payment.description,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.textLight)),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight)),
               ],
             ),
           ),
@@ -596,7 +615,7 @@ class _PortalContractDetailScreenState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: pillColor.withOpacity(0.1),
+              color: pillColor.withOpacity(isDark ? 0.22 : 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(pillText,
