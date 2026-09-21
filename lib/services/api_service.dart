@@ -1691,6 +1691,7 @@ class ApiService {
     required double amount,
     required String date,
     String? description,
+    String? receiptDataUri,
   }) async {
     try {
       final response = await http.post(
@@ -1701,6 +1702,7 @@ class ApiService {
           'date': date,
           if (description != null && description.isNotEmpty)
             'description': description,
+          if (receiptDataUri != null) 'receipt': receiptDataUri,
         }),
       );
 

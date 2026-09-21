@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
@@ -101,56 +104,132 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     final amountController = TextEditingController();
     final descriptionController = TextEditingController();
     DateTime paymentDate = DateTime.now();
+    File? receiptFile;
+    String? receiptDataUri;
+
+    Future<void> pickReceipt(
+        StateSetter setDialogState, ImageSource source) async {
+      final image = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+      final bytes = await File(image.path).readAsBytes();
+      final ext = image.path.split('.').last.toLowerCase();
+      final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+      setDialogState(() {
+        receiptFile = File(image.path);
+        receiptDataUri = 'data:$mimeType;base64,${base64Encode(bytes)}';
+      });
+    }
+
+    void showReceiptSourceSheet(
+        BuildContext dialogContext, StateSetter setDialogState) {
+      showModalBottomSheet(
+        context: dialogContext,
+        builder: (sheetCtx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  pickReceipt(setDialogState, ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.photo_library, color: AppColors.primary),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  pickReceipt(setDialogState, ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           title: const Text('Add Payment'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  'Daily rate: ${Formatters.formatCurrency(_contract.returnAmount)}'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountController,
-                autofocus: true,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Amount',
-                  border: OutlineInputBorder(),
-                  isDense: true,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    'Daily rate: ${Formatters.formatCurrency(_contract.returnAmount)}'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountController,
+                  autofocus: true,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
-                  isDense: true,
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (optional)',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final picked = await showDatePicker(
-                    context: ctx,
-                    initialDate: paymentDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
-                  );
-                  if (picked != null)
-                    setDialogState(() => paymentDate = picked);
-                },
-                icon: const Icon(Icons.calendar_today, size: 16),
-                label: Text(Formatters.formatDate(
-                    Formatters.formatDateForApi(paymentDate))),
-              ),
-            ],
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: paymentDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null)
+                      setDialogState(() => paymentDate = picked);
+                  },
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(Formatters.formatDate(
+                      Formatters.formatDateForApi(paymentDate))),
+                ),
+                const SizedBox(height: 12),
+                // Optional -- the customer can attach a receipt to this
+                // payment afterwards from the portal if staff skip it here.
+                OutlinedButton.icon(
+                  onPressed: () => showReceiptSourceSheet(ctx, setDialogState),
+                  icon: Icon(
+                      receiptFile == null
+                          ? Icons.add_a_photo
+                          : Icons.check_circle,
+                      size: 16,
+                      color: receiptFile == null ? null : AppColors.success),
+                  label: Text(receiptFile == null
+                      ? 'Attach Receipt (optional)'
+                      : 'Receipt Attached'),
+                ),
+                if (receiptFile != null) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(receiptFile!,
+                        height: 100, fit: BoxFit.cover),
+                  ),
+                ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -194,6 +273,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
       amount: amount,
       date: Formatters.formatDateForApi(paymentDate),
       description: description,
+      receiptDataUri: receiptDataUri,
     );
     if (!mounted) return;
     setState(() => _isAddingPayment = false);
