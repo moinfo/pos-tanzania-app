@@ -189,11 +189,13 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
     ));
   }
 
+  /// 50, not 50.0 -- these numbers are read out loud at a counter.
+  String _plainQuantity(double value) => value.abs() == value.abs().roundToDouble()
+      ? value.abs().toInt().toString()
+      : value.abs().toString();
+
   void _sayAtReturnLimit(ReceivingItem item) {
-    final limit = item.returnLimit!.abs();
-    final plain = limit == limit.roundToDouble()
-        ? limit.toInt().toString()
-        : limit.toString();
+    final plain = _plainQuantity(item.returnLimit!);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('$plain were received, so $plain is the most that can '
           'be returned.'),
@@ -869,6 +871,23 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                                       ),
                                     ],
                                   ),
+                                  if (item.returnLimit != null) ...[
+                                    const SizedBox(height: 2),
+                                    // The balance, so nobody has to remember
+                                    // it or guess at the stepper.
+                                    Text(
+                                      '${_plainQuantity(item.returnLimit!)} returnable',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: receivingProvider.isAtReturnLimit(index)
+                                            ? AppColors.warning
+                                            : Colors.grey.shade600,
+                                        fontWeight: receivingProvider.isAtReturnLimit(index)
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [

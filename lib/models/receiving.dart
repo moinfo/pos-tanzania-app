@@ -98,6 +98,11 @@ class ReceivingListItem {
   /// Returning it again would put the stock back, and again, and again.
   final bool isReturn;
 
+  /// Units still returnable across the whole receiving, and whether nothing
+  /// is left. Zero and false from a server that predates them.
+  final double returnableTotal;
+  final bool fullyReturned;
+
   /// The receiving that already returned this one, if any. Only a return
   /// made from the app records the link (reference "RECV <id>"); the web's
   /// return_entire_receiving records none, so null means "none known", not
@@ -116,11 +121,17 @@ class ReceivingListItem {
     required this.totalCost,
     this.isReturn = false,
     this.returnedBy,
+    this.returnableTotal = 0,
+    this.fullyReturned = false,
   });
 
-  /// Nothing to return: it is a return itself, one already exists, or it is
-  /// from a server that predates the flags and looks negative.
-  bool get canBeReturned => !isReturn && returnedBy == null && totalCost >= 0;
+  /// Something is still returnable. Being returned once does not close a
+  /// receiving: 50 received and 30 returned leaves 20 that may still go
+  /// back. What closes it is having nothing left.
+  bool get canBeReturned => !isReturn && !fullyReturned && totalCost >= 0;
+
+  /// Some of it has gone back, but not all.
+  bool get partlyReturned => returnedBy != null && !fullyReturned;
 
   factory ReceivingListItem.fromJson(Map<String, dynamic> json) {
     return ReceivingListItem(
@@ -137,6 +148,8 @@ class ReceivingListItem {
       returnedBy: json['returned_by'] == null
           ? null
           : int.tryParse(json['returned_by'].toString()),
+      returnableTotal: (json['returnable_total'] ?? 0).toDouble(),
+      fullyReturned: json['fully_returned'] == true || json['fully_returned'] == 1,
     );
   }
 }
@@ -194,6 +207,51 @@ class ReceivingDetailItem {
   }
 }
 
+/// What is still returnable from a receiving, per item and store.
+///
+/// Not per line: a receiving can hold the same item and store on two lines,
+/// and the balance is one number across them.
+class ReceivingReturnable {
+  final int itemId;
+  final int itemLocation;
+  final String itemName;
+  final double costPrice;
+  final double unitPrice;
+
+  /// What the receiving brought in.
+  final double received;
+
+  /// What earlier returns have already taken back out.
+  final double returned;
+
+  /// What is left: received minus returned, never below zero.
+  final double returnable;
+
+  ReceivingReturnable({
+    required this.itemId,
+    required this.itemLocation,
+    required this.itemName,
+    required this.costPrice,
+    required this.unitPrice,
+    required this.received,
+    required this.returned,
+    required this.returnable,
+  });
+
+  factory ReceivingReturnable.fromJson(Map<String, dynamic> json) {
+    return ReceivingReturnable(
+      itemId: json['item_id'] ?? 0,
+      itemLocation: json['item_location'] ?? 0,
+      itemName: json['item_name'] ?? '',
+      costPrice: (json['cost_price'] ?? 0).toDouble(),
+      unitPrice: (json['unit_price'] ?? 0).toDouble(),
+      received: (json['received'] ?? 0).toDouble(),
+      returned: (json['returned'] ?? 0).toDouble(),
+      returnable: (json['returnable'] ?? 0).toDouble(),
+    );
+  }
+}
+
 // Receiving details (for viewing completed receiving)
 class ReceivingDetails {
   final int receivingId;
@@ -211,6 +269,13 @@ class ReceivingDetails {
   final bool isReturn;
   final int? returnedBy;
 
+  /// What is still returnable, per item and store. Empty from a server that
+  /// predates it, in which case the items themselves are the fallback.
+  final List<ReceivingReturnable> returnable;
+
+  /// Every item has been returned already; there is nothing left to take.
+  final bool fullyReturned;
+
   final List<ReceivingDetailItem> items;
 
   ReceivingDetails({
@@ -225,10 +290,23 @@ class ReceivingDetails {
     required this.total,
     this.isReturn = false,
     this.returnedBy,
+    this.returnable = const [],
+    this.fullyReturned = false,
     required this.items,
   });
 
-  bool get canBeReturned => !isReturn && returnedBy == null && total >= 0;
+  /// Something is still returnable. A return itself is never returnable; a
+  /// delivery is, until its last unit has been taken back -- a second return
+  /// of what remains is legitimate, a second return of the whole thing is not.
+  bool get canBeReturned => !isReturn && !fullyReturned && total >= 0;
+
+  /// Units still returnable across the whole receiving.
+  double get returnableTotal =>
+      returnable.fold(0.0, (sum, row) => sum + row.returnable);
+
+  /// Some, but not all, has already been returned.
+  bool get partlyReturned =>
+      returnable.any((row) => row.returned > 0) && !fullyReturned;
 
   factory ReceivingDetails.fromJson(Map<String, dynamic> json) {
     var itemsJson = json['items'] as List? ?? [];
@@ -250,6 +328,10 @@ class ReceivingDetails {
       returnedBy: json['returned_by'] == null
           ? null
           : int.tryParse(json['returned_by'].toString()),
+      returnable: (json['returnable'] as List? ?? [])
+          .map((row) => ReceivingReturnable.fromJson(row))
+          .toList(),
+      fullyReturned: json['fully_returned'] == true || json['fully_returned'] == 1,
       items: itemsList,
     );
   }
@@ -265,11 +347,17 @@ class Receiving {
   final int stockLocation;
   final List<ReceivingItem> items;
 
+  /// The receiving being returned, when this is a return of one. The server
+  /// caps the return against it; the reference says the same thing but a
+  /// clerk can type over a reference.
+  final int? returnOf;
+
   Receiving({
     required this.supplierId,
     this.employeeId,
     this.comment,
     this.reference,
+    this.returnOf,
     this.paymentType = 'Cash',
     this.stockLocation = 1,
     required this.items,
@@ -283,6 +371,7 @@ class Receiving {
       if (reference != null && reference!.isNotEmpty) 'reference': reference,
       'payment_type': paymentType,
       'stock_location': stockLocation,
+      if (returnOf != null) 'return_of': returnOf,
       'items': items.map((item) => item.toJson()).toList(),
     };
   }

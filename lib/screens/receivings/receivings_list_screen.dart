@@ -218,16 +218,13 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
     // done again, and again. Nor can a receiving that has already been
     // returned -- the second return would take the same stock out twice.
     if (!receiving.canBeReturned) {
+      final isReturn = receiving.isReturn || receiving.totalCost < 0;
       return Text(
-        receiving.isReturn || receiving.totalCost < 0
-            ? 'RETURN'
-            : 'Returned #${receiving.returnedBy}',
+        isReturn ? 'RETURN' : 'Returned',
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: receiving.isReturn || receiving.totalCost < 0
-              ? AppColors.warning
-              : Colors.grey.shade500,
+          color: isReturn ? AppColors.warning : Colors.grey.shade500,
         ),
       );
     }
@@ -240,7 +237,14 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
         return TextButton.icon(
           onPressed: () => _returnReceiving(receiving),
           icon: const Icon(Icons.undo, size: 15),
-          label: const Text('Return', style: TextStyle(fontSize: 12)),
+          // A part of it may already be back. Say what is left, so a second
+          // return is taken against the balance and not the whole delivery.
+          label: Text(
+            receiving.partlyReturned
+                ? 'Return ${_plainQuantity(receiving.returnableTotal)} left'
+                : 'Return',
+            style: const TextStyle(fontSize: 12),
+          ),
           style: TextButton.styleFrom(
             foregroundColor: AppColors.warning,
             padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -252,6 +256,11 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
       },
     );
   }
+
+  /// 50, not 50.0 -- these numbers are read out loud at a counter.
+  String _plainQuantity(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toString();
 
   /// The list row only carries totals, so the lines -- item, price and the
   /// store each one went into -- are fetched before the return is built.
@@ -280,8 +289,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(details.isReturn
             ? 'Receiving #${details.receivingId} is itself a return.'
-            : 'Receiving #${details.receivingId} was already returned '
-                'by #${details.returnedBy}.'),
+            : 'Receiving #${details.receivingId} has nothing left to return.'),
         backgroundColor: AppColors.warning,
       ));
       return;
@@ -296,12 +304,23 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Supplier: ${details.supplierName}'),
-            Text('Items: ${details.items.length}'),
+            Text('Items: ${details.returnable.isEmpty ? details.items.length : details.returnable.length}'),
+            if (details.partlyReturned) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Part of this receiving is already back. '
+                '${_plainQuantity(details.returnableTotal)} left to return.',
+                style: TextStyle(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             const Text(
-              'Its items go into the cart with negative quantities. Nothing '
-              'moves until you complete it, and you can change or remove '
-              'lines first.',
+              'What is still returnable goes into the cart with negative '
+              'quantities. Nothing moves until you complete it, and you can '
+              'change or remove lines first.',
             ),
           ],
         ),

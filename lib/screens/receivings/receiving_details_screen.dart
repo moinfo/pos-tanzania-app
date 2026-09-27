@@ -429,7 +429,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
         ),
         label: Text(_receiving!.isReturn
             ? 'This is a return'
-            : 'Returned by #${_receiving!.returnedBy}'),
+            : 'Fully returned'),
       );
     }
 
@@ -443,11 +443,19 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
           backgroundColor: AppColors.warning,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.undo),
-          label: const Text('Return'),
+          // A part of it may already be back; the balance is what is left.
+          label: Text(_receiving!.partlyReturned
+              ? 'Return ${_plainQuantity(_receiving!.returnableTotal)} left'
+              : 'Return'),
         );
       },
     );
   }
+
+  /// 50, not 50.0 -- these numbers are read out loud at a counter.
+  String _plainQuantity(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toString();
 
   Future<void> _returnThisReceiving() async {
     final receiving = _receiving!;
@@ -460,12 +468,23 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Supplier: ${receiving.supplierName}'),
-            Text('Items: ${receiving.items.length}'),
+            Text('Items: ${receiving.returnable.isEmpty ? receiving.items.length : receiving.returnable.length}'),
+            if (receiving.partlyReturned) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Part of this receiving is already back. '
+                '${_plainQuantity(receiving.returnableTotal)} left to return.',
+                style: TextStyle(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             const Text(
-              'Its items go into the cart with negative quantities. Nothing '
-              'moves until you complete it, and you can change or remove '
-              'lines first.',
+              'What is still returnable goes into the cart with negative '
+              'quantities. Nothing moves until you complete it, and you can '
+              'change or remove lines first.',
             ),
           ],
         ),

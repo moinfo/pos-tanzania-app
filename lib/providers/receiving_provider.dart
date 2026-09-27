@@ -151,9 +151,18 @@ class ReceivingProvider with ChangeNotifier {
   bool get isReturn => _isReturn;
   bool _isReturn = false;
 
+  /// The receiving this cart is returning, when it was loaded from one.
+  ///
+  /// It is sent with the receiving so the server can cap the return against
+  /// it. The reference carries the same thing, but a clerk can type over a
+  /// reference, and that must not quietly uncap anything.
+  int? get returnOfReceivingId => _returnOfReceivingId;
+  int? _returnOfReceivingId;
+
   void setReturnMode(bool value) {
     if (_isReturn == value) return;
     _isReturn = value;
+    if (!value) _returnOfReceivingId = null;
     notifyListeners();
   }
 
@@ -161,11 +170,16 @@ class ReceivingProvider with ChangeNotifier {
   /// prices and stores, with the quantities negated -- the web's
   /// Receiving_lib::return_entire_receiving.
   ///
+  /// What goes in is the BALANCE, not what was received: 50 received and 30
+  /// already returned puts in 20, because 20 is all that is left to take.
+  /// An item with nothing left is left out entirely.
+  ///
   /// The cart is emptied first, exactly as the web does, so what is returned
   /// is that receiving and nothing else. The supplier comes from it too.
   void loadReceivingAsReturn(ReceivingDetails details, {int? fallbackLocation}) {
     _cartItems.clear();
     _isReturn = true;
+    _returnOfReceivingId = details.receivingId;
 
     _selectedSupplier = Supplier(
       supplierId: details.supplierId,
@@ -181,20 +195,51 @@ class ReceivingProvider with ChangeNotifier {
     );
     _reference = 'RECV ${details.receivingId}';
 
-    for (final item in details.items) {
-      if (item.quantity == 0) continue;
-      _cartItems.add(ReceivingItem(
-        itemId: item.itemId,
-        itemName: item.itemName,
-        itemNumber: item.itemNumber,
-        line: _cartItems.length + 1,
-        quantity: -item.quantity,
-        costPrice: item.costPrice,
-        unitPrice: item.unitPrice,
-        itemLocation: item.itemLocation ?? fallbackLocation ?? _stockLocation ?? 1,
-        // 50 received is 50 returnable. The stepper used to run past it.
-        returnLimit: item.quantity.abs(),
-      ));
+    if (details.returnable.isNotEmpty) {
+      for (final row in details.returnable) {
+        if (row.returnable <= 0) continue;
+        _cartItems.add(ReceivingItem(
+          itemId: row.itemId,
+          itemName: row.itemName,
+          line: _cartItems.length + 1,
+          quantity: -row.returnable,
+          costPrice: row.costPrice,
+          unitPrice: row.unitPrice,
+          itemLocation:
+              row.itemLocation != 0 ? row.itemLocation : (fallbackLocation ?? _stockLocation ?? 1),
+          returnLimit: row.returnable,
+        ));
+      }
+    } else {
+      // A server that does not send balances yet: the lines themselves, with
+      // the same item and store merged, are the best that can be known.
+      for (final item in details.items) {
+        if (item.quantity <= 0) continue;
+        final location =
+            item.itemLocation ?? fallbackLocation ?? _stockLocation ?? 1;
+        final index = _cartItems.indexWhere(
+          (c) => c.itemId == item.itemId && c.itemLocation == location,
+        );
+        if (index >= 0) {
+          final merged = _cartItems[index].quantity - item.quantity;
+          _cartItems[index] = _cartItems[index].copyWith(
+            quantity: merged,
+            returnLimit: merged.abs(),
+          );
+        } else {
+          _cartItems.add(ReceivingItem(
+            itemId: item.itemId,
+            itemName: item.itemName,
+            itemNumber: item.itemNumber,
+            line: _cartItems.length + 1,
+            quantity: -item.quantity,
+            costPrice: item.costPrice,
+            unitPrice: item.unitPrice,
+            itemLocation: location,
+            returnLimit: item.quantity.abs(),
+          ));
+        }
+      }
     }
     notifyListeners();
   }
@@ -288,6 +333,7 @@ class ReceivingProvider with ChangeNotifier {
     // clear_mode(): the clerk who just booked a return should not find the
     // next delivery silently going in negative.
     _isReturn = false;
+    _returnOfReceivingId = null;
     notifyListeners();
   }
 
@@ -335,6 +381,7 @@ class ReceivingProvider with ChangeNotifier {
       paymentType: _paymentType,
       stockLocation: _stockLocation!,
       items: _cartItems,
+      returnOf: _returnOfReceivingId,
     );
   }
 

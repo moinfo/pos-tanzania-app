@@ -37,8 +37,25 @@ ReceivingDetailItem detailLine(int id, double qty,
       lineTotal: qty * cost,
     );
 
+ReceivingReturnable balance(int id, double received, double returned,
+        {int location = 12, double cost = 1000}) =>
+    ReceivingReturnable(
+      itemId: id,
+      itemLocation: location,
+      itemName: 'Item $id',
+      costPrice: cost,
+      unitPrice: cost * 2,
+      received: received,
+      returned: returned,
+      returnable: received - returned,
+    );
+
 ReceivingDetails details(List<ReceivingDetailItem> items,
-        {bool isReturn = false, int? returnedBy, double total = 0}) =>
+        {bool isReturn = false,
+        int? returnedBy,
+        double total = 0,
+        List<ReceivingReturnable> returnable = const [],
+        bool fullyReturned = false}) =>
     ReceivingDetails(
       receivingId: 8439,
       supplierId: 77,
@@ -51,6 +68,8 @@ ReceivingDetails details(List<ReceivingDetailItem> items,
       total: total,
       isReturn: isReturn,
       returnedBy: returnedBy,
+      returnable: returnable,
+      fullyReturned: fullyReturned,
       items: items,
     );
 
@@ -58,6 +77,8 @@ ReceivingListItem listRow({
   double totalCost = 88000,
   bool isReturn = false,
   int? returnedBy,
+  double returnableTotal = 50,
+  bool fullyReturned = false,
 }) =>
     ReceivingListItem(
       receivingId: 8443,
@@ -71,6 +92,8 @@ ReceivingListItem listRow({
       totalCost: totalCost,
       isReturn: isReturn,
       returnedBy: returnedBy,
+      returnableTotal: returnableTotal,
+      fullyReturned: fullyReturned,
     );
 
 void main() {
@@ -206,14 +229,40 @@ void main() {
       );
     });
 
-    test('a receiving already returned cannot be returned a second time', () {
+    test('a receiving with nothing left cannot be returned again', () {
       // That would take the same stock out twice.
-      expect(listRow(returnedBy: 8444).canBeReturned, isFalse);
-      expect(details([detailLine(613, 4)], returnedBy: 8444).canBeReturned, isFalse);
+      expect(
+        listRow(returnedBy: 8444, returnableTotal: 0, fullyReturned: true)
+            .canBeReturned,
+        isFalse,
+      );
+      expect(
+        details([detailLine(613, 4)], returnedBy: 8444, fullyReturned: true)
+            .canBeReturned,
+        isFalse,
+      );
+    });
+
+    test('a receiving partly returned can still return the rest', () {
+      // 50 received, 30 back, 20 still owed. Closing it here would strand
+      // those 20 -- the whole reason the balance is carried.
+      final row = listRow(returnedBy: 8444, returnableTotal: 20);
+      expect(row.canBeReturned, isTrue);
+      expect(row.partlyReturned, isTrue);
+
+      final detail = details(
+        [detailLine(513, 50, location: 12)],
+        returnedBy: 8444,
+        total: 1000000,
+        returnable: [balance(513, 50, 30)],
+      );
+      expect(detail.canBeReturned, isTrue);
+      expect(detail.returnableTotal, 20);
+      expect(detail.partlyReturned, isTrue);
     });
 
     test('a negative total alone is enough, for a server without the flags', () {
-      expect(listRow(totalCost: -110000).canBeReturned, isFalse);
+      expect(listRow(totalCost: -110000, returnableTotal: 0).canBeReturned, isFalse);
       expect(details([detailLine(613, -5)], total: -110000).canBeReturned, isFalse);
     });
 
@@ -232,6 +281,8 @@ void main() {
         'total_cost': 88000,
         'is_return': false,
         'returned_by': 8444,
+        'returnable_total': 0,
+        'fully_returned': true,
       });
       expect(returned.returnedBy, 8444);
       expect(returned.canBeReturned, isFalse);
@@ -281,6 +332,70 @@ void main() {
       expect(cart.isAtReturnLimit(0), isFalse);
       cart.updateQuantity(0, 500);
       expect(cart.cartItems.single.quantity, 500);
+    });
+  });
+
+  group('a second return takes the balance, not the whole delivery', () {
+    test('the cart is loaded with what is left, not what was received', () {
+      // 50 received, 30 already back. Loading 50 would take out 80 in all.
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(details(
+        [detailLine(513, 50, location: 12)],
+        returnable: [balance(513, 50, 30)],
+      ));
+
+      expect(cart.cartItems.single.quantity, -20);
+      expect(cart.cartItems.single.returnLimit, 20);
+      expect(cart.isAtReturnLimit(0), isTrue);
+
+      cart.decrementQuantity(0);
+      expect(cart.cartItems.single.quantity, -20);
+    });
+
+    test('an item with nothing left is left out of the cart', () {
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(details(
+        [detailLine(513, 50, location: 12), detailLine(39, 4, location: 12)],
+        returnable: [balance(513, 50, 50), balance(39, 4, 1)],
+      ));
+
+      expect(cart.cartItems.map((c) => c.itemId), [39]);
+      expect(cart.cartItems.single.quantity, -3);
+    });
+
+    test('the receiving being returned is sent with the return', () {
+      // The reference says the same thing, but a clerk can type over a
+      // reference -- and that must not quietly uncap the return.
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(details(
+        [detailLine(513, 50, location: 12)],
+        returnable: [balance(513, 50, 0)],
+      ));
+      cart.setReference('my own note');
+
+      final payload = cart.createReceiving(employeeId: 1).toJson();
+      expect(payload['return_of'], 8439);
+      expect(payload['reference'], 'my own note');
+
+      // An ordinary receiving carries no such link.
+      final plain = ReceivingProvider()..setStockLocation(12);
+      plain.addItem(item(513), quantity: 5);
+      plain.setSupplier(cart.selectedSupplier);
+      expect(plain.createReceiving().toJson().containsKey('return_of'), isFalse);
+    });
+
+    test('a server without balances falls back to the lines, merged', () {
+      // The same item and store on two lines of one receiving -- 450 of them
+      // exist -- is one balance, not two.
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(details([
+        detailLine(513, 30, location: 12),
+        detailLine(513, 20, location: 12),
+      ]));
+
+      expect(cart.cartItems.length, 1);
+      expect(cart.cartItems.single.quantity, -50);
+      expect(cart.cartItems.single.returnLimit, 50);
     });
   });
 }
