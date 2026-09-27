@@ -245,4 +245,42 @@ void main() {
       expect(old.canBeReturned, isTrue);
     });
   });
+
+  group('a return cannot exceed what was received', () {
+    test('the stepper stops at the received quantity', () {
+      // 50 received. 51 would take out stock nobody ever delivered.
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(details([detailLine(513, 50, location: 12)]));
+      expect(cart.cartItems.single.quantity, -50);
+
+      cart.decrementQuantity(0);
+      expect(cart.cartItems.single.quantity, -50);
+      expect(cart.isAtReturnLimit(0), isTrue);
+
+      // It can still be brought back up and pushed down again, to the limit.
+      cart.incrementQuantity(0);
+      expect(cart.cartItems.single.quantity, -49);
+      expect(cart.isAtReturnLimit(0), isFalse);
+      cart.updateQuantity(0, -999);
+      expect(cart.cartItems.single.quantity, -50);
+    });
+
+    test('a cart edited past the limit is refused before it is sent', () {
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(details([detailLine(513, 50, location: 12)]));
+      // Straight into the line, as no UI path allows.
+      cart.cartItems[0] = cart.cartItems[0].copyWith(quantity: -51);
+      expect(cart.cartItems.single.exceedsReturnLimit, isTrue);
+      expect(cart.validateCart(), contains('50'));
+    });
+
+    test('an ordinary line has no limit', () {
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.addItem(item(513), quantity: 5);
+      expect(cart.cartItems.single.returnLimit, isNull);
+      expect(cart.isAtReturnLimit(0), isFalse);
+      cart.updateQuantity(0, 500);
+      expect(cart.cartItems.single.quantity, 500);
+    });
+  });
 }

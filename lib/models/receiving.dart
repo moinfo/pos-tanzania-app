@@ -10,6 +10,11 @@ class ReceivingItem {
   final int itemLocation;
   final double? availableStock; // Current stock before receiving
 
+  /// The most this line may return, when it came from a past receiving.
+  /// 50 received is 50 returnable; 51 is stock that was never delivered.
+  /// Null on an ordinary line, which has no receiving to be measured against.
+  final double? returnLimit;
+
   ReceivingItem({
     required this.itemId,
     required this.itemName,
@@ -20,7 +25,18 @@ class ReceivingItem {
     required this.unitPrice,
     this.itemLocation = 1,
     this.availableStock,
+    this.returnLimit,
   });
+
+  /// Quantity held to what this line is allowed to return.
+  double clampToReturnLimit(double value) {
+    if (returnLimit == null) return value;
+    final floor = -returnLimit!.abs();
+    return value < floor ? floor : value;
+  }
+
+  bool get exceedsReturnLimit =>
+      returnLimit != null && quantity < -returnLimit!.abs();
 
   // Convert to JSON for API
   Map<String, dynamic> toJson() {
@@ -44,6 +60,7 @@ class ReceivingItem {
     double? unitPrice,
     int? itemLocation,
     double? availableStock,
+    double? returnLimit,
   }) {
     return ReceivingItem(
       itemId: itemId ?? this.itemId,
@@ -55,6 +72,7 @@ class ReceivingItem {
       unitPrice: unitPrice ?? this.unitPrice,
       itemLocation: itemLocation ?? this.itemLocation,
       availableStock: availableStock ?? this.availableStock,
+      returnLimit: returnLimit ?? this.returnLimit,
     );
   }
 

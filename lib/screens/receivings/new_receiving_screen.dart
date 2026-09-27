@@ -189,6 +189,19 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
     ));
   }
 
+  void _sayAtReturnLimit(ReceivingItem item) {
+    final limit = item.returnLimit!.abs();
+    final plain = limit == limit.roundToDouble()
+        ? limit.toInt().toString()
+        : limit.toString();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('$plain were received, so $plain is the most that can '
+          'be returned.'),
+      backgroundColor: AppColors.warning,
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
   /// Load preloaded (Main Store) items into the cart.
   ///
   /// The cart's existing lines are cleared first, so each copy -- one receipt
@@ -874,10 +887,20 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                                               icon: Icon(
                                                 Icons.remove,
                                                 size: 18,
-                                                color: isDark ? AppColors.darkText : Colors.black87,
+                                                color: receivingProvider
+                                                        .isAtReturnLimit(index)
+                                                    ? Colors.grey
+                                                    : (isDark ? AppColors.darkText : Colors.black87),
                                               ),
-                                              onPressed: () => receivingProvider
-                                                  .decrementQuantity(index),
+                                              // A line returning a past
+                                              // receiving stops at what it
+                                              // brought in: 50 received is 50
+                                              // returnable, never 51.
+                                              onPressed: receivingProvider
+                                                      .isAtReturnLimit(index)
+                                                  ? () => _sayAtReturnLimit(item)
+                                                  : () => receivingProvider
+                                                      .decrementQuantity(index),
                                               padding: const EdgeInsets.all(4),
                                               constraints: const BoxConstraints(),
                                             ),

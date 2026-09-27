@@ -192,6 +192,8 @@ class ReceivingProvider with ChangeNotifier {
         costPrice: item.costPrice,
         unitPrice: item.unitPrice,
         itemLocation: item.itemLocation ?? fallbackLocation ?? _stockLocation ?? 1,
+        // 50 received is 50 returnable. The stepper used to run past it.
+        returnLimit: item.quantity.abs(),
       ));
     }
     notifyListeners();
@@ -223,6 +225,11 @@ class ReceivingProvider with ChangeNotifier {
   // Update item quantity
   void updateQuantity(int index, double quantity) {
     if (index >= 0 && index < _cartItems.length) {
+      // A line returning a past receiving stops at what that receiving
+      // brought in: 50 received cannot become 51 returned, which would take
+      // out stock nobody ever delivered.
+      quantity = _cartItems[index].clampToReturnLimit(quantity);
+
       // Zero removes the line. Below zero is a real quantity -- a return
       // copied from Main Store -- and must survive the stepper; it used to
       // delete such a line on the first tap.
@@ -233,6 +240,14 @@ class ReceivingProvider with ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  /// This line is already returning everything that was received.
+  bool isAtReturnLimit(int index) {
+    if (index < 0 || index >= _cartItems.length) return false;
+    final item = _cartItems[index];
+    return item.returnLimit != null &&
+        item.quantity <= -item.returnLimit!.abs();
   }
 
   // Update item cost price
@@ -387,10 +402,18 @@ class ReceivingProvider with ChangeNotifier {
       if (item.costPrice < 0) {
         return 'Item "${item.itemName}" has invalid cost price.';
       }
+      if (item.exceedsReturnLimit) {
+        return '"${item.itemName}": only ${_plain(item.returnLimit!)} were '
+            'received, so at most ${_plain(item.returnLimit!)} can be returned.';
+      }
     }
 
     return null; // Valid
   }
+
+  /// 50, not 50.0 -- these numbers are read out loud at a counter.
+  static String _plain(double value) =>
+      value == value.roundToDouble() ? value.toInt().toString() : value.toString();
 
   // Get cart summary
   Map<String, dynamic> getCartSummary() {
