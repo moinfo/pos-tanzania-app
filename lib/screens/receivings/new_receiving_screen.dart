@@ -65,6 +65,124 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
     });
   }
 
+  /// Receive or Return, and -- in Return mode -- a way to pull a past
+  /// receiving in, as the web does by typing its RECV number.
+  Widget _buildModeBar(ReceivingProvider provider, bool isDark) {
+    final isReturn = provider.isReturn;
+    return Container(
+      color: isDark ? AppColors.darkSurface : Colors.white,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  icon: Icon(Icons.call_received, size: 16),
+                  label: Text('Receive'),
+                ),
+                ButtonSegment(
+                  value: true,
+                  icon: Icon(Icons.undo, size: 16),
+                  label: Text('Return'),
+                ),
+              ],
+              selected: {isReturn},
+              showSelectedIcon: false,
+              style: ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                backgroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected)
+                        ? (isReturn ? AppColors.warning : AppColors.success)
+                        : null),
+                foregroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected) ? Colors.white : null),
+              ),
+              onSelectionChanged: (value) => provider.setReturnMode(value.first),
+            ),
+          ),
+          if (isReturn) ...[
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: _returnPastReceiving,
+              icon: const Icon(Icons.receipt_long, size: 16),
+              label: const Text('From receiving #'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.warning,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Return a whole past receiving: ask for its number, load its items at
+  /// their original prices and stores with the quantities negated, and take
+  /// its supplier -- the web's return_entire_receiving.
+  Future<void> _returnPastReceiving() async {
+    final controller = TextEditingController();
+    final id = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Return a receiving'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Receiving number',
+            hintText: 'e.g. 8439',
+            prefixText: 'RECV ',
+          ),
+          onSubmitted: (v) => Navigator.pop(context, int.tryParse(v.trim())),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.pop(context, int.tryParse(controller.text.trim())),
+            child: const Text('Load'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (id == null || !mounted) return;
+
+    setState(() => _isProcessing = true);
+    final response = await _apiService.getReceivingDetails(id);
+    if (!mounted) return;
+    setState(() => _isProcessing = false);
+
+    if (!response.isSuccess || response.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(response.message),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+
+    final details = response.data!;
+    final locationProvider = context.read<LocationProvider>();
+    context.read<ReceivingProvider>().loadReceivingAsReturn(
+          details,
+          fallbackLocation: locationProvider.selectedLocation?.locationId,
+        );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Returning RECV ${details.receivingId} - '
+          '${details.items.length} item(s) from ${details.supplierName}'),
+      backgroundColor: AppColors.warning,
+    ));
+  }
+
   /// Load preloaded (Main Store) items into the cart.
   ///
   /// The cart's existing lines are cleared first, so each copy -- one receipt
@@ -75,6 +193,9 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
   /// the quantities summed, and a return keeps its negative quantity.
   void _loadPreloadedItems() {
     final receivingProvider = context.read<ReceivingProvider>();
+    // A Main Store copy is stock coming in. The mode outlives the screen, so
+    // without this a copy made after a return would be titled "New Return".
+    receivingProvider.setReturnMode(false);
     receivingProvider.clearItems();
     for (final item in widget.preloadedItems!) {
       receivingProvider.mergeReceivingItem(item);
@@ -274,7 +395,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Complete Receiving'),
+        title: Text(receivingProvider.isReturn ? 'Complete Return' : 'Complete Receiving'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,9 +406,11 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
             Text('Total Quantity: ${receivingProvider.totalQuantity.toStringAsFixed(0)}'),
             Text('Total Cost: ${_formatCurrency(receivingProvider.total)}'),
             const SizedBox(height: 16),
-            const Text(
-              'This will increase stock quantities.',
-              style: TextStyle(fontWeight: FontWeight.w500),
+            Text(
+              receivingProvider.isReturn
+                  ? 'This will REDUCE stock quantities.'
+                  : 'This will increase stock quantities.',
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -299,15 +422,20 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
+              backgroundColor: receivingProvider.isReturn
+                  ? AppColors.warning
+                  : AppColors.success,
             ),
-            child: const Text('Complete'),
+            child: Text(receivingProvider.isReturn ? 'Complete Return' : 'Complete'),
           ),
         ],
       ),
     );
 
     if (confirmed != true) return;
+
+    // Read before the cart is cleared, which resets the mode.
+    final isReturn = receivingProvider.isReturn;
 
     setState(() => _isProcessing = true);
 
@@ -341,8 +469,10 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
         StockSignal.bump();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Receiving created successfully!'),
+          SnackBar(
+            content: Text(isReturn
+                ? 'Return created successfully!'
+                : 'Receiving created successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -386,8 +516,15 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('New Receiving'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.success,
+        // A return is the opposite movement, so it says so and is not green.
+        title: Text(context.watch<ReceivingProvider>().isReturn
+            ? 'New Return'
+            : 'New Receiving'),
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : (context.watch<ReceivingProvider>().isReturn
+                ? AppColors.warning
+                : AppColors.success),
         foregroundColor: Colors.white,
         actions: [
           // Location selector
@@ -454,6 +591,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
         builder: (context, receivingProvider, child) {
           return Column(
             children: [
+              _buildModeBar(receivingProvider, isDark),
               // Supplier selection
               Container(
                 padding: const EdgeInsets.all(12),

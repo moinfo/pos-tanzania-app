@@ -110,6 +110,9 @@ class ReceivingDetailItem {
   final String itemNumber;
   final String description;
   final String serialNumber;
+  /// Which store this line's stock went into. A return has to take it back
+  /// out of that same store. Null from a server that predates the field.
+  final int? itemLocation;
   final double quantity;
   final double receivingQuantity;
   final double costPrice;
@@ -124,6 +127,7 @@ class ReceivingDetailItem {
     required this.itemNumber,
     required this.description,
     required this.serialNumber,
+    this.itemLocation,
     required this.quantity,
     required this.receivingQuantity,
     required this.costPrice,
@@ -140,6 +144,7 @@ class ReceivingDetailItem {
       itemNumber: json['item_number'] ?? '',
       description: json['description'] ?? '',
       serialNumber: json['serial_number'] ?? '',
+      itemLocation: json['item_location'] == null ? null : int.tryParse(json['item_location'].toString()),
       quantity: (json['quantity'] ?? 0).toDouble(),
       receivingQuantity: (json['receiving_quantity'] ?? 0).toDouble(),
       costPrice: (json['cost_price'] ?? 0).toDouble(),

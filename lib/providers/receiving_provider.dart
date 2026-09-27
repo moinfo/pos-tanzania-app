@@ -48,6 +48,12 @@ class ReceivingProvider with ChangeNotifier {
       throw Exception('Stock location must be set before adding items');
     }
 
+    // In Return mode every line goes in negative, as the web does
+    // (Receivings::add negates the quantity outside 'receive').
+    if (_isReturn) {
+      quantity = -quantity.abs();
+    }
+
     // Check if item already exists in cart
     final existingIndex = _cartItems.indexWhere((i) => i.itemId == item.itemId);
 
@@ -110,6 +116,61 @@ class ReceivingProvider with ChangeNotifier {
       }
     } else if (item.quantity != 0) {
       _cartItems.add(item.copyWith(line: _cartItems.length + 1));
+    }
+    notifyListeners();
+  }
+
+  /// Receiving stock (false) or returning it to the supplier (true) -- the
+  /// web's Receive / Return mode on the receivings register.
+  ///
+  /// In Return mode an item added goes in negative, so completing it takes
+  /// the stock back out. The cart is left alone when the mode changes, as on
+  /// the web: a line already entered keeps the sign it was entered with.
+  bool get isReturn => _isReturn;
+  bool _isReturn = false;
+
+  void setReturnMode(bool value) {
+    if (_isReturn == value) return;
+    _isReturn = value;
+    notifyListeners();
+  }
+
+  /// Load a past receiving as a return: the same items, at their original
+  /// prices and stores, with the quantities negated -- the web's
+  /// Receiving_lib::return_entire_receiving.
+  ///
+  /// The cart is emptied first, exactly as the web does, so what is returned
+  /// is that receiving and nothing else. The supplier comes from it too.
+  void loadReceivingAsReturn(ReceivingDetails details, {int? fallbackLocation}) {
+    _cartItems.clear();
+    _isReturn = true;
+
+    _selectedSupplier = Supplier(
+      supplierId: details.supplierId,
+      companyName: details.supplierName,
+      firstName: '',
+      lastName: '',
+      displayName: details.supplierName,
+      // Balances are display fields the receiving flow never reads; the
+      // supplier picker refreshes them when it is opened.
+      credit: 0,
+      debit: 0,
+      balance: 0,
+    );
+    _reference = 'RECV ${details.receivingId}';
+
+    for (final item in details.items) {
+      if (item.quantity == 0) continue;
+      _cartItems.add(ReceivingItem(
+        itemId: item.itemId,
+        itemName: item.itemName,
+        itemNumber: item.itemNumber,
+        line: _cartItems.length + 1,
+        quantity: -item.quantity,
+        costPrice: item.costPrice,
+        unitPrice: item.unitPrice,
+        itemLocation: item.itemLocation ?? fallbackLocation ?? _stockLocation ?? 1,
+      ));
     }
     notifyListeners();
   }
@@ -186,6 +247,10 @@ class ReceivingProvider with ChangeNotifier {
     _selectedSupplier = null;
     _reference = null;
     _comment = null;
+    // Back to Receive, as the web's Receiving_lib::clear_all does through
+    // clear_mode(): the clerk who just booked a return should not find the
+    // next delivery silently going in negative.
+    _isReturn = false;
     notifyListeners();
   }
 
