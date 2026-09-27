@@ -1523,6 +1523,10 @@ class ApiService {
     // the selected location -- about a third of the full payload. The items
     // management screen keeps the full shape for editing.
     bool lean = false,
+    /// Only items of this variation. Receiving passes 'CTN': a delivery is
+    /// cartons, and the receiving refuses a PC row outright, so offering one
+    /// to a clerk only wastes their trip to the counter.
+    String? variation,
   }) async {
     try {
       final queryParams = {
@@ -1532,6 +1536,7 @@ class ApiService {
         if (category != null) 'category': category,
         if (locationId != null) 'location_id': locationId.toString(),
         if (lean) 'lean': '1',
+        if (variation != null) 'variation': variation,
       };
 
       final uri = Uri.parse('$baseUrlSync/items').replace(

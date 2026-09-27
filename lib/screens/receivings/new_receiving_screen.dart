@@ -251,6 +251,11 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
       final response = await _apiService.getItems(
         search: query,
         limit: 20,
+        // Cartons only. A PC row is a piece variant of a carton item; the
+        // receiving refuses it ("it is a PC, and stock is received in
+        // cartons"), and one used to sit at the top of the results because
+        // its name starts with a tab -- so it was the row a clerk picked.
+        variation: 'CTN',
       );
 
       if (response.isSuccess && response.data != null) {
