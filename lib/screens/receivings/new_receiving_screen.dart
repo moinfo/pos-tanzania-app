@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../utils/constants.dart';
 
 import 'package:provider/provider.dart';
@@ -1230,6 +1231,11 @@ class _AddItemDialogState extends State<_AddItemDialog> {
   late TextEditingController _quantityController;
   late TextEditingController _costPriceController;
 
+  /// Focus is held here rather than left to autofocus, so the quantity can
+  /// be selected the moment the dialog opens: the field arrives holding 1,
+  /// and a clerk typing 6 means six, not sixty-one.
+  final FocusNode _quantityFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -1237,10 +1243,20 @@ class _AddItemDialogState extends State<_AddItemDialog> {
     _costPriceController = TextEditingController(
       text: widget.item.costPrice.toStringAsFixed(0),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _quantityController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _quantityController.text.length,
+      );
+      _quantityFocus.requestFocus();
+    });
   }
 
   @override
   void dispose() {
+    _quantityFocus.dispose();
     _quantityController.dispose();
     _costPriceController.dispose();
     super.dispose();
@@ -1283,12 +1299,22 @@ class _AddItemDialogState extends State<_AddItemDialog> {
         children: [
           TextField(
             controller: _quantityController,
+            focusNode: _quantityFocus,
             decoration: const InputDecoration(
               labelText: 'Quantity',
               border: OutlineInputBorder(),
             ),
-            keyboardType: TextInputType.number,
-            autofocus: true,
+            // decimal: true is what puts a usable keypad on iOS; plain
+            // number gives a pad with no way to type a half-carton.
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            ],
+            textInputAction: TextInputAction.next,
+            onTap: () => _quantityController.selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: _quantityController.text.length,
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -1297,7 +1323,16 @@ class _AddItemDialogState extends State<_AddItemDialog> {
               labelText: 'Cost Price (TSh)',
               border: OutlineInputBorder(),
             ),
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            ],
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
+            onTap: () => _costPriceController.selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: _costPriceController.text.length,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
