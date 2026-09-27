@@ -76,6 +76,16 @@ class ReceivingListItem {
   final int totalItems;
   final double totalCost;
 
+  /// This receiving IS a return -- it was booked with negative quantities.
+  /// Returning it again would put the stock back, and again, and again.
+  final bool isReturn;
+
+  /// The receiving that already returned this one, if any. Only a return
+  /// made from the app records the link (reference "RECV <id>"); the web's
+  /// return_entire_receiving records none, so null means "none known", not
+  /// "definitely not returned".
+  final int? returnedBy;
+
   ReceivingListItem({
     required this.receivingId,
     required this.receivingTime,
@@ -86,7 +96,13 @@ class ReceivingListItem {
     required this.reference,
     required this.totalItems,
     required this.totalCost,
+    this.isReturn = false,
+    this.returnedBy,
   });
+
+  /// Nothing to return: it is a return itself, one already exists, or it is
+  /// from a server that predates the flags and looks negative.
+  bool get canBeReturned => !isReturn && returnedBy == null && totalCost >= 0;
 
   factory ReceivingListItem.fromJson(Map<String, dynamic> json) {
     return ReceivingListItem(
@@ -99,6 +115,10 @@ class ReceivingListItem {
       reference: json['reference'] ?? '',
       totalItems: json['total_items'] ?? 0,
       totalCost: (json['total_cost'] ?? 0).toDouble(),
+      isReturn: json['is_return'] == true || json['is_return'] == 1,
+      returnedBy: json['returned_by'] == null
+          ? null
+          : int.tryParse(json['returned_by'].toString()),
     );
   }
 }
@@ -167,6 +187,12 @@ class ReceivingDetails {
   final String comment;
   final String reference;
   final double total;
+
+  /// See ReceivingListItem: this receiving is itself a return, and the
+  /// receiving that already returned it.
+  final bool isReturn;
+  final int? returnedBy;
+
   final List<ReceivingDetailItem> items;
 
   ReceivingDetails({
@@ -179,8 +205,12 @@ class ReceivingDetails {
     required this.comment,
     required this.reference,
     required this.total,
+    this.isReturn = false,
+    this.returnedBy,
     required this.items,
   });
+
+  bool get canBeReturned => !isReturn && returnedBy == null && total >= 0;
 
   factory ReceivingDetails.fromJson(Map<String, dynamic> json) {
     var itemsJson = json['items'] as List? ?? [];
@@ -198,6 +228,10 @@ class ReceivingDetails {
       comment: json['comment'] ?? '',
       reference: json['reference'] ?? '',
       total: (json['total'] ?? 0).toDouble(),
+      isReturn: json['is_return'] == true || json['is_return'] == 1,
+      returnedBy: json['returned_by'] == null
+          ? null
+          : int.tryParse(json['returned_by'].toString()),
       items: itemsList,
     );
   }

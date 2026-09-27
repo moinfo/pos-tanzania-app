@@ -37,7 +37,9 @@ ReceivingDetailItem detailLine(int id, double qty,
       lineTotal: qty * cost,
     );
 
-ReceivingDetails details(List<ReceivingDetailItem> items) => ReceivingDetails(
+ReceivingDetails details(List<ReceivingDetailItem> items,
+        {bool isReturn = false, int? returnedBy, double total = 0}) =>
+    ReceivingDetails(
       receivingId: 8439,
       supplierId: 77,
       supplierName: 'SM ORG',
@@ -46,8 +48,29 @@ ReceivingDetails details(List<ReceivingDetailItem> items) => ReceivingDetails(
       paymentType: 'Credit Card',
       comment: '',
       reference: '',
-      total: 0,
+      total: total,
+      isReturn: isReturn,
+      returnedBy: returnedBy,
       items: items,
+    );
+
+ReceivingListItem listRow({
+  double totalCost = 88000,
+  bool isReturn = false,
+  int? returnedBy,
+}) =>
+    ReceivingListItem(
+      receivingId: 8443,
+      receivingTime: '2026-09-27 07:51:00',
+      supplierId: 77,
+      supplierName: 'MPINGA',
+      employeeName: 'Clerk',
+      paymentType: 'Credit Card',
+      reference: '',
+      totalItems: 1,
+      totalCost: totalCost,
+      isReturn: isReturn,
+      returnedBy: returnedBy,
     );
 
 void main() {
@@ -163,6 +186,63 @@ void main() {
       // The carton still goes in.
       cart.addItem(item(6225));
       expect(cart.cartItems.single.itemId, 6225);
+    });
+  });
+
+  group('a return cannot be returned again', () {
+    test('an ordinary receiving can be returned', () {
+      expect(listRow().canBeReturned, isTrue);
+      expect(details([detailLine(613, 4)], total: 88000).canBeReturned, isTrue);
+    });
+
+    test('a receiving that IS a return cannot', () {
+      // RECV 8444: the -110,000 return of 8443. Returning it would put the
+      // stock back, and could be repeated forever.
+      expect(listRow(totalCost: -110000, isReturn: true).canBeReturned, isFalse);
+      expect(
+        details([detailLine(613, -5)], isReturn: true, total: -110000)
+            .canBeReturned,
+        isFalse,
+      );
+    });
+
+    test('a receiving already returned cannot be returned a second time', () {
+      // That would take the same stock out twice.
+      expect(listRow(returnedBy: 8444).canBeReturned, isFalse);
+      expect(details([detailLine(613, 4)], returnedBy: 8444).canBeReturned, isFalse);
+    });
+
+    test('a negative total alone is enough, for a server without the flags', () {
+      expect(listRow(totalCost: -110000).canBeReturned, isFalse);
+      expect(details([detailLine(613, -5)], total: -110000).canBeReturned, isFalse);
+    });
+
+    test('the flags parse from what the API sends', () {
+      final row = ReceivingListItem.fromJson({
+        'receiving_id': 8444,
+        'total_cost': -110000,
+        'is_return': true,
+        'returned_by': null,
+      });
+      expect(row.isReturn, isTrue);
+      expect(row.returnedBy, isNull);
+
+      final returned = ReceivingListItem.fromJson({
+        'receiving_id': 8443,
+        'total_cost': 88000,
+        'is_return': false,
+        'returned_by': 8444,
+      });
+      expect(returned.returnedBy, 8444);
+      expect(returned.canBeReturned, isFalse);
+
+      // A server that predates the flags sends neither.
+      final old = ReceivingListItem.fromJson({
+        'receiving_id': 8439,
+        'total_cost': 13853800,
+      });
+      expect(old.isReturn, isFalse);
+      expect(old.canBeReturned, isTrue);
     });
   });
 }

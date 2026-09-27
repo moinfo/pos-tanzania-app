@@ -214,6 +214,24 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
   /// only "tappable", which the whole row already is; this says what else the
   /// row can do -- the one thing that used to need a RECV number typed by hand.
   Widget _buildRowReturnButton(ReceivingListItem receiving) {
+    // A return cannot be returned: it would put the stock back, and could be
+    // done again, and again. Nor can a receiving that has already been
+    // returned -- the second return would take the same stock out twice.
+    if (!receiving.canBeReturned) {
+      return Text(
+        receiving.isReturn || receiving.totalCost < 0
+            ? 'RETURN'
+            : 'Returned #${receiving.returnedBy}',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: receiving.isReturn || receiving.totalCost < 0
+              ? AppColors.warning
+              : Colors.grey.shade500,
+        ),
+      );
+    }
+
     return Consumer<PermissionProvider>(
       builder: (context, permissionProvider, child) {
         if (!permissionProvider.hasPermission(PermissionIds.receivingsAdd)) {
@@ -258,6 +276,17 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
     }
 
     final details = response.data!;
+    if (!details.canBeReturned) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(details.isReturn
+            ? 'Receiving #${details.receivingId} is itself a return.'
+            : 'Receiving #${details.receivingId} was already returned '
+                'by #${details.returnedBy}.'),
+        backgroundColor: AppColors.warning,
+      ));
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -682,13 +711,19 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                                 color: Colors.grey.shade700,
                                               ),
                                             ),
+                                            // A reference as long as the row
+                                            // ("RECV 8443", which every return
+                                            // carries) used to overflow it.
                                             if (receiving.reference.isNotEmpty) ...[
                                               const SizedBox(width: 8),
-                                              Text(
-                                                '" ${receiving.reference}',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.grey.shade600,
+                                              Flexible(
+                                                child: Text(
+                                                  '" ${receiving.reference}',
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey.shade600,
+                                                  ),
                                                 ),
                                               ),
                                             ],

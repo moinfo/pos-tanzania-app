@@ -418,6 +418,21 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
       return const SizedBox.shrink();
     }
 
+    // Returning a return puts the stock back, and nothing stops that being
+    // done again. Returning a delivery twice takes the same stock out twice.
+    if (!_receiving!.canBeReturned) {
+      return Chip(
+        avatar: Icon(
+          _receiving!.isReturn ? Icons.undo : Icons.check_circle_outline,
+          size: 18,
+          color: _receiving!.isReturn ? AppColors.warning : Colors.grey,
+        ),
+        label: Text(_receiving!.isReturn
+            ? 'This is a return'
+            : 'Returned by #${_receiving!.returnedBy}'),
+      );
+    }
+
     return Consumer<PermissionProvider>(
       builder: (context, permissionProvider, child) {
         if (!permissionProvider.hasPermission(PermissionIds.receivingsAdd)) {
