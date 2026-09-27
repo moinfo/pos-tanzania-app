@@ -9,12 +9,14 @@ import 'package:pos_tanzania_mobile/providers/receiving_provider.dart';
 /// receiving with every quantity negated, at its original prices and stores.
 
 /// Item has a long required-argument list; fromJson fills the defaults.
-Item item(int id, {double cost = 1000}) => Item.fromJson({
+Item item(int id, {double cost = 1000, String variation = 'CTN', String? name}) =>
+    Item.fromJson({
       'item_id': id,
-      'name': 'Item $id',
+      'name': name ?? 'Item $id',
       'item_number': 'N$id',
       'cost_price': cost,
       'unit_price': cost * 2,
+      'variation': variation,
     });
 
 ReceivingDetailItem detailLine(int id, double qty,
@@ -128,5 +130,39 @@ void main() {
     cart.setReturnMode(true);
     cart.clearCart();
     expect(cart.isReturn, isFalse);
+  });
+
+  group('only cartons are received', () {
+    test('a carton is receivable, a piece variant is not', () {
+      expect(ReceivingProvider.isReceivable(item(6225)), isTrue);
+      expect(ReceivingProvider.isReceivable(item(6226, variation: 'PC')), isFalse);
+      // Whatever case or padding the row carries.
+      expect(ReceivingProvider.isReceivable(item(1, variation: ' ctn ')), isTrue);
+    });
+
+    test('the refusal names the item and says why', () {
+      // Item 6226 is the PC row whose name begins with a tab, so it sorted
+      // above its own carton and was the row a clerk tapped. Completing the
+      // delivery then failed with "Item with ID 6226 not found".
+      final refusal = ReceivingProvider.receiveRefusal(
+        item(6226, variation: 'PC', name: '\tPIPI PACKT KUBWA INDIA'),
+      );
+      expect(refusal, contains('PIPI PACKT KUBWA INDIA'));
+      expect(refusal, contains('PC'));
+      expect(refusal, contains('CTN'));
+      expect(refusal, isNot(contains('not found')));
+    });
+
+    test('a piece variant is refused by the cart, not at Complete', () {
+      final cart = ReceivingProvider()..setStockLocation(12);
+      expect(
+        () => cart.addItem(item(6226, variation: 'PC')),
+        throwsA(isA<Exception>()),
+      );
+      expect(cart.cartItems, isEmpty);
+      // The carton still goes in.
+      cart.addItem(item(6225));
+      expect(cart.cartItems.single.itemId, 6225);
+    });
   });
 }

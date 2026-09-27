@@ -260,9 +260,14 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
 
       if (response.isSuccess && response.data != null) {
         setState(() {
-          // Filter to show only active (non-dormant) items
+          // Active cartons only. The API is asked for variation=CTN, and this
+          // repeats the rule for a server that has not been given the filter
+          // yet: a PC row cannot be received, so it has no business being
+          // offered to someone standing at the store counting a delivery.
           _searchResults = response.data!
-              .where((item) => item.dormant == 'ACTIVE')
+              .where((item) =>
+                  item.dormant == 'ACTIVE' &&
+                  ReceivingProvider.isReceivable(item))
               .toList();
           _isSearching = false;
         });
@@ -287,6 +292,17 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
 
   void _addItemToCart(Item item) {
     final receivingProvider = context.read<ReceivingProvider>();
+
+    // A piece variant never reaches the cart: the receiving would refuse it
+    // at Complete, with the whole delivery already counted in.
+    final refusal = ReceivingProvider.receiveRefusal(item);
+    if (refusal != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(refusal),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
 
     // Show dialog to enter quantity and cost price
     showDialog(

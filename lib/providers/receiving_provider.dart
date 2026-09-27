@@ -41,11 +41,33 @@ class ReceivingProvider with ChangeNotifier {
 
   bool get hasItems => _cartItems.isNotEmpty;
 
+  /// Stock is delivered in cartons. A PC row is the piece variant of a
+  /// carton item, and the receiving refuses it outright -- Item::exists()
+  /// and Item::get_info() both filter variation = 'CTN', which is why every
+  /// one of the 190,729 receiving lines on record is a carton.
+  ///
+  /// The refusal used to arrive at Complete, as "Item with ID 6226 not
+  /// found", with the delivery already counted into the cart.
+  static bool isReceivable(Item item) =>
+      item.variation.trim().toUpperCase() == 'CTN';
+
+  /// Why this item cannot be received, or null if it can.
+  static String? receiveRefusal(Item item) => isReceivable(item)
+      ? null
+      : '${item.name.trim()} is a ${item.variation.trim()}. '
+          'Stock is received in cartons (CTN).';
+
   // Add item to cart
   void addItem(Item item, {double quantity = 1, double? costPrice}) {
     // Ensure stock location is set before adding items
     if (_stockLocation == null) {
       throw Exception('Stock location must be set before adding items');
+    }
+
+    // The backstop, for a server that has not been given the filter yet.
+    final refusal = receiveRefusal(item);
+    if (refusal != null) {
+      throw Exception(refusal);
     }
 
     // In Return mode every line goes in negative, as the web does
