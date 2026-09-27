@@ -210,6 +210,96 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
     ).then((_) => _loadReceivings());
   }
 
+  /// Return this delivery straight from the list. The arrow it replaces said
+  /// only "tappable", which the whole row already is; this says what else the
+  /// row can do -- the one thing that used to need a RECV number typed by hand.
+  Widget _buildRowReturnButton(ReceivingListItem receiving) {
+    return Consumer<PermissionProvider>(
+      builder: (context, permissionProvider, child) {
+        if (!permissionProvider.hasPermission(PermissionIds.receivingsAdd)) {
+          return Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400);
+        }
+        return TextButton.icon(
+          onPressed: () => _returnReceiving(receiving),
+          icon: const Icon(Icons.undo, size: 15),
+          label: const Text('Return', style: TextStyle(fontSize: 12)),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.warning,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            minimumSize: const Size(0, 30),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+        );
+      },
+    );
+  }
+
+  /// The list row only carries totals, so the lines -- item, price and the
+  /// store each one went into -- are fetched before the return is built.
+  Future<void> _returnReceiving(ReceivingListItem receiving) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final response = await _apiService.getReceivingDetails(receiving.receivingId);
+
+    if (!mounted) return;
+    Navigator.pop(context); // the spinner
+
+    if (!response.isSuccess || response.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(response.message),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+
+    final details = response.data!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Return receiving #${details.receivingId}?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Supplier: ${details.supplierName}'),
+            Text('Items: ${details.items.length}'),
+            const SizedBox(height: 12),
+            const Text(
+              'Its items go into the cart with negative quantities. Nothing '
+              'moves until you complete it, and you can change or remove '
+              'lines first.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+            child: const Text('Return'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewReceivingScreen(returnOf: details),
+      ),
+    ).then((_) => _loadReceivings());
+  }
+
   void _navigateToNewReceiving() {
     Navigator.push(
       context,
@@ -679,12 +769,8 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                             color: AppColors.primary,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 16,
-                                          color: Colors.grey.shade400,
-                                        ),
+                                        const SizedBox(height: 2),
+                                        _buildRowReturnButton(receiving),
                                       ],
                                     ),
                                     onTap: () => _navigateToDetails(receiving),

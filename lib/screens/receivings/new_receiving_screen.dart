@@ -21,7 +21,12 @@ class NewReceivingScreen extends StatefulWidget {
   /// Optional list of items to preload into the cart (from Main Store)
   final List<ReceivingItem>? preloadedItems;
 
-  const NewReceivingScreen({super.key, this.preloadedItems});
+  /// A past receiving to open as a return: the screen starts in Return mode
+  /// with its items already negated. Sent from the receivings list and from
+  /// a receiving's details page, so nobody has to remember a RECV number.
+  final ReceivingDetails? returnOf;
+
+  const NewReceivingScreen({super.key, this.preloadedItems, this.returnOf});
 
   @override
   State<NewReceivingScreen> createState() => _NewReceivingScreenState();
@@ -62,6 +67,17 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
       if (widget.preloadedItems != null && widget.preloadedItems!.isNotEmpty) {
         _loadPreloadedItems();
       }
+      // Opened from a receiving: start as a return of it.
+      if (widget.returnOf != null) {
+        receivingProvider.loadReceivingAsReturn(
+          widget.returnOf!,
+          fallbackLocation: locationProvider.selectedLocation?.locationId,
+        );
+      } else {
+        // The mode lives in the provider, which outlives this screen. A
+        // receiving opened fresh is a receiving, not the last return.
+        receivingProvider.setReturnMode(false);
+      }
     });
   }
 
@@ -77,21 +93,16 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
           Expanded(
             child: SegmentedButton<bool>(
               segments: const [
-                ButtonSegment(
-                  value: false,
-                  icon: Icon(Icons.call_received, size: 16),
-                  label: Text('Receive'),
-                ),
-                ButtonSegment(
-                  value: true,
-                  icon: Icon(Icons.undo, size: 16),
-                  label: Text('Return'),
-                ),
+                ButtonSegment(value: false, label: Text('Receive')),
+                ButtonSegment(value: true, label: Text('Return')),
               ],
               selected: {isReturn},
               showSelectedIcon: false,
               style: ButtonStyle(
                 visualDensity: VisualDensity.compact,
+                textStyle: const WidgetStatePropertyAll(
+                  TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
                 backgroundColor: WidgetStateProperty.resolveWith((states) =>
                     states.contains(WidgetState.selected)
                         ? (isReturn ? AppColors.warning : AppColors.success)
@@ -102,18 +113,13 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
               onSelectionChanged: (value) => provider.setReturnMode(value.first),
             ),
           ),
-          if (isReturn) ...[
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
+          if (isReturn)
+            IconButton(
               onPressed: _returnPastReceiving,
-              icon: const Icon(Icons.receipt_long, size: 16),
-              label: const Text('From receiving #'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.warning,
-                visualDensity: VisualDensity.compact,
-              ),
+              icon: const Icon(Icons.receipt_long),
+              color: AppColors.warning,
+              tooltip: 'Load a receiving by its number',
             ),
-          ],
         ],
       ),
     );

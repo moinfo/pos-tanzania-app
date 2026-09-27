@@ -3,11 +3,14 @@ import 'package:provider/provider.dart';
 import '../../utils/constants.dart';
 
 import 'package:intl/intl.dart';
+import '../../models/permission_model.dart';
 import '../../models/receiving.dart';
+import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
+import 'new_receiving_screen.dart';
 
 class ReceivingDetailsScreen extends StatefulWidget {
   final int receivingId;
@@ -402,7 +405,76 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                         ],
                       ),
                     ),
+      floatingActionButton: _buildReturnButton(),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+    );
+  }
+
+  /// Return this whole delivery: the fastest honest way in, since the clerk
+  /// is looking at the items as they decide. The web asks for the RECV
+  /// number typed into the item box instead.
+  Widget _buildReturnButton() {
+    if (_receiving == null || _receiving!.items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Consumer<PermissionProvider>(
+      builder: (context, permissionProvider, child) {
+        if (!permissionProvider.hasPermission(PermissionIds.receivingsAdd)) {
+          return const SizedBox.shrink();
+        }
+        return FloatingActionButton.extended(
+          onPressed: _returnThisReceiving,
+          backgroundColor: AppColors.warning,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.undo),
+          label: const Text('Return'),
+        );
+      },
+    );
+  }
+
+  Future<void> _returnThisReceiving() async {
+    final receiving = _receiving!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Return receiving #${receiving.receivingId}?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Supplier: ${receiving.supplierName}'),
+            Text('Items: ${receiving.items.length}'),
+            const SizedBox(height: 12),
+            const Text(
+              'Its items go into the cart with negative quantities. Nothing '
+              'moves until you complete it, and you can change or remove '
+              'lines first.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+            child: const Text('Return'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewReceivingScreen(returnOf: receiving),
+      ),
     );
   }
 
