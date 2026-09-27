@@ -398,4 +398,25 @@ void main() {
       expect(cart.cartItems.single.returnLimit, 50);
     });
   });
+
+  group('typing a quantity on a return line', () {
+    test('a typed quantity keeps the line negative and holds the limit', () {
+      // The dialog hands back a magnitude; the sign belongs to the line.
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(details(
+        [detailLine(513, 88, location: 12)],
+        returnable: [balance(513, 88, 0)],
+      ));
+      expect(cart.cartItems.single.quantity, -88);
+
+      // 5 of 88 going back -- the case that was 83 taps of minus.
+      cart.updateQuantity(0, -5);
+      expect(cart.cartItems.single.quantity, -5);
+      expect(cart.isAtReturnLimit(0), isFalse);
+
+      // Past the balance is held at it.
+      cart.updateQuantity(0, -89);
+      expect(cart.cartItems.single.quantity, -88);
+    });
+  });
 }

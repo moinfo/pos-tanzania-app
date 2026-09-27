@@ -190,6 +190,82 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
     ));
   }
 
+  /// Type a line's quantity instead of stepping to it.
+  ///
+  /// The sign belongs to the line, not to what is typed: on a return the
+  /// clerk types 5 and means five going back, and a typed 5 on a return line
+  /// must never turn it into five coming in.
+  Future<void> _editQuantity(int index, ReceivingItem item) async {
+    final isNegative = item.quantity < 0;
+    final limit = item.returnLimit?.abs();
+    final controller = TextEditingController(
+      text: item.quantity.abs().toStringAsFixed(0),
+    );
+
+    final typed = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(item.itemName),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+              ],
+              decoration: InputDecoration(
+                labelText: isNegative ? 'Quantity to return' : 'Quantity',
+                border: const OutlineInputBorder(),
+                helperText: limit != null
+                    ? '${_plainQuantity(limit)} returnable'
+                    : null,
+              ),
+              onSubmitted: (value) =>
+                  Navigator.pop(context, double.tryParse(value.trim())),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(
+                context, double.tryParse(controller.text.trim())),
+            child: const Text('Set'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+    if (typed == null || !mounted) return;
+
+    final magnitude = typed.abs();
+    if (magnitude == 0) {
+      context.read<ReceivingProvider>().removeItem(index);
+      return;
+    }
+
+    if (limit != null && magnitude > limit) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${_plainQuantity(limit)} is the most that can be '
+            'returned; ${_plainQuantity(magnitude)} is more than was received.'),
+        backgroundColor: AppColors.warning,
+      ));
+      return;
+    }
+
+    context
+        .read<ReceivingProvider>()
+        .updateQuantity(index, isNegative ? -magnitude : magnitude);
+  }
+
   /// 50, not 50.0 -- these numbers are read out loud at a counter.
   String _plainQuantity(double value) => value.abs() == value.abs().roundToDouble()
       ? value.abs().toInt().toString()
@@ -924,15 +1000,24 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                                               padding: const EdgeInsets.all(4),
                                               constraints: const BoxConstraints(),
                                             ),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 12),
-                                              child: Text(
-                                                item.quantity.toStringAsFixed(0),
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: isDark ? AppColors.darkText : Colors.black87,
+                                            // Tap the number to type it. 88
+                                            // returnable, 5 wanted, was 83
+                                            // taps of the minus button.
+                                            InkWell(
+                                              onTap: () =>
+                                                  _editQuantity(index, item),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 12, vertical: 4),
+                                                child: Text(
+                                                  item.quantity.toStringAsFixed(0),
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    decoration: TextDecoration.underline,
+                                                    decorationStyle: TextDecorationStyle.dotted,
+                                                    color: isDark ? AppColors.darkText : Colors.black87,
+                                                  ),
                                                 ),
                                               ),
                                             ),
