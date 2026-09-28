@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -661,7 +662,22 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
               final notDeposited = stats['notDeposited'] as int;
               final mismatchPercent = total > 0 ? (mismatches / total * 100) : 0.0;
               final notDepositedPercent = total > 0 ? (notDeposited / total * 100) : 0.0;
-              final isAllClear = mismatches == 0 && notDeposited == 0;
+              // Three states, as the web's Statistics by EFD: clear, under
+              // a tenth of the transactions, or worse. "Issues" put an EFD
+              // with one hiccup beside one that is falling apart.
+              final issues = mismatches + notDeposited;
+              final isAllClear = issues == 0;
+              final needsAttention = !isAllClear && issues < total * 0.1;
+              final statusText = isAllClear
+                  ? 'All Clear'
+                  : needsAttention
+                      ? 'Needs Attention'
+                      : 'Critical';
+              final statusColor = isAllClear
+                  ? const Color(0xFF10B981)
+                  : needsAttention
+                      ? const Color(0xFFF59E0B)
+                      : const Color(0xFFEF4444);
 
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -759,13 +775,12 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isAllClear
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFEF4444),
+                            color: statusColor,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            isAllClear ? 'All Clear' : 'Issues',
+                            statusText,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -966,17 +981,52 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
           ),
 
           // Deposit Button
-          if (_canAddDeposit && target.remainingAmount > 0) ...[
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          // The web's Copy Details sits beside Deposit: the name, the
+          // accounts and the amount, ready to paste into a bank app or a
+          // message, so nobody reads an account number aloud.
+          if (_canAddDeposit && target.remainingAmount > 0)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showMakeDepositDialog(target),
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    label: const Text('Make Deposit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () => _copyBeneficiaryDetails(target),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Icon(Icons.copy, size: 18),
+                ),
+              ],
+            )
+          else
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _showMakeDepositDialog(target),
-                icon: const Icon(Icons.add_circle_outline, size: 18),
-                label: const Text('Make Deposit'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+              child: OutlinedButton.icon(
+                onPressed: () => _copyBeneficiaryDetails(target),
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text('Copy Details'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -984,10 +1034,20 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                 ),
               ),
             ),
-          ],
         ],
       ),
     );
+  }
+
+  /// Copy a beneficiary the way the web's Copy Details does: name, every
+  /// bank account, and the amount.
+  void _copyBeneficiaryDetails(BeneficiaryTarget target) {
+    Clipboard.setData(ClipboardData(text: target.copyText));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('${target.beneficiaryName} copied'),
+      backgroundColor: AppColors.success,
+      duration: const Duration(seconds: 2),
+    ));
   }
 
   Widget _buildEmptyBeneficiaries(bool isDark) {

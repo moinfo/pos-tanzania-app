@@ -212,6 +212,14 @@ class BeneficiaryTarget {
   /// Check if deposit is complete
   bool get isComplete => progressPercentage >= 100;
 
+  /// The web copies a beneficiary as name, banks and amount, for pasting
+  /// into a bank app or a message. Same three lines here.
+  String get copyText => [
+        beneficiaryName,
+        ...bankAccounts.map((a) => '${a.bankName}: ${a.accountNumber}'),
+        'Amount: ${totalAmount.toStringAsFixed(2)}',
+      ].join('\n');
+
   /// Check if deposit has started
   bool get hasDeposits => depositedAmount > 0;
 }
