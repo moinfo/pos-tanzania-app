@@ -16,6 +16,7 @@ import '../../widgets/skeleton_loader.dart';
 import '../../widgets/state_views.dart';
 import 'receiving_details_screen.dart';
 import 'new_receiving_screen.dart';
+import 'return_items_picker.dart';
 import 'receivings_summary_screen.dart';
 import 'receivings_summary2_screen.dart';
 import 'main_store_screen.dart';
@@ -295,55 +296,22 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Return receiving #${details.receivingId}?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Supplier: ${details.supplierName}'),
-            Text('Items: ${details.returnable.isEmpty ? details.items.length : details.returnable.length}'),
-            if (details.partlyReturned) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Part of this receiving is already back. '
-                '${_plainQuantity(details.returnableTotal)} left to return.',
-                style: TextStyle(
-                  color: AppColors.warning,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            const Text(
-              'What is still returnable goes into the cart with negative '
-              'quantities. Nothing moves until you complete it, and you can '
-              'change or remove lines first.',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
-            child: const Text('Return'),
-          ),
-        ],
+    // Pick what is coming back rather than loading all of it. A delivery of
+    // 50 items where two are returned should not cost 48 deletions.
+    final selected = await Navigator.push<Map<String, double>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReturnItemsPicker(receiving: details),
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (selected == null || selected.isEmpty || !mounted) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NewReceivingScreen(returnOf: details),
+        builder: (context) =>
+            NewReceivingScreen(returnOf: details, returnSelection: selected),
       ),
     ).then((_) => _loadReceivings());
   }

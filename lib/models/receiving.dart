@@ -300,6 +300,36 @@ class ReceivingDetails {
   /// of what remains is legitimate, a second return of the whole thing is not.
   bool get canBeReturned => !isReturn && !fullyReturned && total >= 0;
 
+  /// What may be returned, per item and store -- one source for the picker
+  /// and the cart.
+  ///
+  /// A server that does not send balances yet leaves `returnable` empty; the
+  /// lines themselves are then the best that can be known, with the same
+  /// item and store merged, because a receiving can hold one item on two
+  /// lines and the balance is one number across them.
+  List<ReceivingReturnable> get returnableLines {
+    if (returnable.isNotEmpty) return returnable;
+
+    final merged = <String, ReceivingReturnable>{};
+    for (final item in items) {
+      if (item.quantity <= 0) continue;
+      final location = item.itemLocation ?? 0;
+      final key = '${item.itemId}:$location';
+      final existing = merged[key];
+      merged[key] = ReceivingReturnable(
+        itemId: item.itemId,
+        itemLocation: location,
+        itemName: item.itemName,
+        costPrice: item.costPrice,
+        unitPrice: item.unitPrice,
+        received: (existing?.received ?? 0) + item.quantity,
+        returned: 0,
+        returnable: (existing?.returnable ?? 0) + item.quantity,
+      );
+    }
+    return merged.values.toList();
+  }
+
   /// Units still returnable across the whole receiving.
   double get returnableTotal =>
       returnable.fold(0.0, (sum, row) => sum + row.returnable);

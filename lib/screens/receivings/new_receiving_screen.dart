@@ -27,7 +27,16 @@ class NewReceivingScreen extends StatefulWidget {
   /// a receiving's details page, so nobody has to remember a RECV number.
   final ReceivingDetails? returnOf;
 
-  const NewReceivingScreen({super.key, this.preloadedItems, this.returnOf});
+  /// Which of that receiving's items are coming back, and how many of each,
+  /// keyed "itemId:itemLocation". Null returns all that is still returnable.
+  final Map<String, double>? returnSelection;
+
+  const NewReceivingScreen({
+    super.key,
+    this.preloadedItems,
+    this.returnOf,
+    this.returnSelection,
+  });
 
   @override
   State<NewReceivingScreen> createState() => _NewReceivingScreenState();
@@ -73,6 +82,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
         receivingProvider.loadReceivingAsReturn(
           widget.returnOf!,
           fallbackLocation: locationProvider.selectedLocation?.locationId,
+          selected: widget.returnSelection,
         );
       } else {
         // The mode lives in the provider, which outlives this screen. A

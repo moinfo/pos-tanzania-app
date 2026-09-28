@@ -419,4 +419,69 @@ void main() {
       expect(cart.cartItems.single.quantity, -88);
     });
   });
+
+  group('returning two items out of fifty', () {
+    ReceivingDetails bigReceiving() => details(
+          List.generate(50, (i) => detailLine(600 + i, 10, location: 12)),
+          total: 500000,
+          returnable: List.generate(50, (i) => balance(600 + i, 10, 0)),
+        );
+
+    test('only the picked items reach the cart', () {
+      // The whole point: 50 in, 2 back, and no deleting 48 lines.
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(bigReceiving(), selected: {
+        '601:12': 2,
+        '605:12': 3,
+      });
+
+      expect(cart.cartItems.length, 2);
+      expect(cart.cartItems.map((c) => c.itemId), [601, 605]);
+      expect(cart.cartItems.map((c) => c.quantity), [-2, -3]);
+      // Each still holds the full balance as its ceiling.
+      expect(cart.cartItems.map((c) => c.returnLimit), [10, 10]);
+    });
+
+    test('no selection at all still means the whole receiving', () {
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(bigReceiving());
+      expect(cart.cartItems.length, 50);
+    });
+
+    test('a picked quantity past the balance is held at it', () {
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(bigReceiving(), selected: {'601:12': 99});
+      expect(cart.cartItems.single.quantity, -10);
+    });
+
+    test('a zero or unknown pick brings nothing back', () {
+      final cart = ReceivingProvider()..setStockLocation(12);
+      cart.loadReceivingAsReturn(bigReceiving(), selected: {
+        '601:12': 0,
+        '99999:12': 5,
+      });
+      expect(cart.cartItems, isEmpty);
+    });
+
+    test('the pickable lines merge an item that appears on two lines', () {
+      // 450 receivings hold the same item and store twice.
+      final receiving = details([
+        detailLine(513, 30, location: 12),
+        detailLine(513, 20, location: 12),
+        detailLine(39, 4, location: 12),
+      ]);
+
+      final lines = receiving.returnableLines;
+      expect(lines.length, 2);
+      expect(lines.firstWhere((l) => l.itemId == 513).returnable, 50);
+    });
+
+    test('balances from the server win over the lines', () {
+      final receiving = details(
+        [detailLine(513, 50, location: 12)],
+        returnable: [balance(513, 50, 30)],
+      );
+      expect(receiving.returnableLines.single.returnable, 20);
+    });
+  });
 }

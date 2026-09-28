@@ -174,9 +174,18 @@ class ReceivingProvider with ChangeNotifier {
   /// already returned puts in 20, because 20 is all that is left to take.
   /// An item with nothing left is left out entirely.
   ///
+  /// [selected] narrows it to the items the clerk picked, keyed
+  /// "itemId:itemLocation" with the quantity chosen for each. A receiving of
+  /// 50 items where two are coming back should not put 50 lines in the cart
+  /// for 48 of them to be deleted one at a time. Null means all of it.
+  ///
   /// The cart is emptied first, exactly as the web does, so what is returned
   /// is that receiving and nothing else. The supplier comes from it too.
-  void loadReceivingAsReturn(ReceivingDetails details, {int? fallbackLocation}) {
+  void loadReceivingAsReturn(
+    ReceivingDetails details, {
+    int? fallbackLocation,
+    Map<String, double>? selected,
+  }) {
     _cartItems.clear();
     _isReturn = true;
     _returnOfReceivingId = details.receivingId;
@@ -195,51 +204,26 @@ class ReceivingProvider with ChangeNotifier {
     );
     _reference = 'RECV ${details.receivingId}';
 
-    if (details.returnable.isNotEmpty) {
-      for (final row in details.returnable) {
-        if (row.returnable <= 0) continue;
-        _cartItems.add(ReceivingItem(
-          itemId: row.itemId,
-          itemName: row.itemName,
-          line: _cartItems.length + 1,
-          quantity: -row.returnable,
-          costPrice: row.costPrice,
-          unitPrice: row.unitPrice,
-          itemLocation:
-              row.itemLocation != 0 ? row.itemLocation : (fallbackLocation ?? _stockLocation ?? 1),
-          returnLimit: row.returnable,
-        ));
-      }
-    } else {
-      // A server that does not send balances yet: the lines themselves, with
-      // the same item and store merged, are the best that can be known.
-      for (final item in details.items) {
-        if (item.quantity <= 0) continue;
-        final location =
-            item.itemLocation ?? fallbackLocation ?? _stockLocation ?? 1;
-        final index = _cartItems.indexWhere(
-          (c) => c.itemId == item.itemId && c.itemLocation == location,
-        );
-        if (index >= 0) {
-          final merged = _cartItems[index].quantity - item.quantity;
-          _cartItems[index] = _cartItems[index].copyWith(
-            quantity: merged,
-            returnLimit: merged.abs(),
-          );
-        } else {
-          _cartItems.add(ReceivingItem(
-            itemId: item.itemId,
-            itemName: item.itemName,
-            itemNumber: item.itemNumber,
-            line: _cartItems.length + 1,
-            quantity: -item.quantity,
-            costPrice: item.costPrice,
-            unitPrice: item.unitPrice,
-            itemLocation: location,
-            returnLimit: item.quantity.abs(),
-          ));
-        }
-      }
+    for (final row in details.returnableLines) {
+      final key = '${row.itemId}:${row.itemLocation}';
+      final chosen = selected == null ? row.returnable : (selected[key] ?? 0);
+      if (chosen <= 0 || row.returnable <= 0) continue;
+
+      // Never past the balance, whatever was asked for.
+      final quantity = chosen > row.returnable ? row.returnable : chosen;
+
+      _cartItems.add(ReceivingItem(
+        itemId: row.itemId,
+        itemName: row.itemName,
+        line: _cartItems.length + 1,
+        quantity: -quantity,
+        costPrice: row.costPrice,
+        unitPrice: row.unitPrice,
+        itemLocation: row.itemLocation != 0
+            ? row.itemLocation
+            : (fallbackLocation ?? _stockLocation ?? 1),
+        returnLimit: row.returnable,
+      ));
     }
     notifyListeners();
   }
