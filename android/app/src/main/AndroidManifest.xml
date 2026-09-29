@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Internet permission required for API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -15,10 +16,20 @@
 
     <!-- Camera and storage permissions for document scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- Slips and item photos come from the system photo picker, which hands
+         back one file the user chose and needs no permission at all. Google
+         Play rejects READ_MEDIA_IMAGES / READ_MEDIA_VIDEO for apps that could
+         use that picker, so they are stripped here even if a plugin's own
+         manifest tries to merge them back in. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:node="remove" />
 
     <!-- NFC permission for customer card scanning -->
     <uses-permission android:name="android.permission.NFC" />

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
@@ -37,6 +39,8 @@ Future<void> main() async {
   // Required before any plugin call, and Firebase is a plugin call.
   WidgetsFlutterBinding.ensureInitialized();
 
+  _useSystemPhotoPicker();
+
   // Only the leruma flavor ships a google-services.json, so this returns false
   // for the other four clients and for iOS. That is a supported state: push is
   // simply unavailable and the app runs on polling, exactly as it did before.
@@ -52,6 +56,22 @@ Future<void> main() async {
   await OfflineFeature.load();
 
   runApp(MyApp(firebaseReady: firebaseReady));
+}
+
+/// Pick photos through Android's system photo picker instead of the old
+/// gallery intent.
+///
+/// The old intent needs READ_MEDIA_IMAGES, and Google Play rejects that
+/// permission for any app the picker could serve -- which is this one: a
+/// deposit slip or an item photo is a single file the user points at. The
+/// picker hands that one file over with no permission at all, so the
+/// permission is gone from the manifest and this opts the plugin into the
+/// picker to match. It is a no-op off Android.
+void _useSystemPhotoPicker() {
+  final platform = ImagePickerPlatform.instance;
+  if (platform is ImagePickerAndroid) {
+    platform.useAndroidPhotoPicker = true;
+  }
 }
 
 class MyApp extends StatelessWidget {

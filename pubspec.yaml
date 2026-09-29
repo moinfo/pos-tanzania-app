@@ -1,6 +1,6 @@
 name: pos_tanzania_mobile
 description: Point of Sales Tanzania Mobile App - Flutter application for POS management
-version: 1.0.0+68
+version: 1.0.0+69
 publish_to: 'none'
 
 environment:
@@ -21,6 +21,9 @@ dependencies:
 
   # Image picker for Z report photos
   image_picker: ^1.0.4
+  # Needed to opt into Android's system photo picker (see main.dart).
+  image_picker_android: ^0.8.13
+  image_picker_platform_interface: ^2.10.0
 
   # File picker
   file_picker: ^10.0.0
