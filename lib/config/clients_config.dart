@@ -175,7 +175,7 @@ class ClientsConfig {
         // they cannot find something, and entries nobody on this deployment
         // opens make the ones they do want harder to see.
         hasTRA: false,
-        hasFinancialBanking: false,
+        hasFinancialBanking: true,  // web /banking twin; Leruma uses it
         hasBanking: true,
         hasOutOfStockSelling: true, // Leruma sells on credit, stock checked server-side
         hasSaleSheetButton: true, // Suspended sheet button in sales top bar
