@@ -89,6 +89,10 @@ class ClientsConfig {
       displayName: 'Come & Save',
       devApiUrl: localBaseUrl,
       prodApiUrl: 'https://comeandsave.co.tz/api',
+      branding: const ClientBranding(
+        appTitle: "COME N' SAVE",
+        tagline: 'Giftshop & Printings',
+      ),
       features: const ClientFeatures(
         hasContracts: false,
         hasNfcCard: true,
@@ -164,6 +168,7 @@ class ClientsConfig {
         hasSuppliersByLocation: true,
         hasSupervisorByLocation: true,
         hasReceivingCreditCardOnly: true,
+        hasNotifications: true,
         hasNfcCard: true,
         // Leruma's sellers work out of a distribution centre and off vans
         // where coverage comes and goes. With this off, a checkout with no

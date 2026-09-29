@@ -505,7 +505,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 BoxShadow(color: Color(0x0F103863), blurRadius: 6, offset: Offset(0, 2)),
               ],
             ),
-            child: SvgPicture.asset('assets/images/leruma-logo.svg', width: 138),
+            // Leruma keeps its vector mark; every other client shows its own
+            // raster logo, falling back to Come & Save's as the landing screen does.
+            child: client?.id == 'leruma'
+                ? SvgPicture.asset('assets/images/leruma-logo.svg', width: 138)
+                : Image.asset(
+                    client?.logoUrl ?? 'assets/images/come_and_save_logo.png',
+                    width: 138,
+                  ),
           ),
           const SizedBox(height: 12),
           Text(

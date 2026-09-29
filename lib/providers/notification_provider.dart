@@ -129,6 +129,9 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Call once the user is signed in. Safe to call again; it restarts cleanly.
   Future<void> start() async {
+    // Only Leruma's backend has /notifications; polling elsewhere is a 404 every cycle.
+    if (!(ApiService.currentClient?.features.hasNotifications ?? false)) return;
+
     final prefs = await SharedPreferences.getInstance();
     _cursor = prefs.getString(_cursorKey);
 
