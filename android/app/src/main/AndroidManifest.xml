@@ -13,12 +13,14 @@
          no error and nothing in the tray. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Camera and storage permissions for document scanning -->
+    <!-- Camera for document scanning. Gallery picks go through image_picker /
+         file_picker, which use the system photo picker and need no storage or
+         READ_MEDIA_* permission. Do not re-add READ_MEDIA_IMAGES or
+         READ_EXTERNAL_STORAGE: Play rejects the update under the Photo and
+         Video Permissions policy. -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <!-- NFC permission for customer card scanning -->
     <uses-permission android:name="android.permission.NFC" />
