@@ -543,6 +543,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Moinfotech";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -725,6 +726,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Moinfotech";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -747,6 +749,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Moinfotech";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1257,6 +1260,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Moinfotech";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1279,6 +1283,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Moinfotech";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1300,6 +1305,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Moinfotech";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1321,6 +1327,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Come & Save";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.comeandsave.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1343,6 +1350,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Come & Save";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.comeandsave.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1364,6 +1372,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Come & Save";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.comeandsave.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1385,6 +1394,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Leruma POS";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.leruma.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1407,6 +1417,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Leruma POS";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.leruma.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1428,6 +1439,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Leruma POS";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.leruma.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1762,6 +1774,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Kariakoo Shops";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.kariakooshops.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1784,6 +1797,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Kariakoo Shops";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.kariakooshops.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1805,6 +1819,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				APP_DISPLAY_NAME = "Kariakoo Shops";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.kariakooshops.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
