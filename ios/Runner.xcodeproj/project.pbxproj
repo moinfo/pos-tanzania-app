@@ -1394,7 +1394,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				APP_DISPLAY_NAME = "Leruma POS";
+				APP_DISPLAY_NAME = "Leruma Distribution Centre";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.leruma.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1417,7 +1417,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				APP_DISPLAY_NAME = "Leruma POS";
+				APP_DISPLAY_NAME = "Leruma Distribution Centre";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.leruma.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1439,7 +1439,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				APP_DISPLAY_NAME = "Leruma POS";
+				APP_DISPLAY_NAME = "Leruma Distribution Centre";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.leruma.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
