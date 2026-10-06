@@ -112,7 +112,7 @@ class SyncService {
   SyncStatus _status = SyncStatus.idle;
   bool _isSyncing = false;
   Timer? _autoSyncTimer;
-  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   // Callbacks
   Function(SyncStatus status)? onSyncStatusChanged;
@@ -162,8 +162,9 @@ class SyncService {
 
     try {
       // Listen to connectivity changes
-      _connectivitySubscription = Connectivity().onConnectivityChanged.listen((result) {
-        _handleConnectivityChange(result);
+      _connectivitySubscription =
+          Connectivity().onConnectivityChanged.listen((results) {
+        _handleConnectivityChange(results);
       });
     } catch (e) {
       debugPrint('SyncService: Connectivity listener not available - $e');
@@ -204,8 +205,8 @@ class SyncService {
   }
 
   /// Handle connectivity changes
-  Future<void> _handleConnectivityChange(ConnectivityResult result) async {
-    final hasConnection = result != ConnectivityResult.none;
+  Future<void> _handleConnectivityChange(List<ConnectivityResult> results) async {
+    final hasConnection = _hasAnyTransport(results);
 
     debugPrint('SyncService: Connectivity changed - hasConnection: $hasConnection');
 
@@ -262,10 +263,14 @@ class SyncService {
   /// means do-not-bother, but a true only means worth-a-try -- the real test
   /// is whether the upload gets an answer, which is what _syncSales reports
   /// back and what `serverReachable` reflects.
+  /// connectivity_plus reports a list of active transports; an empty list, or
+  /// one holding only `none`, is the offline case.
+  static bool _hasAnyTransport(List<ConnectivityResult> results) =>
+      results.any((r) => r != ConnectivityResult.none);
+
   Future<bool> _hasNetworkInterface() async {
     try {
-      final result = await Connectivity().checkConnectivity();
-      return result != ConnectivityResult.none;
+      return _hasAnyTransport(await Connectivity().checkConnectivity());
     } catch (e) {
       debugPrint('SyncService: Error checking connectivity - $e');
       return true; // Assume online if check fails

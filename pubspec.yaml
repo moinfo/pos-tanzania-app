@@ -1,6 +1,6 @@
 name: pos_tanzania_mobile
 description: Point of Sales Tanzania Mobile App - Flutter application for POS management
-version: 1.0.0+71
+version: 1.0.0+72
 publish_to: 'none'
 
 environment:
@@ -60,7 +60,7 @@ dependencies:
   flutter_pdfview: ^1.3.2
 
   # File sharing
-  share_plus: ^7.2.2
+  share_plus: ^10.1.4
 
   # Path provider
   path_provider: ^2.1.1
@@ -73,7 +73,7 @@ dependencies:
   path: ^1.8.3
 
   # Network connectivity monitoring
-  connectivity_plus: ^5.0.2
+  connectivity_plus: ^6.1.5
 
   # UUID generation for local IDs
   uuid: ^4.2.1
