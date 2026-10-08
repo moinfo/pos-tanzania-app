@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart' show appFlavor;
+
 import '../models/client_config.dart';
 
 class ClientsConfig {
@@ -32,7 +34,13 @@ class ClientsConfig {
 //   # iOS
 //   flutter build ios --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
 
-  static const String _buildFlavor = String.fromEnvironment('FLAVOR', defaultValue: '');
+  static const String _definedFlavor = String.fromEnvironment('FLAVOR', defaultValue: '');
+
+  // `--flavor` alone sets Flutter's appFlavor, so a forgotten --dart-define can
+  // no longer fall through to PRODUCTION_CLIENT_ID and ship another client's
+  // branding and API (a Play bundle once went out as SCL this way).
+  static final String _buildFlavor =
+      _definedFlavor.isNotEmpty ? _definedFlavor : (appFlavor ?? '');
 
   // Map flavor names to client IDs
   static const Map<String, String> _flavorToClientId = {
