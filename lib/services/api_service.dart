@@ -3223,6 +3223,25 @@ class ApiService {
     }
   }
 
+  /// Delete a completed sale (reverses it and restores inventory). Distinct
+  /// from [deleteSuspendedSale] above, which the backend only accepts for
+  /// suspended (not-yet-completed) sales.
+  Future<ApiResponse<Map<String, dynamic>>> deleteCompletedSale(int saleId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrlSync/sales/$saleId/delete_completed'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Get today's sales summary
   Future<ApiResponse<SaleSummary>> getTodaySummary({String? date}) async {
     try {

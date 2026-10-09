@@ -13,6 +13,7 @@ import '../../widgets/horizontal_scroll_table.dart';
 /// payment type it was paid with (Cash / Lipa Namba / Bank) - per sale,
 /// not per item.
 class _LedgerRow {
+  final int saleId;
   final String location;
   final String items;
   final double quantity;
@@ -23,6 +24,7 @@ class _LedgerRow {
   final double? lng;
 
   _LedgerRow({
+    required this.saleId,
     required this.location,
     required this.items,
     required this.quantity,
@@ -140,6 +142,7 @@ class _SalesLocationReportScreenState extends State<SalesLocationReportScreen> {
           }
 
           rows.add(_LedgerRow(
+            saleId: saleId,
             location: locationParts.join(', '),
             lat: (sale['sale_lat'] as num?)?.toDouble(),
             lng: (sale['sale_lng'] as num?)?.toDouble(),
@@ -173,6 +176,48 @@ class _SalesLocationReportScreenState extends State<SalesLocationReportScreen> {
     final uri =
         Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _deleteSale(_LedgerRow row) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Sale'),
+        content: Text(
+          'Delete Sale #${row.saleId}? This reverses the sale and restores '
+          'inventory. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final response = await _apiService.deleteCompletedSale(row.saleId);
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(response.isSuccess
+            ? 'Sale #${row.saleId} deleted'
+            : (response.message ?? 'Failed to delete sale')),
+        backgroundColor: response.isSuccess ? AppColors.success : AppColors.error,
+      ),
+    );
+
+    if (response.isSuccess) {
+      setState(() => _rows.remove(row));
+    }
   }
 
   String _formatQty(double q) =>
@@ -347,6 +392,9 @@ class _SalesLocationReportScreenState extends State<SalesLocationReportScreen> {
             label: Text('Bank',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             numeric: true),
+        DataColumn(
+            label: Text('Actions',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
       ],
       rows: List.generate(_rows.length, (i) {
         final r = _rows[i];
@@ -381,6 +429,17 @@ class _SalesLocationReportScreenState extends State<SalesLocationReportScreen> {
               style: const TextStyle(fontSize: 12))),
           DataCell(Text(r.bank > 0 ? fmt.format(r.bank) : '-',
               style: const TextStyle(fontSize: 12))),
+          DataCell(Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                tooltip: 'Delete sale',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _deleteSale(r),
+              ),
+            ],
+          )),
         ]);
       }),
     );
