@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -11,6 +11,8 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../providers/theme_provider.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class CommissionScreen extends StatefulWidget {
   const CommissionScreen({super.key});
@@ -187,7 +189,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(icon: const Icon(Icons.date_range), onPressed: _selectDateRange, tooltip: 'Filter by date range'),
+          IconButton(icon: const Icon(Icons.date_range), onPressed: _selectDateRange, tooltip: 'Filter by date range'.tr),
         ],
       ),
       body: Column(
@@ -258,7 +260,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: Icon(Icons.percent, color: AppColors.success, size: 24),
+                        child: const Icon(Icons.percent, color: AppColors.success, size: 24),
                       ),
                       const SizedBox(width: 16),
                       Column(
@@ -277,7 +279,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                    child: Text('${_commissions.length} entries', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600, fontSize: 12)),
+                    child: Text('${_commissions.length} entries', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w600, fontSize: 12)),
                   ),
                 ],
               ),
@@ -291,7 +293,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_error!, style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
                             const SizedBox(height: 16),
@@ -521,8 +523,8 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
             children: [
               // Source Type
               DropdownButtonFormField<String>(
-                value: _sourceType,
-                decoration: const InputDecoration(labelText: 'Source Type', border: OutlineInputBorder()),
+                initialValue: _sourceType,
+                decoration: InputDecoration(labelText: 'Source Type'.tr, border: const OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: 'wakala', child: Text('Wakala')),
                   DropdownMenuItem(value: 'bank', child: Text('Bank')),
@@ -538,8 +540,8 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
               const SizedBox(height: 16),
               // Source Account
               DropdownButtonFormField<int>(
-                value: _sourceOptions.any((o) => o['id'] == _sourceId) ? _sourceId : null,
-                decoration: const InputDecoration(labelText: 'Account', border: OutlineInputBorder()),
+                initialValue: _sourceOptions.any((o) => o['id'] == _sourceId) ? _sourceId : null,
+                decoration: InputDecoration(labelText: 'Account'.tr, border: const OutlineInputBorder()),
                 items: _sourceOptions.map((o) => DropdownMenuItem<int>(value: o['id'], child: Text(o['name'].toString()))).toList(),
                 onChanged: (value) => setState(() => _sourceId = value),
                 validator: (v) => v == null ? 'Please select an account' : null,
@@ -548,11 +550,11 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
               // Amount
               TextFormField(
                 controller: _amountController,
-                decoration: const InputDecoration(labelText: 'Amount', prefixText: 'TZS ', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: 'Amount'.tr, prefixText: 'TZS '.tr, border: const OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Amount is required';
-                  if (double.tryParse(v) == null || double.parse(v) <= 0) return 'Enter a valid amount';
+                  if (v == null || v.isEmpty) return 'Amount is required'.tr;
+                  if (double.tryParse(v) == null || double.parse(v) <= 0) return 'Enter a valid amount'.tr;
                   return null;
                 },
               ),
@@ -569,7 +571,7 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
                   if (picked != null) setState(() => _selectedDate = picked);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Date', border: OutlineInputBorder(), suffixIcon: Icon(Icons.calendar_today)),
+                  decoration: InputDecoration(labelText: 'Date'.tr, border: const OutlineInputBorder(), suffixIcon: const Icon(Icons.calendar_today)),
                   child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
                 ),
               ),
@@ -577,7 +579,7 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
               // Description
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Description (optional)', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: 'Description (optional)'.tr, border: const OutlineInputBorder()),
                 maxLines: 2,
               ),
             ],

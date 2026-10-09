@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/sale_provider.dart';
@@ -41,6 +41,8 @@ import '../utils/sale_design.dart';
 import '../widgets/sale/keypad_sheet.dart';
 import '../widgets/sale/sale_sheets.dart';
 import '../models/nfc_wallet.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key, this.embedded = false});
@@ -481,7 +483,7 @@ class _SalesScreenState extends State<SalesScreen> {
         );
       }
       return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Text(
           'No item matches that name or barcode',
           textAlign: TextAlign.center,
@@ -951,7 +953,7 @@ class _SalesScreenState extends State<SalesScreen> {
               keyboardType: TextInputType.number,
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Discount (TSh)',
+                labelText: 'Discount (TSh)'.tr,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -1186,7 +1188,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   children: [
                     Icon(Icons.discount_outlined,
                         size: 14, color: _sale.warning),
-                    SizedBox(width: 5),
+                    const SizedBox(width: 5),
                     Text(
                       'Item discounts',
                       style: TextStyle(
@@ -1292,7 +1294,7 @@ class _SalesScreenState extends State<SalesScreen> {
     if (saleProvider.selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Select a customer to start'),
+          content: const Text('Select a customer to start'),
           backgroundColor: _sale.warning,
         ),
       );
@@ -1403,7 +1405,7 @@ class _SalesScreenState extends State<SalesScreen> {
       if (hasText)
         IconButton(
           icon: Icon(Icons.clear_rounded, color: iconColor),
-          tooltip: 'Clear search',
+          tooltip: 'Clear search'.tr,
           visualDensity: VisualDensity.compact,
           onPressed: () {
             _searchController.clear();
@@ -1728,9 +1730,9 @@ class _SalesScreenState extends State<SalesScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: commentController,
-              decoration: const InputDecoration(
-                hintText: 'e.g., Customer will return later',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: 'e.g., Customer will return later'.tr,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
             ),
@@ -1843,11 +1845,11 @@ class _SalesScreenState extends State<SalesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
             Icon(Icons.check_circle, color: AppColors.success, size: 32),
-            const SizedBox(width: 12),
-            const Text('Sale Completed!'),
+            SizedBox(width: 12),
+            Text('Sale Completed!'),
           ],
         ),
         content: Column(
@@ -1861,7 +1863,7 @@ class _SalesScreenState extends State<SalesScreen> {
             const SizedBox(height: 16),
             Text(
               'Total: ${NumberFormat('#,##0').format(sale.total)} TSh',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
@@ -2079,7 +2081,7 @@ class _SalesScreenState extends State<SalesScreen> {
                               children: [
                                 const Text('Before', style: TextStyle(fontSize: 11, color: Colors.grey)),
                                 Text('${item['quantity_before']}',
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
                               ],
                             ),
                             const Text('−', style: TextStyle(fontSize: 24, color: AppColors.warning)),
@@ -2929,7 +2931,7 @@ class _SalesScreenState extends State<SalesScreen> {
                           if (saleProvider.selectedCustomer != null)
                             IconButton(
                               icon: Icon(Icons.close, color: Colors.red.shade400, size: 20),
-                              tooltip: 'Remove customer',
+                              tooltip: 'Remove customer'.tr,
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                               onPressed: () => saleProvider.clearCustomer(),
@@ -3011,7 +3013,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                     const SizedBox(width: 10),
                                     InkWell(
                                       onTap: () => saleProvider.clearCart(),
-                                      child: Icon(Icons.delete_outline, size: 20, color: AppColors.error),
+                                      child: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
                                     ),
                                   ],
                                 ),
@@ -3092,15 +3094,15 @@ class _SalesScreenState extends State<SalesScreen> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                 margin: const EdgeInsets.symmetric(horizontal: 4),
                                                 decoration: BoxDecoration(
-                                                  color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.blue.withValues(alpha: 0.08) : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+                                                  color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? AppColors.brandSwatch.withValues(alpha: 0.08) : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
                                                   borderRadius: BorderRadius.circular(4),
-                                                  border: Border.all(color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.blue.shade300 : (isDark ? Colors.grey.shade600 : Colors.grey.shade300)),
+                                                  border: Border.all(color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? AppColors.brandSwatch.shade300 : (isDark ? Colors.grey.shade600 : Colors.grey.shade300)),
                                                 ),
                                                 child: Row(
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
                                                     if (saleProvider.isQuantityLockedByApprovedDiscount(item.itemId))
-                                                      Padding(padding: const EdgeInsets.only(right: 3), child: Icon(Icons.lock, size: 10, color: Colors.blue.shade400)),
+                                                      Padding(padding: const EdgeInsets.only(right: 3), child: Icon(Icons.lock, size: 10, color: AppColors.brandSwatch.shade400)),
                                                     Text(item.quantity.toStringAsFixed(0), textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
                                                   ],
                                                 ),
@@ -3113,8 +3115,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                               child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey.withValues(alpha: 0.1) : AppColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Icon(Icons.add, size: 16, color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey : AppColors.success)),
                                             ),
                                             const SizedBox(width: 8),
-                                            SizedBox(width: 60, child: Text('${_currencyFormat.format(item.calculateTotal())}', textAlign: TextAlign.right, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87))),
-                                            InkWell(onTap: () => saleProvider.removeItem(idx), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.close, size: 16, color: AppColors.error))),
+                                            SizedBox(width: 60, child: Text(_currencyFormat.format(item.calculateTotal()), textAlign: TextAlign.right, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87))),
+                                            InkWell(onTap: () => saleProvider.removeItem(idx), child: const Padding(padding: EdgeInsets.all(4), child: Icon(Icons.close, size: 16, color: AppColors.error))),
                                           ],
                                         ),
                                         // Row 2: Discount + Offer badges
@@ -3135,7 +3137,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                                         builder: (ctx) => AlertDialog(
                                                           backgroundColor: isDark ? AppColors.darkCard : Colors.white,
                                                           title: Text('Discount per item', style: TextStyle(fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
-                                                          content: Column(mainAxisSize: MainAxisSize.min, children: [Text('Max: ${_currencyFormat.format(discountLimit)} TSh', style: TextStyle(fontSize: 12, color: AppColors.warning)), const SizedBox(height: 8), TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: InputDecoration(labelText: 'Discount (TSh)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))))]),
+                                                          content: Column(mainAxisSize: MainAxisSize.min, children: [Text('Max: ${_currencyFormat.format(discountLimit)} TSh', style: const TextStyle(fontSize: 12, color: AppColors.warning)), const SizedBox(height: 8), TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: InputDecoration(labelText: 'Discount (TSh)'.tr, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))))]),
                                                           actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), ElevatedButton(onPressed: () { var disc = double.tryParse(controller.text) ?? 0; if (disc > discountLimit) disc = discountLimit.toDouble(); saleProvider.updateDiscount(idx, disc * item.quantity, discountType: 1); Navigator.pop(ctx); }, child: const Text('Apply'))],
                                                         ),
                                                       );
@@ -3147,15 +3149,15 @@ class _SalesScreenState extends State<SalesScreen> {
                                                     ),
                                                   ),
                                                 if (hasOneTimeDiscount)
-                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer, size: 12, color: AppColors.success), const SizedBox(width: 4), Text('OTC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success))])),
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer, size: 12, color: AppColors.success), SizedBox(width: 4), Text('OTC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success))])),
                                                 if (hasPendingOTC && !hasOneTimeDiscount)
-                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer_outlined, size: 12, color: AppColors.warning), const SizedBox(width: 4), Text('OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning))])),
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.local_offer_outlined, size: 12, color: AppColors.warning), const SizedBox(width: 4), Text('OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning))])),
                                                 if (hasApprovedDiscount)
-                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified, size: 12, color: Colors.blue), const SizedBox(width: 4), Text('Approved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.blue))])),
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.brandSwatch.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified, size: 12, color: AppColors.brandSwatch), SizedBox(width: 4), Text('Approved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.brandSwatch))])),
                                                 if (hasPendingApproved && !hasApprovedDiscount)
                                                   Builder(builder: (context) {
                                                     final req = saleProvider.getApprovedDiscountRequest(item.itemId);
-                                                    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_outlined, size: 12, color: Colors.blue.shade300), const SizedBox(width: 4), Text('Approved: ${req?.quantity?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.blue.shade300))]));
+                                                    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.brandSwatch.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_outlined, size: 12, color: AppColors.brandSwatch.shade300), const SizedBox(width: 4), Text('Approved: ${req?.quantity?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.brandSwatch.shade300))]));
                                                   }),
                                                 if (hasOffer)
                                                   Builder(builder: (context) {
@@ -3516,7 +3518,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                       ],
                                     ),
                                   );
-                                }).toList(),
+                                }),
                                 const SizedBox(height: 8),
                                 Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                                 const SizedBox(height: 8),
@@ -3575,7 +3577,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                     ),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppColors.warning,
-                                      side: BorderSide(color: AppColors.warning, width: 1.5),
+                                      side: const BorderSide(color: AppColors.warning, width: 1.5),
                                       padding: EdgeInsets.symmetric(horizontal: isLeruma ? 4 : 12),
                                     ),
                                   ),
@@ -3801,7 +3803,7 @@ class _CartScreenState extends State<CartScreen> {
               context.read<SaleProvider>().clearCart();
               Navigator.pop(context);
             },
-            tooltip: 'Clear Cart',
+            tooltip: 'Clear Cart'.tr,
           ),
         ],
       ),
@@ -3913,7 +3915,7 @@ class _CartScreenState extends State<CartScreen> {
                                               width: 1,
                                             ),
                                           ),
-                                          child: Row(
+                                          child: const Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(
@@ -3921,7 +3923,7 @@ class _CartScreenState extends State<CartScreen> {
                                                 size: 12,
                                                 color: AppColors.success,
                                               ),
-                                              const SizedBox(width: 4),
+                                              SizedBox(width: 4),
                                               Text(
                                                 'One-time Discount Applied',
                                                 style: TextStyle(
@@ -3950,7 +3952,7 @@ class _CartScreenState extends State<CartScreen> {
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.local_offer_outlined,
                                                 size: 12,
                                                 color: AppColors.warning,
@@ -3958,7 +3960,7 @@ class _CartScreenState extends State<CartScreen> {
                                               const SizedBox(width: 4),
                                               Text(
                                                 'Discount Available (needs ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"} qty)',
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   fontSize: 11,
                                                   color: AppColors.warning,
                                                   fontWeight: FontWeight.w600,
@@ -3974,23 +3976,23 @@ class _CartScreenState extends State<CartScreen> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.1),
+                                            color: AppColors.brandSwatch.withOpacity(0.1),
                                             borderRadius: BorderRadius.circular(4),
                                             border: Border.all(
-                                              color: Colors.blue.withOpacity(0.3),
+                                              color: AppColors.brandSwatch.withOpacity(0.3),
                                               width: 1,
                                             ),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(Icons.verified, size: 12, color: Colors.blue),
-                                              const SizedBox(width: 4),
+                                              Icon(Icons.verified, size: 12, color: AppColors.brandSwatch),
+                                              SizedBox(width: 4),
                                               Text(
                                                 'Approved Discount Applied',
                                                 style: TextStyle(
                                                   fontSize: 11,
-                                                  color: Colors.blue,
+                                                  color: AppColors.brandSwatch,
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                               ),
@@ -4004,23 +4006,23 @@ class _CartScreenState extends State<CartScreen> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.05),
+                                            color: AppColors.brandSwatch.withOpacity(0.05),
                                             borderRadius: BorderRadius.circular(4),
                                             border: Border.all(
-                                              color: Colors.blue.withOpacity(0.2),
+                                              color: AppColors.brandSwatch.withOpacity(0.2),
                                               width: 1,
                                             ),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(Icons.verified_outlined, size: 12, color: Colors.blue.shade300),
+                                              Icon(Icons.verified_outlined, size: 12, color: AppColors.brandSwatch.shade300),
                                               const SizedBox(width: 4),
                                               Text(
                                                 'Approved Discount (needs ${saleProvider.getApprovedDiscountRequest(item.itemId)?.quantity?.toStringAsFixed(0) ?? "?"} qty)',
                                                 style: TextStyle(
                                                   fontSize: 11,
-                                                  color: Colors.blue.shade300,
+                                                  color: AppColors.brandSwatch.shade300,
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                               ),
@@ -4073,7 +4075,7 @@ class _CartScreenState extends State<CartScreen> {
                                                     const SizedBox(height: 2),
                                                     Text(
                                                       'You get ${freeQty.toStringAsFixed(0)} FREE!',
-                                                      style: TextStyle(
+                                                      style: const TextStyle(
                                                         fontSize: 12,
                                                         color: AppColors.success,
                                                         fontWeight: FontWeight.bold,
@@ -4158,9 +4160,9 @@ class _CartScreenState extends State<CartScreen> {
                                                     controller: controller,
                                                     keyboardType: TextInputType.number,
                                                     autofocus: true,
-                                                    decoration: const InputDecoration(
-                                                      labelText: 'Quantity',
-                                                      border: OutlineInputBorder(),
+                                                    decoration: InputDecoration(
+                                                      labelText: 'Quantity'.tr,
+                                                      border: const OutlineInputBorder(),
                                                     ),
                                                   ),
                                                 ],
@@ -4220,14 +4222,14 @@ class _CartScreenState extends State<CartScreen> {
                                         decoration: BoxDecoration(
                                           border: Border.all(
                                             color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
-                                                ? Colors.blue.shade300
+                                                ? AppColors.brandSwatch.shade300
                                                 : (isDark
                                                     ? AppColors.darkTextLight.withOpacity(0.3)
                                                     : Colors.grey.shade300),
                                           ),
                                           borderRadius: BorderRadius.circular(4),
                                           color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId)
-                                              ? Colors.blue.withOpacity(0.08)
+                                              ? AppColors.brandSwatch.withOpacity(0.08)
                                               : (isDark
                                                   ? AppColors.darkBackground
                                                   : Colors.grey.shade50),
@@ -4238,10 +4240,10 @@ class _CartScreenState extends State<CartScreen> {
                                             if (saleProvider.isQuantityLockedByApprovedDiscount(item.itemId))
                                               Padding(
                                                 padding: const EdgeInsets.only(right: 4),
-                                                child: Icon(Icons.lock, size: 14, color: Colors.blue.shade400),
+                                                child: Icon(Icons.lock, size: 14, color: AppColors.brandSwatch.shade400),
                                               ),
                                             Text(
-                                              '${item.quantity.toStringAsFixed(0)}',
+                                              item.quantity.toStringAsFixed(0),
                                               style: TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
@@ -4299,7 +4301,7 @@ class _CartScreenState extends State<CartScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           '${currencyFormat.format(item.calculateTotal())} TSh',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
                                             color: AppColors.primary,
@@ -4332,8 +4334,8 @@ class _CartScreenState extends State<CartScreen> {
                                     child: TextField(
                                       controller: _discountControllers[item.itemId],
                                       decoration: InputDecoration(
-                                        labelText: 'Discount per item (TSh)',
-                                        helperText: 'Limit: ${currencyFormat.format(discountLimit)} TSh',
+                                        labelText: 'Discount per item (TSh)'.tr,
+                                        helperText: 'Limit: ${currencyFormat.format(discountLimit)} TSh'.tr,
                                         helperStyle: const TextStyle(
                                           color: AppColors.warning,
                                           fontSize: 11,
@@ -4444,7 +4446,7 @@ class _CartScreenState extends State<CartScreen> {
                         ),
                         Text(
                           '${currencyFormat.format(saleProvider.total)} TSh',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
@@ -4933,12 +4935,12 @@ class _PaymentDialogState extends State<PaymentDialog> {
     final amount = double.tryParse(_amountController.text) ?? 0;
 
     if (amount <= 0) {
-      return 'Invalid amount';
+      return 'Invalid amount'.tr;
     }
 
     // Validate amount doesn't exceed maximum (amount due)
     if (widget.maxAmount != null && amount > widget.maxAmount!) {
-      return 'Amount cannot exceed ${_currencyFormat.format(widget.maxAmount)} TSh (amount due)';
+      return 'Amount cannot exceed ${_currencyFormat.format(widget.maxAmount)} TSh (amount due)'.tr;
     }
 
     // Validate credit card payment
@@ -4947,7 +4949,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
       // Check if customer is allowed credit
       if (!customer.isAllowedCredit) {
-        return 'Customer is not allowed to make credit purchases.\nPlease pay with cash.';
+        return 'Customer is not allowed to make credit purchases.\nPlease pay with cash.'.tr;
       }
 
       // Credit on Credit: matches the web register, which removes "Credit
@@ -4990,7 +4992,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
       if (widget.customer == null) {
         debugPrint('❌ Validation failed: No customer selected');
-        return 'Please select a customer to use NFC Card payment';
+        return 'Please select a customer to use NFC Card payment'.tr;
       }
 
       if (_nfcCardBalance == null) {
@@ -5033,8 +5035,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              value: _paymentMethod,
-              decoration: const InputDecoration(labelText: 'Payment Method'),
+              initialValue: _paymentMethod,
+              decoration: InputDecoration(labelText: 'Payment Method'.tr),
               items: [
                 const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
                 // Left off entirely when the customer already has a balance
@@ -5072,10 +5074,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                suffixText: 'TSh',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'Amount'.tr,
+                suffixText: 'TSh'.tr,
+                border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
                 // Trigger rebuild to update NFC balance display
@@ -5342,7 +5344,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
             .where((customer) =>
                 customer.firstName.toLowerCase().contains(query.toLowerCase()) ||
                 customer.lastName.toLowerCase().contains(query.toLowerCase()) ||
-                (customer.phoneNumber?.toLowerCase().contains(query.toLowerCase()) ?? false))
+                (customer.phoneNumber.toLowerCase().contains(query.toLowerCase()) ?? false))
             .toList();
       }
     });
@@ -5415,9 +5417,9 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                     // NFC Scan Button
                     if (_nfcAvailable)
                       IconButton(
-                        icon: const Icon(Icons.nfc, color: AppColors.primary),
+                        icon: Icon(Icons.nfc, color: AppColors.primary),
                         onPressed: _scanNfcCard,
-                        tooltip: 'Scan NFC Card',
+                        tooltip: 'Scan NFC Card'.tr,
                       ),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -5461,7 +5463,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
               controller: _searchController,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: 'Search customers...',
+                hintText: 'Search customers...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -5512,13 +5514,12 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (customer.phoneNumber != null)
-                                      Text(customer.phoneNumber!),
-                                    if (customer.balance != null && customer.balance != 0)
+                                    Text(customer.phoneNumber),
+                                    if (customer.balance != 0)
                                       Text(
                                         'Balance: ${NumberFormat('#,###').format(customer.balance)} TSh',
                                         style: TextStyle(
-                                          color: customer.balance! > 0
+                                          color: customer.balance > 0
                                               ? AppColors.error
                                               : AppColors.success,
                                           fontWeight: FontWeight.bold,
@@ -5533,7 +5534,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                                           color: Colors.grey[400],
                                         ),
                                         onPressed: () => _registerCardToCustomer(customer),
-                                        tooltip: 'Register NFC card',
+                                        tooltip: 'Register NFC card'.tr,
                                       )
                                     : null,
                                 onTap: () {
@@ -5565,25 +5566,25 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
   }
 
   Widget _buildCustomerSkeletonCard() {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+    return const Card(
+      margin: EdgeInsets.symmetric(vertical: 4),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         child: Row(
           children: [
             // Avatar skeleton
-            const SkeletonLoader(
+            SkeletonLoader(
               width: 40,
               height: 40,
               borderRadius: 20,
               isDark: true,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             // Text content skeleton
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   SkeletonLoader(
                     width: 150,
                     height: 16,
@@ -5642,7 +5643,7 @@ class _OfferFreeLineTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.card_giftcard, size: 18, color: AppColors.success),
+          const Icon(Icons.card_giftcard, size: 18, color: AppColors.success),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -5661,7 +5662,7 @@ class _OfferFreeLineTile extends StatelessWidget {
                 if (item.description != null)
                   Text(
                     item.description!,
-                    style: TextStyle(fontSize: 10, color: AppColors.success),
+                    style: const TextStyle(fontSize: 10, color: AppColors.success),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -5671,7 +5672,7 @@ class _OfferFreeLineTile extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '${item.quantity.toStringAsFixed(0)} × FREE',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.success,
@@ -5679,8 +5680,8 @@ class _OfferFreeLineTile extends StatelessWidget {
           ),
           InkWell(
             onTap: onRemove,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
               child: Icon(Icons.close, size: 16, color: AppColors.error),
             ),
           ),

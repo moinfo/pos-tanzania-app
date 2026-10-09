@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,6 +7,8 @@ import '../models/shop.dart';
 import '../models/customer.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class ShopsScreen extends StatefulWidget {
   const ShopsScreen({super.key});
@@ -109,7 +111,7 @@ class _ShopsScreenState extends State<ShopsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search shops...',
+                hintText: 'Search shops...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -363,11 +365,11 @@ class _ShopListItem extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.person_add, size: 14, color: Colors.blue[600]),
+                          Icon(Icons.person_add, size: 14, color: AppColors.brandSwatch[600]),
                           const SizedBox(width: 4),
                           Text(
                             'Registered by: ${shop.registeredBy}',
-                            style: TextStyle(color: Colors.blue[600], fontSize: 12),
+                            style: TextStyle(color: AppColors.brandSwatch[600], fontSize: 12),
                           ),
                         ],
                       ),
@@ -615,8 +617,8 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
                   icon: const Icon(Icons.history),
                   label: const Text('History'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.blue[700],
-                    side: BorderSide(color: Colors.blue[700]!),
+                    foregroundColor: AppColors.brandSwatch[700],
+                    side: BorderSide(color: AppColors.brandSwatch[700]!),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -925,7 +927,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
                           IconButton(
                             icon: const Icon(Icons.refresh),
                             onPressed: _getCurrentLocation,
-                            tooltip: 'Refresh location',
+                            tooltip: 'Refresh location'.tr,
                           ),
                       ],
                     ),
@@ -1078,7 +1080,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
             TextFormField(
               controller: _shopNameController,
               decoration: InputDecoration(
-                labelText: 'Shop Name *',
+                labelText: 'Shop Name *'.tr,
                 prefixIcon: const Icon(Icons.store),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
@@ -1086,7 +1088,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Shop name is required';
+                  return 'Shop name is required'.tr;
                 }
                 return null;
               },
@@ -1098,7 +1100,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
             TextFormField(
               controller: _addressController,
               decoration: InputDecoration(
-                labelText: 'Address (optional)',
+                labelText: 'Address (optional)'.tr,
                 prefixIcon: const Icon(Icons.location_on),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
@@ -1314,7 +1316,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
                           IconButton(
                             icon: const Icon(Icons.my_location),
                             onPressed: _getCurrentLocation,
-                            tooltip: 'Update location',
+                            tooltip: 'Update location'.tr,
                           ),
                       ],
                     ),
@@ -1456,7 +1458,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
             TextFormField(
               controller: _shopNameController,
               decoration: InputDecoration(
-                labelText: 'Shop Name *',
+                labelText: 'Shop Name *'.tr,
                 prefixIcon: const Icon(Icons.store),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
@@ -1464,7 +1466,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Shop name is required';
+                  return 'Shop name is required'.tr;
                 }
                 return null;
               },
@@ -1476,7 +1478,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
             TextFormField(
               controller: _addressController,
               decoration: InputDecoration(
-                labelText: 'Address (optional)',
+                labelText: 'Address (optional)'.tr,
                 prefixIcon: const Icon(Icons.location_on),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
@@ -1666,11 +1668,11 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                                     const SizedBox(height: 2),
                                     Row(
                                       children: [
-                                        Icon(Icons.person, size: 12, color: Colors.blue[600]),
+                                        Icon(Icons.person, size: 12, color: AppColors.brandSwatch[600]),
                                         const SizedBox(width: 4),
                                         Text(
                                           'Served by: ${sale.servedBy}',
-                                          style: TextStyle(color: Colors.blue[600], fontSize: 12),
+                                          style: TextStyle(color: AppColors.brandSwatch[600], fontSize: 12),
                                         ),
                                       ],
                                     ),
@@ -1793,7 +1795,7 @@ class _CustomerSelectorScreenState extends State<CustomerSelectorScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search customers...',
+                hintText: 'Search customers...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,

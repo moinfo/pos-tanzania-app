@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -8,6 +8,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class CustomerStatementScreen extends StatefulWidget {
   final int customerId;
@@ -120,7 +122,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
+            tooltip: 'Select Date Range'.tr,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -192,7 +194,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
             label: 'Opening Balance',
             date: stmt.startDate,
             amount: stmt.openingBalance,
-            color: Colors.blue,
+            color: AppColors.brandSwatch,
             icon: Icons.arrow_forward,
             isDark: isDark,
           ),

@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
-import '../services/pdf_service.dart';
 import '../models/suspended_summary.dart';
 import '../models/stock_location.dart';
 import '../models/item_comment.dart';
@@ -11,6 +10,8 @@ import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// Suspended Items Summary Screen
 /// Aggregates all items from all suspended sales
@@ -40,8 +41,8 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
   final Map<String, ItemComment?> _comments = {};
 
   // Use app brand colors
-  static const Color _headerColor = AppColors.primary;
-  static const Color _headerColorDark = AppColors.primaryDark;
+  static Color get _headerColor => AppColors.primary;
+  static Color get _headerColorDark => AppColors.primaryDark;
 
   @override
   void initState() {
@@ -226,7 +227,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -263,7 +264,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                 controller: _searchController,
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
-                  hintText: 'Search item name...',
+                  hintText: 'Search item name...'.tr,
                   hintStyle: TextStyle(
                       color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
                   prefixIcon: Icon(Icons.search,
@@ -312,7 +313,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.monetization_on, size: 16, color: Colors.green),
+                        const Icon(Icons.monetization_on, size: 16, color: Colors.green),
                         const SizedBox(width: 4),
                         Text(
                           '${_currencyFormat.format(_totals!.grandTotal)} TSh',
@@ -339,7 +340,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!,
                               style: TextStyle(
@@ -458,7 +459,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                     size: 22,
                   ),
                   onPressed: () => _showCommentDialog(item),
-                  tooltip: 'Add/Edit Comment',
+                  tooltip: 'Add/Edit Comment'.tr,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),
@@ -472,7 +473,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                   child: _buildDataItem(
                     'Suspended',
                     _currencyFormat.format(item.suspendedQuantity),
-                    Colors.blue,
+                    AppColors.brandSwatch,
                     isDark,
                   ),
                 ),
@@ -524,11 +525,11 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.blue.withOpacity(0.15)
-                      : Colors.blue.withOpacity(0.08),
+                      ? AppColors.brandSwatch.withOpacity(0.15)
+                      : AppColors.brandSwatch.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: Colors.blue.withOpacity(0.3),
+                    color: AppColors.brandSwatch.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -537,14 +538,14 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.comment, size: 14, color: Colors.blue.shade600),
+                        Icon(Icons.comment, size: 14, color: AppColors.brandSwatch.shade600),
                         const SizedBox(width: 6),
                         Text(
                           'Comment',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.blue.shade600,
+                            color: AppColors.brandSwatch.shade600,
                           ),
                         ),
                         const Spacer(),
@@ -656,7 +657,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                     'Items',
                     '${_totals!.itemCount}',
                     Icons.inventory_2,
-                    Colors.blue,
+                    AppColors.brandSwatch,
                     isDark,
                   ),
                 ),
@@ -992,7 +993,7 @@ class _CommentDialogState extends State<_CommentDialog> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),
@@ -1052,7 +1053,7 @@ class _CommentDialogState extends State<_CommentDialog> {
                             readOnly: true,
                             onTap: _selectDate,
                             decoration: InputDecoration(
-                              labelText: 'Date',
+                              labelText: 'Date'.tr,
                               prefixIcon: const Icon(Icons.calendar_today),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -1066,7 +1067,7 @@ class _CommentDialogState extends State<_CommentDialog> {
                             controller: _commentController,
                             maxLines: 3,
                             decoration: InputDecoration(
-                              labelText: 'Comment',
+                              labelText: 'Comment'.tr,
                               alignLabelWithHint: true,
                               prefixIcon: const Padding(
                                 padding: EdgeInsets.only(bottom: 50),

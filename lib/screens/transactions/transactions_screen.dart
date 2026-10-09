@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
@@ -15,6 +15,7 @@ import 'wakala_report_screen.dart';
 import 'wakala_expenses_screen.dart';
 import 'commission_screen.dart';
 import 'capital_screen.dart';
+import '../../widgets/tr_text.dart';
 
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});

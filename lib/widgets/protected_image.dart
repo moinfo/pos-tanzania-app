@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/tr_text.dart';
 
 /// A protected image widget that prevents long-press saving and context menus
 class ProtectedImage extends StatelessWidget {

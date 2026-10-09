@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -6,6 +6,8 @@ import '../widgets/state_views.dart';
 import '../models/nfc_wallet.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class NfcConfirmationsScreen extends StatefulWidget {
   const NfcConfirmationsScreen({super.key});
@@ -101,12 +103,12 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
+            tooltip: 'Select Date Range'.tr,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadConfirmations,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -209,7 +211,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_errorMessage!),
                             const SizedBox(height: 16),
@@ -329,7 +331,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
       'credit_sale': Colors.orange,
       'cash_sale': Colors.teal,
       'payment': Colors.green,
-      'deposit': Colors.blue,
+      'deposit': AppColors.brandSwatch,
       'withdrawal': Colors.red,
     };
 

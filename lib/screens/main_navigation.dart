@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -51,6 +51,9 @@ import 'app_update_screen.dart';
 import '../providers/update_provider.dart';
 import '../widgets/update_prompt.dart';
 import '../services/token_refresher.dart';
+import '../widgets/tr_text.dart';
+import '../widgets/logout_dialog.dart';
+import '../l10n/lang.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -160,25 +163,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   Future<void> _confirmLogout(BuildContext context) async {
     Navigator.pop(context);
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Log out'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Log out'),
-          ),
-        ],
-      ),
+    final confirm = await showLogoutDialog(
+      context,
+      userName: context.read<AuthProvider>().user?.fullName,
     );
 
-    if (confirm != true || !context.mounted) return;
+    if (!confirm || !context.mounted) return;
 
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
@@ -412,7 +402,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 builder: (context) => IconButton(
                   icon: const Icon(Icons.menu, color: Colors.white, size: 26),
                   onPressed: () => Scaffold.of(context).openDrawer(),
-                  tooltip: 'Menu',
+                  tooltip: 'Menu'.tr,
                 ),
               ),
               // Logo + Title. Leruma shows the active stock location here and
@@ -459,7 +449,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       IconButton(
                         icon: const Icon(Icons.notifications_none,
                             color: Colors.white, size: 26),
-                        tooltip: 'Notifications',
+                        tooltip: 'Notifications'.tr,
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -599,7 +589,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           return Center(
             child: Text(
               ApiService.currentClient?.displayName ?? AppConstants.appName,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -640,7 +630,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           child: PopupMenuButton<StockLocation>(
             offset: const Offset(0, 40),
             color: Colors.white,
-            tooltip: 'Switch store',
+            tooltip: 'Switch store'.tr,
             onSelected: (location) => locationProvider.selectLocation(location),
             itemBuilder: (context) => locationProvider.allowedLocations
                 .map(
@@ -839,8 +829,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         child: _buildCurvedAppBar(isDark, themeProvider),
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        // The account header stays put; only the menu below it scrolls, and it
+        // can scroll far enough to lift the last row clear of the system
+        // navigation bar.
+        child: Column(
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
@@ -882,7 +874,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       ),
                       _DrawerHeaderAction(
                         icon: Icons.settings,
-                        tooltip: 'Settings',
+                        tooltip: 'Settings'.tr,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
@@ -893,7 +885,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       ),
                       _DrawerHeaderAction(
                         icon: Icons.logout,
-                        tooltip: 'Log out',
+                        tooltip: 'Log out'.tr,
                         onTap: () => _confirmLogout(context),
                       ),
                     ],
@@ -927,6 +919,15 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ],
               ),
             ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom + 16,
+                ),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: ClampingScrollPhysics(),
+                ),
+                children: [
             // 1. Customers Menu
             // Requests and approvals lead the section: raising a discount
             // request happens mid-sale, and an approval waiting on you is the
@@ -1497,6 +1498,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 },
               ),
             ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -1520,9 +1524,21 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               // The curved bar with the notched Sales FAB stays for every other
               // client -- it is their shipped navigation, not a shared style.
               ? _buildLerumaBottomNav(availableScreens)
-              : MediaQuery(
-                  data: MediaQuery.of(context).removePadding(removeBottom: true),
-                  child: _buildCurvedBottomNav(availableScreens, isDark),
+              // The curved bar draws its own fixed 80px, so the system
+              // navigation inset is added back underneath it. Without this,
+              // edge-to-edge Android (targetSdk 36) draws the buttons or
+              // gesture pill over the tab labels.
+              : ColoredBox(
+                  color: isDark ? AppColors.darkCard : Colors.white,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewPadding.bottom,
+                    ),
+                    child: MediaQuery(
+                      data: MediaQuery.of(context).removePadding(removeBottom: true),
+                      child: _buildCurvedBottomNav(availableScreens, isDark),
+                    ),
+                  ),
                 ))
           : null,
     );
@@ -1713,8 +1729,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                         double displayPosition = index + rotationOffset;
 
                         // Wrap around to keep all items in valid slots (0 to itemCount-1)
-                        while (displayPosition < 0) displayPosition += itemCount;
-                        while (displayPosition >= itemCount) displayPosition -= itemCount;
+                        while (displayPosition < 0) {
+                          displayPosition += itemCount;
+                        }
+                        while (displayPosition >= itemCount) {
+                          displayPosition -= itemCount;
+                        }
 
                         final xPos = displayPosition * itemWidth;
 

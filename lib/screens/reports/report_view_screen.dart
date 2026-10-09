@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
 import '../../widgets/state_views.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +12,8 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class ReportViewScreen extends StatefulWidget {
   final ReportType reportType;
@@ -211,13 +213,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
+            tooltip: 'Select Date Range'.tr,
           ),
           // Refresh
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadReport,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -552,7 +554,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                   // Add view icon for first column in supplier report
                   if (isSupplierReport && column.key == 'receiving_id')
                     Padding(
-                      padding: const EdgeInsets.only(left: 8),
+                      padding: EdgeInsets.only(left: 8),
                       child: Icon(
                         Icons.visibility,
                         size: 16,
@@ -741,7 +743,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
                                     'Subtotal: ${Formatters.formatCurrency(_parseDouble(item['subtotal']))}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.success,

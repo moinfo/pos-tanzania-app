@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/receiving.dart';
@@ -12,6 +12,8 @@ import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/state_views.dart';
 import 'new_receiving_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class MainStoreScreen extends StatefulWidget {
   const MainStoreScreen({super.key});
@@ -106,7 +108,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
                   colorScheme: ColorScheme.dark(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
-                    surface: const Color(0xFF1E1E1E),
+                    surface: Color(0xFF1E1E1E),
                     onSurface: Colors.white,
                   ),
                 )
@@ -231,7 +233,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadMainStore,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -641,7 +643,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
                     children: [
                       Text(
                         _formatCurrency(sale.saleTotal),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color: AppColors.success,

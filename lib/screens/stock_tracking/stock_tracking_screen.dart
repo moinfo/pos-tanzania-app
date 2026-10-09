@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/stock_tracking.dart';
@@ -9,6 +9,7 @@ import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'item_tracking_screen.dart';
+import '../../widgets/tr_text.dart';
 
 class StockTrackingScreen extends StatefulWidget {
   const StockTrackingScreen({super.key});
@@ -433,7 +434,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
             title: 'Stock Value',
             value: _report!.totals.stockValue,
             icon: Icons.inventory,
-            color: Colors.blue,
+            color: AppColors.brandSwatch,
           ),
         ),
       ],
@@ -662,7 +663,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.credit_card, color: Colors.orange, size: 20),
+                    const Icon(Icons.credit_card, color: Colors.orange, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Customer Credits',
@@ -676,7 +677,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
                 ),
                 Text(
                   _currencyFormat.format(_report!.customerCreditsTotal),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: Colors.orange,
@@ -710,7 +711,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.payments, color: Colors.green, size: 20),
+                    const Icon(Icons.payments, color: Colors.green, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Customer Payments',
@@ -724,7 +725,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
                 ),
                 Text(
                   _currencyFormat.format(_report!.customerPaymentsTotal),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: Colors.green,
@@ -758,7 +759,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.account_balance, color: Colors.blue, size: 20),
+                    Icon(Icons.account_balance, color: AppColors.brandSwatch, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Supplier Bank Payments',
@@ -775,7 +776,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: AppColors.brandSwatch,
                   ),
                 ),
               ],

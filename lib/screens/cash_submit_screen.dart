@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/cash_submit.dart';
@@ -20,6 +20,8 @@ import '../widgets/glassmorphic_card.dart';
 import '../services/read_cache.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class CashSubmitScreen extends StatefulWidget {
   const CashSubmitScreen({super.key});
@@ -324,11 +326,11 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.edit, color: AppColors.primary, size: 20),
+                            icon: Icon(Icons.edit, color: AppColors.primary, size: 20),
                             onPressed: () => _showEditDialog(submission),
                             padding: const EdgeInsets.all(8),
                             constraints: const BoxConstraints(),
-                            tooltip: 'Edit submission',
+                            tooltip: 'Edit submission'.tr,
                           ),
                         ),
                       if (hasEditPermission && hasDeletePermission)
@@ -344,7 +346,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
                             onPressed: () => _deleteSubmission(submission.id),
                             padding: const EdgeInsets.all(8),
                             constraints: const BoxConstraints(),
-                            tooltip: 'Delete submission',
+                            tooltip: 'Delete submission'.tr,
                           ),
                         ),
                     ],
@@ -465,7 +467,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Filter by date range',
+            tooltip: 'Filter by date range'.tr,
           ),
         ],
       ),
@@ -550,7 +552,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
       floatingActionButton: PermissionFAB(
         permissionId: PermissionIds.cashSubmitAdd,
         onPressed: _showCreateDialog,
-        tooltip: 'Add Cash Submission',
+        tooltip: 'Add Cash Submission'.tr,
         backgroundColor: AppColors.success,
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -799,7 +801,7 @@ class _CreateCashSubmissionDialogState
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                      Icon(Icons.location_on, color: AppColors.primary, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         'Location: ${selectedLocation.locationName}',
@@ -817,10 +819,10 @@ class _CreateCashSubmissionDialogState
                 controller: _amountController,
                 style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                 decoration: InputDecoration(
-                  labelText: 'Amount (TZS)',
+                  labelText: 'Amount (TZS)'.tr,
                   labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                   border: const OutlineInputBorder(),
-                  prefixText: 'TZS ',
+                  prefixText: 'TZS '.tr,
                   prefixStyle: TextStyle(color: isDark ? Colors.white : AppColors.text),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
@@ -830,8 +832,8 @@ class _CreateCashSubmissionDialogState
                 ),
                 keyboardType: TextInputType.number,
                 validator: (v) {
-                  if (v?.isEmpty == true) return 'Required';
-                  if (double.tryParse(v!) == null) return 'Invalid amount';
+                  if (v?.isEmpty == true) return 'Required'.tr;
+                  if (double.tryParse(v!) == null) return 'Invalid amount'.tr;
                   return null;
                 },
               ),
@@ -918,11 +920,11 @@ class _CreateCashSubmissionDialogState
                 )
               else
                 DropdownButtonFormField<Supervisor>(
-                  value: _selectedSupervisor,
+                  initialValue: _selectedSupervisor,
                   dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                   style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                   decoration: InputDecoration(
-                    labelText: 'Supervisor',
+                    labelText: 'Supervisor'.tr,
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                     border: const OutlineInputBorder(),
                     enabledBorder: OutlineInputBorder(

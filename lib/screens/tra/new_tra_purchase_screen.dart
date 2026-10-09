@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +8,8 @@ import '../../utils/constants.dart';
 import '../../models/tra.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/tra_service.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class NewTRAPurchaseScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -232,7 +234,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                     // EFD Device
                     _buildLabel('EFD Device *', isDark),
                     DropdownButtonFormField<int>(
-                      value: _selectedEfdId,
+                      initialValue: _selectedEfdId,
                       decoration: _inputDecoration('Select EFD', isDark),
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -248,7 +250,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                     // Supplier
                     _buildLabel('Supplier *', isDark),
                     DropdownButtonFormField<int>(
-                      value: _selectedSupplierId,
+                      initialValue: _selectedSupplierId,
                       decoration: _inputDecoration('Select Supplier', isDark),
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -265,7 +267,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                     // Item
                     _buildLabel('Item *', isDark),
                     DropdownButtonFormField<int>(
-                      value: _selectedItemId,
+                      initialValue: _selectedItemId,
                       decoration: _inputDecoration('Select Item', isDark),
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -282,7 +284,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                     // Purchase Type
                     _buildLabel('Purchase Type *', isDark),
                     DropdownButtonFormField<String>(
-                      value: _purchaseType,
+                      initialValue: _purchaseType,
                       decoration: _inputDecoration('Select Type', isDark),
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -340,8 +342,8 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
                       onChanged: (_) => _calculateTotal(),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Required';
-                        if (double.tryParse(value) == null) return 'Invalid amount';
+                        if (value == null || value.isEmpty) return 'Required'.tr;
+                        if (double.tryParse(value) == null) return 'Invalid amount'.tr;
                         return null;
                       },
                     ),
@@ -366,8 +368,8 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Required';
-                        if (double.tryParse(value) == null) return 'Invalid amount';
+                        if (value == null || value.isEmpty) return 'Required'.tr;
+                        if (double.tryParse(value) == null) return 'Invalid amount'.tr;
                         return null;
                       },
                     ),
@@ -509,7 +511,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.error),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );

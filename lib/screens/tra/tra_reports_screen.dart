@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../utils/constants.dart';
 import '../../models/tra.dart';
@@ -6,6 +6,7 @@ import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/tr_text.dart';
 
 class TRAReportsScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -53,7 +54,7 @@ class _TRAReportsScreenState extends State<TRAReportsScreen> {
               title: 'Sales Report',
               subtitle: 'Z-Reports summary and details',
               icon: Icons.receipt_long,
-              color: Colors.blue,
+              color: AppColors.brandSwatch,
               isDark: isDark,
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(

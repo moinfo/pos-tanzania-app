@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -14,6 +14,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class CustomerTransactionsScreen extends StatefulWidget {
   final int? customerId;
@@ -92,7 +94,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                       controller: _customerSearchController,
                       autofocus: true,
                       decoration: InputDecoration(
-                        hintText: 'Search customer...',
+                        hintText: 'Search customer...'.tr,
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -106,7 +108,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                           } else {
                             _filteredCustomers = _customers.where((customer) {
                               final fullName = '${customer.firstName} ${customer.lastName}'.toLowerCase();
-                              final phone = customer.phoneNumber?.toLowerCase() ?? '';
+                              final phone = customer.phoneNumber.toLowerCase() ?? '';
                               final searchQuery = query.toLowerCase();
                               return fullName.contains(searchQuery) || phone.contains(searchQuery);
                             }).toList();
@@ -156,16 +158,16 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                                     color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                                   ),
                                 ),
-                                subtitle: customer.phoneNumber != null && customer.phoneNumber!.isNotEmpty
+                                subtitle: customer.phoneNumber.isNotEmpty
                                     ? Text(
-                                        customer.phoneNumber!,
+                                        customer.phoneNumber,
                                         style: TextStyle(
                                           color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
                                         ),
                                       )
                                     : null,
                                 trailing: isSelected
-                                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                                    ? Icon(Icons.check_circle, color: AppColors.primary)
                                     : null,
                                 onTap: () => Navigator.pop(context, customer),
                               );
@@ -289,17 +291,17 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
+                  decoration: InputDecoration(
+                    labelText: 'Description (Optional)'.tr,
                   ),
                   maxLines: 2,
                 ),
@@ -422,17 +424,17 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
               children: [
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
+                  decoration: InputDecoration(
+                    labelText: 'Description (Optional)'.tr,
                   ),
                   maxLines: 2,
                 ),
@@ -575,17 +577,17 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
               children: [
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
+                  decoration: InputDecoration(
+                    labelText: 'Description (Optional)'.tr,
                   ),
                   maxLines: 2,
                 ),
@@ -775,7 +777,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                   borderRadius: BorderRadius.circular(16),
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: 'Select Customer',
+                      labelText: 'Select Customer'.tr,
                       labelStyle: TextStyle(
                         color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
                       ),
@@ -884,7 +886,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.success.withOpacity(0.15),
-                child: Icon(Icons.arrow_downward, color: AppColors.success),
+                child: const Icon(Icons.arrow_downward, color: AppColors.success),
               ),
               title: Text(
                 Formatters.formatCurrency(deposit.amount),
@@ -934,7 +936,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                       },
                       itemBuilder: (context) => [
                         if (canEdit)
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
@@ -996,7 +998,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.error.withOpacity(0.15),
-                child: Icon(Icons.arrow_upward, color: AppColors.error),
+                child: const Icon(Icons.arrow_upward, color: AppColors.error),
               ),
               title: Text(
                 Formatters.formatCurrency(withdrawal.amount),
@@ -1046,7 +1048,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                       },
                       itemBuilder: (context) => [
                         if (canEdit)
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [

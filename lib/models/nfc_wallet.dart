@@ -1,4 +1,5 @@
 /// Models for NFC Wallet functionality
+library;
 
 /// NFC Card with balance information
 class NfcCardBalance {

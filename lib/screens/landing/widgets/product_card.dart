@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../models/public_product.dart';
 import '../../../services/public_api_service.dart';
 import '../landing_screen.dart';
+import '../../../widgets/tr_text.dart';
 
 /// Instagram-style product card - full width with swipeable images
 class ProductCard extends StatefulWidget {

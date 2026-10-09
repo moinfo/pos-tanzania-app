@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -10,6 +10,8 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../providers/theme_provider.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class CapitalScreen extends StatefulWidget {
   const CapitalScreen({super.key});
@@ -186,7 +188,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Filter by date range',
+            tooltip: 'Filter by date range'.tr,
           ),
         ],
       ),
@@ -276,7 +278,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_error!, style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
                             const SizedBox(height: 16),
@@ -508,11 +510,11 @@ class _CapitalFormDialogState extends State<_CapitalFormDialog> {
             children: [
               TextFormField(
                 controller: _amountController,
-                decoration: const InputDecoration(labelText: 'Amount', prefixText: 'TZS ', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: 'Amount'.tr, prefixText: 'TZS '.tr, border: const OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Amount is required';
-                  if (double.tryParse(v) == null || double.parse(v) <= 0) return 'Enter a valid amount';
+                  if (v == null || v.isEmpty) return 'Amount is required'.tr;
+                  if (double.tryParse(v) == null || double.parse(v) <= 0) return 'Enter a valid amount'.tr;
                   return null;
                 },
               ),
@@ -528,14 +530,14 @@ class _CapitalFormDialogState extends State<_CapitalFormDialog> {
                   if (picked != null) setState(() => _selectedDate = picked);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Date', border: OutlineInputBorder(), suffixIcon: Icon(Icons.calendar_today)),
+                  decoration: InputDecoration(labelText: 'Date'.tr, border: const OutlineInputBorder(), suffixIcon: const Icon(Icons.calendar_today)),
                   child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
                 ),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Description (optional)', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: 'Description (optional)'.tr, border: const OutlineInputBorder()),
                 maxLines: 2,
               ),
             ],

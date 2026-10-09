@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../models/map_route.dart';
@@ -7,6 +7,8 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// Map Route Screen (Delivery Route Planning)
 /// Shows ALL active customers with reordering capability
@@ -29,8 +31,8 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   bool _hasChanges = false;
 
   // Use app brand colors
-  static const Color _headerColor = AppColors.primary;
-  static const Color _headerColorDark = AppColors.primaryDark;
+  static Color get _headerColor => AppColors.primary;
+  static Color get _headerColorDark => AppColors.primaryDark;
 
   @override
   void initState() {
@@ -248,7 +250,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -299,7 +301,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                 controller: _searchController,
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
-                  hintText: 'Search customer name or address...',
+                  hintText: 'Search customer name or address...'.tr,
                   hintStyle: TextStyle(
                       color:
                           isDark ? Colors.grey.shade500 : Colors.grey.shade400),
@@ -375,7 +377,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline,
+                          const Icon(Icons.error_outline,
                               size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!,

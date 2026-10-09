@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
 import '../../models/public_product.dart';
-import '../../services/screen_protection_service.dart';
 import '../../services/api_service.dart';
 import '../login_screen.dart';
 import 'widgets/product_card.dart';
@@ -10,6 +9,9 @@ import 'widgets/product_skeleton.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'order_history_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../widgets/language_switcher.dart';
+import '../../l10n/lang.dart';
 
 /// Brand colors - adapts to current client
 class LandingColors {
@@ -154,6 +156,15 @@ class _LandingScreenState extends State<LandingScreen> {
         ),
       ),
       actions: [
+        // English / Kiswahili
+        Center(
+          child: LanguageChip(
+            surface: _isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+            border: _isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
+            ink: iconColor,
+            accent: Theme.of(context).colorScheme.primary,
+          ),
+        ),
         // Dark mode toggle
         IconButton(
           icon: Icon(
@@ -167,10 +178,11 @@ class _LandingScreenState extends State<LandingScreen> {
         ),
         // Login button
         IconButton(
+          tooltip: 'Login'.tr,
           icon: Icon(
-            Icons.admin_panel_settings,
+            Icons.login_rounded,
             color: iconColor,
-            size: 22,
+            size: 24,
           ),
           onPressed: () {
             Navigator.push(
@@ -191,7 +203,10 @@ class _LandingScreenState extends State<LandingScreen> {
         return Container(
           color: _isDarkMode ? const Color(0xFF121212) : LandingColors.lightGrey,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            // Lift the pill above the system navigation buttons / gesture
+            // bar; edge-to-edge Android otherwise draws them over it.
+            padding: EdgeInsets.fromLTRB(
+                16, 6, 16, 10 + MediaQuery.of(context).viewPadding.bottom),
             child: Container(
               height: 70,
                 decoration: BoxDecoration(
@@ -479,7 +494,7 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
                               fontSize: 14,
                             ),
                             decoration: InputDecoration(
-                              hintText: 'Search...',
+                              hintText: 'Search...'.tr,
                               hintStyle: TextStyle(
                                 color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
                                 fontSize: 14,

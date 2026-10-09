@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import '../models/sale.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class ReturnSaleScreen extends StatefulWidget {
   final int saleId;
@@ -372,11 +374,11 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.person_outline, size: 18, color: AppColors.primary),
+          Icon(Icons.person_outline, size: 18, color: AppColors.primary),
           const SizedBox(width: 8),
           Text(
             _modalData!.customerName,
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w600, color: AppColors.primary),
           ),
           const Spacer(),
@@ -491,7 +493,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
                 // Line total
                 Text(
                   '${_currencyFormat.format(item.lineTotal)} TSh',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontWeight: FontWeight.w600, color: AppColors.primary),
                 ),
               ],
@@ -584,7 +586,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
                             horizontal: 8, vertical: 8),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(6)),
-                        suffixText: 'TSh',
+                        suffixText: 'TSh'.tr,
                         suffixStyle: const TextStyle(fontSize: 11),
                       ),
                       onChanged: (v) {
@@ -804,7 +806,7 @@ class _QtyStepper extends StatelessWidget {
           controller: controller,
           keyboardType: TextInputType.number,
           autofocus: true,
-          decoration: InputDecoration(hintText: '0 – $max'),
+          decoration: InputDecoration(hintText: '0 – $max'.tr),
         ),
         actions: [
           TextButton(

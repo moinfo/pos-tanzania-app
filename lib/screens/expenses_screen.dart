@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
@@ -14,13 +14,14 @@ import '../models/permission_model.dart';
 import '../models/stock_location.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
-import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/skeleton_loader.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -289,7 +290,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Filter by date range',
+            tooltip: 'Filter by date range'.tr,
           ),
         ],
       ),
@@ -348,7 +349,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         child: PermissionFAB(
           permissionId: PermissionIds.expensesAdd,
           onPressed: _showAddExpenseDialog,
-          tooltip: 'Add Expense',
+          tooltip: 'Add Expense'.tr,
           child: const Icon(Icons.add, color: Colors.white),
         ),
       ),
@@ -591,7 +592,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         onPressed: () => _deleteExpense(expense.expenseId),
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
-                        tooltip: 'Delete expense',
+                        tooltip: 'Delete expense'.tr,
                       ),
                     ),
                 ],
@@ -773,7 +774,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
       final response = await _apiService.getSupervisors();
       if (response.isSuccess && mounted) {
         setState(() {
-          _supervisors = (response.data as List<Supervisor>?) ?? [];
+          _supervisors = response.data ?? [];
           // Set first supervisor as default if not editing and supervisors exist
           if (widget.expense == null && _supervisors.isNotEmpty && _selectedSupervisorId == null) {
             _selectedSupervisorId = _supervisors.first.id;
@@ -1023,7 +1024,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                        Icon(Icons.location_on, color: AppColors.primary, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           'Location: ${selectedLocation.locationName}',
@@ -1043,7 +1044,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                   onTap: hasDatePermission ? _selectDate : null,
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: 'Date',
+                      labelText: 'Date'.tr,
                       labelStyle: TextStyle(
                         color: isDark ? Colors.white70 : null,
                       ),
@@ -1087,7 +1088,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                   controller: _amountController,
                   style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                   decoration: InputDecoration(
-                    labelText: 'Amount',
+                    labelText: 'Amount'.tr,
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                     prefixIcon: Icon(Icons.money, color: isDark ? Colors.white70 : null),
                     enabledBorder: OutlineInputBorder(
@@ -1099,10 +1100,10 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter amount';
+                      return 'Please enter amount'.tr;
                     }
                     if (double.tryParse(value) == null || double.parse(value) <= 0) {
-                      return 'Please enter a valid amount';
+                      return 'Please enter a valid amount'.tr;
                     }
                     return null;
                   },
@@ -1112,11 +1113,11 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                 // Category (Required)
                 if (widget.categories.isNotEmpty)
                   DropdownButtonFormField<int>(
-                    value: _selectedCategoryId,
+                    initialValue: _selectedCategoryId,
                     dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                     style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                     decoration: InputDecoration(
-                      labelText: 'Category',
+                      labelText: 'Category'.tr,
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                       prefixIcon: Icon(Icons.category, color: isDark ? Colors.white70 : null),
                       enabledBorder: OutlineInputBorder(
@@ -1133,7 +1134,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                     }).toList(),
                     validator: (value) {
                       if (value == null) {
-                        return 'Please select a category';
+                        return 'Please select a category'.tr;
                       }
                       return null;
                     },
@@ -1150,7 +1151,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                   controller: _descriptionController,
                   style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                   decoration: InputDecoration(
-                    labelText: 'Description (Optional)',
+                    labelText: 'Description (Optional)'.tr,
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                     prefixIcon: Icon(Icons.description, color: isDark ? Colors.white70 : null),
                     enabledBorder: OutlineInputBorder(
@@ -1174,11 +1175,11 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
             children: [
               // Payment Type
               DropdownButtonFormField<String>(
-                value: _selectedPaymentType,
+                initialValue: _selectedPaymentType,
                 dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                 style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                 decoration: InputDecoration(
-                  labelText: 'Payment Type',
+                  labelText: 'Payment Type'.tr,
                   labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                   prefixIcon: Icon(Icons.payment, color: isDark ? Colors.white70 : null),
                   enabledBorder: OutlineInputBorder(
@@ -1201,11 +1202,11 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
               // Supervisor
               if (_supervisors.isNotEmpty)
                 DropdownButtonFormField<String>(
-                  value: _selectedSupervisorId,
+                  initialValue: _selectedSupervisorId,
                   dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                   style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                   decoration: InputDecoration(
-                    labelText: 'Supervisor',
+                    labelText: 'Supervisor'.tr,
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                     prefixIcon: Icon(Icons.person, color: isDark ? Colors.white70 : null),
                     enabledBorder: OutlineInputBorder(
@@ -1233,7 +1234,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                 controller: _taxAmountController,
                 style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                 decoration: InputDecoration(
-                  labelText: 'Tax Amount (Optional)',
+                  labelText: 'Tax Amount (Optional)'.tr,
                   labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                   prefixIcon: Icon(Icons.attach_money, color: isDark ? Colors.white70 : null),
                   enabledBorder: OutlineInputBorder(

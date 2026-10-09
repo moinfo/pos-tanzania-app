@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
@@ -22,11 +23,13 @@ import 'services/api_service.dart';
 import 'services/offline_feature.dart';
 import 'services/push_service.dart';
 import 'config/clients_config.dart';
+import 'l10n/lang.dart';
 import 'utils/app_theme.dart';
 import 'utils/constants.dart';
 import 'widgets/force_update_gate.dart';
 import 'widgets/session_expired_gate.dart';
 import 'widgets/rejection_alert.dart';
+import 'widgets/inactivity_gate.dart';
 
 /// Lets a tapped push notification navigate without a widget's BuildContext.
 ///
@@ -50,6 +53,9 @@ Future<void> main() async {
   // provider's constructor meant the app painted light, then flipped -- a
   // white flash on every launch for anyone using dark mode.
   await ThemeProvider.preload();
+
+  // Saved English / Kiswahili choice, read before the first frame.
+  await Lang.load();
 
   // What the server last said about offline mode, read before any screen can
   // queue anything. Refreshed from /api/app_version once the session starts.
@@ -154,8 +160,17 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UpdateProvider()),
       ],
       child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) => MaterialApp(
+        builder: (context, themeProvider, child) => ListenableBuilder(
+          listenable: Lang.instance,
+          builder: (context, _) => MaterialApp(
           navigatorKey: navigatorKey,
+          locale: Lang.locale,
+          supportedLocales: Lang.supportedLocales,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
@@ -175,11 +190,17 @@ class MyApp extends StatelessWidget {
               navigatorKey: navigatorKey,
               child: RejectionAlertHost(
                 navigatorKey: navigatorKey,
-                child: child ?? const SizedBox.shrink(),
+                // Innermost, so it sees every touch on every screen: signs
+                // the user out after 5 idle minutes, with a 30 second warning.
+                child: InactivityGate(
+                  navigatorKey: navigatorKey,
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
         home: PushBootstrap(firebaseReady: firebaseReady, child: const SplashScreen()),
+          ),
         ),
       ),
     );

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/stock_tracking.dart';
@@ -9,6 +9,8 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class ItemTrackingScreen extends StatefulWidget {
   const ItemTrackingScreen({super.key});
@@ -563,7 +565,7 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
             isDark: isDark,
             title: 'Opening',
             value: balances.opening,
-            color: Colors.blue,
+            color: AppColors.brandSwatch,
           ),
         ),
         const SizedBox(width: 8),
@@ -934,7 +936,7 @@ class _ItemSelectorSheetState extends State<_ItemSelectorSheet> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search items...',
+                hintText: 'Search items...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),

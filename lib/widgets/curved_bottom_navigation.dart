@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
 
 /// A navigation item for the curved bottom navigation bar
 class CurvedNavItem {
@@ -152,8 +153,12 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
                         double displayPosition = index + rotationOffset;
 
                         // Wrap around to keep all items in valid slots (0 to itemCount-1)
-                        while (displayPosition < 0) displayPosition += itemCount;
-                        while (displayPosition >= itemCount) displayPosition -= itemCount;
+                        while (displayPosition < 0) {
+                          displayPosition += itemCount;
+                        }
+                        while (displayPosition >= itemCount) {
+                          displayPosition -= itemCount;
+                        }
 
                         final xPos = displayPosition * itemWidth;
 

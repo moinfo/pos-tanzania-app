@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 
 import '../models/app_notification.dart';
@@ -8,6 +8,7 @@ import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/state_views.dart';
 import 'approvals_screen.dart';
+import '../widgets/tr_text.dart';
 
 /// The notification feed.
 ///
@@ -171,12 +172,12 @@ class _UnreadStrip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.mark_email_unread_outlined,
+          Icon(Icons.mark_email_unread_outlined,
               size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           Text(
             count == 1 ? '1 new notification' : '$count new notifications',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
               color: AppColors.primary,

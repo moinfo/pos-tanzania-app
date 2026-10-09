@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
 import 'landing_screen.dart' show LandingColors;
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 /// Shopping cart screen (used as tab)
 class CartScreen extends StatefulWidget {
@@ -552,7 +554,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   controller: _nameController,
                   style: TextStyle(color: sheetTextColor),
                   decoration: InputDecoration(
-                    labelText: 'Your Name *',
+                    labelText: 'Your Name *'.tr,
                     labelStyle: TextStyle(color: sheetSubtextColor),
                     prefixIcon: Icon(Icons.person_outline, color: sheetSubtextColor),
                     border: OutlineInputBorder(
@@ -564,7 +566,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your name';
+                      return 'Please enter your name'.tr;
                     }
                     return null;
                   },
@@ -576,7 +578,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   controller: _phoneController,
                   style: TextStyle(color: sheetTextColor),
                   decoration: InputDecoration(
-                    labelText: 'Phone Number *',
+                    labelText: 'Phone Number *'.tr,
                     labelStyle: TextStyle(color: sheetSubtextColor),
                     prefixIcon: Icon(Icons.phone_outlined, color: sheetSubtextColor),
                     border: OutlineInputBorder(
@@ -585,18 +587,18 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
                     ),
-                    hintText: '0762995775',
+                    hintText: '0762995775'.tr,
                     hintStyle: TextStyle(color: sheetSubtextColor),
                   ),
                   keyboardType: TextInputType.phone,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your phone number';
+                      return 'Please enter your phone number'.tr;
                     }
                     // Validate Tanzanian phone format
                     final phone = value.trim();
                     if (!RegExp(r'^0[67]\d{8}$').hasMatch(phone)) {
-                      return 'Enter valid phone (e.g., 0762995775)';
+                      return 'Enter valid phone (e.g., 0762995775)'.tr;
                     }
                     return null;
                   },
@@ -608,7 +610,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   controller: _emailController,
                   style: TextStyle(color: sheetTextColor),
                   decoration: InputDecoration(
-                    labelText: 'Email (Optional)',
+                    labelText: 'Email (Optional)'.tr,
                     labelStyle: TextStyle(color: sheetSubtextColor),
                     prefixIcon: Icon(Icons.email_outlined, color: sheetSubtextColor),
                     border: OutlineInputBorder(
@@ -627,7 +629,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   controller: _addressController,
                   style: TextStyle(color: sheetTextColor),
                   decoration: InputDecoration(
-                    labelText: 'Delivery Address (Optional)',
+                    labelText: 'Delivery Address (Optional)'.tr,
                     labelStyle: TextStyle(color: sheetSubtextColor),
                     prefixIcon: Icon(Icons.location_on_outlined, color: sheetSubtextColor),
                     border: OutlineInputBorder(
@@ -646,7 +648,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   controller: _notesController,
                   style: TextStyle(color: sheetTextColor),
                   decoration: InputDecoration(
-                    labelText: 'Order Notes (Optional)',
+                    labelText: 'Order Notes (Optional)'.tr,
                     labelStyle: TextStyle(color: sheetSubtextColor),
                     prefixIcon: Icon(Icons.note_outlined, color: sheetSubtextColor),
                     border: OutlineInputBorder(
@@ -655,7 +657,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[400]!),
                     ),
-                    hintText: 'Any special instructions...',
+                    hintText: 'Any special instructions...'.tr,
                     hintStyle: TextStyle(color: sheetSubtextColor),
                   ),
                   maxLines: 2,

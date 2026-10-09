@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../providers/connectivity_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -13,14 +11,16 @@ import '../providers/theme_provider.dart';
 import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
-import '../widgets/glassmorphic_card.dart';
 import '../providers/offline_provider.dart';
-import '../widgets/offline_indicator.dart';
 import '../config/clients_config.dart';
 import '../models/client_config.dart';
 import 'main_navigation.dart';
 import 'client_selector_screen.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
+import '../l10n/lang.dart';
+import '../widgets/tr_text.dart';
 import 'landing/landing_screen.dart';
+import '../widgets/language_switcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -375,6 +375,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final client = ApiService.currentClient;
 
+    if (_kariakooLogin) return _buildBrandedLayout(client);
+
     return Scaffold(
       backgroundColor: _bg,
       // The sheet is a sibling in the Column rather than stacked on top: as an
@@ -456,6 +458,16 @@ class _LoginScreenState extends State<LoginScreen> {
               );
             },
           ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LanguageChip(
+                surface: _surface,
+                border: _hairline,
+                ink: _inkMuted,
+                accent: const Color(0xFF1668A6),
+              ),
+              const SizedBox(width: 8),
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) => Material(
               color: _surface,
@@ -482,7 +494,82 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  /// Kariakoo Shops sign-in: the brand artwork fills the full width of the
+  /// screen as a hero (status-bar chips float on it) and the form is a rounded
+  /// card that overlaps the hero's lower edge.
+  Widget _buildBrandedLayout(ClientConfig? client) {
+    final width = MediaQuery.sizeOf(context).width;
+    final systemBottom = MediaQuery.paddingOf(context).bottom;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // The icon is square with generous margins; show its top part (bag, name,
+    // tagline) at full width and let the green behind it carry the rest.
+    final heroHeight = width * 0.90;
+    const overlap = 30.0;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: _bg,
+        body: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                height: heroHeight,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF21A038), Color(0xFF0F7A1E)],
+                  ),
+                ),
+                child: ClipRect(
+                  // Zoomed a touch and nudged up so the artwork's own thin inner
+                  // border and empty top margin fall off-screen.
+                  child: OverflowBox(
+                    alignment: Alignment.topCenter,
+                    minWidth: width * 1.07,
+                    maxWidth: width * 1.07,
+                    minHeight: width * 1.07,
+                    maxHeight: width * 1.07,
+                    child: Transform.translate(
+                      offset: Offset(0, -width * 0.075),
+                      child: Image.asset(
+                        'assets/images/kariakoo-logo.png',
+                        width: width * 1.07,
+                        height: width * 1.07,
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: heroHeight - overlap),
+                child: Column(
+                  children: [
+                    _buildFormSheet(client, floating: true),
+                    SizedBox(height: (keyboardOpen ? 10.0 : 14.0) + systemBottom),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 6,
+                left: 0,
+                right: 0,
+                child: _buildTopBar(),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -493,6 +580,28 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          if (client?.id == 'kariakoo_shops')
+            // Kariakoo Shops' own app icon (kariakoo_shops_logo/
+            // kariakoo-icon-1024x1024.png), which carries its own background.
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x24103863), blurRadius: 36, offset: Offset(0, 14)),
+                  BoxShadow(color: Color(0x0F103863), blurRadius: 6, offset: Offset(0, 2)),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Image.asset(
+                  'assets/images/kariakoo-logo.png',
+                  width: 132,
+                  height: 132,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            )
+          else
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
@@ -538,22 +647,32 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildFormSheet(ClientConfig? client) {
+  Widget _buildFormSheet(ClientConfig? client, {bool floating = false}) {
     final loading = context.watch<AuthProvider>().isLoading;
 
     return Container(
       width: double.infinity,
+      margin: floating ? const EdgeInsets.symmetric(horizontal: 14) : null,
       decoration: BoxDecoration(
         color: _surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [
-          BoxShadow(color: Color(0x21103863), blurRadius: 44, offset: Offset(0, -16)),
-        ],
+        borderRadius: floating
+            ? BorderRadius.circular(30)
+            : const BorderRadius.vertical(top: Radius.circular(32)),
+        border: floating ? Border.all(color: _hairline) : null,
+        boxShadow: floating
+            ? const [
+                BoxShadow(color: Color(0x2E0A3D12), blurRadius: 34, offset: Offset(0, 14)),
+                BoxShadow(color: Color(0x14000000), blurRadius: 6, offset: Offset(0, 2)),
+              ]
+            : const [
+                BoxShadow(color: Color(0x21103863), blurRadius: 44, offset: Offset(0, -16)),
+              ],
       ),
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+      padding: EdgeInsets.fromLTRB(floating ? 20 : 18, floating ? 22 : 18, floating ? 20 : 18, 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (!floating)
           Container(
             width: 44, height: 4,
             margin: const EdgeInsets.only(bottom: 12),
@@ -605,13 +724,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.swap_horiz_rounded,
+                          Icon(Icons.swap_horiz_rounded,
                               size: 13, color: _brandBlue),
                           const SizedBox(width: 5),
                           Text(
                             client?.displayName ?? 'Client',
                             maxLines: 1,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w800,
                                 color: _brandBlue),
@@ -636,7 +755,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 16),
           _buildField(
             label: 'USERNAME', controller: _usernameController, fieldKey: 'user',
-            hint: 'e.g. anzwari.m', icon: Icons.person_outline,
+            hint: 'msembe', icon: Icons.person_outline,
           ),
           const SizedBox(height: 10),
           _buildField(
@@ -703,7 +822,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               InkWell(
                 onTap: () {},
-                child: const SizedBox(
+                child: SizedBox(
                   height: 44,
                   child: Center(
                     child: Text('Forgot?',
@@ -727,7 +846,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         begin: Alignment.topLeft, end: Alignment.bottomRight,
                         colors: loading
                             ? const [Color(0xFF4E93C8), Color(0xFF2A5C8F)]
-                            : const [_brandBlue, _navy],
+                            : [_brandBlue, _brandDeep],
                       ),
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: const [
@@ -789,50 +908,81 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           if (_bioPrompting) ...[
             const SizedBox(height: 12),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
                   width: 13, height: 13,
                   child: CircularProgressIndicator(strokeWidth: 2, color: _brandBlue),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text('Touch the sensor to sign in',
                     style: TextStyle(
                         fontSize: 12.5, fontWeight: FontWeight.w700, color: _brandBlue)),
               ],
             ),
           ],
-          Container(
+          if (client?.features.hasLandingPage == true)
+            Padding(
+              padding: EdgeInsets.zero,
+              child: TextButton.icon(
+                onPressed: _backToHome,
+                icon: Icon(Icons.arrow_back_rounded, size: 18, color: _brandBlue),
+                label: Text(
+                  'Back to home',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: _brandBlue,
+                  ),
+                ),
+              ),
+            ),
+          // The sheet is drawn to the very bottom of the screen, so the system
+          // navigation buttons / gesture bar are cleared by padding inside it
+          // (keeps the sheet's own colour behind them). Builder: read the inset
+          // below the Scaffold, which drops it while the keyboard is open.
+          // The footer is the first thing to go when the keyboard needs the room.
+          if (MediaQuery.viewInsetsOf(context).bottom == 0)
+          Builder(
+            builder: (insetContext) => Container(
             margin: const EdgeInsets.only(top: 12),
-            padding: const EdgeInsets.only(top: 14, bottom: 22),
+            padding: EdgeInsets.only(
+              top: 14,
+              // Floating card: the page, not the card, clears the system bar.
+              bottom: floating ? 18 : 22 + MediaQuery.paddingOf(insetContext).bottom,
+            ),
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: _hairline)),
             ),
-            child: Column(
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: TextStyle(
-                        fontSize: 11.5, fontWeight: FontWeight.w600, color: _inkFaint),
-                    children: [
-                      TextSpan(text: 'Powered by '),
-                      TextSpan(
-                        text: 'Moinfotech',
-                        style: TextStyle(fontWeight: FontWeight.w800, color: _inkMuted),
-                      ),
-                    ],
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: TextStyle(
+                    fontSize: 11.5, fontWeight: FontWeight.w600, color: _inkFaint),
+                children: [
+                  TextSpan(text: 'Powered by '.tr),
+                  TextSpan(
+                    text: 'Moinfotech',
+                    style: TextStyle(fontWeight: FontWeight.w800, color: _inkMuted),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(_appVersion,
-                    style: TextStyle(
-                        fontSize: 10.5, fontWeight: FontWeight.w600, color: _inkFaint)),
-              ],
+                  if (_appVersion.isNotEmpty) TextSpan(text: '  ·  ${_appVersion.tr}'),
+                ],
+              ),
             ),
+          ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Leave the sign-in form for the public landing page. Clears the stack so
+  /// Back from the landing page exits the app instead of returning here.
+  void _backToHome() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LandingScreen()),
+      (route) => false,
     );
   }
 
@@ -891,9 +1041,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (_inlineError != null) setState(() => _inlineError = null);
                     },
                     onSubmitted: (_) => _submit(),
+                    cursorColor: _brandBlue,
                     decoration: InputDecoration(
                       isDense: true,
+                      // The wrapper above draws the field; the app theme's own
+                      // focus outline and fill must not draw a second one.
+                      filled: false,
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
                       hintText: hint,
                       hintStyle: TextStyle(
                           fontSize: 15.5, fontWeight: FontWeight.w600, color: _inkFaint),
@@ -940,7 +1099,7 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(color: Color(0x330F172A), blurRadius: 30, offset: Offset(0, -8)),
         ],
       ),
@@ -1028,7 +1187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         if (selected)
-                          const Icon(Icons.check_circle, size: 18, color: _brandBlue),
+                          Icon(Icons.check_circle, size: 18, color: _brandBlue),
                       ],
                     ),
                   ),
@@ -1043,7 +1202,11 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // Design tokens for this screen (design_handoff_login)
-const Color _brandBlue = Color(0xFF1D7DC4);
+// Kariakoo Shops signs in with its own green; every other client keeps the blue.
+bool get _kariakooLogin => ApiService.currentClient?.id == 'kariakoo_shops';
+Color get _brandBlue =>
+    _kariakooLogin ? const Color(0xFF1B8C30) : const Color(0xFF1D7DC4);
+Color get _brandDeep => _kariakooLogin ? const Color(0xFF0A6B1A) : _navy;
 const Color _navy = Color(0xFF103863);
 const Color _pageBg = Color(0xFFF4F7FA);
 

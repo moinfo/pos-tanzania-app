@@ -13,6 +13,8 @@
         <domain includeSubdomains="true">kiwangwa.co.tz</domain>
         <domain includeSubdomains="true">comeandsave.co.tz</domain>
         <domain includeSubdomains="true">leruma.co.tz</domain>
+        <domain includeSubdomains="true">kariakooshops.co.tz</domain>
+        <domain includeSubdomains="true">saichi.co.tz</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

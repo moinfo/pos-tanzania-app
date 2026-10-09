@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_provider.dart';
@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
 import '../services/offline_feature.dart';
+import '../widgets/tr_text.dart';
 
 /// Widget to display offline/online status in the app bar
 class OfflineIndicator extends StatefulWidget {

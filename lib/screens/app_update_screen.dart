@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 
 import '../providers/update_provider.dart';
 import '../services/update_service.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../widgets/tr_text.dart';
 
 /// The place in the app to update from.
 ///

@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/clients_config.dart';
 import '../models/client_config.dart';
 import '../services/api_service.dart';
 import '../widgets/glassmorphic_card.dart';
 import 'login_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class ClientSelectorScreen extends StatefulWidget {
   const ClientSelectorScreen({super.key});
@@ -129,7 +131,7 @@ class _ClientSelectorScreenState extends State<ClientSelectorScreen> {
                     },
                     style: TextStyle(color: Colors.blue.shade900),
                     decoration: InputDecoration(
-                      hintText: 'Search clients...',
+                      hintText: 'Search clients...'.tr,
                       // The page is a fixed brand gradient in both modes, and
                       // GlassmorphicCard already draws the light pill behind
                       // this field. Letting the theme's fill paint over it

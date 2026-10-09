@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/credit.dart';
 import '../models/permission_model.dart';
 import '../models/stock_location.dart';
-import '../models/nfc_wallet.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
@@ -20,6 +19,8 @@ import '../widgets/nfc_scan_dialog.dart';
 import '../widgets/credit/record_payment_sheet.dart';
 import '../widgets/credit/credit_list_widgets.dart';
 import 'sale_details_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class CustomerCreditScreen extends StatefulWidget {
   final int customerId;
@@ -386,7 +387,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               permissionId: PermissionIds.creditsPay,
               onPressed: _showPaymentDialog,
               backgroundColor: AppColors.success,
-              tooltip: 'Add Payment',
+              tooltip: 'Add Payment'.tr,
               child: const Icon(Icons.payment, color: Colors.white),
             )
           : null,
@@ -436,7 +437,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            const Text(
               'STATEMENT',
               style: TextStyle(
                 fontSize: 10.5,
@@ -449,7 +450,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               widget.customerName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 15.5,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
@@ -473,7 +474,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(_errorMessage!,
-                          style: TextStyle(color: AppColors.error)),
+                          style: const TextStyle(color: AppColors.error)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                           onPressed: _loadStatement,
@@ -1619,12 +1620,12 @@ class _PaymentDialogState extends State<PaymentDialog> {
               const SizedBox(height: 16),
               if (widget.creditSales.isNotEmpty) ...[
                 DropdownButtonFormField<int>(
-                  value: _selectedSaleId,
+                  initialValue: _selectedSaleId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Credit Sale (Optional)',
-                    border: OutlineInputBorder(),
-                    hintText: 'Choose a sale to pay against',
+                  decoration: InputDecoration(
+                    labelText: 'Select Credit Sale (Optional)'.tr,
+                    border: const OutlineInputBorder(),
+                    hintText: 'Choose a sale to pay against'.tr,
                   ),
                   items: widget.creditSales.map((sale) {
                     return DropdownMenuItem<int>(
@@ -1656,10 +1657,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   return Column(
                     children: [
                       DropdownButtonFormField<int>(
-                        value: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
+                        initialValue: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
                         isExpanded: true,
                         decoration: InputDecoration(
-                          labelText: 'Stock Location *',
+                          labelText: 'Stock Location *'.tr,
                           border: const OutlineInputBorder(),
                           helperText: _selectedSaleId != null ? 'Location taken from selected sale' : null,
                         ),
@@ -1688,7 +1689,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                               },
                         validator: (value) {
                           if (value == null) {
-                            return 'Please select a stock location';
+                            return 'Please select a stock location'.tr;
                           }
                           return null;
                         },
@@ -1700,21 +1701,21 @@ class _PaymentDialogState extends State<PaymentDialog> {
               ),
               TextFormField(
                 controller: _amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Amount *',
-                  border: OutlineInputBorder(),
-                  prefixText: 'TSh ',
+                decoration: InputDecoration(
+                  labelText: 'Payment Amount *'.tr,
+                  border: const OutlineInputBorder(),
+                  prefixText: 'TSh '.tr,
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter payment amount';
+                    return 'Please enter payment amount'.tr;
                   }
                   if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
+                    return 'Please enter a valid number'.tr;
                   }
                   if (double.parse(value) <= 0) {
-                    return 'Amount must be greater than 0';
+                    return 'Amount must be greater than 0'.tr;
                   }
                   if (double.parse(value) > widget.currentBalance) {
                     return 'Payment cannot exceed balance of ${NumberFormat('#,###').format(widget.currentBalance)} TSh';
@@ -1725,9 +1726,9 @@ class _PaymentDialogState extends State<PaymentDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'Description (optional)'.tr,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
@@ -1739,10 +1740,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
                     return InkWell(
                       onTap: _selectDate,
                       child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Payment Date',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
+                        decoration: InputDecoration(
+                          labelText: 'Payment Date'.tr,
+                          border: const OutlineInputBorder(),
+                          suffixIcon: const Icon(Icons.calendar_today),
                         ),
                         child: Text(
                           DateFormat('MMM d, y').format(_selectedDate),
@@ -1934,11 +1935,11 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
                   return Column(
                     children: [
                       DropdownButtonFormField<int>(
-                        value: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
+                        initialValue: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
                         isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Stock Location *',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: 'Stock Location *'.tr,
+                          border: const OutlineInputBorder(),
                         ),
                         items: locationProvider.allowedLocations.isEmpty
                             ? [
@@ -1965,7 +1966,7 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
                               },
                         validator: (value) {
                           if (value == null) {
-                            return 'Please select a stock location';
+                            return 'Please select a stock location'.tr;
                           }
                           return null;
                         },
@@ -1977,21 +1978,21 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
               ),
               TextFormField(
                 controller: _amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Amount *',
-                  border: OutlineInputBorder(),
-                  prefixText: 'TSh ',
+                decoration: InputDecoration(
+                  labelText: 'Payment Amount *'.tr,
+                  border: const OutlineInputBorder(),
+                  prefixText: 'TSh '.tr,
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter payment amount';
+                    return 'Please enter payment amount'.tr;
                   }
                   if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
+                    return 'Please enter a valid number'.tr;
                   }
                   if (double.parse(value) <= 0) {
-                    return 'Amount must be greater than 0';
+                    return 'Amount must be greater than 0'.tr;
                   }
                   return null;
                 },
@@ -1999,9 +2000,9 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'Description (optional)'.tr,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
@@ -2013,10 +2014,10 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
                     return InkWell(
                       onTap: _selectDate,
                       child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Payment Date',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
+                        decoration: InputDecoration(
+                          labelText: 'Payment Date'.tr,
+                          border: const OutlineInputBorder(),
+                          suffixIcon: const Icon(Icons.calendar_today),
                         ),
                         child: Text(
                           DateFormat('MMM d, y').format(_selectedDate),

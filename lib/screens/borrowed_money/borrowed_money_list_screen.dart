@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/borrowed_money.dart';
@@ -7,6 +7,8 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 import 'borrowed_money_form_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class BorrowedMoneyListScreen extends StatefulWidget {
   const BorrowedMoneyListScreen({super.key});
@@ -72,7 +74,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
       initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
+          colorScheme: ColorScheme.light(
             primary: AppColors.primary,
             onPrimary: Colors.white,
           ),
@@ -168,12 +170,12 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
           IconButton(
             icon: const Icon(Icons.calendar_today),
             onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
+            tooltip: 'Select Date Range'.tr,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadRecords,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
 import '../services/read_cache.dart';
 
@@ -7,6 +7,7 @@ import '../services/read_cache.dart';
 export '../services/read_cache.dart' show describeCacheAge;
 import '../utils/constants.dart';
 import 'skeleton_loader.dart';
+import '../widgets/tr_text.dart';
 
 /// The three things every list screen has to render besides its list: nothing
 /// yet, something went wrong, and still loading.

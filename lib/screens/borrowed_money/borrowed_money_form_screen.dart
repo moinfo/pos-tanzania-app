@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import '../../models/borrowed_money.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class BorrowedMoneyFormScreen extends StatefulWidget {
   final BorrowedMoneyItem? record;
@@ -51,7 +53,7 @@ class _BorrowedMoneyFormScreenState extends State<BorrowedMoneyFormScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
+          colorScheme: ColorScheme.light(
             primary: AppColors.primary,
             onPrimary: Colors.white,
           ),
@@ -133,17 +135,17 @@ class _BorrowedMoneyFormScreenState extends State<BorrowedMoneyFormScreen> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Amount (TSh)',
+                  labelText: 'Amount (TSh)'.tr,
                   prefixIcon: const Icon(Icons.attach_money),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Amount is required';
+                  if (v == null || v.trim().isEmpty) return 'Amount is required'.tr;
                   final parsed =
                       double.tryParse(v.replaceAll(',', ''));
                   if (parsed == null || parsed <= 0) {
-                    return 'Enter a valid amount greater than 0';
+                    return 'Enter a valid amount greater than 0'.tr;
                   }
                   return null;
                 },
@@ -156,7 +158,7 @@ class _BorrowedMoneyFormScreenState extends State<BorrowedMoneyFormScreen> {
                 borderRadius: BorderRadius.circular(12),
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Date',
+                    labelText: 'Date'.tr,
                     prefixIcon: const Icon(Icons.calendar_today),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -171,7 +173,7 @@ class _BorrowedMoneyFormScreenState extends State<BorrowedMoneyFormScreen> {
                 controller: _descriptionController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: 'Description (optional)',
+                  labelText: 'Description (optional)'.tr,
                   prefixIcon: const Icon(Icons.notes),
                   alignLabelWithHint: true,
                   border: OutlineInputBorder(

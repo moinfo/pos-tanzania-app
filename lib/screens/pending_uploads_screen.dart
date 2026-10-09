@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +10,7 @@ import '../services/screen_prefetch.dart';
 import '../utils/constants.dart';
 import '../widgets/state_views.dart';
 import '../utils/formatters.dart';
+import '../widgets/tr_text.dart';
 
 /// Everything sitting on this phone that the server has not got.
 ///
@@ -306,7 +307,7 @@ class _PendingUploadsScreenState extends State<PendingUploadsScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Details copied. Paste them anywhere to re-enter or '
               'send them on.'),
           backgroundColor: AppColors.info,

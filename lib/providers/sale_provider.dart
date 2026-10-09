@@ -8,6 +8,7 @@ import '../models/discount_request.dart';
 import '../services/api_service.dart';
 import '../services/offline_feature.dart';
 import '../providers/offline_provider.dart';
+import '../l10n/lang.dart';
 
 class SaleProvider with ChangeNotifier {
   // Cart items
@@ -20,7 +21,7 @@ class SaleProvider with ChangeNotifier {
   String _paymentType = 'Cash'; // Cash, Credit Card, Credit, Due
 
   // Multiple payments list
-  List<SalePayment> _payments = [];
+  final List<SalePayment> _payments = [];
 
   // Getters
   List<SaleItem> get cartItems => _cartItems;
@@ -1128,10 +1129,10 @@ class SaleProvider with ChangeNotifier {
     // Check for items with zero or negative quantity
     for (var item in _cartItems) {
       if (item.quantity <= 0) {
-        return 'Item "${item.itemName}" has invalid quantity.';
+        return 'Item "${item.itemName}" has invalid quantity.'.tr;
       }
       if (item.unitPrice < 0) {
-        return 'Item "${item.itemName}" has invalid price.';
+        return 'Item "${item.itemName}" has invalid price.'.tr;
       }
     }
 

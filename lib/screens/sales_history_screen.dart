@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/pdf_service.dart';
@@ -16,6 +16,8 @@ import '../utils/receipt_sms.dart';
 import '../widgets/app_bottom_navigation.dart';
 import 'package:intl/intl.dart';
 import 'return_sale_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class SalesHistoryScreen extends StatefulWidget {
   const SalesHistoryScreen({
@@ -51,7 +53,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy hh:mm a');
   final TextEditingController _searchController = TextEditingController();
 
-  List<Sale> _sales = [];
+  final List<Sale> _sales = [];
   List<Sale> _filteredSales = [];
   bool _isLoading = false;
 
@@ -436,7 +438,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
             IconButton(
               icon: const Icon(Icons.date_range),
               onPressed: _selectDateRange,
-              tooltip: 'Select Date Range',
+              tooltip: 'Select Date Range'.tr,
             ),
         ],
       ),
@@ -498,7 +500,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search by customer name...',
+                    hintText: 'Search by customer name...'.tr,
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
@@ -744,7 +746,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                   children: [
                                     Text(
                                       '${_currencyFormat.format(sale.total)} TSh',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                         color: AppColors.primary,
@@ -825,7 +827,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                 ? IconButton(
                                     icon: const Icon(Icons.delete_outline, size: 20),
                                     color: AppColors.error,
-                                    tooltip: 'Delete sale',
+                                    tooltip: 'Delete sale'.tr,
                                     visualDensity: VisualDensity.compact,
                                     onPressed: () => _confirmDelete(sale),
                                   )
@@ -983,14 +985,14 @@ class SaleDetailsSheet extends StatelessWidget {
                         // Share button
                         IconButton(
                           icon: Icon(Icons.share, color: AppColors.primary),
-                          tooltip: 'Share Receipt',
+                          tooltip: 'Share Receipt'.tr,
                           onPressed: () => _shareReceipt(context, sale),
                         ),
                         // SMS button -- same pair as the checkout dialog, so
                         // a receipt can be re-sent later from history.
                         IconButton(
                           icon: Icon(Icons.sms_outlined, color: AppColors.primary),
-                          tooltip: 'SMS Receipt',
+                          tooltip: 'SMS Receipt'.tr,
                           onPressed: () => ReceiptSms.send(context, sale,
                               phone: sale.customerPhone),
                         ),
@@ -998,7 +1000,7 @@ class SaleDetailsSheet extends StatelessWidget {
                         if (sale.saleId != null && sale.saleType == 0)
                           IconButton(
                             icon: Icon(Icons.assignment_return, color: AppColors.primary),
-                            tooltip: 'Return Items',
+                            tooltip: 'Return Items'.tr,
                             onPressed: () {
                               Navigator.pop(context);
                               Navigator.push(
@@ -1136,7 +1138,7 @@ class SaleDetailsSheet extends StatelessWidget {
                                           width: 1,
                                         ),
                                       ),
-                                      child: Row(
+                                      child: const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(
@@ -1144,7 +1146,7 @@ class SaleDetailsSheet extends StatelessWidget {
                                             size: 14,
                                             color: AppColors.success,
                                           ),
-                                          const SizedBox(width: 4),
+                                          SizedBox(width: 4),
                                           Text(
                                             'FREE (Quantity Offer)',
                                             style: TextStyle(
@@ -1193,7 +1195,7 @@ class SaleDetailsSheet extends StatelessWidget {
                                       ),
                                       Text(
                                         '${currencyFormat.format(item.lineTotal)} TSh',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: AppColors.primary,
                                         ),
@@ -1262,7 +1264,7 @@ class SaleDetailsSheet extends StatelessWidget {
                                 ),
                                 Text(
                                   '${currencyFormat.format(sale.total)} TSh',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.primary,
@@ -1424,7 +1426,7 @@ class _FilterChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: AppColors.primary,

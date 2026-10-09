@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/stock_location.dart';
@@ -13,6 +13,7 @@ import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/state_views.dart';
+import '../widgets/tr_text.dart';
 
 /// The day's takings per payment type for one location, with a drill-down
 /// into the customers behind each type.
@@ -894,7 +895,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Text('${_money.format((row['amount'] ?? 0) as num)}',
+                    Text(_money.format((row['amount'] ?? 0) as num),
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,

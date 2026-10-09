@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
@@ -15,7 +15,6 @@ import '../models/item.dart';
 import '../models/supervisor.dart';
 import '../models/permission_model.dart';
 import '../models/stock_location.dart';
-import '../models/nfc_wallet.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
@@ -24,6 +23,8 @@ import '../widgets/permission_wrapper.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../utils/constants.dart';
 import 'customer_credit_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class CustomersScreen extends StatefulWidget {
   const CustomersScreen({super.key});
@@ -129,11 +130,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
-              const Icon(Icons.nfc, color: Colors.orange),
-              const SizedBox(width: 8),
-              const Text('NFC Card Details'),
+              Icon(Icons.nfc, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('NFC Card Details'),
             ],
           ),
           content: Column(
@@ -419,7 +420,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search customers...',
+                hintText: 'Search customers...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -506,7 +507,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       floatingActionButton: PermissionFAB(
         permissionId: PermissionIds.customersAdd,
         onPressed: () => _showCustomerForm(),
-        tooltip: 'Add Customer',
+        tooltip: 'Add Customer'.tr,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
@@ -538,7 +539,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     ),
                     child: Text(
                       '$number',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -550,7 +551,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     backgroundColor: AppColors.primary.withOpacity(0.1),
                     child: Text(
                       customer.firstName.isNotEmpty ? customer.firstName[0].toUpperCase() : 'C',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
@@ -750,7 +751,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         permissionId: PermissionIds.customersEdit,
                         onPressed: () => _showCustomerForm(customer: customer),
                         icon: const Icon(Icons.edit, size: 18),
-                        tooltip: 'Edit Customer',
+                        tooltip: 'Edit Customer'.tr,
                         color: AppColors.primary,
                         showDisabled: false,
                       ),
@@ -759,7 +760,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         permissionId: PermissionIds.customersDelete,
                         onPressed: () => _deleteCustomer(customer),
                         icon: const Icon(Icons.delete, size: 18),
-                        tooltip: 'Delete Customer',
+                        tooltip: 'Delete Customer'.tr,
                         color: AppColors.error,
                         showDisabled: false,
                       ),
@@ -772,7 +773,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         permissionId: PermissionIds.customerCreditLimitsAdd,
                         onPressed: () => _requestCreditLimit(customer),
                         icon: const Icon(Icons.request_quote_outlined, size: 18),
-                        tooltip: 'Customer Credit Limit',
+                        tooltip: 'Customer Credit Limit'.tr,
                         color: AppColors.warning,
                         showDisabled: false,
                       ),
@@ -785,7 +786,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             permissionId: PermissionIds.nfcCardsView,
                             onPressed: () => _viewCustomerNfcCard(customer),
                             icon: const Icon(Icons.credit_card, size: 18),
-                            tooltip: 'View NFC Card',
+                            tooltip: 'View NFC Card'.tr,
                             color: Colors.green,
                             showDisabled: false,
                           )
@@ -795,7 +796,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             permissionId: PermissionIds.nfcCardsRegister,
                             onPressed: () => _registerCardToCustomer(customer),
                             icon: const Icon(Icons.add_card, size: 18),
-                            tooltip: 'Register NFC Card',
+                            tooltip: 'Register NFC Card'.tr,
                             color: Colors.orange,
                             showDisabled: false,
                           ),
@@ -988,7 +989,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
   String _gender = 'M';
   bool _isBodaBoda = false;
   String _discountType = 'percentage';
-  bool _oneTimeCredit = false;
+  final bool _oneTimeCredit = false;
   String _dormantStatus = 'active';
   bool _taxable = true;
   // NFC settings
@@ -1223,7 +1224,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
           TextField(
             controller: _ccSearchController(key),
             decoration: InputDecoration(
-              hintText: 'Search and add item…',
+              hintText: 'Search and add item…'.tr,
               isDense: true,
               border: const OutlineInputBorder(),
               prefixIcon: const Icon(Icons.search, size: 18),
@@ -1480,7 +1481,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
               // Header
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(4),
@@ -1588,9 +1589,9 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
             Expanded(
               child: TextFormField(
                 controller: _firstNameController,
-                decoration: const InputDecoration(
-                  labelText: 'First Name *',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'First Name *'.tr,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) =>
                     value?.isEmpty ?? true ? 'Required' : null,
@@ -1600,9 +1601,9 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
             Expanded(
               child: TextFormField(
                 controller: _lastNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Last Name *',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'Last Name *'.tr,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) =>
                     value?.isEmpty ?? true ? 'Required' : null,
@@ -1641,10 +1642,10 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
             Expanded(
               child: TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
+                decoration: InputDecoration(
+                  labelText: 'Phone'.tr,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.phone),
                 ),
                 keyboardType: TextInputType.phone,
               ),
@@ -1653,10 +1654,10 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
             Expanded(
               child: TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+                decoration: InputDecoration(
+                  labelText: 'Email'.tr,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.email),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -1666,10 +1667,10 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _creditLimitController,
-          decoration: const InputDecoration(
-            labelText: 'Credit Limit',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.credit_card),
+          decoration: InputDecoration(
+            labelText: 'Credit Limit'.tr,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.credit_card),
           ),
           keyboardType: TextInputType.number,
         ),
@@ -1693,7 +1694,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
             setState(() => _allowBankPayment = value);
           },
           contentPadding: EdgeInsets.zero,
-          activeThumbColor: Colors.blue,
+          activeThumbColor: AppColors.brandSwatch,
         ),
         const Divider(),
         // NFC Settings Section - Leruma only, requires nfc_cards_settings permission
@@ -1761,12 +1762,12 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         _buildCreditCardSection(),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedSupervisorId,
+          initialValue: _selectedSupervisorId,
           isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Supervisor Name',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.person_outline),
+          decoration: InputDecoration(
+            labelText: 'Supervisor Name'.tr,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.person_outline),
           ),
           items: _supervisors.map((supervisor) {
             return DropdownMenuItem(
@@ -1803,74 +1804,74 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _companyNameController,
-          decoration: const InputDecoration(
-            labelText: 'Company',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'Company'.tr,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _accountNumberController,
-          decoration: const InputDecoration(
-            labelText: 'Account #',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'Account #'.tr,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _address1Controller,
-          decoration: const InputDecoration(
-            labelText: 'Address 1',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'Address 1'.tr,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _address2Controller,
-          decoration: const InputDecoration(
-            labelText: 'Address 2',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'Address 2'.tr,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _cityController,
-          decoration: const InputDecoration(
-            labelText: 'City',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'City'.tr,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _countyController,
-          decoration: const InputDecoration(
-            labelText: 'County',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'County'.tr,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _postCodeController,
-          decoration: const InputDecoration(
-            labelText: 'Post Code',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'Post Code'.tr,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _countryController,
-          decoration: const InputDecoration(
-            labelText: 'Country',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'Country'.tr,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _oneTimeCreditLimitController,
-          decoration: const InputDecoration(
-            labelText: 'One Time Credit Limit',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.credit_card),
+          decoration: InputDecoration(
+            labelText: 'One Time Credit Limit'.tr,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.credit_card),
           ),
           keyboardType: TextInputType.number,
         ),
@@ -1920,39 +1921,39 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _discountController,
-          decoration: const InputDecoration(
-            labelText: 'Discount',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.percent),
+          decoration: InputDecoration(
+            labelText: 'Discount'.tr,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.percent),
           ),
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _dueDateDaysController,
-          decoration: const InputDecoration(
-            labelText: 'Due Date Days',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.calendar_today),
+          decoration: InputDecoration(
+            labelText: 'Due Date Days'.tr,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.calendar_today),
           ),
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _badDebtorDaysController,
-          decoration: const InputDecoration(
-            labelText: 'Bad Debtor Days',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.warning),
+          decoration: InputDecoration(
+            labelText: 'Bad Debtor Days'.tr,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.warning),
           ),
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _dormantStatus,
-          decoration: const InputDecoration(
-            labelText: 'Dormant Status',
-            border: OutlineInputBorder(),
+          initialValue: _dormantStatus,
+          decoration: InputDecoration(
+            labelText: 'Dormant Status'.tr,
+            border: const OutlineInputBorder(),
           ),
           items: const [
             DropdownMenuItem(value: 'active', child: Text('ACTIVE')),
@@ -1966,10 +1967,10 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _taxIdController,
-          decoration: const InputDecoration(
-            labelText: 'Tax ID',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.description),
+          decoration: InputDecoration(
+            labelText: 'Tax ID'.tr,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.description),
           ),
         ),
         const SizedBox(height: 8),
@@ -1986,9 +1987,9 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _commentsController,
-          decoration: const InputDecoration(
-            labelText: 'Comments',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: 'Comments'.tr,
+            border: const OutlineInputBorder(),
           ),
           maxLines: 3,
         ),

@@ -1,10 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
 import 'landing_screen.dart' show LandingColors;
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../utils/constants.dart';
 
 /// Order history screen - lookup orders by phone number (used as tab)
 class OrderHistoryScreen extends StatefulWidget {
@@ -149,7 +152,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                   controller: _phoneController,
                   style: TextStyle(color: _textColor),
                   decoration: InputDecoration(
-                    hintText: '0762995775',
+                    hintText: '0762995775'.tr,
                     hintStyle: TextStyle(color: _subtextColor),
                     prefixIcon: Icon(Icons.phone, color: _subtextColor),
                     border: OutlineInputBorder(
@@ -368,7 +371,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
         color = Colors.orange;
         break;
       case 'confirmed':
-        color = Colors.blue;
+        color = AppColors.brandSwatch;
         break;
       case 'processing':
         color = Colors.purple;

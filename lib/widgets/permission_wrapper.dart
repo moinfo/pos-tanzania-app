@@ -12,14 +12,14 @@ class PermissionWrapper extends StatelessWidget {
   final bool showFallbackForNoPermission;
 
   const PermissionWrapper({
-    Key? key,
+    super.key,
     this.permissionId,
     this.anyPermissions,
     this.allPermissions,
     required this.child,
     this.fallback,
     this.showFallbackForNoPermission = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -56,12 +56,12 @@ class PermissionEnabler extends StatelessWidget {
   final Widget Function(bool enabled) builder;
 
   const PermissionEnabler({
-    Key? key,
+    super.key,
     this.permissionId,
     this.anyPermissions,
     this.allPermissions,
     required this.builder,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -115,13 +115,13 @@ class PermissionButton extends StatelessWidget {
   final bool showDisabled;
 
   const PermissionButton({
-    Key? key,
+    super.key,
     this.permissionId,
     required this.onPressed,
     required this.child,
     this.style,
     this.showDisabled = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -160,14 +160,14 @@ class PermissionIconButton extends StatelessWidget {
   final Color? color;
 
   const PermissionIconButton({
-    Key? key,
+    super.key,
     this.permissionId,
     required this.onPressed,
     required this.icon,
     this.tooltip,
     this.showDisabled = true,
     this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -207,14 +207,14 @@ class PermissionFAB extends StatelessWidget {
   final bool showDisabled;
 
   const PermissionFAB({
-    Key? key,
+    super.key,
     this.permissionId,
     required this.onPressed,
     required this.child,
     this.tooltip,
     this.backgroundColor,
     this.showDisabled = false,
-  }) : super(key: key);
+  });
 
   final Color? backgroundColor;
 

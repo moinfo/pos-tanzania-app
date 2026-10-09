@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +11,8 @@ import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../services/tra_service.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class NewTRASaleScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -91,7 +93,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt, color: AppColors.primary),
                 title: const Text('Take Photo'),
                 onTap: () {
                   Navigator.pop(context);
@@ -388,7 +390,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
               // EFD Device
               _buildLabel('EFD Device', isDark),
               DropdownButtonFormField<int>(
-                value: _selectedEfdId,
+                initialValue: _selectedEfdId,
                 decoration: _inputDecoration('Select EFD', isDark),
                 dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                 style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -529,8 +531,8 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
                                     color: isDark ? Colors.white : AppColors.lightText,
                                   ),
                                   validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Required';
-                                    if (int.tryParse(value) == null) return 'Invalid number';
+                                    if (value == null || value.isEmpty) return 'Required'.tr;
+                                    if (int.tryParse(value) == null) return 'Invalid number'.tr;
                                     return null;
                                   },
                                 ),
@@ -566,8 +568,8 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Required';
-                  if (double.tryParse(value) == null) return 'Invalid amount';
+                  if (value == null || value.isEmpty) return 'Required'.tr;
+                  if (double.tryParse(value) == null) return 'Invalid amount'.tr;
                   return null;
                 },
               ),
@@ -581,8 +583,8 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Required';
-                  if (double.tryParse(value) == null) return 'Invalid amount';
+                  if (value == null || value.isEmpty) return 'Required'.tr;
+                  if (double.tryParse(value) == null) return 'Invalid amount'.tr;
                   return null;
                 },
               ),
@@ -596,8 +598,8 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Required';
-                  if (double.tryParse(value) == null) return 'Invalid amount';
+                  if (value == null || value.isEmpty) return 'Required'.tr;
+                  if (double.tryParse(value) == null) return 'Invalid amount'.tr;
                   return null;
                 },
               ),
@@ -790,7 +792,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.error),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
@@ -840,7 +842,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.error),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );

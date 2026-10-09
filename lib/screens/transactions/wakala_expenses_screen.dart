@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -11,6 +11,8 @@ import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../providers/theme_provider.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class WakalaExpensesScreen extends StatefulWidget {
   const WakalaExpensesScreen({super.key});
@@ -184,7 +186,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Filter by date range',
+            tooltip: 'Filter by date range'.tr,
           ),
         ],
       ),
@@ -319,7 +321,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                           color: AppColors.error.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.account_balance_wallet,
                           size: 20,
                           color: AppColors.error,
@@ -338,7 +340,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                   ),
                   Text(
                     'TZS ${Formatters.formatCurrency(_total)}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: AppColors.error,
@@ -562,12 +564,12 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.edit,
+                        icon: Icon(Icons.edit,
                             color: AppColors.primary, size: 20),
                         onPressed: () => _showEditExpenseDialog(expense),
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
-                        tooltip: 'Edit expense',
+                        tooltip: 'Edit expense'.tr,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -583,7 +585,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                         onPressed: () => _deleteExpense(expense.id),
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
-                        tooltip: 'Delete expense',
+                        tooltip: 'Delete expense'.tr,
                       ),
                     ),
                   ],
@@ -785,17 +787,17 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
     final lightInputDecoration = InputDecoration(
       filled: true,
       fillColor: const Color(0xFFF9FAFB),
-      labelStyle: TextStyle(
-        color: const Color(0xFF6B7280),
+      labelStyle: const TextStyle(
+        color: Color(0xFF6B7280),
         fontWeight: FontWeight.w500,
       ),
-      hintStyle: TextStyle(
-        color: const Color(0xFF9CA3AF),
+      hintStyle: const TextStyle(
+        color: Color(0xFF9CA3AF),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: const Color(0xFFE5E7EB),
+        borderSide: const BorderSide(
+          color: Color(0xFFE5E7EB),
           width: 1.5,
         ),
       ),
@@ -808,14 +810,14 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.error,
           width: 1.5,
         ),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.error,
           width: 2,
         ),
@@ -827,13 +829,13 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
     final darkInputDecoration = InputDecoration(
       filled: true,
       fillColor: AppColors.darkSurface,
-      labelStyle: TextStyle(
+      labelStyle: const TextStyle(
         color: Colors.white70,
         fontWeight: FontWeight.w500,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: Colors.white24,
           width: 1,
         ),
@@ -847,14 +849,14 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.error,
           width: 1,
         ),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.error,
           width: 2,
         ),
@@ -942,7 +944,7 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
                     borderRadius: BorderRadius.circular(12),
                     child: InputDecorator(
                       decoration: inputDecoration.copyWith(
-                        labelText: 'Date',
+                        labelText: 'Date'.tr,
                         prefixIcon: Icon(
                           Icons.calendar_today,
                           color: isDark ? Colors.white70 : const Color(0xFF6B7280),
@@ -967,7 +969,7 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
                       fontSize: 16,
                     ),
                     decoration: inputDecoration.copyWith(
-                      labelText: 'Amount (TZS)',
+                      labelText: 'Amount (TZS)'.tr,
                       prefixIcon: Icon(
                         Icons.payments,
                         color: isDark ? Colors.white70 : const Color(0xFF6B7280),
@@ -976,11 +978,11 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
                     keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter amount';
+                        return 'Please enter amount'.tr;
                       }
                       if (double.tryParse(value) == null ||
                           double.parse(value) <= 0) {
-                        return 'Please enter a valid amount';
+                        return 'Please enter a valid amount'.tr;
                       }
                       return null;
                     },
@@ -995,7 +997,7 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
                       fontSize: 16,
                     ),
                     decoration: inputDecoration.copyWith(
-                      labelText: 'Description (Optional)',
+                      labelText: 'Description (Optional)'.tr,
                       prefixIcon: Padding(
                         padding: const EdgeInsets.only(bottom: 48),
                         child: Icon(

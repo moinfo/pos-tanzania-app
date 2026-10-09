@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
@@ -12,6 +12,7 @@ import 'sales_history_screen.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/state_views.dart';
+import '../widgets/tr_text.dart';
 
 /// Seller Report Screen - Leruma specific
 /// Shows seller/supervisor performance data by stock location
@@ -178,7 +179,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                   ),
                 ),
                 trailing: _selectedLocation == null
-                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                    ? Icon(Icons.check_circle, color: AppColors.primary)
                     : null,
                 onTap: () {
                   setState(() {
@@ -210,7 +211,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                         ),
                       ),
                       trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: AppColors.primary)
+                          ? Icon(Icons.check_circle, color: AppColors.primary)
                           : null,
                       onTap: () {
                         setState(() {
@@ -611,7 +612,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.store, color: AppColors.primary, size: 20),
+                          child: Icon(Icons.store, color: AppColors.primary, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -655,8 +656,8 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
+                                SizedBox(width: 4),
+                                Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
                               ],
                             ),
                           ),
@@ -713,7 +714,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                             ),
                             child: Text(
                               '${_sellers.length} Seller${_sellers.length > 1 ? 's' : ''}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -735,7 +736,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             ..._sellers.map((seller) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _buildSellerCard(seller, isDark),
-            )).toList(),
+            )),
           ],
         ),
       ),
@@ -803,7 +804,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                   backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   child: Text(
                     supervisorName.isNotEmpty ? supervisorName[0].toUpperCase() : 'S',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
@@ -10,6 +10,7 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
 
 class TodaySummaryScreen extends StatefulWidget {
   const TodaySummaryScreen({super.key});

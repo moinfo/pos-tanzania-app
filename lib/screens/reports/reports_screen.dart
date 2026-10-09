@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../models/report.dart';
 import '../../models/permission_model.dart';
@@ -7,6 +7,7 @@ import '../../providers/permission_provider.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 import 'report_view_screen.dart';
+import '../../widgets/tr_text.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +18,8 @@ import '../widgets/searchable_picker.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
 import 'customer_credit_history_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// The customer credit limit module, not just its request form.
 ///
@@ -368,7 +370,7 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.person_search),
-            tooltip: 'Customer history',
+            tooltip: 'Customer history'.tr,
             onPressed: _chooseCustomerForHistory,
           ),
           // The calendar and clear-range icons that used to sit here opened
@@ -379,7 +381,7 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
           // is always visible and always states the range.
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
             onPressed: () {
               _load();
               _loadUnused();
@@ -536,8 +538,8 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          hintText: 'Document number, customer, reason or notes...',
-          helperText: 'Also narrows the customer history picker above',
+          hintText: 'Document number, customer, reason or notes...'.tr,
+          helperText: 'Also narrows the customer history picker above'.tr,
           helperStyle: const TextStyle(fontSize: 10.5),
           prefixIcon: const Icon(Icons.search),
           isDense: true,

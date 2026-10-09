@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 
 import '../models/approval.dart';
@@ -10,6 +10,8 @@ import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
 import 'credit_limits_screen.dart' show OutcomeBadge, outcomeColour;
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// One customer's whole credit-limit story.
 ///
@@ -106,7 +108,7 @@ class _CustomerCreditHistoryScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
             onPressed: _load,
           ),
         ],

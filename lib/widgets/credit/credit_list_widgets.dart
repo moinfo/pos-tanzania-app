@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
 
 /// Shared pieces of the Leruma credit & debt screens
 /// (design_handoff_home_credit, screen 3).
@@ -240,9 +241,9 @@ class CreditTotalsCard extends StatelessWidget {
                 child: _TotalBlock(
                   label: 'TOTAL CREDIT',
                   value: credit,
-                  bg: Color(0xFFF5F8FC),
-                  labelColor: Color(0xFF6B7684),
-                  valueColor: Color(0xFF103863),
+                  bg: const Color(0xFFF5F8FC),
+                  labelColor: const Color(0xFF6B7684),
+                  valueColor: const Color(0xFF103863),
                 ),
               ),
               const SizedBox(width: 10),
@@ -250,9 +251,9 @@ class CreditTotalsCard extends StatelessWidget {
                 child: _TotalBlock(
                   label: 'TOTAL PAID',
                   value: paid,
-                  bg: Color(0xFFEEF9F2),
-                  labelColor: Color(0xFF3F7355),
-                  valueColor: Color(0xFF12833C),
+                  bg: const Color(0xFFEEF9F2),
+                  labelColor: const Color(0xFF3F7355),
+                  valueColor: const Color(0xFF12833C),
                 ),
               ),
             ],

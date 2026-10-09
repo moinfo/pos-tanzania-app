@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -13,6 +13,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class CashBasisScreen extends StatefulWidget {
   const CashBasisScreen({super.key});
@@ -36,7 +38,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
   List<CashBasisCategory> _categories = [];
   List<CashBasisTransaction> _transactions = [];
   double _total = 0;
-  Map<int, double> _categoryTotals = {}; // Store total per category
+  final Map<int, double> _categoryTotals = {}; // Store total per category
 
   // Default date range: today only
   DateTime _startDate = DateTime.now();
@@ -120,13 +122,13 @@ class _CashBasisScreenState extends State<CashBasisScreen>
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: 'Name'.tr),
               autofocus: true,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Description'.tr),
               maxLines: 2,
             ),
           ],
@@ -208,9 +210,9 @@ class _CashBasisScreenState extends State<CashBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<CashBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: 'Category'.tr),
                   items: _categories.map((category) {
                     return DropdownMenuItem(
                       value: category,
@@ -229,9 +231,9 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -421,13 +423,13 @@ class _CashBasisScreenState extends State<CashBasisScreen>
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: 'Name'.tr),
               autofocus: true,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Description'.tr),
               maxLines: 2,
             ),
           ],
@@ -543,7 +545,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
           child: GlassmorphicCard(
             isDark: isDark,
             child: ListTile(
-              leading: const CircleAvatar(
+              leading: CircleAvatar(
                 backgroundColor: AppColors.primary,
                 child: Icon(Icons.category, color: Colors.white),
               ),
@@ -567,15 +569,15 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                 children: [
                   if (canEdit)
                     IconButton(
-                      icon: const Icon(Icons.edit, color: AppColors.primary),
+                      icon: Icon(Icons.edit, color: AppColors.primary),
                       onPressed: () => _showEditCategoryDialog(category),
-                      tooltip: 'Edit',
+                      tooltip: 'Edit'.tr,
                     ),
                   if (canDelete)
                     IconButton(
                       icon: const Icon(Icons.delete, color: AppColors.error),
                       onPressed: () => _deleteCashBasisCategory(category),
-                      tooltip: 'Delete',
+                      tooltip: 'Delete'.tr,
                     ),
                 ],
               ) : null,
@@ -611,9 +613,9 @@ class _CashBasisScreenState extends State<CashBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<CashBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: 'Category'.tr),
                   items: _categories.map((category) {
                     return DropdownMenuItem(
                       value: category,
@@ -632,9 +634,9 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -835,7 +837,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                     ),
                     Text(
                       Formatters.formatCurrency(_total),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
@@ -914,7 +916,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                             },
                             itemBuilder: (context) => [
                               if (canEdit)
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'edit',
                                   child: Row(
                                     children: [

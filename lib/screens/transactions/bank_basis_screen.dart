@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -13,6 +13,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class BankBasisScreen extends StatefulWidget {
   const BankBasisScreen({super.key});
@@ -36,7 +38,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
   List<BankBasisCategory> _categories = [];
   List<BankBasisTransaction> _transactions = [];
   double _total = 0;
-  Map<int, double> _categoryTotals = {};
+  final Map<int, double> _categoryTotals = {};
 
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
@@ -119,13 +121,13 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name (e.g., M-Pesa, Airtel Money)'),
+              decoration: InputDecoration(labelText: 'Name (e.g., M-Pesa, Airtel Money)'.tr),
               autofocus: true,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Description'.tr),
               maxLines: 2,
             ),
           ],
@@ -207,9 +209,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<BankBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: 'Category'.tr),
                   items: _categories.map((category) {
                     return DropdownMenuItem(
                       value: category,
@@ -228,9 +230,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -325,13 +327,13 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: 'Name'.tr),
               autofocus: true,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Description'.tr),
               maxLines: 2,
             ),
           ],
@@ -444,9 +446,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<BankBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: 'Category'.tr),
                   items: _categories.map((category) {
                     return DropdownMenuItem(
                       value: category,
@@ -465,9 +467,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -700,7 +702,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           child: GlassmorphicCard(
             isDark: isDark,
             child: ListTile(
-              leading: const CircleAvatar(
+              leading: CircleAvatar(
                 backgroundColor: AppColors.primary,
                 child: Icon(Icons.category, color: Colors.white),
               ),
@@ -723,15 +725,15 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                       children: [
                         if (canEdit)
                           IconButton(
-                            icon: const Icon(Icons.edit, color: AppColors.primary),
+                            icon: Icon(Icons.edit, color: AppColors.primary),
                             onPressed: () => _showEditCategoryDialog(category),
-                            tooltip: 'Edit',
+                            tooltip: 'Edit'.tr,
                           ),
                         if (canDelete)
                           IconButton(
                             icon: const Icon(Icons.delete, color: AppColors.error),
                             onPressed: () => _deleteBankBasisCategory(category),
-                            tooltip: 'Delete',
+                            tooltip: 'Delete'.tr,
                           ),
                       ],
                     )
@@ -818,7 +820,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                   ),
                   Text(
                     Formatters.formatCurrency(_total),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
@@ -896,7 +898,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                                       },
                                       itemBuilder: (context) => [
                                         if (canEdit)
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'edit',
                                             child: Row(
                                               children: [

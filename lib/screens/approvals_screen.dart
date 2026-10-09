@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -17,6 +17,8 @@ import '../widgets/date_range_filter_bar.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
 import 'create_discount_request_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// Requests and approvals in one place.
 ///
@@ -289,7 +291,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
           // and it is absent entirely for the people without the grant.
           if (_canBulk && _tabCount > 1 && !_selecting && _inbox.isNotEmpty)
             IconButton(
-              tooltip: 'Select several',
+              tooltip: 'Select several'.tr,
               icon: const Icon(Icons.checklist_rtl),
               onPressed: () => setState(() {
                 _selecting = true;
@@ -377,7 +379,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
               Row(
                 children: [
                   IconButton(
-                    tooltip: 'Cancel',
+                    tooltip: 'Cancel'.tr,
                     onPressed: _bulkBusy ? null : _exitSelection,
                     icon: const Icon(Icons.close),
                     color: AppColors.muted(context),
@@ -580,7 +582,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.request_quote_outlined, color: AppColors.info),
+              leading: Icon(Icons.request_quote_outlined, color: AppColors.info),
               title: const Text('Customer credit limit'),
               subtitle: const Text('A one-time allowance for one customer'),
               onTap: () {
@@ -673,9 +675,9 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
               autofocus: true,
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Why are these being rejected?',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: 'Why are these being rejected?'.tr,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -1706,9 +1708,9 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                 TextField(
                   controller: _comment,
                   maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Comment',
-                    helperText: 'Required if you reject',
+                  decoration: InputDecoration(
+                    labelText: 'Comment'.tr,
+                    helperText: 'Required if you reject'.tr,
                   ),
                 ),
               ] else if (data.approval.isOpen) ...[
@@ -1721,7 +1723,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                     color: AppColors.info.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(Icons.info_outline, color: AppColors.info, size: 18),
                       SizedBox(width: 8),

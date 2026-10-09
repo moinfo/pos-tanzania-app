@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
 import '../../widgets/state_views.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +20,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_z_report_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class ZReportsListScreen extends StatefulWidget {
   const ZReportsListScreen({super.key});
@@ -326,7 +328,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.visibility, color: AppColors.primary),
+                leading: Icon(Icons.visibility, color: AppColors.primary),
                 title: Text(
                   'View File',
                   style:
@@ -671,12 +673,12 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
           IconButton(
             icon: const Icon(Icons.calendar_today),
             onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
+            tooltip: 'Select Date Range'.tr,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _onRefresh,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -749,7 +751,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.error_outline,
+                              const Icon(Icons.error_outline,
                                   size: 64, color: AppColors.error),
                               const SizedBox(height: 16),
                               Text(_errorMessage!,
@@ -902,7 +904,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                                   8),
                                                         ),
                                                         child: IconButton(
-                                                          icon: const Icon(
+                                                          icon: Icon(
                                                               Icons.edit,
                                                               color: AppColors
                                                                   .primary,
@@ -915,7 +917,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                                   8),
                                                           constraints:
                                                               const BoxConstraints(),
-                                                          tooltip: 'Edit Z Report',
+                                                          tooltip: 'Edit Z Report'.tr,
                                                         ),
                                                       ),
                                                     if (hasEditPermission &&
@@ -944,7 +946,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                           constraints:
                                                               const BoxConstraints(),
                                                           tooltip:
-                                                              'Delete Z Report',
+                                                              'Delete Z Report'.tr,
                                                         ),
                                                       ),
                                                   ],
@@ -1100,7 +1102,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
       floatingActionButton: PermissionFAB(
         permissionId: PermissionIds.cashSubmitAddZReport,
         onPressed: _navigateToNewZReport,
-        tooltip: 'Add Z Report',
+        tooltip: 'Add Z Report'.tr,
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),

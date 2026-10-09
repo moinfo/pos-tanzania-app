@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -15,6 +15,8 @@ import '../providers/permission_provider.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class NfcCardsScreen extends StatefulWidget {
   const NfcCardsScreen({super.key});
@@ -92,11 +94,11 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.check_circle, color: AppColors.success),
-            const SizedBox(width: 8),
-            const Text('Card Found'),
+            Icon(Icons.check_circle, color: AppColors.success),
+            SizedBox(width: 8),
+            Text('Card Found'),
           ],
         ),
         content: Column(
@@ -151,11 +153,11 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.warning, color: AppColors.warning),
-            const SizedBox(width: 8),
-            const Text('Card Not Registered'),
+            Icon(Icons.warning, color: AppColors.warning),
+            SizedBox(width: 8),
+            Text('Card Not Registered'),
           ],
         ),
         content: Column(
@@ -317,7 +319,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
             IconButton(
               icon: const Icon(Icons.nfc),
               onPressed: _scanAndLookupCard,
-              tooltip: 'Scan Card',
+              tooltip: 'Scan Card'.tr,
             ),
         ],
       ),
@@ -354,7 +356,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_errorMessage!),
                           const SizedBox(height: 16),
@@ -440,7 +442,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.nfc,
                     color: AppColors.primary,
                   ),
@@ -615,7 +617,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                       label: const Text('Statement'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
+                        side: BorderSide(color: AppColors.primary),
                       ),
                     ),
                   ),
@@ -664,20 +666,20 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
             TextField(
               controller: amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Amount (TZS)',
-                prefixIcon: Icon(Icons.money),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'Amount (TZS)'.tr,
+                prefixIcon: const Icon(Icons.money),
+                border: const OutlineInputBorder(),
               ),
               autofocus: true,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                prefixIcon: Icon(Icons.note),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'Description (optional)'.tr,
+                prefixIcon: const Icon(Icons.note),
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -855,7 +857,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                         label: const Text('Print'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary),
+                          side: BorderSide(color: AppColors.primary),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
@@ -876,8 +878,8 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                         icon: const Icon(Icons.share),
                         label: const Text('Share'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                          side: const BorderSide(color: Colors.blue),
+                          foregroundColor: AppColors.brandSwatch,
+                          side: BorderSide(color: AppColors.brandSwatch),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
@@ -1090,7 +1092,7 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                       const SizedBox(height: 16),
                       Text(_errorMessage!),
                       const SizedBox(height: 16),
@@ -1386,7 +1388,7 @@ class _CustomerPickerDialogState extends State<_CustomerPickerDialog> {
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search customers...',
+                hintText: 'Search customers...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),

@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/receiving.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 /// Pick which of a receiving's items are coming back, and how many of each.
 ///
@@ -90,9 +92,9 @@ class _ReturnItemsPickerState extends State<ReturnItemsPicker> {
             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
           ],
           decoration: InputDecoration(
-            labelText: 'Quantity to return',
+            labelText: 'Quantity to return'.tr,
             border: const OutlineInputBorder(),
-            helperText: '${_plain(row.returnable)} returnable',
+            helperText: '${_plain(row.returnable)} returnable'.tr,
           ),
           onSubmitted: (value) =>
               Navigator.pop(context, double.tryParse(value.trim())),
@@ -195,7 +197,7 @@ class _ReturnItemsPickerState extends State<ReturnItemsPicker> {
                     controller: _searchController,
                     onChanged: (value) => setState(() => _search = value.trim()),
                     decoration: InputDecoration(
-                      hintText: 'Search this receiving...',
+                      hintText: 'Search this receiving...'.tr,
                       prefixIcon: const Icon(Icons.search, size: 20),
                       isDense: true,
                       border: OutlineInputBorder(

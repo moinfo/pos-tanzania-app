@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// The date range a list is currently showing, and the way to change it.
 ///
@@ -234,7 +236,7 @@ Future<DateTimeRange?> showListDateRangePicker(
     // empty picker leaves the user guessing what they are currently looking
     // at, which is the thing this whole bar exists to stop.
     initialDateRange: initial ?? DateTimeRange(start: today, end: today),
-    helpText: 'Select date range',
+    helpText: 'Select date range'.tr,
     saveText: 'Apply',
     fieldStartLabelText: 'From',
     fieldEndLabelText: 'To',

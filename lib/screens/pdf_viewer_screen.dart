@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String filePath;
@@ -49,9 +50,9 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 children: [
                   const Icon(Icons.error_outline, size: 64, color: AppColors.error),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Error loading PDF',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Padding(

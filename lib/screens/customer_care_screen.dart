@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,6 +9,8 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// Customer Care Screen (CRM View)
 /// Shows customers with credit info and days since last purchase
@@ -32,8 +34,8 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
   String _filterStatus = 'all'; // all, active, attention, at_risk, inactive, new
 
   // Use app brand colors
-  static const Color _headerColor = AppColors.primary;
-  static const Color _headerColorDark = AppColors.primaryDark;
+  static Color get _headerColor => AppColors.primary;
+  static Color get _headerColorDark => AppColors.primaryDark;
 
   @override
   void initState() {
@@ -122,7 +124,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
       case 'inactive':
         return Colors.red;
       case 'new':
-        return Colors.blue;
+        return AppColors.brandSwatch;
       default:
         return Colors.grey;
     }
@@ -267,7 +269,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -298,7 +300,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                 controller: _searchController,
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
-                  hintText: 'Search customer name, phone, or address...',
+                  hintText: 'Search customer name, phone, or address...'.tr,
                   hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
                   prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                   suffixIcon: _searchController.text.isNotEmpty
@@ -334,7 +336,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                     const SizedBox(width: 8),
                     _buildFilterChip('inactive', 'Inactive', Icons.cancel, Colors.red, isDark),
                     const SizedBox(width: 8),
-                    _buildFilterChip('new', 'New', Icons.star, Colors.blue, isDark),
+                    _buildFilterChip('new', 'New', Icons.star, AppColors.brandSwatch, isDark),
                   ],
                 ),
               ),
@@ -360,11 +362,11 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.account_balance_wallet, size: 16, color: Colors.orange),
+                        const Icon(Icons.account_balance_wallet, size: 16, color: Colors.orange),
                         const SizedBox(width: 4),
                         Text(
                           '${_currencyFormat.format(_totals!.balance)} TSh',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Colors.orange,
@@ -388,7 +390,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
                           const SizedBox(height: 16),
@@ -505,7 +507,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: const BorderRadius.only(
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(10),
                 topRight: Radius.circular(10),
               ),
@@ -523,7 +525,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                   child: Center(
                     child: Text(
                       '$number',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _headerColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -642,7 +644,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                         'Credit Limit',
                         '${_currencyFormat.format(customer.creditLimit)} TSh',
                         Icons.account_balance_wallet,
-                        Colors.blue,
+                        AppColors.brandSwatch,
                         isDark,
                       ),
                     ),
@@ -728,7 +730,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                 _buildActionButton(
                   icon: Icons.message,
                   label: 'SMS',
-                  color: Colors.blue,
+                  color: AppColors.brandSwatch,
                   onTap: () => _messageCustomer(customer.phoneNumber),
                   isDark: isDark,
                 ),
@@ -832,7 +834,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                     'Total Customers',
                     '${_totals!.customerCount}',
                     Icons.people,
-                    Colors.blue,
+                    AppColors.brandSwatch,
                     isDark,
                   ),
                 ),

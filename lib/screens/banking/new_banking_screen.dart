@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -18,6 +18,8 @@ import '../../services/offline_actions.dart';
 import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class NewBankingScreen extends StatefulWidget {
   final BankingListItem? banking;
@@ -184,7 +186,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt, color: AppColors.primary),
                 title: const Text('Take Photo'),
                 onTap: () {
                   Navigator.pop(context);
@@ -548,7 +550,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                            Icon(Icons.location_on, color: AppColors.primary, size: 20),
                             const SizedBox(width: 8),
                             Text(
                               'Location: ${selectedLocation.locationName}',
@@ -564,11 +566,11 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                     ],
                     // Bank Selection
                     DropdownButtonFormField<String>(
-                      value: _selectedBank,
+                      initialValue: _selectedBank,
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                       decoration: InputDecoration(
-                        labelText: 'Bank',
+                        labelText: 'Bank'.tr,
                         labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                         prefixIcon: Icon(Icons.account_balance, color: isDark ? Colors.white70 : null),
                         border: OutlineInputBorder(
@@ -598,11 +600,11 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                     // Branch (SADA only)
                     if (ApiService.currentClient?.features.hasBranchSelection == true) ...[
                       DropdownButtonFormField<String>(
-                        value: _selectedBranch,
+                        initialValue: _selectedBranch,
                         dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                         style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                         decoration: InputDecoration(
-                          labelText: 'Branch',
+                          labelText: 'Branch'.tr,
                           labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                           prefixIcon: Icon(Icons.store, color: isDark ? Colors.white70 : null),
                           border: OutlineInputBorder(
@@ -631,7 +633,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                       keyboardType: TextInputType.number,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                       decoration: InputDecoration(
-                        labelText: 'Amount (TSh)',
+                        labelText: 'Amount (TSh)'.tr,
                         labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                         prefixIcon: Icon(Icons.money, color: isDark ? Colors.white70 : null),
                         border: OutlineInputBorder(
@@ -646,11 +648,11 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter amount';
+                          return 'Please enter amount'.tr;
                         }
                         final amount = double.tryParse(value);
                         if (amount == null || amount <= 0) {
-                          return 'Please enter a valid amount';
+                          return 'Please enter a valid amount'.tr;
                         }
                         return null;
                       },
@@ -662,7 +664,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                       controller: _depositorController,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                       decoration: InputDecoration(
-                        labelText: 'Depositor Name',
+                        labelText: 'Depositor Name'.tr,
                         labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                         prefixIcon: Icon(Icons.person, color: isDark ? Colors.white70 : null),
                         border: OutlineInputBorder(
@@ -677,7 +679,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter depositor name';
+                          return 'Please enter depositor name'.tr;
                         }
                         return null;
                       },
@@ -697,7 +699,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                               readOnly: true,
                               style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                               decoration: InputDecoration(
-                                labelText: 'Date',
+                                labelText: 'Date'.tr,
                                 labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                                 prefixIcon: Icon(
                                   hasDatePermission ? Icons.calendar_today : Icons.lock,
@@ -749,11 +751,11 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
 
                     // Supervisor Selection
                     DropdownButtonFormField<String>(
-                      value: _selectedSupervisorId,
+                      initialValue: _selectedSupervisorId,
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                       decoration: InputDecoration(
-                        labelText: 'Supervisor',
+                        labelText: 'Supervisor'.tr,
                         labelStyle: TextStyle(color: isDark ? Colors.white70 : null),
                         prefixIcon: Icon(Icons.supervisor_account, color: isDark ? Colors.white70 : null),
                         border: OutlineInputBorder(
@@ -777,7 +779,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                       },
                       validator: (value) {
                         if (value == null) {
-                          return 'Please select a supervisor';
+                          return 'Please select a supervisor'.tr;
                         }
                         return null;
                       },

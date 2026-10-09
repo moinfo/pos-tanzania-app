@@ -2,10 +2,11 @@ import 'package:flutter/foundation.dart';
 import '../models/receiving.dart';
 import '../models/item.dart';
 import '../models/supplier.dart';
+import '../l10n/lang.dart';
 
 class ReceivingProvider with ChangeNotifier {
   // Cart items
-  List<ReceivingItem> _cartItems = [];
+  final List<ReceivingItem> _cartItems = [];
 
   // Selected supplier
   Supplier? _selectedSupplier;
@@ -417,11 +418,11 @@ class ReceivingProvider with ChangeNotifier {
     }
 
     if (_selectedSupplier == null) {
-      return 'Please select a supplier.';
+      return 'Please select a supplier.'.tr;
     }
 
     if (_stockLocation == null) {
-      return 'Stock location is not set. Please go back and try again.';
+      return 'Stock location is not set. Please go back and try again.'.tr;
     }
 
     // Zero is meaningless; a negative quantity is a return and is allowed,
@@ -431,7 +432,7 @@ class ReceivingProvider with ChangeNotifier {
         return 'Item "${item.itemName}" has a quantity of 0.';
       }
       if (item.costPrice < 0) {
-        return 'Item "${item.itemName}" has invalid cost price.';
+        return 'Item "${item.itemName}" has invalid cost price.'.tr;
       }
       if (item.exceedsReturnLimit) {
         return '"${item.itemName}": only ${_plain(item.returnLimit!)} were '

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/receiving_summary.dart';
@@ -8,6 +8,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/tr_text.dart';
 
 /// Summary 2 Screen - Leruma receivings as primary, compare with Mainstore sales
 /// Column order: Item Name → Leruma Qty → Leruma Receiving → Mainstore Qty → Mainstore Price → Diff Qty → Diff Price
@@ -93,16 +94,15 @@ class _ReceivingsSummary2ScreenState extends State<ReceivingsSummary2Screen> {
         return Theme(
           data: isDark
               ? ThemeData.dark().copyWith(
-                  colorScheme: ColorScheme.dark(
+                  colorScheme: const ColorScheme.dark(
                     primary: AppColors.success,
                     onPrimary: Colors.white,
-                    surface: const Color(0xFF1E1E1E),
+                    surface: Color(0xFF1E1E1E),
                     onSurface: Colors.white,
                     secondary: AppColors.success,
                     onSecondary: Colors.white,
-                    surfaceContainerHighest: const Color(0xFF2D2D2D),
+                    surfaceContainerHighest: Color(0xFF2D2D2D),
                   ),
-                  dialogBackgroundColor: const Color(0xFF1E1E1E),
                   textButtonTheme: TextButtonThemeData(
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.success,
@@ -134,10 +134,10 @@ class _ReceivingsSummary2ScreenState extends State<ReceivingsSummary2Screen> {
                     rangePickerHeaderBackgroundColor: AppColors.success,
                     rangePickerHeaderForegroundColor: Colors.white,
                     rangeSelectionBackgroundColor: AppColors.success.withOpacity(0.3),
-                  ),
+                  ), dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF1E1E1E)),
                 )
               : ThemeData.light().copyWith(
-                  colorScheme: ColorScheme.light(
+                  colorScheme: const ColorScheme.light(
                     primary: AppColors.success,
                     onPrimary: Colors.white,
                     surface: Colors.white,
@@ -274,7 +274,7 @@ class _ReceivingsSummary2ScreenState extends State<ReceivingsSummary2Screen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_today, color: AppColors.success, size: 20),
+                          const Icon(Icons.calendar_today, color: AppColors.success, size: 20),
                           const SizedBox(width: 12),
                           Text(
                             _formatDateRange(),
@@ -285,7 +285,7 @@ class _ReceivingsSummary2ScreenState extends State<ReceivingsSummary2Screen> {
                             ),
                           ),
                           const Spacer(),
-                          Icon(Icons.arrow_drop_down, color: AppColors.success),
+                          const Icon(Icons.arrow_drop_down, color: AppColors.success),
                         ],
                       ),
                     ),
@@ -323,7 +323,7 @@ class _ReceivingsSummary2ScreenState extends State<ReceivingsSummary2Screen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 64, color: AppColors.error),
+                            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_errorMessage!, style: const TextStyle(fontSize: 16)),
                             const SizedBox(height: 16),

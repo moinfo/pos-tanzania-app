@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -13,6 +13,8 @@ import '../providers/sale_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class SuspendedSheetScreen extends StatefulWidget {
   const SuspendedSheetScreen({super.key});
@@ -195,7 +197,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -218,7 +220,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                   controller: _searchController,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
-                    hintText: 'Search customer or item...',
+                    hintText: 'Search customer or item...'.tr,
                     hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
                     prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                     suffixIcon: _searchController.text.isNotEmpty
@@ -278,7 +280,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
                           const SizedBox(height: 16),
@@ -499,7 +501,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
                 // Total row
                 const Divider(),
                 Padding(

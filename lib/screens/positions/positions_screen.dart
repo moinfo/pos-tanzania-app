@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/position.dart';
@@ -7,6 +7,7 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/tr_text.dart';
 
 class PositionsScreen extends StatefulWidget {
   const PositionsScreen({super.key});
@@ -294,7 +295,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
                 title: 'Total Capital',
                 value: totals.capital,
                 icon: Icons.account_balance,
-                color: Colors.blue,
+                color: AppColors.brandSwatch,
               ),
             ),
           ],
@@ -469,7 +470,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
                       _currencyFormat.format(pos.capital),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: AppColors.brandSwatch,
                       ),
                     )),
                   ],

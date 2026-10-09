@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../utils/constants.dart';
 import '../screens/main_navigation.dart';
@@ -7,6 +7,7 @@ import '../providers/theme_provider.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
 import 'curved_bottom_navigation.dart';
+import '../widgets/tr_text.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;

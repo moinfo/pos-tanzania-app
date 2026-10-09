@@ -1,4 +1,5 @@
 /// Financial Banking Dashboard Models (Leruma only)
+library;
 
 /// Summary statistics for the financial banking dashboard
 class FinancialSummary {

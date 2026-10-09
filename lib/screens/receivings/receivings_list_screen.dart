@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/permission_model.dart';
@@ -20,6 +20,8 @@ import 'return_items_picker.dart';
 import 'receivings_summary_screen.dart';
 import 'receivings_summary2_screen.dart';
 import 'main_store_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class ReceivingsListScreen extends StatefulWidget {
   const ReceivingsListScreen({super.key});
@@ -457,7 +459,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _onRefresh,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -532,7 +534,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search by supplier, reference...',
+                hintText: 'Search by supplier, reference...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: isDark ? AppColors.darkCard : Colors.grey.shade100,

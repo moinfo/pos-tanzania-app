@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 
 import '../models/stock_location.dart';
 import '../providers/location_provider.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// The active stock location, shown as an app bar title and doubling as the
 /// store switcher.
@@ -89,7 +91,7 @@ class StoreSwitcherTitle extends StatelessWidget {
         return PopupMenuButton<StockLocation>(
           offset: const Offset(0, 40),
           color: dark ? AppColors.darkCard : Colors.white,
-          tooltip: 'Switch store',
+          tooltip: 'Switch store'.tr,
           onSelected: (location) => locationProvider.selectLocation(location),
           itemBuilder: (context) => locationProvider.allowedLocations
               .map(
