@@ -17,12 +17,16 @@ class LanguageChip extends StatelessWidget {
     required this.border,
     required this.ink,
     required this.accent,
+    this.activeInk = Colors.white,
   });
 
   final Color surface;
   final Color border;
   final Color ink;
   final Color accent;
+
+  /// Label colour on the selected half (white on a coloured accent).
+  final Color activeInk;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +45,7 @@ class LanguageChip extends StatelessWidget {
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.4,
-                  color: active ? Colors.white : ink,
+                  color: active ? activeInk : ink,
                 ),
               ),
             );

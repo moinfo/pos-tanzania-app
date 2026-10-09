@@ -28,7 +28,10 @@ configure<com.google.gms.googleservices.GoogleServicesPlugin.GoogleServicesPlugi
         com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy.WARN
 }
 
-val keystorePropertiesFile = rootProject.file("key.properties")
+// Flutter's default is android/key.properties; android/app/key.properties (next to
+// upload-keystore.jks) is accepted too. storeFile is resolved from this module.
+val keystorePropertiesFile = listOf(rootProject.file("key.properties"), file("key.properties"))
+    .firstOrNull { it.exists() } ?: rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))

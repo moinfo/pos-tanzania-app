@@ -13,5 +13,13 @@
  "For your security you will be logged out automatically because of inactivity.": "Kwa usalama wako, utatolewa kiotomatiki kwa sababu ya kutokuwa na shughuli.",
  "Stay signed in": "Endelea kuwa ndani",
  "Log out now": "Toka sasa",
- "seconds": "sekunde"
+ "seconds": "sekunde",
+ "Welcome to": "Karibu",
+ "{} products": "Bidhaa {}",
+ "New": "Mpya",
+ "Read more": "Soma zaidi",
+ "Show less": "Onyesha kidogo",
+ "Price Type": "Aina ya Bei",
+ "Retail": "Rejareja",
+ "Wholesale": "Jumla"
 }

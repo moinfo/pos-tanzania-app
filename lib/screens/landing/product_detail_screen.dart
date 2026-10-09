@@ -27,6 +27,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _currentPortfolioIndex = 0;
   int _quantity = 1;
   String _priceType = 'retail';
+  bool _descriptionExpanded = false;
   bool _isLoading = true;
   final PageController _pageController = PageController();
   final PageController _portfolioPageController = PageController();
@@ -164,11 +165,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       leading: Container(
         margin: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.3),
+          color: Colors.white.withOpacity(0.94),
           shape: BoxShape.circle,
         ),
         child: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF14213D)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -176,13 +177,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.white.withOpacity(0.94),
             shape: BoxShape.circle,
           ),
           child: IconButton(
             icon: Icon(
               _product.isLiked ? Icons.favorite : Icons.favorite_border,
-              color: _product.isLiked ? Colors.red : Colors.white,
+              color: _product.isLiked ? Colors.red : const Color(0xFF14213D),
             ),
             onPressed: () {
               context.read<LandingProvider>().toggleLike(_product.itemId);
@@ -258,10 +259,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
 
+            // Curved edge: the photo meets the page in a rounded sheet.
+            Positioned(
+              bottom: -1,
+              left: 0,
+              right: 0,
+              height: 28,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _bgColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+              ),
+            ),
+
             // Page indicator
             if (allImages.length > 1)
               Positioned(
-                bottom: 16,
+                bottom: 40,
                 left: 0,
                 right: 0,
                 child: Row(
@@ -325,20 +340,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildProductCard() {
+    final brand = LandingColors.primaryRed;
+    final showStock = context.read<LandingProvider>().hasStockDisplay;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -346,153 +354,217 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           Row(
             children: [
               if (_product.category.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: LandingColors.primaryRed.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _product.category,
-                    style: TextStyle(
-                      color: LandingColors.primaryRed,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: brand.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      _product.category,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: brand,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11.5,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ),
                 ),
               const Spacer(),
-              Icon(Icons.favorite, size: 14, color: Colors.red[300]),
-              const SizedBox(width: 4),
-              Text(
-                '${_product.likesCount}',
-                style: TextStyle(color: _subtextColor, fontSize: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _product.isLiked ? Icons.favorite : Icons.favorite_border,
+                      size: 15,
+                      color: Colors.red[400],
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${_product.likesCount}',
+                      style: TextStyle(
+                        color: _subtextColor,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
 
           // Product name
           Text(
             _product.name,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+              letterSpacing: -0.3,
               color: _textColor,
             ),
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 14),
 
-          // Prices row
+          // Price
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'TZS ${_formatPrice(_product.retailPrice)}',
+                'TZS',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: LandingColors.primaryRed,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: brand,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                _formatPrice(_product.retailPrice),
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                  letterSpacing: -0.5,
+                  color: brand,
                 ),
               ),
               if (_product.hasWholesalePrice) ...[
-                const SizedBox(width: 8),
+                const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    color: brand.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: brand.withOpacity(0.35)),
                   ),
-                  child: Text(
-                    'Wholesale: ${_formatPrice(_product.wholesalePrice)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.green[600],
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Wholesale',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: brand,
+                        ),
+                      ),
+                      Text(
+                        'TZS ${_formatPrice(_product.wholesalePrice)}',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: brand,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ],
           ),
-          const SizedBox(height: 8),
 
           // Stock indicator (only shown if feature enabled for this client)
-          if (context.read<LandingProvider>().hasStockDisplay)
+          if (showStock) ...[
+            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               decoration: BoxDecoration(
                 color: _product.isInStock
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                    ? brand.withOpacity(0.10)
+                    : Colors.red.withOpacity(0.09),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    _product.isInStock ? Icons.check_circle : Icons.cancel,
-                    size: 16,
-                    color: _product.isInStock ? Colors.green : Colors.red,
+                    _product.isInStock ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                    size: 19,
+                    color: _product.isInStock ? brand : Colors.red,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _product.isInStock
-                        ? '${_product.retailQuantity.toInt()} available (Retail)'
-                        : 'Out of stock',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: _product.isInStock ? Colors.green[700] : Colors.red,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      _product.isInStock
+                          ? '${_product.retailQuantity.toInt()} available (Retail)'
+                          : 'Out of stock',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: _product.isInStock ? brand : Colors.red,
+                      ),
                     ),
                   ),
                   if (_product.hasWholesalePrice && _product.wholesaleQuantity > 0) ...[
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Text(
                       '| ${_product.wholesaleQuantity.toInt()} (Wholesale)',
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.green[700],
+                        fontWeight: FontWeight.w600,
+                        color: brand,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildPriceSelectionCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
+  /// Shared look of every card on this page.
+  BoxDecoration _cardDecoration() => BoxDecoration(
         color: _cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: LandingColors.primaryRed.withOpacity(widget.isDarkMode ? 0.35 : 0.22),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(widget.isDarkMode ? 0.28 : 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
-      ),
+      );
+
+  Widget _buildPriceSelectionCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Price Type',
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: _subtextColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: _textColor,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -502,7 +574,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   'retail',
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildPriceOption(
                   'Wholesale',
@@ -519,39 +591,51 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildPriceOption(String label, double price, String type) {
     final isSelected = _priceType == type;
+    final brand = LandingColors.primaryRed;
 
     return GestureDetector(
       onTap: () => setState(() => _priceType = type),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected ? LandingColors.primaryRed : _dividerColor,
+            color: isSelected ? brand : _dividerColor,
             width: isSelected ? 2 : 1,
           ),
-          borderRadius: BorderRadius.circular(10),
-          color: isSelected
-              ? LandingColors.primaryRed.withOpacity(0.08)
-              : _bgColor,
+          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? brand.withOpacity(0.09) : _bgColor,
         ),
-        child: Column(
+        child: Row(
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-                color: isSelected ? LandingColors.primaryRed : _subtextColor,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: isSelected ? brand : _subtextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'TZS ${_formatPrice(price)}',
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? brand : _textColor,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              'TZS ${_formatPrice(price)}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? LandingColors.primaryRed : _textColor,
-              ),
+            Icon(
+              isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+              size: 21,
+              color: isSelected ? brand : _dividerColor,
             ),
           ],
         ),
@@ -560,61 +644,52 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildQuantityCard() {
+    final brand = LandingColors.primaryRed;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: _cardDecoration(),
       child: Row(
         children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: brand.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.shopping_basket_rounded, size: 20, color: brand),
+          ),
+          const SizedBox(width: 12),
           Text(
             'Quantity',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
               color: _textColor,
             ),
           ),
           const Spacer(),
+          _buildQuantityButton(
+            Icons.remove_rounded,
+            _quantity > 1 ? () => setState(() => _quantity--) : null,
+          ),
           Container(
-            decoration: BoxDecoration(
-              color: _bgColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _dividerColor),
+            width: 46,
+            alignment: Alignment.center,
+            child: Text(
+              '$_quantity',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+                color: _textColor,
+              ),
             ),
-            child: Row(
-              children: [
-                _buildQuantityButton(
-                  Icons.remove,
-                  _quantity > 1 ? () => setState(() => _quantity--) : null,
-                ),
-                Container(
-                  width: 40,
-                  alignment: Alignment.center,
-                  child: Text(
-                    '$_quantity',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: _textColor,
-                    ),
-                  ),
-                ),
-                _buildQuantityButton(
-                  Icons.add,
-                  () => setState(() => _quantity++),
-                ),
-              ],
-            ),
+          ),
+          _buildQuantityButton(
+            Icons.add_rounded,
+            () => setState(() => _quantity++),
           ),
         ],
       ),
@@ -622,19 +697,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildQuantityButton(IconData icon, VoidCallback? onPressed) {
+    final brand = LandingColors.primaryRed;
+    final enabled = onPressed != null;
+
     return Material(
-      color: Colors.transparent,
+      color: enabled ? brand : _dividerColor.withOpacity(0.6),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 38,
+          height: 38,
           child: Icon(
             icon,
-            color: onPressed != null ? _textColor : _dividerColor,
-            size: 18,
+            color: enabled ? Colors.white : _subtextColor,
+            size: 22,
           ),
         ),
       ),
@@ -642,40 +720,62 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildDescriptionCard() {
+    final brand = LandingColors.primaryRed;
+    final long = _product.description.length > 160;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+      padding: const EdgeInsets.all(18),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Description',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: _subtextColor,
+          Row(
+            children: [
+              Icon(Icons.notes_rounded, size: 20, color: brand),
+              const SizedBox(width: 8),
+              Text(
+                'Description',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: _textColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            alignment: Alignment.topCenter,
+            child: Text(
+              _product.description,
+              maxLines: (_descriptionExpanded || !long) ? null : 5,
+              overflow: (_descriptionExpanded || !long)
+                  ? TextOverflow.visible
+                  : TextOverflow.fade,
+              style: TextStyle(
+                fontSize: 14,
+                color: _textColor.withOpacity(0.85),
+                height: 1.5,
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            _product.description,
-            style: TextStyle(
-              fontSize: 13,
-              color: _textColor,
-              height: 1.4,
+          if (long)
+            GestureDetector(
+              onTap: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _descriptionExpanded ? 'Show less' : 'Read more',
+                  style: TextStyle(
+                    color: brand,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -911,20 +1011,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildBottomBar() {
+    final brand = LandingColors.primaryRed;
+    final deep = HSLColor.fromColor(brand)
+        .withLightness((HSLColor.fromColor(brand).lightness * 0.7).clamp(0.0, 1.0))
+        .toColor();
     final unitPrice =
         _priceType == 'wholesale' ? _product.wholesalePrice : _product.retailPrice;
     final total = unitPrice * _quantity;
 
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.fromLTRB(18, 12, 14, 12),
         decoration: BoxDecoration(
           color: _cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(widget.isDarkMode ? 0.3 : 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: Colors.black.withOpacity(widget.isDarkMode ? 0.4 : 0.14),
+              blurRadius: 20,
+              offset: const Offset(0, -6),
             ),
           ],
         ),
@@ -938,14 +1043,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   'Total',
                   style: TextStyle(
                     color: _subtextColor,
-                    fontSize: 11,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   'TZS ${_formatPrice(total)}',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
                     color: _textColor,
                   ),
                 ),
@@ -953,23 +1060,40 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _addToCart,
-                icon: const Icon(Icons.shopping_cart_outlined, size: 18),
-                label: const Text(
-                  'Add to Cart',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+              child: GestureDetector(
+                onTap: _addToCart,
+                child: Container(
+                  height: 54,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [brand, deep],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: brand.withOpacity(0.40),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: LandingColors.primaryRed,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.add_shopping_cart_rounded, size: 22, color: Colors.white),
+                      SizedBox(width: 10),
+                      Text(
+                        'Add to Cart',
+                        style: TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

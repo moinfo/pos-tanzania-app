@@ -160,10 +160,12 @@ class ApiService {
     print('🗑️ Client cleared from cache and preferences');
   }
 
-  /// Debug builds talk to the local Laravel server by default. Pass
-  /// `--dart-define=LIVE_API=true` to point a debug/profile build at the
-  /// client's live domain (e.g. https://kariakooshops.co.tz/api) instead.
-  static const bool _useLiveApi = bool.fromEnvironment('LIVE_API');
+  /// Every build -- debug, profile and release -- talks to the client's live
+  /// domain (e.g. https://kariakooshops.co.tz/api). For local development
+  /// against the Laravel/CodeIgniter server on this PC, build with
+  /// `--dart-define=LIVE_API=false` (plus `adb reverse tcp:8085 tcp:8085`).
+  static const bool _useLiveApi =
+      bool.fromEnvironment('LIVE_API', defaultValue: true);
 
   /// The API root for [client] under the current build mode / LIVE_API flag.
   static String apiUrlFor(ClientConfig client) =>

@@ -92,14 +92,16 @@ class _ItemsScreenState extends State<ItemsScreen> {
       _errorMessage = null;
     });
 
-    // Get selected location for filtering (especially for days calculation)
-    final locationProvider = context.read<LocationProvider>();
-    final selectedLocationId = locationProvider.selectedLocation?.locationId;
-
     final response = await _apiService.getItems(
       search: _searchController.text.isEmpty ? null : _searchController.text,
       limit: 1000,
-      locationId: selectedLocationId,
+      // No location filter on purpose. Given a location, the server returns
+      // only items with stock there (the sales grid wants that), which hid
+      // every out-of-stock item from item management. Without it the server
+      // returns the whole active catalogue, and each item carries its stock
+      // per location (quantity_by_location), which is what the card below
+      // shows for the selected location. Works on servers with and without
+      // the include_out_of_stock option.
       includeOutOfStock: true,
     );
 
