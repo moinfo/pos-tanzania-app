@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../providers/sale_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
@@ -9,6 +10,7 @@ import '../providers/offline_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../services/api_service.dart';
 import '../services/pdf_service.dart';
+import '../services/sale_location_service.dart';
 import '../models/item.dart';
 import '../models/customer.dart';
 import '../models/sale.dart';
@@ -1015,11 +1017,41 @@ class _SalesScreenState extends State<SalesScreen> {
       }
     }
 
+    // Mnadani is the dedicated "live location" mobile-sales stock - a sale
+    // from it must not go through unless GPS is actually on, unlike every
+    // other location where location capture is best-effort only.
+    final selectedLocationName =
+        context.read<LocationProvider>().selectedLocation?.locationName.trim().toUpperCase() ?? '';
+    if (selectedLocationName == 'MNADANI') {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      final permissionOk =
+          permission == LocationPermission.always || permission == LocationPermission.whileInUse;
+      if (!serviceEnabled || !permissionOk) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please turn on Location to sell from Mnadani stock.'),
+            backgroundColor: AppColors.error,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+    }
+
     // Create sale
     setState(() => _isProcessing = true);
 
     try {
-      final sale = saleProvider.createSale();
+      // Best-effort GPS capture - never blocks/fails checkout (see
+      // SaleLocationService), just a few seconds at most. For Mnadani the
+      // gate above already guaranteed location is on, so this will succeed.
+      final location = await SaleLocationService.capture();
+      final sale = saleProvider.createSale(location: location);
       print('DEBUG: Creating sale with data: ${sale.toCreateJson()}');
 
       final response = await _apiService.createSale(sale);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/web_session_service.dart';
 import 'permission_provider.dart';
 import 'location_provider.dart';
 import 'connectivity_provider.dart';
@@ -126,6 +127,30 @@ class AuthProvider with ChangeNotifier {
         // Fetch user permissions after successful login
         if (_permissionProvider != null) {
           await _permissionProvider!.fetchPermissions();
+
+          // Industry / Stock Transfers / Transfer (ARG only): these web
+          // dashboard screens have no JWT API, only a session-cookie login.
+          // Rather than a second sign-in prompt, silently establish that
+          // session now with the same credentials, but only for staff who
+          // are actually permitted to see at least one of them (mirrors the
+          // web's own permission gate) - see WebSessionService. Transfer is
+          // gated under the 'credits' permission on the backend
+          // (Transfer.php's parent::__construct('credits')).
+          final needsWebSession = (client.features.hasIndustry &&
+                  _permissionProvider!.hasPermission('industry')) ||
+              (client.features.hasStockTransfers &&
+                  _permissionProvider!.hasPermission('stock_transfers')) ||
+              (client.features.hasTransfer &&
+                  _permissionProvider!.hasPermission('credits'));
+          if (needsWebSession) {
+            try {
+              final webSession = WebSessionService();
+              await webSession.rememberCredentials(username, password);
+              await webSession.login(username, password);
+            } catch (e) {
+              debugPrint('Web session setup failed (non-fatal): $e');
+            }
+          }
         }
 
         _isLoading = false;
@@ -281,6 +306,12 @@ class AuthProvider with ChangeNotifier {
 
     // Clear dashboard cache
     ApiService.clearDashboardCache();
+
+    // Clear the Industry module's web session and remembered credentials
+    // (silently established at login - see login() above)
+    final webSession = WebSessionService();
+    await webSession.clearCookie();
+    await webSession.forgetCredentials();
 
     _user = null;
     _isAuthenticated = false;

@@ -65,3 +65,11 @@ class AppConstants {
   static const String displayDateFormat = 'dd MMM yyyy';
   static const String timeFormat = 'HH:mm:ss';
 }
+
+/// Standard scrollable-content padding for the Industry module's screens,
+/// with extra bottom space (5% of device height) so content doesn't sit
+/// under the phone's gesture/navigation bar.
+EdgeInsets industryScrollPadding(BuildContext context) {
+  final extraBottom = MediaQuery.of(context).size.height * 0.05;
+  return EdgeInsets.fromLTRB(16, 16, 16, 16 + extraBottom);
+}

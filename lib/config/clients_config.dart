@@ -143,6 +143,9 @@ class ClientsConfig {
         hasLandingPage: true,
         hasLocationBasedPricing: true,
         hasLandingStockDisplay: true,
+        hasIndustry: true,
+        hasStockTransfers: true,
+        hasTransfer: true,
       ),
     ),
     // Saichi

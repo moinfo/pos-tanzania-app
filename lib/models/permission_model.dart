@@ -80,6 +80,8 @@ class UserPermissionsResponse {
 class PermissionIds {
   // Module-level permissions (from ospos_permissions table)
   static const String home = 'home';
+  static const String industry = 'industry'; // ARG Sparkles Industry module
+  static const String stockTransfers = 'stock_transfers'; // ARG Sparkles Stock Transfers
   static const String sales = 'sales';
   static const String receivings = 'receivings';
   static const String items = 'items';

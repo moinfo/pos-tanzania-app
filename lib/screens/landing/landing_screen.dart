@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
 import '../../models/public_product.dart';
-import '../../services/screen_protection_service.dart';
 import '../../services/api_service.dart';
 import '../login_screen.dart';
 import 'widgets/product_card.dart';
@@ -49,8 +48,6 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   void initState() {
     super.initState();
-    // Enable screenshot protection
-    ScreenProtectionService().enableProtection();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LandingProvider>().initialize();
     });
@@ -189,12 +186,17 @@ class _LandingScreenState extends State<LandingScreen> {
       builder: (context, provider, _) {
         final cartCount = provider.cart.length;
 
+        // Android 15+ enforces edge-to-edge, so the system gesture bar can
+        // overlay this bar unless its own bottom padding accounts for the
+        // inset - same fix as the main app's bottom nav (main_navigation.dart).
+        final systemInset = MediaQuery.of(context).padding.bottom;
+        final bottomPadding = systemInset > 10 ? systemInset + 6 : 10.0;
         return Container(
           color: _isDarkMode ? const Color(0xFF121212) : LandingColors.lightGrey,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPadding),
             child: Container(
-              height: 70,
+              height: 58,
                 decoration: BoxDecoration(
                   gradient: _isDarkMode
                       ? const LinearGradient(
@@ -267,8 +269,8 @@ class _LandingScreenState extends State<LandingScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 20 : 16,
-          vertical: 10,
+          horizontal: isSelected ? 18 : 14,
+          vertical: 8,
         ),
         decoration: isSelected
             ? BoxDecoration(

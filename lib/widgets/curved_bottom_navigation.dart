@@ -108,8 +108,18 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
             ? _rotationAnimation.value
             : _currentRotationOffset;
 
-        return SafeArea(
-          top: false,
+        // On some devices the system's own nav bar is drawn as an opaque
+        // layer on top of app content under edge-to-edge, rather than
+        // shrinking the app's usable area - so content placed there isn't
+        // just under-padded, it's physically covered. MediaQuery's
+        // reported inset can't be trusted to reflect that, so this
+        // reserves a fixed, generous minimum regardless of what the
+        // device reports.
+        final systemInset = MediaQuery.of(context).padding.bottom;
+        final bottomGap = systemInset > 48.0 ? systemInset : 48.0;
+
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomGap),
           child: SizedBox(
           height: 80,
           child: Stack(

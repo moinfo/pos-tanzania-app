@@ -6,6 +6,7 @@ import '../models/one_time_discount.dart';
 import '../models/item_quantity_offer.dart';
 import '../models/discount_request.dart';
 import '../services/api_service.dart';
+import '../services/sale_location_service.dart';
 import '../providers/offline_provider.dart';
 
 class SaleProvider with ChangeNotifier {
@@ -676,6 +677,7 @@ class SaleProvider with ChangeNotifier {
     List<SalePayment>? payments,
     String? comment,
     int saleType = 0,
+    SaleLocation? location,
   }) {
     return Sale(
       saleTime: DateTime.now().toIso8601String(),
@@ -689,6 +691,13 @@ class SaleProvider with ChangeNotifier {
       total: total,
       items: _cartItems,
       payments: payments ?? _payments, // Use accumulated payments if not provided
+      stockLocationId: _stockLocation,
+      saleLat: location?.lat,
+      saleLng: location?.lng,
+      saleCity: location?.city,
+      saleDistrict: location?.district,
+      saleWard: location?.ward,
+      saleStreet: location?.street,
     );
   }
 
@@ -798,6 +807,10 @@ class SaleProvider with ChangeNotifier {
     String? comment,
     int saleType = 0,
   }) async {
+    // Best-effort GPS capture - never blocks/fails the sale (see
+    // SaleLocationService), just a few seconds at most.
+    final location = await SaleLocationService.capture();
+
     // Create sale
     final sale = Sale(
       saleTime: DateTime.now().toIso8601String(),
@@ -809,6 +822,13 @@ class SaleProvider with ChangeNotifier {
       subtotal: subtotal,
       taxTotal: 0,
       total: total,
+      saleLat: location.lat,
+      saleLng: location.lng,
+      saleCity: location.city,
+      saleDistrict: location.district,
+      saleWard: location.ward,
+      saleStreet: location.street,
+      stockLocationId: _stockLocation,
       items: _cartItems,
       payments: _payments,
     );

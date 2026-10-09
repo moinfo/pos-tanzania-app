@@ -16,6 +16,13 @@ class Sale {
   final List<SaleItem>? items;
   final List<SalePayment>? payments;
   final bool? hasOfferItems; // True if sale has quantity offer free items
+  final double? saleLat;
+  final double? saleLng;
+  final String? saleCity;
+  final String? saleDistrict;
+  final String? saleWard;
+  final String? saleStreet;
+  final int? stockLocationId;
 
   Sale({
     this.saleId,
@@ -35,6 +42,13 @@ class Sale {
     this.items,
     this.payments,
     this.hasOfferItems,
+    this.saleLat,
+    this.saleLng,
+    this.saleCity,
+    this.saleDistrict,
+    this.saleWard,
+    this.saleStreet,
+    this.stockLocationId,
   });
 
   factory Sale.fromJson(Map<String, dynamic> json) {
@@ -60,6 +74,12 @@ class Sale {
           ? (json['payments'] as List).map((p) => SalePayment.fromJson(p)).toList()
           : null,
       hasOfferItems: json['has_offer_items'] == true,
+      saleLat: (json['sale_lat'] as num?)?.toDouble(),
+      saleLng: (json['sale_lng'] as num?)?.toDouble(),
+      saleCity: json['sale_city'] as String?,
+      saleDistrict: json['sale_district'] as String?,
+      saleWard: json['sale_ward'] as String?,
+      saleStreet: json['sale_street'] as String?,
     );
   }
 
@@ -89,6 +109,16 @@ class Sale {
       'sale_date': saleTime,
       'items': items!.map((i) => i.toCreateJson()).toList(),
       'payments': payments!.map((p) => p.toJson()).toList(),
+      // The sale's overall stock location - without this the backend
+      // silently defaults every online sale's payment record to location 1
+      // (Main Store) regardless of what was actually selected in the app.
+      if (stockLocationId != null) 'stock_location_id': stockLocationId,
+      if (saleLat != null) 'sale_lat': saleLat,
+      if (saleLng != null) 'sale_lng': saleLng,
+      if (saleCity != null) 'sale_city': saleCity,
+      if (saleDistrict != null) 'sale_district': saleDistrict,
+      if (saleWard != null) 'sale_ward': saleWard,
+      if (saleStreet != null) 'sale_street': saleStreet,
     };
   }
 }

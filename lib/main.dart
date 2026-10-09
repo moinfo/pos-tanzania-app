@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
@@ -19,6 +20,12 @@ import 'config/clients_config.dart';
 import 'utils/constants.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Android 15 (targetSdk 35) enforces edge-to-edge by default, and how
+  // reliably MediaQuery's bottom inset gets reported back to SafeArea in
+  // that mode varies by device/OEM skin and nav-bar style (3-button vs
+  // gesture). Setting this explicitly removes that per-device guesswork.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   runApp(const MyApp());
 }
 
@@ -184,6 +191,24 @@ class MyApp extends StatelessWidget {
             titleLarge: TextStyle(color: AppColors.darkText, fontWeight: FontWeight.bold),
           ),
         ),
+        // Some devices draw their own nav/gesture bar as an opaque layer on
+        // top of app content under edge-to-edge, rather than shrinking the
+        // app's usable area, so MediaQuery.padding.bottom can under-report
+        // the real safe area. Enforcing a sane minimum here, once, means
+        // every screen's SafeArea/MediaQuery-based bottom spacing is
+        // protected app-wide instead of needing a fix per screen.
+        builder: (context, child) {
+          if (child == null) return const SizedBox.shrink();
+          final mq = MediaQuery.of(context);
+          final safeBottom = mq.padding.bottom > 48.0 ? mq.padding.bottom : 48.0;
+          return MediaQuery(
+            data: mq.copyWith(
+              padding: mq.padding.copyWith(bottom: safeBottom),
+              viewPadding: mq.viewPadding.copyWith(bottom: safeBottom),
+            ),
+            child: child,
+          );
+        },
         home: const SplashScreen(),
         ),
       ),
@@ -207,15 +232,35 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Flavor is a compile-time dart-define, so the client (and its logo) is
+    // known synchronously here - no need to wait for the async client/auth
+    // lookup in _checkAuth() just to show the right branding on first frame.
+    final client = ClientsConfig.getDefaultClient();
+    final logoUrl = client.logoUrl;
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.storefront,
-              size: 80,
-              color: Theme.of(context).primaryColor,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: (logoUrl == null || logoUrl.isEmpty)
+                  ? Icon(
+                      Icons.storefront,
+                      size: 80,
+                      color: Theme.of(context).primaryColor,
+                    )
+                  : Image.asset(
+                      logoUrl,
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.storefront,
+                        size: 80,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
             ),
             const SizedBox(height: 24),
             const CircularProgressIndicator(),

@@ -58,6 +58,16 @@ class ClientFeatures {
   final bool hasSaleSheetButton; // Show the "Sheet" button in the sales screen top bar
   final bool hasInlineCartPreview; // Show a compact cart preview above the item search grid
 
+  // Industry module: casual labourers, ZKTeco attendance, roller/mattress
+  // stock, machine production & wages (ARG Sparkles only)
+  final bool hasIndustry;
+
+  // Stock Transfers between stock locations (ARG Sparkles only)
+  final bool hasStockTransfers;
+
+  // Transfer: CTN-to-PC same-location item conversion tool (ARG Sparkles only)
+  final bool hasTransfer;
+
   const ClientFeatures({
     this.hasContracts = true,
     this.hasZReports = true,
@@ -92,6 +102,9 @@ class ClientFeatures {
     this.hasOutOfStockSelling = false, // Default: disabled - only Leruma uses this
     this.hasSaleSheetButton = false, // Default: disabled - only Leruma uses this
     this.hasInlineCartPreview = false, // Default: disabled - only Leruma uses this
+    this.hasIndustry = false, // Default: disabled - only ARG Sparkles uses this
+    this.hasStockTransfers = false, // Default: disabled - only ARG Sparkles uses this
+    this.hasTransfer = false, // Default: disabled - only ARG Sparkles uses this
   });
 }
 

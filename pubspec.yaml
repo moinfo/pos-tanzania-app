@@ -1,6 +1,6 @@
 name: pos_tanzania_mobile
 description: Point of Sales Tanzania Mobile App - Flutter application for POS management
-version: 1.0.0+3
+version: 1.0.0+4
 publish_to: 'none'
 
 environment:
@@ -43,7 +43,7 @@ dependencies:
 
   # Icons
   cupertino_icons: ^1.0.6
-  font_awesome_flutter: ^10.6.0
+  font_awesome_flutter: ^11.0.0
 
   # Biometric authentication
   local_auth: ^2.3.0
@@ -80,8 +80,9 @@ dependencies:
   # App version info
   package_info_plus: ^8.0.0
 
-  # GPS location for shop registration (SADA)
+  # GPS location for shop registration (SADA) and sale location capture
   geolocator: ^13.0.2
+  geocoding: ^3.0.0
 
 dev_dependencies:
   flutter_test:

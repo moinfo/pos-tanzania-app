@@ -40,6 +40,9 @@ import 'tra/tra_main_screen.dart';
 import 'shops_screen.dart';
 import 'discount_requests_screen.dart';
 import 'borrowed_money/borrowed_money_list_screen.dart';
+import 'industry/industry_home_screen.dart';
+import 'stock_transfers/stock_transfers_screen.dart';
+import 'transfer/transfer_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -464,7 +467,14 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         child: _buildCurvedAppBar(isDark, themeProvider),
       ),
       drawer: Drawer(
-        child: ListView(
+        // Drawer's ListView uses EdgeInsets.zero padding (so the header sits
+        // flush at the top), which also strips the bottom safe-area padding
+        // ListView would otherwise add automatically - on gesture-nav
+        // phones that leaves the last item (Logout) sitting under the
+        // system's gesture bar. SafeArea restores just that bottom inset.
+        child: SafeArea(
+          top: false,
+          child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
@@ -772,6 +782,59 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   },
                 ),
               ),
+            // 7.5 Industry (ARG Sparkles only) - visible only to staff with
+            // the 'industry' module grant, exactly like the web dashboard
+            // (same permissions table). The web session itself is
+            // established silently at login - see AuthProvider.login().
+            if (ApiService.currentClient?.features.hasIndustry ?? false)
+              PermissionWrapper(
+                permissionId: PermissionIds.industry,
+                child: ListTile(
+                  leading: Icon(Icons.factory, color: AppColors.brandPrimary),
+                  title: const Text('Industry'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const IndustryHomeScreen()),
+                    );
+                  },
+                ),
+              ),
+            // 7.6 Stock Transfers (ARG Sparkles only) - same web-session
+            // auth pattern as Industry, gated the same way.
+            if (ApiService.currentClient?.features.hasStockTransfers ?? false)
+              PermissionWrapper(
+                permissionId: PermissionIds.stockTransfers,
+                child: ListTile(
+                  leading: Icon(Icons.swap_horiz, color: AppColors.brandPrimary),
+                  title: const Text('Stock Transfers'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const StockTransfersScreen()),
+                    );
+                  },
+                ),
+              ),
+            // 7.7 Transfer (ARG Sparkles only) - CTN-to-PC conversion, gated
+            // under 'credits' matching the backend's own permission scope.
+            if (ApiService.currentClient?.features.hasTransfer ?? false)
+              PermissionWrapper(
+                permissionId: PermissionIds.credits,
+                child: ListTile(
+                  leading: Icon(Icons.compare_arrows, color: AppColors.brandPrimary),
+                  title: const Text('Transfer'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TransferScreen()),
+                    );
+                  },
+                ),
+              ),
             // 8. NFC Menu - requires hasNfcCard feature
             if (ApiService.currentClient?.features.hasNfcCard ?? false)
               ExpansionTile(
@@ -981,16 +1044,14 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               },
             ),
           ],
+          ),
         ),
       ),
       body: availableScreens.isNotEmpty
           ? availableScreens[_selectedIndex]['screen'] as Widget
           : const Center(child: Text('No access to any screens')),
       bottomNavigationBar: availableScreens.length > 1
-          ? MediaQuery(
-              data: MediaQuery.of(context).removePadding(removeBottom: true),
-              child: _buildCurvedBottomNav(availableScreens, isDark),
-            )
+          ? _buildCurvedBottomNav(availableScreens, isDark)
           : null,
     );
   }
@@ -1055,19 +1116,54 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ? _rotationAnimation.value
             : _currentRotationOffset;
 
-        return SizedBox(
-          height: 80,
+        // This is the bar that's actually rendered (MainNavigation builds it
+        // inline rather than using the CurvedBottomNavigation widget class).
+        // Some devices draw their own nav bar as an opaque layer on top of
+        // app content under edge-to-edge rather than shrinking the app's
+        // usable area, so a small fixed minimum is used as a floor rather
+        // than trusting the device's reported inset alone - 48 was a safe
+        // but overly generous guess that made the bar look oversized on
+        // most gesture-nav phones (real inset is usually ~16-24dp).
+        final systemInset = MediaQuery.of(context).padding.bottom;
+        final bottomGap = systemInset > 16.0 ? systemInset : 16.0;
+        const navHeight = 64.0;
+
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomGap),
+          child: SizedBox(
+          height: navHeight,
           child: Stack(
             alignment: Alignment.bottomCenter,
             clipBehavior: Clip.none,
             children: [
+              // Soft drop shadow under the bar, separate from the painted
+              // shape itself so it reads as a floating card rather than a
+              // flat strip.
+              Positioned(
+                bottom: 0,
+                left: 8,
+                right: 8,
+                child: Container(
+                  height: navHeight - 8,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               // Custom curved background - ALWAYS at center (0.5)
               Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
                 child: CustomPaint(
-                  size: const Size(double.infinity, 80),
+                  size: const Size(double.infinity, navHeight),
                   painter: _CurvedNavPainter(
                     color: isDark ? AppColors.darkCard : Colors.white,
                     borderColor: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
@@ -1080,7 +1176,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 bottom: 0,
                 left: 0,
                 right: 0,
-                height: 60,
+                height: navHeight,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final screenWidth = constraints.maxWidth;
@@ -1122,7 +1218,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ],
           ),
-        );
+        ));
       },
     );
   }
@@ -1131,39 +1227,58 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     final isSelected = _selectedIndex == index;
     return InkWell(
       onTap: () => _onItemTapped(index),
+      customBorder: const CircleBorder(),
       child: Center(
-        child: isSelected
-            // Selected: larger icon only, no label, moved up into curve
-            ? Transform.translate(
-                offset: const Offset(0, -8),
-                child: Icon(
-                  icon,
-                  color: AppColors.brandPrimary,
-                  size: 38,
-                ),
-              )
-            // Unselected: smaller icon with label
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    color: AppColors.textLight,
-                    size: 22,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppColors.textLight,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOutBack,
+          switchOutCurve: Curves.easeIn,
+          transitionBuilder: (child, animation) => ScaleTransition(
+            scale: animation,
+            child: FadeTransition(opacity: animation, child: child),
+          ),
+          child: isSelected
+              // Selected: icon in a soft brand-tinted pill, lifted into the curve
+              ? Transform.translate(
+                  key: const ValueKey('selected'),
+                  offset: const Offset(0, -6),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.brandPrimary.withValues(alpha: isDark ? 0.18 : 0.1),
+                      shape: BoxShape.circle,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    child: Icon(
+                      icon,
+                      color: AppColors.brandPrimary,
+                      size: 26,
+                    ),
                   ),
-                ],
-              ),
+                )
+              // Unselected: smaller icon with label
+              : Column(
+                  key: const ValueKey('unselected'),
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      size: 21,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -1197,8 +1312,8 @@ class _CurvedNavPainter extends CustomPainter {
     // Calculate curve center based on position
     // curvePosition is already the exact ratio (0.0 to 1.0) of where the item center is
     final curveX = size.width * curvePosition;
-    const curveRadius = 35.0;
-    const curveDepth = 20.0;
+    const curveRadius = 30.0;
+    const curveDepth = 14.0;
 
     // Start from bottom left
     path.moveTo(0, size.height);

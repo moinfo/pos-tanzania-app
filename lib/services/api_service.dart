@@ -41,6 +41,7 @@ import '../models/customer_card.dart';
 import '../models/nfc_wallet.dart';
 import '../models/shop.dart';
 import '../models/borrowed_money.dart';
+import '../models/industry.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -2262,6 +2263,27 @@ class ApiService {
     }
   }
 
+  /// Daily Business Report: Mauzo (+ Reja Reja), Makusanyo, Waliokopa, Matumizi
+  Future<ApiResponse<Map<String, dynamic>>> getDailySalesReport({
+    required String date,
+    int? stockLocationId,
+  }) async {
+    try {
+      final queryParams = <String, String>{'date': date};
+      if (stockLocationId != null) queryParams['stock_location_id'] = stockLocationId.toString();
+
+      final uri = Uri.parse('$baseUrlSync/daily_sales_report').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   /// Get single sale details
   Future<ApiResponse<Sale>> getSaleDetails(int saleId) async {
     try {
@@ -2287,9 +2309,16 @@ class ApiService {
         headers: await _getHeaders(),
       );
 
-      return _handleResponse<List<SaleItem>>(
-        response,
-        (data) => (data as List).map((item) => SaleItem.fromJson(item)).toList(),
+      final body = json.decode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final items = (body['data'] as List? ?? [])
+            .map((item) => SaleItem.fromJson(Map<String, dynamic>.from(item as Map)))
+            .toList();
+        return ApiResponse<List<SaleItem>>.success(data: items, message: body['message'] ?? 'Success');
+      }
+      return ApiResponse<List<SaleItem>>.error(
+        message: body['message'] ?? 'An error occurred',
+        statusCode: response.statusCode,
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
@@ -6823,6 +6852,65 @@ class ApiService {
         response,
         (data) => ReturnResult.fromJson(data as Map<String, dynamic>),
       );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ============ ATTENDANCE (ZKTeco) ENDPOINTS ============
+  // These are the only Industry-module endpoints exposed via the proper JWT
+  // API (api/Attendance.php). Everything else in the Industry module has no
+  // JWT equivalent yet - see IndustryService for the session-cookie fallback.
+
+  /// List ZKTeco biometric devices and their online status
+  Future<ApiResponse<List<AttendanceDevice>>> getAttendanceDevices() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/attendance/devices'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final devices = (data is List ? data : <dynamic>[])
+            .map((e) => AttendanceDevice.fromJson(e as Map<String, dynamic>))
+            .toList();
+        return ApiResponse.success(data: devices, message: jsonResponse['message']);
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch attendance devices',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// List ZKTeco punches that haven't been matched to a casual labourer yet
+  Future<ApiResponse<List<UnmatchedPunch>>> getUnmatchedAttendance() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/attendance/unmatched'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final punches = (data is List ? data : <dynamic>[])
+            .map((e) => UnmatchedPunch.fromJson(e as Map<String, dynamic>))
+            .toList();
+        return ApiResponse.success(data: punches, message: jsonResponse['message']);
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch unmatched punches',
+          statusCode: response.statusCode,
+        );
+      }
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
