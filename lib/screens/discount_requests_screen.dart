@@ -1046,7 +1046,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
               // Price info
               if (_loadingPrices)
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: LinearProgressIndicator(color: AppColors.primary),
                 ),
               if (_itemPrices != null) ...[
@@ -1190,7 +1190,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
         isDense: true,
         suffixIcon: isLoading
             ? Padding(
-                padding: EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
                 child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
               )
             : null,
@@ -1431,7 +1431,7 @@ class _EditDiscountRequestSheetState extends State<_EditDiscountRequestSheet> {
               // Price info
               if (_loadingPrices)
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: LinearProgressIndicator(color: AppColors.primary),
                 ),
               if (_itemPrices != null) ...[

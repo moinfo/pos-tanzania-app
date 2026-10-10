@@ -282,7 +282,7 @@ class _InactivityDialog extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: onStay,
                   icon: const Icon(Icons.verified_user_rounded, size: 20),
-                  label: Text('Stay signed in'),
+                  label: const Text('Stay signed in'),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                     backgroundColor: brand,
@@ -309,7 +309,7 @@ class _InactivityDialog extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                child: Text('Log out now'),
+                child: const Text('Log out now'),
               ),
             ],
           ),

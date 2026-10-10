@@ -1079,9 +1079,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(Icons.add_shopping_cart_rounded, size: 22, color: Colors.white),
                       SizedBox(width: 10),
                       Text(

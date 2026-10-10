@@ -137,7 +137,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                   colorScheme: ColorScheme.dark(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
-                    surface: Color(0xFF1E1E1E),
+                    surface: const Color(0xFF1E1E1E),
                     onSurface: Colors.white,
                   ),
                 )
@@ -2876,7 +2876,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                   colorScheme: ColorScheme.dark(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
-                    surface: Color(0xFF1E1E1E),
+                    surface: const Color(0xFF1E1E1E),
                     onSurface: Colors.white,
                   ),
                 )

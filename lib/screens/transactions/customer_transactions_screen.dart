@@ -941,8 +941,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                             child: Row(
                               children: [
                                 Icon(Icons.edit, color: AppColors.primary),
-                                SizedBox(width: 8),
-                                Text('Edit'),
+                                const SizedBox(width: 8),
+                                const Text('Edit'),
                               ],
                             ),
                           ),
@@ -1053,8 +1053,8 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                             child: Row(
                               children: [
                                 Icon(Icons.edit, color: AppColors.primary),
-                                SizedBox(width: 8),
-                                Text('Edit'),
+                                const SizedBox(width: 8),
+                                const Text('Edit'),
                               ],
                             ),
                           ),

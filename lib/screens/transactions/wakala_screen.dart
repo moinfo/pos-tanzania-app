@@ -702,7 +702,7 @@ class _WakalaScreenState extends State<WakalaScreen>
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.primary,
-                child: Icon(Icons.sim_card, color: Colors.white),
+                child: const Icon(Icons.sim_card, color: Colors.white),
               ),
               title: Text(
                 sim.name,
@@ -805,7 +805,7 @@ class _WakalaScreenState extends State<WakalaScreen>
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor: AppColors.primary,
-                            child: Icon(Icons.sim_card, color: Colors.white),
+                            child: const Icon(Icons.sim_card, color: Colors.white),
                           ),
                           title: Text(
                             transaction.simName,
@@ -851,8 +851,8 @@ class _WakalaScreenState extends State<WakalaScreen>
                                             child: Row(
                                               children: [
                                                 Icon(Icons.edit, color: AppColors.primary),
-                                                SizedBox(width: 8),
-                                                Text('Edit'),
+                                                const SizedBox(width: 8),
+                                                const Text('Edit'),
                                               ],
                                             ),
                                           ),

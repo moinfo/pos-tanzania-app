@@ -704,7 +704,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.primary,
-                child: Icon(Icons.category, color: Colors.white),
+                child: const Icon(Icons.category, color: Colors.white),
               ),
               title: Text(
                 category.name,
@@ -903,8 +903,8 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                                             child: Row(
                                               children: [
                                                 Icon(Icons.edit, color: AppColors.primary),
-                                                SizedBox(width: 8),
-                                                Text('Edit'),
+                                                const SizedBox(width: 8),
+                                                const Text('Edit'),
                                               ],
                                             ),
                                           ),

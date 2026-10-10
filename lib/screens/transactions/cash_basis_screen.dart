@@ -547,7 +547,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.primary,
-                child: Icon(Icons.category, color: Colors.white),
+                child: const Icon(Icons.category, color: Colors.white),
               ),
               title: Text(
                 category.name,
@@ -921,8 +921,8 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                                   child: Row(
                                     children: [
                                       Icon(Icons.edit, color: AppColors.primary),
-                                      SizedBox(width: 8),
-                                      Text('Edit'),
+                                      const SizedBox(width: 8),
+                                      const Text('Edit'),
                                     ],
                                   ),
                                 ),

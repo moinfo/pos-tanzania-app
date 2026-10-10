@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
@@ -3153,7 +3152,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                                 if (hasPendingOTC && !hasOneTimeDiscount)
                                                   Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.local_offer_outlined, size: 12, color: AppColors.warning), const SizedBox(width: 4), Text('OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning))])),
                                                 if (hasApprovedDiscount)
-                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.brandSwatch.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified, size: 12, color: AppColors.brandSwatch), SizedBox(width: 4), Text('Approved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.brandSwatch))])),
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.brandSwatch.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified, size: 12, color: AppColors.brandSwatch), const SizedBox(width: 4), Text('Approved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.brandSwatch))])),
                                                 if (hasPendingApproved && !hasApprovedDiscount)
                                                   Builder(builder: (context) {
                                                     final req = saleProvider.getApprovedDiscountRequest(item.itemId);
@@ -3987,7 +3986,7 @@ class _CartScreenState extends State<CartScreen> {
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(Icons.verified, size: 12, color: AppColors.brandSwatch),
-                                              SizedBox(width: 4),
+                                              const SizedBox(width: 4),
                                               Text(
                                                 'Approved Discount Applied',
                                                 style: TextStyle(

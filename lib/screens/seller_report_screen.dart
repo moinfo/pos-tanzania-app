@@ -656,7 +656,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
                               ],
                             ),

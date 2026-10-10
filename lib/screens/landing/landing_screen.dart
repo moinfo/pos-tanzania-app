@@ -1,10 +1,15 @@
+/**
+ * @author Firstname Lastname <firstname.lastname@example.com>
+ * @file Description
+ * @desc Created on 2026-10-10 9:29:06 am
+ * @copyright GNU General Public License v3.0
+ */
 import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
 import '../../models/public_product.dart';
 import '../../services/api_service.dart';
 import '../login_screen.dart';
-import 'widgets/product_card.dart';
 import 'widgets/product_grid_card.dart';
 import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'widgets/product_skeleton.dart';
@@ -196,7 +201,7 @@ class _LandingScreenState extends State<LandingScreen> {
         // Login button
         IconButton(
           tooltip: 'Login'.tr,
-          icon: Icon(
+          icon: const Icon(
             Icons.login_rounded,
             color: iconColor,
             size: 24,
@@ -726,11 +731,11 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
                 onSelected: (value) => provider.changeSortOrder(value),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 itemBuilder: (context) => [
-                  PopupMenuItem(value: 'latest', child: Text('Latest')),
-                  PopupMenuItem(value: 'popular', child: Text('Most Popular')),
-                  PopupMenuItem(value: 'price_low', child: Text('Price: Low to High')),
-                  PopupMenuItem(value: 'price_high', child: Text('Price: High to Low')),
-                  PopupMenuItem(value: 'name', child: Text('Name')),
+                  const PopupMenuItem(value: 'latest', child: Text('Latest')),
+                  const PopupMenuItem(value: 'popular', child: Text('Most Popular')),
+                  const PopupMenuItem(value: 'price_low', child: Text('Price: Low to High')),
+                  const PopupMenuItem(value: 'price_high', child: Text('Price: High to Low')),
+                  const PopupMenuItem(value: 'name', child: Text('Name')),
                 ],
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

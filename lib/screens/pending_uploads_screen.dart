@@ -308,7 +308,7 @@ class _PendingUploadsScreenState extends State<PendingUploadsScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('Details copied. Paste them anywhere to re-enter or '
+          content: const Text('Details copied. Paste them anywhere to re-enter or '
               'send them on.'),
           backgroundColor: AppColors.info,
         ),

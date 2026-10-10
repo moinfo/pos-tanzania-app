@@ -1726,7 +1726,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                   child: Row(
                     children: [
                       Icon(Icons.info_outline, color: AppColors.info, size: 18),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'This request is waiting on someone else right now.',

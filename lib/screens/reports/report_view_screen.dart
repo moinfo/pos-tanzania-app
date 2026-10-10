@@ -554,7 +554,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                   // Add view icon for first column in supplier report
                   if (isSupplierReport && column.key == 'receiving_id')
                     Padding(
-                      padding: EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.only(left: 8),
                       child: Icon(
                         Icons.visibility,
                         size: 16,
