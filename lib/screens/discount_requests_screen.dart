@@ -233,7 +233,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Discount Requests'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -243,7 +243,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
       floatingActionButton: canAdd
           ? FloatingActionButton(
               onPressed: _showCreateDialog,
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
@@ -271,7 +271,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                      borderSide: BorderSide(color: AppColors.brandPrimary, width: 1.5),
                     ),
                     filled: true,
                     fillColor: isDark ? AppColors.darkCard : Colors.grey[50],
@@ -312,7 +312,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
           // List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? Center(child: CircularProgressIndicator(color: AppColors.brandPrimary))
                 : _errorMessage != null
                     ? Center(
                         child: Padding(
@@ -328,7 +328,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
                                 onPressed: _loadRequests,
                                 icon: const Icon(Icons.refresh, size: 18),
                                 label: const Text('Retry'),
-                                style: OutlinedButton.styleFrom(foregroundColor: AppColors.primary),
+                                style: OutlinedButton.styleFrom(foregroundColor: AppColors.brandPrimary),
                               ),
                             ],
                           ),
@@ -352,7 +352,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
                           )
                         : RefreshIndicator(
                             onRefresh: _loadRequests,
-                            color: AppColors.primary,
+                            color: AppColors.brandPrimary,
                             child: ListView.builder(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
                               itemCount: _requests.length,
@@ -370,7 +370,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
 
   Widget _buildFilterChip(String label, String? status, bool isDark) {
     final isSelected = _statusFilter == status;
-    final statusCol = status != null ? _statusColor(status) : AppColors.primary;
+    final statusCol = status != null ? _statusColor(status) : AppColors.brandPrimary;
 
     return GestureDetector(
       onTap: () {
@@ -531,7 +531,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
                           ),
                           _infoTag(
                             'Total: TSh ${currencyFormat.format(totalDiscount)}',
-                            AppColors.primary,
+                            AppColors.brandPrimary,
                             isDark,
                           ),
                         ],
@@ -994,9 +994,9 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
 
               // Price info
               if (_loadingPrices)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: LinearProgressIndicator(color: AppColors.primary),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: LinearProgressIndicator(color: AppColors.brandPrimary),
                 ),
               if (_itemPrices != null) ...[
                 const SizedBox(height: 10),
@@ -1075,9 +1075,9 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.brandPrimary,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                    disabledBackgroundColor: AppColors.brandPrimary.withValues(alpha: 0.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
@@ -1131,16 +1131,16 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.brandPrimary, width: 1.5),
         ),
         filled: true,
         fillColor: isDark ? AppColors.darkCard : Colors.grey[50],
         contentPadding: const EdgeInsets.symmetric(vertical: 10),
         isDense: true,
         suffixIcon: isLoading
-            ? const Padding(
-                padding: EdgeInsets.all(12),
-                child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+            ? Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brandPrimary)),
               )
             : null,
       ),
@@ -1175,7 +1175,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.brandPrimary, width: 1.5),
         ),
         filled: true,
         fillColor: isDark ? AppColors.darkCard : Colors.grey[50],
@@ -1359,9 +1359,9 @@ class _EditDiscountRequestSheetState extends State<_EditDiscountRequestSheet> {
 
               // Price info
               if (_loadingPrices)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: LinearProgressIndicator(color: AppColors.primary),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: LinearProgressIndicator(color: AppColors.brandPrimary),
                 ),
               if (_itemPrices != null) ...[
                 const SizedBox(height: 10),
@@ -1440,9 +1440,9 @@ class _EditDiscountRequestSheetState extends State<_EditDiscountRequestSheet> {
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.brandPrimary,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                    disabledBackgroundColor: AppColors.brandPrimary.withValues(alpha: 0.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
@@ -1524,7 +1524,7 @@ class _EditDiscountRequestSheetState extends State<_EditDiscountRequestSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.brandPrimary, width: 1.5),
         ),
         filled: true,
         fillColor: isDark ? AppColors.darkCard : Colors.grey[50],

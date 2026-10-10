@@ -91,7 +91,7 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = widget.backgroundColor ?? (isDark ? AppColors.darkCard : Colors.white);
     final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
-    final selectedColor = widget.selectedItemColor ?? AppColors.primary;
+    final selectedColor = widget.selectedItemColor ?? AppColors.brandPrimary;
     final unselectedColor = widget.unselectedItemColor ?? AppColors.textLight;
 
     // Set initial position on first build

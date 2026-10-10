@@ -72,8 +72,8 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
       initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primary,
+          colorScheme: ColorScheme.light(
+            primary: AppColors.brandPrimary,
             onPrimary: Colors.white,
           ),
         ),
@@ -162,7 +162,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Borrowed Money'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -183,7 +183,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
           MaterialPageRoute(
               builder: (_) => const BorrowedMoneyFormScreen()),
         ).then((_) => _loadRecords()),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: Column(
@@ -195,7 +195,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: isDark
                 ? AppColors.darkSurface
-                : AppColors.primary.withOpacity(0.1),
+                : AppColors.brandPrimary.withOpacity(0.1),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -206,7 +206,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color:
-                          isDark ? AppColors.darkText : AppColors.primary,
+                          isDark ? AppColors.darkText : AppColors.brandPrimary,
                     ),
                   ),
                 ),
@@ -368,7 +368,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
                                                 icon: const Icon(
                                                     Icons.edit_outlined,
                                                     size: 20),
-                                                color: AppColors.primary,
+                                                color: AppColors.brandPrimary,
                                                 onPressed: () => Navigator
                                                     .push(
                                                   context,

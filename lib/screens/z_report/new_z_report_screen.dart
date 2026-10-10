@@ -88,7 +88,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -117,7 +117,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt, color: AppColors.brandPrimary),
                 title: const Text('Take Photo'),
                 onTap: () {
                   Navigator.pop(context);
@@ -489,7 +489,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         title: Text(_isEditMode ? 'Edit Z Report' : 'New Z Report'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: Container(
@@ -620,7 +620,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                             ),
                             suffixIcon: Icon(
                               Icons.calendar_month,
-                              color: AppColors.primary,
+                              color: AppColors.brandPrimary,
                             ),
                           ),
                           validator: (value) {
@@ -692,7 +692,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                                 ),
                                 suffixIcon: Icon(
                                   Icons.arrow_drop_down,
-                                  color: AppColors.primary,
+                                  color: AppColors.brandPrimary,
                                 ),
                               ),
                               dropdownColor: isDark
@@ -826,7 +826,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                             side: BorderSide(
                               color: isDark ? Colors.white24 : Colors.grey.shade400,
                             ),
-                            foregroundColor: isDark ? Colors.white : AppColors.primary,
+                            foregroundColor: isDark ? Colors.white : AppColors.brandPrimary,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -849,7 +849,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _submitZReport,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.brandPrimary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

@@ -109,7 +109,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -320,7 +320,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.visibility, color: AppColors.primary),
+                leading:  Icon(Icons.visibility, color: AppColors.brandPrimary),
                 title: Text(
                   'View File',
                   style:
@@ -606,7 +606,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         title: const Text('Z Reports'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector
@@ -641,7 +641,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                           Icons.location_on,
                           size: 18,
                           color: selectedLocation?.locationId == location.locationId
-                              ? AppColors.primary
+                              ? AppColors.brandPrimary
                               : (isDark ? Colors.white70 : AppColors.textLight),
                         ),
                         const SizedBox(width: 8),
@@ -649,7 +649,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                           location.locationName,
                           style: TextStyle(
                             color: selectedLocation?.locationId == location.locationId
-                                ? AppColors.primary
+                                ? AppColors.brandPrimary
                                 : (isDark ? Colors.white : AppColors.text),
                             fontWeight: selectedLocation?.locationId == location.locationId
                                 ? FontWeight.bold
@@ -681,7 +681,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: isDark
                 ? AppColors.darkSurface
-                : AppColors.primary.withOpacity(0.1),
+                : AppColors.brandPrimary.withOpacity(0.1),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -691,7 +691,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                       Icon(
                         Icons.date_range,
                         size: 18,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
@@ -700,7 +700,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: isDark ? AppColors.darkText : AppColors.primary,
+                            color: isDark ? AppColors.darkText : AppColors.brandPrimary,
                           ),
                         ),
                       ),
@@ -712,7 +712,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: AppColors.brandPrimary,
                   ),
                 ),
               ],
@@ -821,16 +821,16 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                         BorderRadius.circular(12),
                                                     gradient: LinearGradient(
                                                       colors: [
-                                                        AppColors.primary
+                                                        AppColors.brandPrimary
                                                             .withOpacity(0.8),
-                                                        AppColors.primary,
+                                                        AppColors.brandPrimary,
                                                       ],
                                                       begin: Alignment.topLeft,
                                                       end: Alignment.bottomRight,
                                                     ),
                                                     boxShadow: [
                                                       BoxShadow(
-                                                        color: AppColors.primary
+                                                        color: AppColors.brandPrimary
                                                             .withOpacity(0.3),
                                                         blurRadius: 8,
                                                         offset:
@@ -882,7 +882,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                     if (hasEditPermission)
                                                       Container(
                                                         decoration: BoxDecoration(
-                                                          color: AppColors.primary
+                                                          color: AppColors.brandPrimary
                                                               .withOpacity(0.1),
                                                           borderRadius:
                                                               BorderRadius.circular(
@@ -953,9 +953,9 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                   decoration: BoxDecoration(
                                                     gradient: LinearGradient(
                                                       colors: [
-                                                        AppColors.primary
+                                                        AppColors.brandPrimary
                                                             .withOpacity(0.1),
-                                                        AppColors.primary
+                                                        AppColors.brandPrimary
                                                             .withOpacity(0.05),
                                                       ],
                                                       begin: Alignment.centerLeft,
@@ -964,7 +964,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                     borderRadius:
                                                         BorderRadius.circular(8),
                                                     border: Border.all(
-                                                      color: AppColors.primary
+                                                      color: AppColors.brandPrimary
                                                           .withOpacity(0.3),
                                                       width: 1,
                                                     ),
@@ -978,7 +978,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                             ? Icons.picture_as_pdf
                                                             : Icons.image,
                                                         size: 18,
-                                                        color: AppColors.primary,
+                                                        color: AppColors.brandPrimary,
                                                       ),
                                                       const SizedBox(width: 8),
                                                       Expanded(
@@ -989,14 +989,14 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                             fontWeight:
                                                                 FontWeight.w600,
                                                             color:
-                                                                AppColors.primary,
+                                                                AppColors.brandPrimary,
                                                           ),
                                                         ),
                                                       ),
                                                       Icon(
                                                         Icons.visibility,
                                                         size: 18,
-                                                        color: AppColors.primary,
+                                                        color: AppColors.brandPrimary,
                                                       ),
                                                     ],
                                                   ),
@@ -1088,7 +1088,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
         permissionId: PermissionIds.cashSubmitAddZReport,
         onPressed: _navigateToNewZReport,
         tooltip: 'Add Z Report',
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),

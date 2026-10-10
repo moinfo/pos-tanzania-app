@@ -36,8 +36,8 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
   final Map<String, ItemComment?> _comments = {};
 
   // Use app brand colors
-  static const Color _headerColor = AppColors.primary;
-  static const Color _headerColorDark = AppColors.primaryDark;
+  static Color get _headerColor => AppColors.brandPrimary;
+  static Color get _headerColorDark => AppColors.brandPrimaryDark;
 
   @override
   void initState() {
@@ -980,7 +980,7 @@ class _CommentDialogState extends State<_CommentDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -1100,7 +1100,7 @@ class _CommentDialogState extends State<_CommentDialog> {
                                       : const Icon(Icons.save),
                                   label: Text(_isSaving ? 'Saving...' : 'Save'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
+                                    backgroundColor: AppColors.brandPrimary,
                                   ),
                                 ),
                               ),

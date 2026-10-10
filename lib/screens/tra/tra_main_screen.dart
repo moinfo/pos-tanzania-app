@@ -127,7 +127,7 @@ class _TRAMainScreenState extends State<TRAMainScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         title: Text(_getAppBarTitle(tabs)),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -146,7 +146,7 @@ class _TRAMainScreenState extends State<TRAMainScreen> {
                 });
               },
               backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-              selectedItemColor: AppColors.primary,
+              selectedItemColor: AppColors.brandPrimary,
               unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
               items: tabs.map((tab) => CurvedNavItem(
                 icon: tab.icon,

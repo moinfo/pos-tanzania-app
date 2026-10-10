@@ -504,7 +504,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: isDark ? AppColors.success : AppColors.primary,
+                                color: isDark ? AppColors.success : AppColors.brandPrimary,
                               ),
                             ),
                           )
@@ -561,7 +561,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                             tileColor: isDark ? AppColors.darkCard : Colors.white,
                             leading: Icon(
                               Icons.inventory_2_outlined,
-                              color: isDark ? AppColors.success : AppColors.primary,
+                              color: isDark ? AppColors.success : AppColors.brandPrimary,
                             ),
                             title: Text(
                               item.name,

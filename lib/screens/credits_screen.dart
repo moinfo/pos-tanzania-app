@@ -115,7 +115,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Customer Credits'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -163,7 +163,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                                       : Icons.radio_button_unchecked,
                                   size: 20,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
+                                      ? AppColors.brandPrimary
                                       : Colors.grey,
                                 ),
                                 const SizedBox(width: 12),
@@ -171,7 +171,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                                   location.locationName,
                                   style: TextStyle(
                                     color: location.locationId == locationProvider.selectedLocation?.locationId
-                                        ? AppColors.primary
+                                        ? AppColors.brandPrimary
                                         : Colors.black87,
                                     fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                         ? FontWeight.bold
@@ -464,7 +464,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                       height: 44,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)],
+                          colors: [AppColors.brandPrimary, AppColors.brandPrimary.withValues(alpha: 0.7)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -638,7 +638,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
             ),
           ),
@@ -751,7 +751,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.supervisorName),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -1154,7 +1154,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
             ),
           ),

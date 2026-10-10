@@ -51,8 +51,8 @@ class _BorrowedMoneyFormScreenState extends State<BorrowedMoneyFormScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primary,
+          colorScheme: ColorScheme.light(
+            primary: AppColors.brandPrimary,
             onPrimary: Colors.white,
           ),
         ),
@@ -117,7 +117,7 @@ class _BorrowedMoneyFormScreenState extends State<BorrowedMoneyFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Borrowed Money' : 'Add Borrowed Money'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -184,7 +184,7 @@ class _BorrowedMoneyFormScreenState extends State<BorrowedMoneyFormScreen> {
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.brandPrimary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

@@ -128,7 +128,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         title: const Text('Suspended Sheet', style: TextStyle(fontSize: 18)),
         actions: [
@@ -173,7 +173,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                                       : Icons.radio_button_unchecked,
                                   size: 18,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
+                                      ? AppColors.brandPrimary
                                       : Colors.grey,
                                 ),
                                 const SizedBox(width: 10),
@@ -250,7 +250,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
+                        Icon(Icons.calendar_today, size: 18, color: AppColors.brandPrimary),
                         const SizedBox(width: 6),
                         Text(
                           DateFormat('dd/MM').format(_selectedDate),
@@ -342,8 +342,8 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primary,
-                  AppColors.primary.withOpacity(0.8),
+                  AppColors.brandPrimary,
+                  AppColors.brandPrimary.withOpacity(0.8),
                 ],
               ),
               borderRadius: const BorderRadius.only(
@@ -365,7 +365,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                     child: Text(
                       '$number',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -519,7 +519,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: AppColors.primary,
+                          color: AppColors.brandPrimary,
                         ),
                       ),
                     ],
@@ -688,7 +688,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                         _buildActionButton(
                           icon: Icons.print,
                           label: 'Print',
-                          color: AppColors.primary,
+                          color: AppColors.brandPrimary,
                           onTap: () => _printCard(sale),
                           isDark: isDark,
                         ),

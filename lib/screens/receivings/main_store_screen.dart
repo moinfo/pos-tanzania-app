@@ -98,7 +98,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
           data: isDark
               ? ThemeData.dark().copyWith(
                   colorScheme: ColorScheme.dark(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: const Color(0xFF1E1E1E),
                     onSurface: Colors.white,
@@ -106,7 +106,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
                 )
               : ThemeData.light().copyWith(
                   colorScheme: ColorScheme.light(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                   ),
                 ),
@@ -183,7 +183,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Main Store (MS)'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -199,7 +199,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
           Container(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.primary,
+              color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
@@ -511,7 +511,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: (isDark ? AppColors.primary : AppColors.primary).withOpacity(0.1),
+                            color: (isDark ? AppColors.brandPrimary : AppColors.brandPrimary).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
@@ -520,7 +520,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                                color: AppColors.brandPrimary,
                               ),
                             ),
                           ),
@@ -688,8 +688,8 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
               child: OutlinedButton.icon(
                 onPressed: () => _copySaleToCart(sale),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: BorderSide(color: AppColors.primary.withOpacity(0.5)),
+                  foregroundColor: AppColors.brandPrimary,
+                  side: BorderSide(color: AppColors.brandPrimary.withOpacity(0.5)),
                   minimumSize: const Size(double.infinity, 38),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),

@@ -122,7 +122,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -211,10 +211,10 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
           ),
           TextButton.icon(
             onPressed: _navigateToItemTracking,
-            icon: Icon(Icons.search, color: AppColors.primary),
+            icon: Icon(Icons.search, color: AppColors.brandPrimary),
             label: Text(
               'Item Tracking',
-              style: TextStyle(color: AppColors.primary),
+              style: TextStyle(color: AppColors.brandPrimary),
             ),
           ),
         ],
@@ -339,7 +339,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
           ElevatedButton(
             onPressed: _loadReport,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
             ),
             child: const Text('Retry'),
           ),
@@ -499,7 +499,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Icon(Icons.list_alt, color: AppColors.primary, size: 20),
+                Icon(Icons.list_alt, color: AppColors.brandPrimary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Stock Items (${_report!.items.length})',
@@ -591,7 +591,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.account_balance_wallet, color: AppColors.primary, size: 20),
+                Icon(Icons.account_balance_wallet, color: AppColors.brandPrimary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Cash Flow',

@@ -130,7 +130,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Suppliers'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -189,7 +189,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
           return FloatingActionButton(
             onPressed: () => _showSupplierForm(),
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.brandPrimary,
             child: const Icon(Icons.add, color: Colors.white),
           );
         },
@@ -350,7 +350,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         );
                       },
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
+                        foregroundColor: AppColors.brandPrimary,
                       ),
                     ),
                   ],
@@ -585,7 +585,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.primary,
+                color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
               ),
               child: Row(
@@ -608,9 +608,9 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
             ),
             TabBar(
               controller: _tabController,
-              labelColor: isDark ? AppColors.darkText : AppColors.primary,
+              labelColor: isDark ? AppColors.darkText : AppColors.brandPrimary,
               unselectedLabelColor: isDark ? AppColors.darkTextLight : Colors.grey,
-              indicatorColor: AppColors.primary,
+              indicatorColor: AppColors.brandPrimary,
               tabs: const [
                 Tab(text: 'Basic Info'),
                 Tab(text: 'Contact'),
@@ -650,7 +650,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
                   ElevatedButton(
                     onPressed: _isLoading ? null : _saveSupplier,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.brandPrimary,
                       foregroundColor: Colors.white,
                     ),
                     child: _isLoading

@@ -197,7 +197,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sales History'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector
@@ -241,7 +241,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                       : Icons.radio_button_unchecked,
                                   size: 20,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
+                                      ? AppColors.brandPrimary
                                       : Colors.grey,
                                 ),
                                 const SizedBox(width: 12),
@@ -249,7 +249,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                   location.locationName,
                                   style: TextStyle(
                                     color: location.locationId == locationProvider.selectedLocation?.locationId
-                                        ? (isDark ? AppColors.darkText : AppColors.primary)
+                                        ? (isDark ? AppColors.darkText : AppColors.brandPrimary)
                                         : (isDark ? AppColors.darkText : Colors.black87),
                                     fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                         ? FontWeight.bold
@@ -275,7 +275,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
           // Date range display
           Container(
             padding: const EdgeInsets.all(16),
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.brandPrimary.withOpacity(0.1),
             child: Column(
               children: [
                 Row(
@@ -473,7 +473,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                           color: isDark ? AppColors.darkCard : Colors.white,
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: AppColors.brandPrimary,
                               radius: 24,
                               child: Padding(
                                 padding: const EdgeInsets.all(4),
@@ -556,10 +556,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                               children: [
                                 Text(
                                   '${_currencyFormat.format(sale.total)} TSh',
-                                  style: const TextStyle(
+                                  style:  TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: AppColors.primary,
+                                    color: AppColors.brandPrimary,
                                   ),
                                 ),
                                 _getSaleStatusBadge(sale.saleStatus),
@@ -633,7 +633,7 @@ class _SummaryCard extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Column(
             children: [
-              Icon(icon, color: AppColors.primary),
+              Icon(icon, color: AppColors.brandPrimary),
               const SizedBox(height: 8),
               Text(
                 label,
@@ -713,20 +713,20 @@ class SaleDetailsSheet extends StatelessWidget {
                       children: [
                         // Print button
                         IconButton(
-                          icon: Icon(Icons.print, color: AppColors.primary),
+                          icon: Icon(Icons.print, color: AppColors.brandPrimary),
                           tooltip: 'Print Receipt',
                           onPressed: () => _printReceipt(context, sale),
                         ),
                         // Share button
                         IconButton(
-                          icon: Icon(Icons.share, color: AppColors.primary),
+                          icon: Icon(Icons.share, color: AppColors.brandPrimary),
                           tooltip: 'Share Receipt',
                           onPressed: () => _shareReceipt(context, sale),
                         ),
                         // Return items button
                         if (sale.saleId != null && sale.saleType == 0)
                           IconButton(
-                            icon: Icon(Icons.assignment_return, color: AppColors.primary),
+                            icon: Icon(Icons.assignment_return, color: AppColors.brandPrimary),
                             tooltip: 'Return Items',
                             onPressed: () {
                               Navigator.pop(context);
@@ -922,9 +922,9 @@ class SaleDetailsSheet extends StatelessWidget {
                                       ),
                                       Text(
                                         '${currencyFormat.format(item.lineTotal)} TSh',
-                                        style: const TextStyle(
+                                        style:  TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: AppColors.primary,
+                                          color: AppColors.brandPrimary,
                                         ),
                                       ),
                                     ],
@@ -938,7 +938,7 @@ class SaleDetailsSheet extends StatelessWidget {
 
                     // Totals
                     Card(
-                      color: isDark ? AppColors.darkBackground : AppColors.primary.withOpacity(0.1),
+                      color: isDark ? AppColors.darkBackground : AppColors.brandPrimary.withOpacity(0.1),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -991,10 +991,10 @@ class SaleDetailsSheet extends StatelessWidget {
                                 ),
                                 Text(
                                   '${currencyFormat.format(sale.total)} TSh',
-                                  style: const TextStyle(
+                                  style:  TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
+                                    color: AppColors.brandPrimary,
                                   ),
                                 ),
                               ],
@@ -1021,7 +1021,7 @@ class SaleDetailsSheet extends StatelessWidget {
                             child: ListTile(
                               leading: Icon(
                                 _getPaymentIcon(payment.paymentType),
-                                color: AppColors.primary,
+                                color: AppColors.brandPrimary,
                               ),
                               title: Text(
                                 payment.paymentType,
@@ -1187,14 +1187,14 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+          border: Border.all(color: AppColors.brandPrimary.withOpacity(0.3)),
         ),
         child: Text(
           label,
-          style: const TextStyle(
+          style:  TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: AppColors.primary,
+            color: AppColors.brandPrimary,
           ),
         ),
       ),
@@ -1221,10 +1221,10 @@ class _PaymentFilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? AppColors.brandPrimary : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.primary.withOpacity(0.3),
+            color: isSelected ? AppColors.brandPrimary : AppColors.brandPrimary.withOpacity(0.3),
           ),
         ),
         child: Text(
@@ -1232,7 +1232,7 @@ class _PaymentFilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.primary,
+            color: isSelected ? Colors.white : AppColors.brandPrimary,
           ),
         ),
       ),

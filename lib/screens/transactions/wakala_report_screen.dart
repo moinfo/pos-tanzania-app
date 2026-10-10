@@ -229,7 +229,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
       style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: isDark ? AppColors.primary : AppColors.secondary,
+        color: isDark ? AppColors.brandPrimary : AppColors.secondary,
       ),
     );
   }
@@ -293,7 +293,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
   Widget _buildExpensesSection(WakalaExpensesSection section, BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    final amountColor = AppColors.primary; // Expenses shown in red
+    final amountColor = AppColors.brandPrimary; // Expenses shown in red
 
     return GlassmorphicCard(
       child: Padding(
@@ -368,7 +368,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
             const SizedBox(height: 12),
             _buildSummaryRow('Debit', report.totalDeposited, amountColor),
             const SizedBox(height: 12),
-            _buildSummaryRow('Withdraw', report.totalWithdrawn, AppColors.primary),
+            _buildSummaryRow('Withdraw', report.totalWithdrawn, AppColors.brandPrimary),
             const SizedBox(height: 12),
             _buildSummaryRow('Closing Balance', report.closingBalance, amountColor),
             const Divider(height: 24),
@@ -390,7 +390,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
   Widget _buildCreditorDebtorSection(CreditorDebtorSection section, BuildContext context, {required bool isCreditor}) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    final amountColor = isCreditor ? AppColors.primary : (isDark ? Colors.greenAccent : Colors.green.shade700);
+    final amountColor = isCreditor ? AppColors.brandPrimary : (isDark ? Colors.greenAccent : Colors.green.shade700);
 
     return GlassmorphicCard(
       child: Padding(
@@ -509,7 +509,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     final isDark = themeProvider.isDarkMode;
     final isGain = report.gainLoss >= 0;
     final gainColor = isDark ? Colors.greenAccent : Colors.green.shade700;
-    final lossColor = AppColors.primary;
+    final lossColor = AppColors.brandPrimary;
     final resultColor = isGain ? gainColor : lossColor;
 
     return GlassmorphicCard(
@@ -521,7 +521,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                 ? isDark
                     ? [Colors.greenAccent.withOpacity(0.15), Colors.greenAccent.withOpacity(0.05)]
                     : [Colors.green.withOpacity(0.1), Colors.green.withOpacity(0.05)]
-                : [AppColors.primary.withOpacity(0.3), AppColors.primary.withOpacity(0.1)],
+                : [AppColors.brandPrimary.withOpacity(0.3), AppColors.brandPrimary.withOpacity(0.1)],
           ),
           borderRadius: BorderRadius.circular(16),
         ),

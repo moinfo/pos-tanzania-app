@@ -77,8 +77,8 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            primary: AppColors.primary,
+            seedColor: AppColors.brandPrimary,
+            primary: AppColors.brandPrimary,
             secondary: AppColors.secondary,
             error: AppColors.error,
             background: AppColors.background,
@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget {
           appBarTheme: AppBarTheme(
             elevation: 0,
             centerTitle: true,
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.brandPrimary,
             foregroundColor: Colors.white,
             iconTheme: const IconThemeData(color: Colors.white),
           ),
@@ -99,7 +99,7 @@ class MyApp extends StatelessWidget {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
               shape: RoundedRectangleBorder(
@@ -109,7 +109,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
           floatingActionButtonTheme: FloatingActionButtonThemeData(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.brandPrimary,
             foregroundColor: Colors.white,
             elevation: 4,
           ),
@@ -119,7 +119,7 @@ class MyApp extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              borderSide: BorderSide(color: AppColors.brandPrimary, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -135,7 +135,7 @@ class MyApp extends StatelessWidget {
         darkTheme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.dark(
-            primary: AppColors.primary,
+            primary: AppColors.brandPrimary,
             secondary: AppColors.secondary,
             error: AppColors.error,
             background: AppColors.darkBackground,
@@ -158,7 +158,7 @@ class MyApp extends StatelessWidget {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
               shape: RoundedRectangleBorder(
@@ -168,7 +168,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
           floatingActionButtonTheme: FloatingActionButtonThemeData(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.brandPrimary,
             foregroundColor: Colors.white,
             elevation: 4,
           ),
@@ -178,7 +178,7 @@ class MyApp extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              borderSide: BorderSide(color: AppColors.brandPrimary, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,

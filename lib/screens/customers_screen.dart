@@ -273,7 +273,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Customers'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector - Leruma only (customers filtered by location's supervisor)
@@ -317,7 +317,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                       : Icons.radio_button_unchecked,
                                   size: 20,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
+                                      ? AppColors.brandPrimary
                                       : Colors.grey,
                                 ),
                                 const SizedBox(width: 12),
@@ -325,7 +325,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                   location.locationName,
                                   style: TextStyle(
                                     color: location.locationId == locationProvider.selectedLocation?.locationId
-                                        ? AppColors.primary
+                                        ? AppColors.brandPrimary
                                         : Colors.black87,
                                     fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                         ? FontWeight.bold
@@ -437,11 +437,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.brandPrimary.withOpacity(0.1),
                     child: Text(
                       customer.firstName.isNotEmpty ? customer.firstName[0].toUpperCase() : 'C',
-                      style: const TextStyle(
-                        color: AppColors.primary,
+                      style: TextStyle(
+                        color: AppColors.brandPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -476,7 +476,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         customer.supervisor!.name,
                         style: const TextStyle(fontSize: 11),
                       ),
-                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      backgroundColor: AppColors.brandPrimary.withOpacity(0.1),
                       padding: EdgeInsets.zero,
                     ),
                   // NFC Card indicator - Leruma only
@@ -566,7 +566,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         Icon(
                           Icons.account_balance_wallet,
                           size: 14,
-                          color: customer.balance >= 0 ? AppColors.error : AppColors.primary,
+                          color: customer.balance >= 0 ? AppColors.error : AppColors.brandPrimary,
                         ),
                         const SizedBox(width: 4),
                         Flexible(
@@ -574,7 +574,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             'Balance: ${NumberFormat('#,###').format(customer.balance)}',
                             style: TextStyle(
                               fontSize: 13,
-                              color: customer.balance >= 0 ? AppColors.error : AppColors.primary,
+                              color: customer.balance >= 0 ? AppColors.error : AppColors.brandPrimary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -587,14 +587,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: customer.days! > 30 ? AppColors.error.withValues(alpha: 0.1) : AppColors.primary.withValues(alpha: 0.1),
+                        color: customer.days! > 30 ? AppColors.error.withValues(alpha: 0.1) : AppColors.brandPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         '${customer.days} days',
                         style: TextStyle(
                           fontSize: 12,
-                          color: customer.days! > 30 ? AppColors.error : AppColors.primary,
+                          color: customer.days! > 30 ? AppColors.error : AppColors.brandPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -613,7 +613,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         onPressed: () => _showCustomerForm(customer: customer),
                         icon: const Icon(Icons.edit, size: 18),
                         tooltip: 'Edit Customer',
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         showDisabled: false,
                       ),
                       const SizedBox(width: 8),
@@ -671,7 +671,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             );
                           },
                           style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
+                            foregroundColor: AppColors.brandPrimary,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                           ),
                         ),
@@ -1228,9 +1228,9 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
               // Header
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.only(
+                decoration: BoxDecoration(
+                  color: AppColors.brandPrimary,
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(4),
                     topRight: Radius.circular(4),
                   ),
@@ -1255,7 +1255,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
               ),
               // Tabs
               Container(
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
                 child: const TabBar(
                   indicatorColor: Colors.white,
                   labelColor: Colors.white,
@@ -1301,7 +1301,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
                     ElevatedButton(
                       onPressed: _isLoading ? null : _saveCustomer,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.brandPrimary,
                         foregroundColor: Colors.white,
                       ),
                       child: _isLoading

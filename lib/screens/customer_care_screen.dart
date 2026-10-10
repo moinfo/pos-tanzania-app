@@ -32,8 +32,8 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
   String _filterStatus = 'all'; // all, active, attention, at_risk, inactive, new
 
   // Use app brand colors
-  static const Color _headerColor = AppColors.primary;
-  static const Color _headerColorDark = AppColors.primaryDark;
+  static Color get _headerColor => AppColors.brandPrimary;
+  static Color get _headerColorDark => AppColors.brandPrimaryDark;
 
   @override
   void initState() {
@@ -521,7 +521,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                   child: Center(
                     child: Text(
                       '$number',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _headerColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,

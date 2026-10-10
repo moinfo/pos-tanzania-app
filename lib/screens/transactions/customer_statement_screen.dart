@@ -88,7 +88,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -235,29 +235,29 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: isDark
-              ? AppColors.primary.withOpacity(0.15)
-              : AppColors.primary.withOpacity(0.08),
+              ? AppColors.brandPrimary.withOpacity(0.15)
+              : AppColors.brandPrimary.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.brandPrimary.withOpacity(0.3),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.calendar_today,
-                size: 16, color: AppColors.primary),
+                size: 16, color: AppColors.brandPrimary),
             const SizedBox(width: 8),
             Text(
               '${Formatters.formatDate(_startDate)}  —  ${Formatters.formatDate(_endDate)}',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.edit, size: 14, color: AppColors.primary),
+            Icon(Icons.edit, size: 14, color: AppColors.brandPrimary),
           ],
         ),
       ),
@@ -320,7 +320,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
                 fontWeight: FontWeight.bold,
                 color: amount >= 0
                     ? (isDark ? Colors.greenAccent : Colors.green.shade700)
-                    : AppColors.primary,
+                    : AppColors.brandPrimary,
               ),
             ),
           ],
@@ -333,7 +333,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
     final isDeposit = txn.type == 'deposit';
     final txnColor = isDeposit
         ? (isDark ? Colors.greenAccent : Colors.green.shade700)
-        : AppColors.primary;
+        : AppColors.brandPrimary;
     final txnIcon = isDeposit ? Icons.arrow_downward : Icons.arrow_upward;
     final txnAmount = isDeposit ? txn.deposit : txn.withdrawal;
 
@@ -446,7 +446,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
             _buildTotalRow(
               'Total Withdrawals',
               totalWithdrawals,
-              AppColors.primary,
+              AppColors.brandPrimary,
               isDark,
             ),
             const Divider(height: 20),

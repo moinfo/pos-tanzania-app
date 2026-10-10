@@ -302,12 +302,12 @@ class TransactionsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1),
+                  color: AppColors.brandPrimary.withOpacity(isDark ? 0.15 : 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: AppColors.primary,
+                  color: AppColors.brandPrimary,
                   size: 32,
                 ),
               ),

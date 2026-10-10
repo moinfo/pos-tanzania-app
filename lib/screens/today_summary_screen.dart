@@ -106,7 +106,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Today Summary'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector (Come & Save and Leruma)
@@ -141,7 +141,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                           Icons.location_on,
                           size: 18,
                           color: selectedLocation?.locationId == location.locationId
-                              ? AppColors.primary
+                              ? AppColors.brandPrimary
                               : (isDark ? Colors.white70 : AppColors.textLight),
                         ),
                         const SizedBox(width: 8),
@@ -149,7 +149,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                           location.locationName,
                           style: TextStyle(
                             color: selectedLocation?.locationId == location.locationId
-                                ? AppColors.primary
+                                ? AppColors.brandPrimary
                                 : (isDark ? Colors.white : AppColors.text),
                             fontWeight: selectedLocation?.locationId == location.locationId
                                 ? FontWeight.bold
@@ -197,7 +197,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                           icon: const Icon(Icons.refresh),
                           label: const Text('Retry'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
+                            backgroundColor: AppColors.brandPrimary,
                             foregroundColor: Colors.white,
                           ),
                         ),
@@ -247,15 +247,15 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                                           borderRadius: BorderRadius.circular(12),
                                           gradient: LinearGradient(
                                             colors: [
-                                              AppColors.primary.withOpacity(0.8),
-                                              AppColors.primary,
+                                              AppColors.brandPrimary.withOpacity(0.8),
+                                              AppColors.brandPrimary,
                                             ],
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: AppColors.primary.withOpacity(0.3),
+                                              color: AppColors.brandPrimary.withOpacity(0.3),
                                               blurRadius: 8,
                                               offset: const Offset(0, 4),
                                             ),
@@ -633,14 +633,14 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
             colors: color != null
                 ? [color.withOpacity(0.1), color.withOpacity(0.05)]
                 : isDark
-                    ? [AppColors.primary.withOpacity(0.2), AppColors.primary.withOpacity(0.1)]
-                    : [AppColors.primary.withOpacity(0.1), AppColors.primary.withOpacity(0.05)],
+                    ? [AppColors.brandPrimary.withOpacity(0.2), AppColors.brandPrimary.withOpacity(0.1)]
+                    : [AppColors.brandPrimary.withOpacity(0.1), AppColors.brandPrimary.withOpacity(0.05)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: (color ?? AppColors.primary).withOpacity(0.3),
+            color: (color ?? AppColors.brandPrimary).withOpacity(0.3),
             width: 1,
           ),
         ),
@@ -655,7 +655,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                     width: 4,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: color ?? AppColors.primary,
+                      color: color ?? AppColors.brandPrimary,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -676,7 +676,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: (color ?? AppColors.primary).withOpacity(0.15),
+                color: (color ?? AppColors.brandPrimary).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -684,7 +684,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: color ?? AppColors.primary,
+                  color: color ?? AppColors.brandPrimary,
                 ),
               ),
             ),

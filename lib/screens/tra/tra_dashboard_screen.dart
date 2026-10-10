@@ -114,7 +114,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -205,7 +205,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
                           Icon(
                             Icons.date_range,
                             size: 20,
-                            color: AppColors.primary,
+                            color: AppColors.brandPrimary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -299,7 +299,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
                 title: 'Leruma Sales',
                 value: d.salesLeruma,
                 icon: Icons.point_of_sale,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
                 isDark: isDark,
               ),
             ),

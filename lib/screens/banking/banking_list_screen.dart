@@ -33,9 +33,12 @@ class _BankingListScreenState extends State<BankingListScreen> {
   List<BankingListItem> _bankings = [];
   bool _isLoading = false;
   String? _errorMessage;
-  // Default to today - will be updated based on permission
-  DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now();
+  // Null means "no date filter" (all history, matching the web's Bank page,
+  // which shows every banking record with no date restriction at all).
+  // Someone without bankingDateRangeFilter permission is intentionally
+  // restricted to today only - see _initializeLocation().
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   @override
   void initState() {
@@ -51,10 +54,19 @@ class _BankingListScreenState extends State<BankingListScreen> {
     final locationProvider = context.read<LocationProvider>();
     await locationProvider.initialize(moduleId: 'sales'); // Use sales permissions
 
-    // Default date is always today - permission only controls if user can change it
+    // Someone allowed to change the date range sees everything by default,
+    // same as the web's Bank page (no date filter at all) - someone without
+    // that permission is intentionally restricted to today only.
+    final permissionProvider = context.read<PermissionProvider>();
+    final hasDateRangePermission = permissionProvider.hasPermission(PermissionIds.bankingDateRangeFilter);
     setState(() {
-      _startDate = DateTime.now();
-      _endDate = DateTime.now();
+      if (hasDateRangePermission) {
+        _startDate = null;
+        _endDate = null;
+      } else {
+        _startDate = DateTime.now();
+        _endDate = DateTime.now();
+      }
     });
 
     _loadBankings();
@@ -67,8 +79,8 @@ class _BankingListScreenState extends State<BankingListScreen> {
     });
 
     try {
-      final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
-      final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
+      final startDateStr = _startDate != null ? DateFormat('yyyy-MM-dd').format(_startDate!) : null;
+      final endDateStr = _endDate != null ? DateFormat('yyyy-MM-dd').format(_endDate!) : null;
 
       final locationProvider = context.read<LocationProvider>();
       final selectedLocationId = locationProvider.selectedLocation?.locationId;
@@ -125,14 +137,14 @@ class _BankingListScreenState extends State<BankingListScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       initialDateRange: DateTimeRange(
-        start: _startDate,
-        end: _endDate,
+        start: _startDate ?? DateTime.now().subtract(const Duration(days: 30)),
+        end: _endDate ?? DateTime.now(),
       ),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -143,7 +155,8 @@ class _BankingListScreenState extends State<BankingListScreen> {
       },
     );
 
-    if (picked != null && picked != DateTimeRange(start: _startDate, end: _endDate)) {
+    if (picked != null &&
+        (picked.start != _startDate || picked.end != _endDate)) {
       setState(() {
         _startDate = picked.start;
         _endDate = picked.end;
@@ -258,7 +271,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
   Color _getBankColor(String bankName) {
     switch (bankName) {
       case 'CRDB':
-        return AppColors.primary;
+        return AppColors.brandPrimary;
       case 'NMB':
         return AppColors.secondary;
       case 'NBC':
@@ -306,7 +319,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.visibility, color: AppColors.primary),
+                leading: Icon(Icons.visibility, color: AppColors.brandPrimary),
                 title: Text(
                   'View File',
                   style: TextStyle(color: isDark ? Colors.white : AppColors.text),
@@ -587,7 +600,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         title: const Text('Banking'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector
@@ -622,7 +635,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                           Icons.location_on,
                           size: 18,
                           color: selectedLocation?.locationId == location.locationId
-                              ? AppColors.primary
+                              ? AppColors.brandPrimary
                               : (isDark ? Colors.white70 : AppColors.textLight),
                         ),
                         const SizedBox(width: 8),
@@ -630,7 +643,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                           location.locationName,
                           style: TextStyle(
                             color: selectedLocation?.locationId == location.locationId
-                                ? AppColors.primary
+                                ? AppColors.brandPrimary
                                 : (isDark ? Colors.white : AppColors.text),
                             fontWeight: selectedLocation?.locationId == location.locationId
                                 ? FontWeight.bold
@@ -664,7 +677,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: isDark
                 ? AppColors.darkSurface
-                : AppColors.primary.withOpacity(0.1),
+                : AppColors.brandPrimary.withOpacity(0.1),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -673,16 +686,18 @@ class _BankingListScreenState extends State<BankingListScreen> {
                     children: [
                       Icon(Icons.date_range,
                         size: 18,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          '${DateFormat('MMM dd, yyyy').format(_startDate)} - ${DateFormat('MMM dd, yyyy').format(_endDate)}',
+                          _startDate != null && _endDate != null
+                              ? '${DateFormat('MMM dd, yyyy').format(_startDate!)} - ${DateFormat('MMM dd, yyyy').format(_endDate!)}'
+                              : 'All time',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: isDark ? AppColors.darkText : AppColors.primary,
+                            color: isDark ? AppColors.darkText : AppColors.brandPrimary,
                           ),
                         ),
                       ),
@@ -696,7 +711,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                     icon: const Icon(Icons.edit_calendar, size: 18),
                     label: const Text('Change'),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: AppColors.brandPrimary,
                     ),
                   ),
               ],
@@ -833,19 +848,19 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                                 decoration: BoxDecoration(
-                                                  color: AppColors.primary.withOpacity(0.1),
+                                                  color: AppColors.brandPrimary.withOpacity(0.1),
                                                   borderRadius: BorderRadius.circular(8),
                                                   border: Border.all(
-                                                    color: AppColors.primary.withOpacity(0.3),
+                                                    color: AppColors.brandPrimary.withOpacity(0.3),
                                                     width: 1,
                                                   ),
                                                 ),
                                                 child: Text(
                                                   _formatCurrency(banking.amount),
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.bold,
-                                                    color: AppColors.primary,
+                                                    color: AppColors.brandPrimary,
                                                   ),
                                                 ),
                                               ),
@@ -858,11 +873,11 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                             if (hasEditPermission)
                                               Container(
                                                 decoration: BoxDecoration(
-                                                  color: AppColors.primary.withOpacity(0.1),
+                                                  color: AppColors.brandPrimary.withOpacity(0.1),
                                                   borderRadius: BorderRadius.circular(8),
                                                 ),
                                                 child: IconButton(
-                                                  icon: const Icon(Icons.edit, color: AppColors.primary, size: 20),
+                                                  icon: Icon(Icons.edit, color: AppColors.brandPrimary, size: 20),
                                                   onPressed: () => _navigateToEditBanking(banking),
                                                   padding: const EdgeInsets.all(8),
                                                   constraints: const BoxConstraints(),
@@ -899,15 +914,15 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                         decoration: BoxDecoration(
                                           gradient: LinearGradient(
                                             colors: [
-                                              AppColors.primary.withOpacity(0.1),
-                                              AppColors.primary.withOpacity(0.05),
+                                              AppColors.brandPrimary.withOpacity(0.1),
+                                              AppColors.brandPrimary.withOpacity(0.05),
                                             ],
                                             begin: Alignment.centerLeft,
                                             end: Alignment.centerRight,
                                           ),
                                           borderRadius: BorderRadius.circular(8),
                                           border: Border.all(
-                                            color: AppColors.primary.withOpacity(0.3),
+                                            color: AppColors.brandPrimary.withOpacity(0.3),
                                             width: 1,
                                           ),
                                         ),
@@ -918,7 +933,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                                   ? Icons.picture_as_pdf
                                                   : Icons.image,
                                               size: 18,
-                                              color: AppColors.primary,
+                                              color: AppColors.brandPrimary,
                                             ),
                                             const SizedBox(width: 8),
                                             Expanded(
@@ -927,14 +942,14 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                                 style: TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600,
-                                                  color: AppColors.primary,
+                                                  color: AppColors.brandPrimary,
                                                 ),
                                               ),
                                             ),
                                             Icon(
                                               Icons.visibility,
                                               size: 18,
-                                              color: AppColors.primary,
+                                              color: AppColors.brandPrimary,
                                             ),
                                           ],
                                         ),
@@ -1103,7 +1118,13 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Text(
-                                                    'Branch',
+                                                    // "Branch" (KIWANGWA/LOLIONDO) only means anything for
+                                                    // the one client that actually has those branches: show
+                                                    // every other client's real stock location instead,
+                                                    // rather than defaulting to that client's branch name.
+                                                    ApiService.currentClient?.features.hasBranchSelection == true
+                                                        ? 'Branch'
+                                                        : 'Location',
                                                     style: TextStyle(
                                                       fontSize: 11,
                                                       color: isDark ? AppColors.darkTextLight : AppColors.textLight,
@@ -1114,7 +1135,9 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                banking.branch,
+                                                ApiService.currentClient?.features.hasBranchSelection == true
+                                                    ? banking.branch
+                                                    : (banking.locationName ?? '-'),
                                                 style: TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600,
@@ -1143,7 +1166,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
         permissionId: PermissionIds.bankingAddDeposit,
         onPressed: _navigateToNewBanking,
         tooltip: 'Add Banking',
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
@@ -1207,7 +1230,7 @@ Color _getBankColor(String bankName) {
   if (lowerName.contains('crdb')) return const Color(0xFF1976D2);
   if (lowerName.contains('nmb')) return const Color(0xFF388E3C);
   if (lowerName.contains('nbc')) return const Color(0xFFD32F2F);
-  return AppColors.primary;
+  return AppColors.brandPrimary;
 }
 
 String _formatCurrency(double amount) {

@@ -80,7 +80,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -177,7 +177,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: const Text('Capital'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -213,10 +213,10 @@ class _CapitalScreenState extends State<CapitalScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1),
+                        color: AppColors.brandPrimary.withOpacity(isDark ? 0.15 : 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
+                      child: Icon(Icons.calendar_today, size: 16, color: AppColors.brandPrimary),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -234,8 +234,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: AppColors.primary.withOpacity(isDark ? 0.1 : 0.08),
+                    foregroundColor: AppColors.brandPrimary,
+                    backgroundColor: AppColors.brandPrimary.withOpacity(isDark ? 0.1 : 0.08),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -250,7 +250,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: _buildSummaryCard('Capital', _totalCapital, Icons.work, AppColors.primary, isDark),
+                    child: _buildSummaryCard('Capital', _totalCapital, Icons.work, AppColors.brandPrimary, isDark),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -309,7 +309,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -350,10 +350,10 @@ class _CapitalScreenState extends State<CapitalScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.brandPrimary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.work, color: AppColors.primary, size: 24),
+              child: Icon(Icons.work, color: AppColors.brandPrimary, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -515,7 +515,7 @@ class _CapitalFormDialogState extends State<_CapitalFormDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: _isSaving ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandPrimary, foregroundColor: Colors.white),
           child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(_isEditing ? 'Update' : 'Add'),
         ),
       ],

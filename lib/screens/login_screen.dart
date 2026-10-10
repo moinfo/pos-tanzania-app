@@ -209,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
             ),
             child: const Text('Enable'),
@@ -256,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isDark = themeProvider.isDarkMode;
     final client = ApiService.currentClient;
     final branding = client?.branding;
-    final brandPrimary = branding != null ? Color(branding.primaryColor) : AppColors.primary;
+    final brandPrimary = branding != null ? Color(branding.primaryColor) : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : brandPrimary,

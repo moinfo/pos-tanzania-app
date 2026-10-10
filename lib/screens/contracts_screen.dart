@@ -55,7 +55,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Contracts'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -87,7 +87,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
                           icon: const Icon(Icons.refresh),
                           label: const Text('Retry'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
+                            backgroundColor: AppColors.brandPrimary,
                             foregroundColor: Colors.white,
                           ),
                         ),
@@ -241,7 +241,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
                   icon: const Icon(Icons.arrow_forward),
                   label: const Text('View Statement'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: AppColors.brandPrimary,
                   ),
                 ),
               ),

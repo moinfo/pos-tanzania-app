@@ -201,7 +201,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Return — Sale #${widget.saleId}'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -225,16 +225,16 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
   Widget _buildCustomerBanner() {
     return Container(
       width: double.infinity,
-      color: AppColors.primary.withOpacity(0.08),
+      color: AppColors.brandPrimary.withOpacity(0.08),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.person_outline, size: 18, color: AppColors.primary),
+          Icon(Icons.person_outline, size: 18, color: AppColors.brandPrimary),
           const SizedBox(width: 8),
           Text(
             _modalData!.customerName,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, color: AppColors.primary),
+            style:  TextStyle(
+                fontWeight: FontWeight.w600, color: AppColors.brandPrimary),
           ),
           const Spacer(),
           Text(
@@ -346,8 +346,8 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
                 // Line total
                 Text(
                   '${_currencyFormat.format(item.lineTotal)} TSh',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, color: AppColors.primary),
+                  style:  TextStyle(
+                      fontWeight: FontWeight.w600, color: AppColors.brandPrimary),
                 ),
               ],
             ),
@@ -542,7 +542,7 @@ class _QtyStepper extends StatelessWidget {
         ),
         _StepBtn(
           icon: Icons.add,
-          color: value < max ? AppColors.primary : Colors.grey.shade300,
+          color: value < max ? AppColors.brandPrimary : Colors.grey.shade300,
           onTap: value < max ? onIncrement : null,
         ),
       ],

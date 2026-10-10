@@ -128,7 +128,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                               return ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: isSelected
-                                      ? AppColors.primary
+                                      ? AppColors.brandPrimary
                                       : (isDark ? AppColors.darkCard : const Color(0xFFE5E7EB)),
                                   child: Text(
                                     customer.firstName.isNotEmpty
@@ -158,7 +158,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                                       )
                                     : null,
                                 trailing: isSelected
-                                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                                    ?  Icon(Icons.check_circle, color: AppColors.brandPrimary)
                                     : null,
                                 onTap: () => Navigator.pop(context, customer),
                               );
@@ -916,13 +916,13 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                       },
                       itemBuilder: (context) => [
                         if (canEdit)
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
-                                Icon(Icons.edit, color: AppColors.primary),
-                                SizedBox(width: 8),
-                                Text('Edit'),
+                                Icon(Icons.edit, color: AppColors.brandPrimary),
+                                const SizedBox(width: 8),
+                                const Text('Edit'),
                               ],
                             ),
                           ),
@@ -1028,13 +1028,13 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                       },
                       itemBuilder: (context) => [
                         if (canEdit)
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
-                                Icon(Icons.edit, color: AppColors.primary),
-                                SizedBox(width: 8),
-                                Text('Edit'),
+                                Icon(Icons.edit, color: AppColors.brandPrimary),
+                                const SizedBox(width: 8),
+                                const Text('Edit'),
                               ],
                             ),
                           ),

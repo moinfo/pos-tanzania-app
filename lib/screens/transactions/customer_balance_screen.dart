@@ -193,7 +193,7 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.primary : AppColors.secondary,
+                color: isDark ? AppColors.brandPrimary : AppColors.secondary,
               ),
             ),
             const SizedBox(height: 16),
@@ -212,7 +212,7 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
                   child: _buildSummaryItem(
                     'Total Withdraw',
                     _totalWithdrawn,
-                    AppColors.primary,
+                    AppColors.brandPrimary,
                     isDark,
                   ),
                 ),
@@ -271,7 +271,7 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
   Widget _buildCustomerCard(CustomerTransactionBalance customer, bool isDark) {
     final balanceColor = customer.balance >= 0
         ? (isDark ? Colors.greenAccent : Colors.green.shade700)
-        : AppColors.primary;
+        : AppColors.brandPrimary;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -287,12 +287,12 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.brandPrimary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.person,
-                      color: AppColors.primary,
+                      color: AppColors.brandPrimary,
                       size: 20,
                     ),
                   ),
@@ -357,7 +357,7 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
+                            color: AppColors.brandPrimary,
                           ),
                         ),
                       ],
@@ -410,8 +410,8 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
                   icon: const Icon(Icons.receipt_long, size: 16),
                   label: const Text('Statement'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                    foregroundColor: AppColors.brandPrimary,
+                    side: BorderSide(color: AppColors.brandPrimary.withOpacity(0.3)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),

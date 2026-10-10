@@ -104,7 +104,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -174,7 +174,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: widget.showAppBar ? AppBar(
         title: const Text('TRADE Purchases'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -200,7 +200,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
       ) : null,
       floatingActionButton: !widget.showAppBar && hasAddPermission ? FloatingActionButton(
         heroTag: 'tra_purchases_fab',
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -268,7 +268,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.date_range, size: 20, color: AppColors.primary),
+                  Icon(Icons.date_range, size: 20, color: AppColors.brandPrimary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -415,7 +415,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
                     if (hasEdit)
                       IconButton(
                         icon: const Icon(Icons.edit, size: 20),
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         onPressed: () async {
                           final result = await Navigator.push(
                             context,

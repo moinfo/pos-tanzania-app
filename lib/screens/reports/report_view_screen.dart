@@ -163,13 +163,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: isDark
                 ? ColorScheme.dark(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: AppColors.darkSurface,
                     onSurface: AppColors.darkText,
                   )
                 : ColorScheme.light(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: Colors.white,
                     onSurface: AppColors.text,
@@ -197,7 +197,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.reportType.displayName),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Date range selector
@@ -253,13 +253,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: isDark
           ? AppColors.darkSurface
-          : AppColors.primary.withOpacity(0.1),
+          : AppColors.brandPrimary.withOpacity(0.1),
       child: Row(
         children: [
           Icon(
             Icons.calendar_today,
             size: 18,
-            color: AppColors.primary,
+            color: AppColors.brandPrimary,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -293,7 +293,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                                   : Icons.radio_button_unchecked,
                               size: 18,
                               color: location.locationId == locationProvider.selectedLocation?.locationId
-                                  ? AppColors.primary
+                                  ? AppColors.brandPrimary
                                   : Colors.grey,
                             ),
                             const SizedBox(width: 8),
@@ -301,7 +301,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                               location.locationName,
                               style: TextStyle(
                                 color: location.locationId == locationProvider.selectedLocation?.locationId
-                                    ? AppColors.primary
+                                    ? AppColors.brandPrimary
                                     : (isDark ? AppColors.darkText : Colors.black87),
                                 fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                     ? FontWeight.bold
@@ -315,24 +315,24 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.2),
+                  color: AppColors.brandPrimary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                    Icon(Icons.location_on, size: 14, color: AppColors.brandPrimary),
                     const SizedBox(width: 4),
                     Text(
                       locationProvider.selectedLocation!.locationName,
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(width: 2),
-                    Icon(Icons.arrow_drop_down, size: 16, color: AppColors.primary),
+                    Icon(Icons.arrow_drop_down, size: 16, color: AppColors.brandPrimary),
                   ],
                 ),
               ),
@@ -425,7 +425,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               children: [
                 Icon(
                   Icons.summarize,
-                  color: AppColors.primary,
+                  color: AppColors.brandPrimary,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -450,10 +450,10 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.brandPrimary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.brandPrimary.withOpacity(0.3),
                     ),
                   ),
                   child: Column(
@@ -474,7 +474,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: AppColors.brandPrimary,
                         ),
                       ),
                     ],
@@ -542,7 +542,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                       child: Icon(
                         Icons.visibility,
                         size: 16,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                       ),
                     ),
                 ],
@@ -554,7 +554,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // Footer total row
       DataRow(
         color: WidgetStateProperty.all(
-          isDark ? AppColors.darkCard : AppColors.primary.withOpacity(0.15),
+          isDark ? AppColors.darkCard : AppColors.brandPrimary.withOpacity(0.15),
         ),
         cells: columns.asMap().entries.map((entry) {
           final index = entry.key;
@@ -580,7 +580,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                 _formatValue(totals[column.key], column.type),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: AppColors.brandPrimary,
                 ),
               ),
             );
@@ -602,7 +602,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     return DataTable(
       showCheckboxColumn: false, // Hide checkboxes for selectable rows
       headingRowColor: WidgetStateProperty.all(
-        isDark ? AppColors.darkCard : AppColors.primary.withOpacity(0.1),
+        isDark ? AppColors.darkCard : AppColors.brandPrimary.withOpacity(0.1),
       ),
       dataRowColor: WidgetStateProperty.all(
         isDark ? AppColors.darkSurface : Colors.white,
@@ -652,7 +652,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           backgroundColor: isDark ? AppColors.darkCard : Colors.white,
           title: Row(
             children: [
-              Icon(Icons.inventory, color: AppColors.primary),
+              Icon(Icons.inventory, color: AppColors.brandPrimary),
               const SizedBox(width: 8),
               Text(
                 'Receiving #$id Items',
@@ -717,7 +717,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColors.primary,
+                                      color: AppColors.brandPrimary,
                                     ),
                                   ),
                                 ],
@@ -814,7 +814,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                   children: [
                     Icon(
                       Icons.bar_chart,
-                      color: AppColors.primary,
+                      color: AppColors.brandPrimary,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -867,7 +867,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                                  color: AppColors.brandPrimary,
                                 ),
                               ),
                             ],
@@ -878,7 +878,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                             backgroundColor: isDark
                                 ? AppColors.darkDivider
                                 : AppColors.lightDivider,
-                            valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                            valueColor: AlwaysStoppedAnimation(AppColors.brandPrimary),
                           ),
                         ],
                       ),
@@ -903,7 +903,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             children: [
               Icon(
                 Icons.analytics,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -928,7 +928,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.brandPrimary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -951,7 +951,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                       ),
                     ),
                   ],

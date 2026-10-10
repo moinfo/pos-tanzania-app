@@ -91,7 +91,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt, color: AppColors.brandPrimary),
                 title: const Text('Take Photo'),
                 onTap: () {
                   Navigator.pop(context);
@@ -292,7 +292,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -374,7 +374,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         title: Text(isEditing ? 'Edit Sale' : 'New Sale'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -438,7 +438,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
                               Icon(
                                 hasDatePermission ? Icons.calendar_today : Icons.lock,
                                 color: hasDatePermission
-                                    ? AppColors.primary
+                                    ? AppColors.brandPrimary
                                     : (isDark ? Colors.orange[300] : AppColors.warning),
                               ),
                               const SizedBox(width: 12),
@@ -704,7 +704,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
                           side: BorderSide(
                             color: isDark ? Colors.white24 : Colors.grey.shade400,
                           ),
-                          foregroundColor: isDark ? Colors.white : AppColors.primary,
+                          foregroundColor: isDark ? Colors.white : AppColors.brandPrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -728,7 +728,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.brandPrimary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -786,7 +786,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.primary),
+        borderSide: BorderSide(color: AppColors.brandPrimary),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -835,7 +835,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
         borderSide: BorderSide(
           color: isLocked
               ? (isDark ? Colors.orange[300]! : AppColors.warning)
-              : AppColors.primary,
+              : AppColors.brandPrimary,
         ),
       ),
       errorBorder: OutlineInputBorder(

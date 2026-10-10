@@ -74,7 +74,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -113,7 +113,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Z Reports'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -131,7 +131,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: isDark
                 ? AppColors.darkSurface
-                : AppColors.primary.withOpacity(0.1),
+                : AppColors.brandPrimary.withOpacity(0.1),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -148,7 +148,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: AppColors.brandPrimary,
                   ),
                 ),
               ],
@@ -177,9 +177,9 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ListTile(
-                          leading: const Icon(
+                          leading:  Icon(
                             Icons.description,
-                            color: AppColors.primary,
+                            color: AppColors.brandPrimary,
                           ),
                           title: Text(
                             'Date: ${Formatters.formatDate(report.date)}',
@@ -225,7 +225,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateDialog,
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),

@@ -144,7 +144,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
               ListTile(
                 leading: Icon(
                   Icons.all_inclusive,
-                  color: _selectedLocation == null ? AppColors.primary : (isDark ? AppColors.darkTextLight : AppColors.textLight),
+                  color: _selectedLocation == null ? AppColors.brandPrimary : (isDark ? AppColors.darkTextLight : AppColors.textLight),
                 ),
                 title: Text(
                   'All Locations',
@@ -154,7 +154,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                   ),
                 ),
                 trailing: _selectedLocation == null
-                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                    ?  Icon(Icons.check_circle, color: AppColors.brandPrimary)
                     : null,
                 onTap: () {
                   setState(() {
@@ -176,7 +176,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                     return ListTile(
                       leading: Icon(
                         Icons.store,
-                        color: isSelected ? AppColors.primary : (isDark ? AppColors.darkTextLight : AppColors.textLight),
+                        color: isSelected ? AppColors.brandPrimary : (isDark ? AppColors.darkTextLight : AppColors.textLight),
                       ),
                       title: Text(
                         location.locationName,
@@ -186,7 +186,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                         ),
                       ),
                       trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: AppColors.primary)
+                          ?  Icon(Icons.check_circle, color: AppColors.brandPrimary)
                           : null,
                       onTap: () {
                         setState(() {
@@ -217,7 +217,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Seller Report'),
-          backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+          backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
           foregroundColor: Colors.white,
         ),
         body: Center(
@@ -255,7 +255,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Go Back'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.brandPrimary,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -269,7 +269,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Seller Report'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector
@@ -507,7 +507,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.brandPrimary,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -580,10 +580,10 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
+                            color: AppColors.brandPrimary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.store, color: AppColors.primary, size: 20),
+                          child: Icon(Icons.store, color: AppColors.brandPrimary, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -613,7 +613,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
+                              color: AppColors.brandPrimary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Row(
@@ -622,13 +622,13 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                                 Text(
                                   'Change',
                                   style: TextStyle(
-                                    color: AppColors.primary,
+                                    color: AppColors.brandPrimary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
+                                Icon(Icons.arrow_drop_down, color: AppColors.brandPrimary, size: 18),
                               ],
                             ),
                           ),
@@ -674,13 +674,13 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
+                              color: AppColors.brandPrimary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
                               '${_sellers.length} Seller${_sellers.length > 1 ? 's' : ''}',
-                              style: const TextStyle(
-                                color: AppColors.primary,
+                              style:  TextStyle(
+                                color: AppColors.brandPrimary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -762,11 +762,11 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  backgroundColor: AppColors.brandPrimary.withValues(alpha: 0.1),
                   child: Text(
                     supervisorName.isNotEmpty ? supervisorName[0].toUpperCase() : 'S',
-                    style: const TextStyle(
-                      color: AppColors.primary,
+                    style:  TextStyle(
+                      color: AppColors.brandPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -915,7 +915,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: AppColors.primary),
+            Icon(icon, size: 16, color: AppColors.brandPrimary),
             const SizedBox(width: 6),
             Flexible(
               child: Column(
@@ -984,7 +984,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
   }
 
   Widget _buildHighlightRow(String label, double value, bool isDark, {Color? color}) {
-    final displayColor = color ?? AppColors.primary;
+    final displayColor = color ?? AppColors.brandPrimary;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

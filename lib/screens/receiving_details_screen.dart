@@ -51,7 +51,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Receiving #${widget.receivingId}'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -248,10 +248,10 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                     ),
                     Text(
                       '${NumberFormat('#,###').format(item.lineTotal)} TSh',
-                      style: const TextStyle(
+                      style:  TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                       ),
                     ),
                   ],
@@ -268,7 +268,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: AppColors.brandPrimary,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),

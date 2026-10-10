@@ -119,7 +119,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -146,7 +146,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt, color: AppColors.brandPrimary),
                 title: const Text('Take Photo'),
                 onTap: () {
                   Navigator.pop(context);
@@ -154,7 +154,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: AppColors.primary),
+                leading: Icon(Icons.photo_library, color: AppColors.brandPrimary),
                 title: const Text('Choose from Gallery'),
                 onTap: () {
                   Navigator.pop(context);
@@ -162,7 +162,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.attach_file, color: AppColors.primary),
+                leading: Icon(Icons.attach_file, color: AppColors.brandPrimary),
                 title: const Text('Choose PDF/Image File'),
                 onTap: () {
                   Navigator.pop(context);
@@ -402,7 +402,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
             ),
             child: const Text('Confirm'),
           ),
@@ -490,7 +490,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Profit Submission'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: Container(
@@ -647,9 +647,9 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   labelStyle: TextStyle(
                                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                   ),
-                                  prefixIcon: const Icon(
+                                  prefixIcon:  Icon(
                                     Icons.calendar_today,
-                                    color: AppColors.primary,
+                                    color: AppColors.brandPrimary,
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -669,8 +669,8 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.primary,
+                                    borderSide:  BorderSide(
+                                      color: AppColors.brandPrimary,
                                       width: 2,
                                     ),
                                   ),
@@ -695,9 +695,9 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   labelStyle: TextStyle(
                                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                   ),
-                                  prefixIcon: const Icon(
+                                  prefixIcon:  Icon(
                                     Icons.supervisor_account,
-                                    color: AppColors.primary,
+                                    color: AppColors.brandPrimary,
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -717,8 +717,8 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.primary,
+                                    borderSide:  BorderSide(
+                                      color: AppColors.brandPrimary,
                                       width: 2,
                                     ),
                                   ),
@@ -862,7 +862,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   icon: const Icon(Icons.add_photo_alternate),
                                   label: const Text('Attach Document'),
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.primary,
+                                    foregroundColor: AppColors.brandPrimary,
                                     side: BorderSide(
                                       color: isDark
                                           ? AppColors.darkCard.withOpacity(0.5)

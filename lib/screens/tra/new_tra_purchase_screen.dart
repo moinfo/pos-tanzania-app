@@ -119,7 +119,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -216,7 +216,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -390,7 +390,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                           children: [
                             Icon(
                               _selectedFile != null ? Icons.check_circle : Icons.upload_file,
-                              color: _selectedFile != null ? AppColors.success : AppColors.primary,
+                              color: _selectedFile != null ? AppColors.success : AppColors.brandPrimary,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -471,7 +471,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
+            Icon(Icons.calendar_today, size: 18, color: AppColors.brandPrimary),
             const SizedBox(width: 8),
             Text(
               DateFormat('MMM dd, yyyy').format(date),
@@ -505,7 +505,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.primary),
+        borderSide: BorderSide(color: AppColors.brandPrimary),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),

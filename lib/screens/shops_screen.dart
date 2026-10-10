@@ -91,7 +91,7 @@ class _ShopsScreenState extends State<ShopsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Shops'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -131,14 +131,14 @@ class _ShopsScreenState extends State<ShopsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+                    colors: [AppColors.brandPrimary, AppColors.brandPrimary.withValues(alpha: 0.8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
+                      color: AppColors.brandPrimary.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -256,7 +256,7 @@ class _ShopsScreenState extends State<ShopsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddShopDialog,
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Shop', style: TextStyle(color: Colors.white)),
       ),
@@ -299,10 +299,10 @@ class _ShopListItem extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.brandPrimary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.store, color: AppColors.primary),
+                child: Icon(Icons.store, color: AppColors.brandPrimary),
               ),
               const SizedBox(width: 12),
               // Shop details
@@ -532,10 +532,10 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.brandPrimary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.store, color: AppColors.primary, size: 32),
+                child: Icon(Icons.store, color: AppColors.brandPrimary, size: 32),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -677,7 +677,7 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.brandPrimary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -885,7 +885,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Register Shop'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: Form(
@@ -904,7 +904,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.gps_fixed, color: AppColors.primary),
+                        Icon(Icons.gps_fixed, color: AppColors.brandPrimary),
                         const SizedBox(width: 8),
                         const Text(
                           'GPS Location',
@@ -1016,10 +1016,10 @@ class _AddShopScreenState extends State<AddShopScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.brandPrimary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.person, color: AppColors.primary),
+                  child: Icon(Icons.person, color: AppColors.brandPrimary),
                 ),
                 title: Text(
                   _selectedCustomer?.displayName ?? 'Select Customer',
@@ -1080,7 +1080,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveShop,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.brandPrimary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -1240,7 +1240,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Shop'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: Form(
@@ -1259,7 +1259,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.gps_fixed, color: AppColors.primary),
+                        Icon(Icons.gps_fixed, color: AppColors.brandPrimary),
                         const SizedBox(width: 8),
                         const Text(
                           'GPS Location',
@@ -1424,7 +1424,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveShop,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.brandPrimary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -1504,7 +1504,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
             ),
           ],
         ),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -1570,10 +1570,10 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
+                                  color: AppColors.brandPrimary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Icon(Icons.receipt, color: AppColors.primary),
+                                child: Icon(Icons.receipt, color: AppColors.brandPrimary),
                               ),
                               title: Text(
                                 '${_currencyFormat.format(sale.total)} TSh',
@@ -1710,7 +1710,7 @@ class _CustomerSelectorScreenState extends State<CustomerSelectorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Customer'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -1740,10 +1740,10 @@ class _CustomerSelectorScreenState extends State<CustomerSelectorScreen> {
                       final customer = _customers[index];
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          backgroundColor: AppColors.brandPrimary.withOpacity(0.1),
                           child: Text(
                             customer.firstName.isNotEmpty ? customer.firstName[0].toUpperCase() : '?',
-                            style: TextStyle(color: AppColors.primary),
+                            style: TextStyle(color: AppColors.brandPrimary),
                           ),
                         ),
                         title: Text(customer.displayName),

@@ -149,7 +149,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Items'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector - show if user has locations
@@ -193,7 +193,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                                       : Icons.radio_button_unchecked,
                                   size: 20,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
+                                      ? AppColors.brandPrimary
                                       : Colors.grey,
                                 ),
                                 const SizedBox(width: 12),
@@ -203,7 +203,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: location.locationId == locationProvider.selectedLocation?.locationId
-                                          ? AppColors.primary
+                                          ? AppColors.brandPrimary
                                           : Colors.black87,
                                       fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                           ? FontWeight.bold
@@ -279,7 +279,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
       floatingActionButton: PermissionFAB(
         permissionId: PermissionIds.itemsAdd,
         onPressed: () => _showItemForm(),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
@@ -873,7 +873,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             // Tab Bar
             TabBar(
               controller: _tabController,
-              labelColor: AppColors.primary,
+              labelColor: AppColors.brandPrimary,
               tabs: const [
                 Tab(text: 'Basic Info'),
                 Tab(text: 'Details'),
@@ -908,7 +908,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                   ElevatedButton(
                     onPressed: _isSubmitting ? null : _saveItem,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.brandPrimary,
                       foregroundColor: Colors.white,
                     ),
                     child: _isSubmitting

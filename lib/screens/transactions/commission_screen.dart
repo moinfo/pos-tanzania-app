@@ -94,7 +94,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppColors.primary, onPrimary: Colors.white, surface: Colors.white, onSurface: Colors.black),
+            colorScheme: ColorScheme.light(primary: AppColors.brandPrimary, onPrimary: Colors.white, surface: Colors.white, onSurface: Colors.black),
           ),
           child: child!,
         );
@@ -181,7 +181,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: const Text('Commission'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(icon: const Icon(Icons.date_range), onPressed: _selectDateRange, tooltip: 'Filter by date range'),
@@ -205,8 +205,8 @@ class _CommissionScreenState extends State<CommissionScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
+                      decoration: BoxDecoration(color: AppColors.brandPrimary.withOpacity(isDark ? 0.15 : 0.1), borderRadius: BorderRadius.circular(8)),
+                      child: Icon(Icons.calendar_today, size: 16, color: AppColors.brandPrimary),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -220,8 +220,8 @@ class _CommissionScreenState extends State<CommissionScreen> {
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: AppColors.primary.withOpacity(isDark ? 0.1 : 0.08),
+                    foregroundColor: AppColors.brandPrimary,
+                    backgroundColor: AppColors.brandPrimary.withOpacity(isDark ? 0.1 : 0.08),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -323,7 +323,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -331,7 +331,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
 
   Widget _buildCommissionCard(Commission c, bool isDark) {
     final isWakala = c.sourceType == 'wakala';
-    final badgeColor = isWakala ? const Color(0xFFD97706) : AppColors.primary;
+    final badgeColor = isWakala ? const Color(0xFFD97706) : AppColors.brandPrimary;
     final badgeLabel = isWakala ? 'Wakala' : 'Bank';
 
     return GlassmorphicCard(
@@ -557,7 +557,7 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: _isSaving ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandPrimary, foregroundColor: Colors.white),
           child: _isSaving
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : Text(_isEditing ? 'Update' : 'Add'),

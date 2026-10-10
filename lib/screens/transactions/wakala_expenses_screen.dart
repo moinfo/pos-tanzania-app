@@ -78,7 +78,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -175,7 +175,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: const Text('Wakala Expenses'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -222,14 +222,14 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? AppColors.primary.withOpacity(0.15)
-                            : AppColors.primary.withOpacity(0.1),
+                            ? AppColors.brandPrimary.withOpacity(0.15)
+                            : AppColors.brandPrimary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         Icons.calendar_today,
                         size: 16,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -250,10 +250,10 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: AppColors.brandPrimary,
                     backgroundColor: isDark
-                        ? AppColors.primary.withOpacity(0.1)
-                        : AppColors.primary.withOpacity(0.08),
+                        ? AppColors.brandPrimary.withOpacity(0.1)
+                        : AppColors.brandPrimary.withOpacity(0.08),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -434,7 +434,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
       floatingActionButton: _expenses.isNotEmpty
           ? FloatingActionButton(
               onPressed: _showAddExpenseDialog,
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
@@ -555,12 +555,12 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                     // Edit button
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.brandPrimary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.edit,
-                            color: AppColors.primary, size: 20),
+                        icon:  Icon(Icons.edit,
+                            color: AppColors.brandPrimary, size: 20),
                         onPressed: () => _showEditExpenseDialog(expense),
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
@@ -776,7 +776,7 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: AppColors.primary,
+          color: AppColors.brandPrimary,
           width: 2,
         ),
       ),
@@ -815,7 +815,7 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: AppColors.primary,
+          color: AppColors.brandPrimary,
           width: 2,
         ),
       ),
@@ -1017,7 +1017,7 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _saveExpense,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
+                            backgroundColor: AppColors.brandPrimary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             elevation: 0,

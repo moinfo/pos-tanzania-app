@@ -99,7 +99,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -214,7 +214,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Expenses'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector with proper menu positioning
@@ -249,7 +249,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           Icons.location_on,
                           size: 18,
                           color: selectedLocation?.locationId == location.locationId
-                              ? AppColors.primary
+                              ? AppColors.brandPrimary
                               : (isDark ? Colors.white70 : AppColors.textLight),
                         ),
                         const SizedBox(width: 8),
@@ -257,7 +257,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           location.locationName,
                           style: TextStyle(
                             color: selectedLocation?.locationId == location.locationId
-                                ? AppColors.primary
+                                ? AppColors.brandPrimary
                                 : (isDark ? Colors.white : AppColors.text),
                             fontWeight: selectedLocation?.locationId == location.locationId
                                 ? FontWeight.bold
@@ -285,7 +285,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: isDark
                 ? AppColors.darkSurface
-                : AppColors.primary.withOpacity(0.1),
+                : AppColors.brandPrimary.withOpacity(0.1),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -304,7 +304,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: AppColors.brandPrimary,
                   ),
                 ),
               ],
@@ -628,7 +628,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         return AppColors.success;
       case 'credit':
       case 'debit':
-        return AppColors.primary;
+        return AppColors.brandPrimary;
       case 'check':
         return AppColors.warning;
       case 'due':
@@ -900,9 +900,9 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
           if (_tabController != null)
             TabBar(
               controller: _tabController!,
-              labelColor: AppColors.primary,
+              labelColor: AppColors.brandPrimary,
               unselectedLabelColor: isDark ? Colors.white60 : AppColors.textLight,
-              indicatorColor: AppColors.primary,
+              indicatorColor: AppColors.brandPrimary,
               tabs: const [
                 Tab(text: 'Basic Info'),
                 Tab(text: 'Additional'),
@@ -974,13 +974,13 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? AppColors.primary.withOpacity(0.2)
-                          : AppColors.primary.withOpacity(0.1),
+                          ? AppColors.brandPrimary.withOpacity(0.2)
+                          : AppColors.brandPrimary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                        Icon(Icons.location_on, color: AppColors.brandPrimary, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           'Location: ${selectedLocation.locationName}',

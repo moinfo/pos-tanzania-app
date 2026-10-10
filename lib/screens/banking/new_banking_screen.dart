@@ -34,7 +34,11 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
   final TextEditingController _dateController = TextEditingController();
 
   String _selectedBank = 'CRDB';
-  String _selectedBranch = SadaBranches.defaultBranch;
+  // Only meaningful for the one client with hasBranchSelection - stays
+  // empty for everyone else (the branch dropdown is hidden for them too).
+  String _selectedBranch = ApiService.currentClient?.features.hasBranchSelection == true
+      ? SadaBranches.defaultBranch
+      : '';
   String? _selectedSupervisorId;
   List<Supervisor> _supervisors = [];
   bool _isLoading = false;
@@ -150,7 +154,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -177,7 +181,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt, color: AppColors.brandPrimary),
                 title: const Text('Take Photo'),
                 onTap: () {
                   Navigator.pop(context);
@@ -387,6 +391,18 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
       return;
     }
 
+    // Matches the web's Banking Cash form: a bank slip is mandatory when
+    // creating a new entry (editing may keep the existing slip unchanged).
+    if (widget.banking == null && _selectedFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please attach a bank slip (PDF or image)'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -412,7 +428,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
             ),
             child: const Text('Confirm'),
           ),
@@ -501,7 +517,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         title: Text(widget.banking == null ? 'New Banking' : 'Edit Banking'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -519,13 +535,13 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? AppColors.primary.withOpacity(0.2)
-                              : AppColors.primary.withOpacity(0.1),
+                              ? AppColors.brandPrimary.withOpacity(0.2)
+                              : AppColors.brandPrimary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                            Icon(Icons.location_on, color: AppColors.brandPrimary, size: 20),
                             const SizedBox(width: 8),
                             Text(
                               'Location: ${selectedLocation.locationName}',
@@ -852,7 +868,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                                 side: BorderSide(
                                   color: isDark ? Colors.white24 : Colors.grey.shade400,
                                 ),
-                                foregroundColor: isDark ? Colors.white : AppColors.primary,
+                                foregroundColor: isDark ? Colors.white : AppColors.brandPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -873,7 +889,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                     ElevatedButton(
                       onPressed: _isProcessing ? null : _submitBanking,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.brandPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),

@@ -301,11 +301,11 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
                       if (hasEditPermission)
                         Container(
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.brandPrimary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.edit, color: AppColors.primary, size: 20),
+                            icon: Icon(Icons.edit, color: AppColors.brandPrimary, size: 20),
                             onPressed: () => _showEditDialog(submission),
                             padding: const EdgeInsets.all(8),
                             constraints: const BoxConstraints(),
@@ -422,7 +422,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
                           Icons.location_on,
                           size: 18,
                           color: selectedLocation?.locationId == location.locationId
-                              ? AppColors.primary
+                              ? AppColors.brandPrimary
                               : (isDark ? Colors.white70 : AppColors.textLight),
                         ),
                         const SizedBox(width: 8),
@@ -430,7 +430,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
                           location.locationName,
                           style: TextStyle(
                             color: selectedLocation?.locationId == location.locationId
-                                ? AppColors.primary
+                                ? AppColors.brandPrimary
                                 : (isDark ? Colors.white : AppColors.text),
                             fontWeight: selectedLocation?.locationId == location.locationId
                                 ? FontWeight.bold
@@ -724,13 +724,13 @@ class _CreateCashSubmissionDialogState
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? AppColors.primary.withOpacity(0.2)
-                        : AppColors.primary.withOpacity(0.1),
+                        ? AppColors.brandPrimary.withOpacity(0.2)
+                        : AppColors.brandPrimary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                      Icon(Icons.location_on, color: AppColors.brandPrimary, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         'Location: ${selectedLocation.locationName}',

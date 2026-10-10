@@ -111,7 +111,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Debt Collection'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -191,7 +191,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
           onTap: _selectDateRange,
           child: Row(
             children: [
-              Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+              Icon(Icons.calendar_today, size: 20, color: AppColors.brandPrimary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -401,7 +401,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
       const SizedBox(height: 16),
       Text(_errorMessage ?? 'An error occurred', style: const TextStyle(fontSize: 16)),
       const SizedBox(height: 16),
-      ElevatedButton.icon(onPressed: _loadReport, icon: const Icon(Icons.refresh), label: const Text('Retry'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white)),
+      ElevatedButton.icon(onPressed: _loadReport, icon: const Icon(Icons.refresh), label: const Text('Retry'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandPrimary, foregroundColor: Colors.white)),
     ]));
   }
 

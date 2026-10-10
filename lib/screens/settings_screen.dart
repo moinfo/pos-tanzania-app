@@ -165,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             errorBuilder: (context, error, stackTrace) {
               return Icon(
                 Icons.person,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
                 size: 28,
               );
             },
@@ -177,7 +177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Default avatar with icon
     return Icon(
       Icons.person,
-      color: isDark ? AppColors.primary : AppColors.primary,
+      color: isDark ? AppColors.brandPrimary : AppColors.brandPrimary,
       size: 28,
     );
   }
@@ -192,7 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: isDark ? AppColors.darkCard : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.brandPrimary,
         foregroundColor: isDark ? AppColors.darkText : Colors.white,
         elevation: 0,
       ),
@@ -221,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListTile(
                   leading: Icon(
                     _biometricType == 'Face ID' ? Icons.face : Icons.fingerprint,
-                    color: isDark ? AppColors.primary : AppColors.primary,
+                    color: isDark ? AppColors.brandPrimary : AppColors.brandPrimary,
                     size: 28,
                   ),
                   title: Text(
@@ -274,7 +274,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListTile(
                   leading: Icon(
                     isDark ? Icons.dark_mode : Icons.light_mode,
-                    color: isDark ? AppColors.primary : AppColors.primary,
+                    color: isDark ? AppColors.brandPrimary : AppColors.brandPrimary,
                     size: 28,
                   ),
                   title: Text(
@@ -325,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ListTile(
                     leading: Icon(
                       Icons.store,
-                      color: isDark ? AppColors.primary : AppColors.primary,
+                      color: isDark ? AppColors.brandPrimary : AppColors.brandPrimary,
                       size: 28,
                     ),
                     title: Text(
@@ -403,7 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ListTile(
                             leading: Icon(
                               Icons.store,
-                              color: isDark ? AppColors.primary : AppColors.primary,
+                              color: isDark ? AppColors.brandPrimary : AppColors.brandPrimary,
                               size: 28,
                             ),
                             title: Text(

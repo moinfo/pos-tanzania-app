@@ -148,7 +148,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: isDark
                 ? ColorScheme.dark(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: AppColors.darkCard,
                     onSurface: AppColors.darkText,
@@ -156,7 +156,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                     onBackground: AppColors.darkText,
                   )
                 : ColorScheme.light(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: Colors.white,
                     onSurface: Colors.black,
@@ -166,7 +166,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
             dialogBackgroundColor: isDark ? AppColors.darkCard : Colors.white,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
+                foregroundColor: AppColors.brandPrimary,
               ),
             ),
           ),
@@ -346,7 +346,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                 ),
                 const SizedBox(height: 8),
                 ListTile(
-                  leading: const Icon(Icons.visibility, color: AppColors.primary),
+                  leading:  Icon(Icons.visibility, color: AppColors.brandPrimary),
                   title: const Text('View File'),
                   onTap: () {
                     Navigator.pop(context);
@@ -582,7 +582,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profit Submissions'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -600,7 +600,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: isDark
                 ? AppColors.darkSurface
-                : AppColors.primary.withOpacity(0.1),
+                : AppColors.brandPrimary.withOpacity(0.1),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -617,7 +617,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                   icon: const Icon(Icons.edit_calendar, size: 18),
                   label: const Text('Change'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: AppColors.brandPrimary,
                   ),
                 ),
               ],
@@ -668,8 +668,8 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: AppColors.primary,
+                          borderSide:  BorderSide(
+                            color: AppColors.brandPrimary,
                             width: 2,
                           ),
                         ),
@@ -839,9 +839,9 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                                                 // Edit button
                                                 if (canEdit)
                                                   IconButton(
-                                                    icon: const Icon(
+                                                    icon:  Icon(
                                                       Icons.edit_outlined,
-                                                      color: AppColors.primary,
+                                                      color: AppColors.brandPrimary,
                                                     ),
                                                     onPressed: () {
                                                       Navigator.push(
@@ -933,10 +933,10 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                                                 child: Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                                                   decoration: BoxDecoration(
-                                                    color: AppColors.primary.withOpacity(0.1),
+                                                    color: AppColors.brandPrimary.withOpacity(0.1),
                                                     borderRadius: BorderRadius.circular(8),
                                                     border: Border.all(
-                                                      color: AppColors.primary.withOpacity(0.3),
+                                                      color: AppColors.brandPrimary.withOpacity(0.3),
                                                       width: 1,
                                                     ),
                                                   ),
@@ -948,14 +948,14 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                                                             ? Icons.picture_as_pdf
                                                             : Icons.image,
                                                         size: 16,
-                                                        color: AppColors.primary,
+                                                        color: AppColors.brandPrimary,
                                                       ),
                                                       const SizedBox(width: 6),
                                                       Text(
                                                         'Profit Slip Attached',
                                                         style: TextStyle(
                                                           fontSize: 12,
-                                                          color: AppColors.primary,
+                                                          color: AppColors.brandPrimary,
                                                           fontWeight: FontWeight.w500,
                                                         ),
                                                       ),
@@ -963,7 +963,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                                                       Icon(
                                                         Icons.touch_app,
                                                         size: 14,
-                                                        color: AppColors.primary.withOpacity(0.7),
+                                                        color: AppColors.brandPrimary.withOpacity(0.7),
                                                       ),
                                                     ],
                                                   ),
@@ -988,7 +988,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
               onPressed: _navigateToNewProfitSubmit,
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               icon: const Icon(Icons.add),
               label: const Text('New Profit'),
             )

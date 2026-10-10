@@ -193,7 +193,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                           // Header info
                           Container(
                             padding: const EdgeInsets.all(16),
-                            color: isDark ? AppColors.darkSurface : AppColors.primary,
+                            color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -368,7 +368,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkSurface : AppColors.primary,
+                              color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.1),

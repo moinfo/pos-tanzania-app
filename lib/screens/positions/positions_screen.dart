@@ -68,7 +68,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -175,7 +175,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
               Icon(
                 Icons.date_range,
                 size: 20,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -220,7 +220,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
           ElevatedButton(
             onPressed: _loadReport,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
             ),
             child: const Text('Retry'),
           ),
@@ -388,7 +388,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Icon(Icons.table_chart, color: AppColors.primary, size: 20),
+                Icon(Icons.table_chart, color: AppColors.brandPrimary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Daily Positions (${_report!.positions.length})',

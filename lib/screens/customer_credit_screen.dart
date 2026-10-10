@@ -229,7 +229,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.customerName),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector
@@ -509,7 +509,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                           icon: const Icon(Icons.edit, size: 16),
                           label: const Text('Edit'),
                           style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
+                            foregroundColor: AppColors.brandPrimary,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                           ),
                           onPressed: () => _showEditPaymentDialog(transaction),
@@ -1217,7 +1217,7 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
         ElevatedButton(
           onPressed: _isSubmitting ? null : _submitUpdate,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.brandPrimary,
             foregroundColor: Colors.white,
           ),
           child: _isSubmitting

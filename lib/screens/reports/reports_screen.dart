@@ -181,10 +181,10 @@ class ReportsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.brandPrimary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+              child: Icon(Icons.location_on, color: AppColors.brandPrimary, size: 20),
             ),
             const SizedBox(width: 12),
             Text(
@@ -222,10 +222,10 @@ class ReportsScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.brandPrimary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.map_outlined, color: AppColors.primary, size: 24),
+                        child: Icon(Icons.map_outlined, color: AppColors.brandPrimary, size: 24),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -258,10 +258,10 @@ class ReportsScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.brandPrimary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.summarize_outlined, color: AppColors.primary, size: 24),
+                        child: Icon(Icons.summarize_outlined, color: AppColors.brandPrimary, size: 24),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -312,12 +312,12 @@ class ReportsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.brandPrimary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 icon,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
                 size: 20,
               ),
             ),
@@ -383,12 +383,12 @@ class ReportsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.brandPrimary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   _getReportIcon(reportType),
-                  color: AppColors.primary,
+                  color: AppColors.brandPrimary,
                   size: 24,
                 ),
               ),

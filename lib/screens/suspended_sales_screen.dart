@@ -230,7 +230,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           data: isDark
               ? ThemeData.dark().copyWith(
                   colorScheme: ColorScheme.dark(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: AppColors.darkCard,
                     onSurface: Colors.white,
@@ -238,7 +238,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                 )
               : ThemeData.light().copyWith(
                   colorScheme: ColorScheme.light(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: Colors.white,
                     onSurface: Colors.black87,
@@ -353,7 +353,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Suspended Sales'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector
@@ -397,7 +397,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                       : Icons.radio_button_unchecked,
                                   size: 20,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
+                                      ? AppColors.brandPrimary
                                       : Colors.grey,
                                 ),
                                 const SizedBox(width: 12),
@@ -699,10 +699,10 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                         ],
                                         Text(
                                           '${_currencyFormat.format(sale.total)} TSh',
-                                          style: const TextStyle(
+                                          style:  TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: AppColors.primary,
+                                            color: AppColors.brandPrimary,
                                           ),
                                         ),
                                       ],
@@ -720,7 +720,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                     icon: const Icon(Icons.play_arrow),
                                     label: const Text('Resume Sale'),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primary,
+                                      backgroundColor: AppColors.brandPrimary,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
@@ -748,8 +748,8 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
         child: OutlinedButton(
           onPressed: () => _setDateRangePreset(preset),
           style: OutlinedButton.styleFrom(
-            foregroundColor: isDark ? Colors.white : AppColors.primary,
-            side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.primary),
+            foregroundColor: isDark ? Colors.white : AppColors.brandPrimary,
+            side: BorderSide(color: isDark ? Colors.grey.shade700 : AppColors.brandPrimary),
             padding: const EdgeInsets.symmetric(vertical: 8),
           ),
           child: Text(

@@ -100,7 +100,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
           children: [
             ListTile(
               leading: CircleAvatar(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.brandPrimary,
                 child: Text(
                   customer.firstName[0].toUpperCase(),
                   style: const TextStyle(color: Colors.white),
@@ -186,7 +186,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
               _selectCustomerForCard(cardUid);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
             ),
             child: const Text('Register Card'),
@@ -304,7 +304,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('NFC Cards'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Scan card button
@@ -379,7 +379,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                                 icon: const Icon(Icons.add),
                                 label: const Text('Register First Card'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
+                                  backgroundColor: AppColors.brandPrimary,
                                   foregroundColor: Colors.white,
                                 ),
                               ),
@@ -401,7 +401,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
               permissionId: PermissionIds.nfcCardsRegister,
               child: FloatingActionButton(
                 onPressed: _registerNewCard,
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.brandPrimary,
                 child: const Icon(Icons.add, color: Colors.white),
               ),
             )
@@ -426,12 +426,12 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: AppColors.brandPrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child:  Icon(
                     Icons.nfc,
-                    color: AppColors.primary,
+                    color: AppColors.brandPrimary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -509,8 +509,8 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primary,
-                    AppColors.primary.withValues(alpha: 0.8),
+                    AppColors.brandPrimary,
+                    AppColors.brandPrimary.withValues(alpha: 0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -603,8 +603,8 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                       icon: const Icon(Icons.receipt_long),
                       label: const Text('Statement'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
+                        foregroundColor: AppColors.brandPrimary,
+                        side:  BorderSide(color: AppColors.brandPrimary),
                       ),
                     ),
                   ),
@@ -843,8 +843,8 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                         icon: const Icon(Icons.print),
                         label: const Text('Print'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary),
+                          foregroundColor: AppColors.brandPrimary,
+                          side:  BorderSide(color: AppColors.brandPrimary),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
@@ -1060,7 +1060,7 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Card Statement'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -1089,7 +1089,7 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
-                        color: isDark ? AppColors.darkSurface : AppColors.primary,
+                        color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1388,7 +1388,7 @@ class _CustomerPickerDialogState extends State<_CustomerPickerDialog> {
                             return Card(
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: AppColors.primary,
+                                  backgroundColor: AppColors.brandPrimary,
                                   child: Text(
                                     customer.firstName[0].toUpperCase(),
                                     style: const TextStyle(color: Colors.white),

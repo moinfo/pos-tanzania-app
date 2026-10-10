@@ -145,7 +145,7 @@ class AppBottomNavigation extends StatelessWidget {
         final originalIndex = indexMapping[displayIndex] ?? 0;
         _handleTap(context, originalIndex);
       },
-      selectedItemColor: AppColors.primary,
+      selectedItemColor: AppColors.brandPrimary,
       unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
       backgroundColor: isDark ? AppColors.darkCard : Colors.white,
       items: availableItems,

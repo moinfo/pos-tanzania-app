@@ -118,7 +118,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Supplier Credits'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -246,7 +246,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
                               : Icons.radio_button_unchecked,
                           size: 20,
                           color: location.locationId == locationProvider.selectedLocation?.locationId
-                              ? AppColors.primary
+                              ? AppColors.brandPrimary
                               : Colors.grey,
                         ),
                         const SizedBox(width: 12),
@@ -254,7 +254,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
                           location.locationName,
                           style: TextStyle(
                             color: location.locationId == locationProvider.selectedLocation?.locationId
-                                ? AppColors.primary
+                                ? AppColors.brandPrimary
                                 : Colors.black87,
                             fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                 ? FontWeight.bold
@@ -537,7 +537,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
                       height: 44,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)],
+                          colors: [AppColors.brandPrimary, AppColors.brandPrimary.withValues(alpha: 0.7)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -711,7 +711,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
             ),
           ),
@@ -841,7 +841,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.supplierName),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -890,7 +890,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
               onTap: _selectDateRange,
               child: Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+                  Icon(Icons.calendar_today, size: 20, color: AppColors.brandPrimary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1177,7 +1177,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
             ),
           ),
@@ -1287,7 +1287,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daily Credit Purchases'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -1367,7 +1367,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
           onTap: _selectDateRange,
           child: Row(
             children: [
-              Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+              Icon(Icons.calendar_today, size: 20, color: AppColors.brandPrimary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1575,7 +1575,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
       const SizedBox(height: 16),
       Text(_errorMessage ?? 'An error occurred', style: const TextStyle(fontSize: 16)),
       const SizedBox(height: 16),
-      ElevatedButton.icon(onPressed: _loadReport, icon: const Icon(Icons.refresh), label: const Text('Retry'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white)),
+      ElevatedButton.icon(onPressed: _loadReport, icon: const Icon(Icons.refresh), label: const Text('Retry'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandPrimary, foregroundColor: Colors.white)),
     ]));
   }
 
@@ -1688,7 +1688,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
     return Scaffold(
       appBar: AppBar(
         title: const Text('Payments to Suppliers'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -1768,7 +1768,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
           onTap: _selectDateRange,
           child: Row(
             children: [
-              Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+              Icon(Icons.calendar_today, size: 20, color: AppColors.brandPrimary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1976,7 +1976,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
       const SizedBox(height: 16),
       Text(_errorMessage ?? 'An error occurred', style: const TextStyle(fontSize: 16)),
       const SizedBox(height: 16),
-      ElevatedButton.icon(onPressed: _loadReport, icon: const Icon(Icons.refresh), label: const Text('Retry'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white)),
+      ElevatedButton.icon(onPressed: _loadReport, icon: const Icon(Icons.refresh), label: const Text('Retry'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandPrimary, foregroundColor: Colors.white)),
     ]));
   }
 
@@ -2095,7 +2095,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.local_shipping, color: AppColors.primary),
+                     Icon(Icons.local_shipping, color: AppColors.brandPrimary),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

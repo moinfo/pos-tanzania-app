@@ -31,8 +31,8 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
   DateTime _selectedDate = DateTime.now();
 
   // Use app brand colors
-  static const Color _headerColor = AppColors.primary;
-  static const Color _headerColorDark = AppColors.primaryDark;
+  static Color get _headerColor => AppColors.brandPrimary;
+  static Color get _headerColorDark => AppColors.brandPrimaryDark;
 
   @override
   void initState() {
@@ -354,7 +354,7 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
           // Header with brand color gradient
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [_headerColor, _headerColorDark],
                 begin: Alignment.topLeft,
@@ -378,7 +378,7 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
                   child: Center(
                     child: Text(
                       '$number',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _headerColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -427,7 +427,7 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.receipt_long,
                     color: _headerColor,
                     size: 24,

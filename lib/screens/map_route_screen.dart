@@ -29,8 +29,8 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   bool _hasChanges = false;
 
   // Use app brand colors
-  static const Color _headerColor = AppColors.primary;
-  static const Color _headerColorDark = AppColors.primaryDark;
+  static Color get _headerColor => AppColors.brandPrimary;
+  static Color get _headerColorDark => AppColors.brandPrimaryDark;
 
   @override
   void initState() {

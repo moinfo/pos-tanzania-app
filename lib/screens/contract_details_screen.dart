@@ -93,7 +93,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.contract.name),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -149,7 +149,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                       style: const TextStyle(fontSize: 12),
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: AppColors.brandPrimary,
                     ),
                   ),
                 ),
@@ -166,7 +166,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                       style: const TextStyle(fontSize: 12),
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: AppColors.brandPrimary,
                     ),
                   ),
                 ),
@@ -206,7 +206,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                                 icon: const Icon(Icons.refresh),
                                 label: const Text('Retry'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
+                                  backgroundColor: AppColors.brandPrimary,
                                   foregroundColor: Colors.white,
                                 ),
                               ),
@@ -266,7 +266,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: isSpecial ? 2 : 1,
-      color: isSpecial ? (isDark ? AppColors.darkSurface : AppColors.primary.withOpacity(0.05)) : null,
+      color: isSpecial ? (isDark ? AppColors.darkSurface : AppColors.brandPrimary.withOpacity(0.05)) : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(

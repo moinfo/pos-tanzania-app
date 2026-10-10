@@ -105,7 +105,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -191,7 +191,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: widget.showAppBar ? AppBar(
         title: const Text('TRADE Sales'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -214,7 +214,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
       ) : null,
       floatingActionButton: !widget.showAppBar && hasAddPermission ? FloatingActionButton(
         heroTag: 'tra_sales_fab',
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -279,7 +279,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.date_range, size: 20, color: AppColors.primary),
+                  Icon(Icons.date_range, size: 20, color: AppColors.brandPrimary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -403,7 +403,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.brandPrimary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -411,7 +411,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: AppColors.brandPrimary,
                         ),
                       ),
                     ),
@@ -442,7 +442,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
                     if (hasEdit)
                       IconButton(
                         icon: const Icon(Icons.edit, size: 20),
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         onPressed: () async {
                           final result = await Navigator.push(
                             context,

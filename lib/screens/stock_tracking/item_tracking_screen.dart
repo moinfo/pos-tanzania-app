@@ -122,7 +122,7 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -402,7 +402,7 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
           ElevatedButton(
             onPressed: _loadReport,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
             ),
             child: const Text('Retry'),
           ),
@@ -472,10 +472,10 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.brandPrimary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.inventory_2, color: AppColors.primary, size: 24),
+                  child: Icon(Icons.inventory_2, color: AppColors.brandPrimary, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -632,7 +632,7 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Icon(Icons.history, color: AppColors.primary, size: 20),
+                Icon(Icons.history, color: AppColors.brandPrimary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Transactions (${_report!.transactions.length})',
@@ -968,11 +968,11 @@ class _ItemSelectorSheetState extends State<_ItemSelectorSheet> {
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: isSelected
-                                  ? AppColors.primary
+                                  ? AppColors.brandPrimary
                                   : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.1)),
                               child: Icon(
                                 Icons.inventory_2,
-                                color: isSelected ? Colors.white : AppColors.primary,
+                                color: isSelected ? Colors.white : AppColors.brandPrimary,
                                 size: 20,
                               ),
                             ),
@@ -990,7 +990,7 @@ class _ItemSelectorSheetState extends State<_ItemSelectorSheet> {
                               ),
                             ),
                             trailing: isSelected
-                                ? Icon(Icons.check_circle, color: AppColors.primary)
+                                ? Icon(Icons.check_circle, color: AppColors.brandPrimary)
                                 : null,
                             onTap: () => widget.onSelect(item),
                           );

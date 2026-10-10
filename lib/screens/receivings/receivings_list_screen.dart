@@ -248,23 +248,23 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
           data: isDark
               ? ThemeData.dark().copyWith(
                   colorScheme: ColorScheme.dark(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: const Color(0xFF1E1E1E),
                     onSurface: Colors.white,
-                    secondary: AppColors.primary,
+                    secondary: AppColors.brandPrimary,
                     onSecondary: Colors.white,
                     surfaceContainerHighest: const Color(0xFF2D2D2D),
                   ),
                   dialogBackgroundColor: const Color(0xFF1E1E1E),
                   textButtonTheme: TextButtonThemeData(
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: AppColors.brandPrimary,
                     ),
                   ),
                   datePickerTheme: DatePickerThemeData(
                     backgroundColor: const Color(0xFF1E1E1E),
-                    headerBackgroundColor: AppColors.primary,
+                    headerBackgroundColor: AppColors.brandPrimary,
                     headerForegroundColor: Colors.white,
                     dayForegroundColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
@@ -277,31 +277,31 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                     }),
                     dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
-                        return AppColors.primary;
+                        return AppColors.brandPrimary;
                       }
                       return null;
                     }),
-                    todayForegroundColor: WidgetStateProperty.all(AppColors.primary),
+                    todayForegroundColor: WidgetStateProperty.all(AppColors.brandPrimary),
                     todayBackgroundColor: WidgetStateProperty.all(Colors.transparent),
                     yearForegroundColor: WidgetStateProperty.all(Colors.white),
                     rangePickerBackgroundColor: const Color(0xFF1E1E1E),
-                    rangePickerHeaderBackgroundColor: AppColors.primary,
+                    rangePickerHeaderBackgroundColor: AppColors.brandPrimary,
                     rangePickerHeaderForegroundColor: Colors.white,
-                    rangeSelectionBackgroundColor: AppColors.primary.withOpacity(0.3),
+                    rangeSelectionBackgroundColor: AppColors.brandPrimary.withOpacity(0.3),
                   ),
                 )
               : ThemeData.light().copyWith(
                   colorScheme: ColorScheme.light(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: Colors.white,
                     onSurface: Colors.black,
-                    secondary: AppColors.primary,
+                    secondary: AppColors.brandPrimary,
                   ),
                   datePickerTheme: DatePickerThemeData(
-                    headerBackgroundColor: AppColors.primary,
+                    headerBackgroundColor: AppColors.brandPrimary,
                     headerForegroundColor: Colors.white,
-                    rangeSelectionBackgroundColor: AppColors.primary.withOpacity(0.2),
+                    rangeSelectionBackgroundColor: AppColors.brandPrimary.withOpacity(0.2),
                   ),
                 ),
           child: child!,
@@ -365,7 +365,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Receivings'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           // Location selector - show if user has locations
@@ -413,7 +413,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                       : Icons.radio_button_unchecked,
                                   size: 20,
                                   color: location.locationId == locationProvider.selectedLocation?.locationId
-                                      ? AppColors.primary
+                                      ? AppColors.brandPrimary
                                       : Colors.grey,
                                 ),
                                 const SizedBox(width: 12),
@@ -421,7 +421,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                   location.locationName,
                                   style: TextStyle(
                                     color: location.locationId == locationProvider.selectedLocation?.locationId
-                                        ? AppColors.primary
+                                        ? AppColors.brandPrimary
                                         : Colors.black87,
                                     fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
                                         ? FontWeight.bold
@@ -448,7 +448,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
           if (showSummaryButtons)
             Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              color: isDark ? AppColors.darkSurface : AppColors.primary,
+              color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
               child: Column(
                 children: [
                   Row(
@@ -458,7 +458,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                           onPressed: _navigateToSummary,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: AppColors.primary,
+                            foregroundColor: AppColors.brandPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -474,7 +474,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                           onPressed: _navigateToSummary2,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: AppColors.primary,
+                            foregroundColor: AppColors.brandPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -509,7 +509,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
           // Date Range Filter
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: isDark ? AppColors.darkSurface : AppColors.primary,
+            color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
             child: InkWell(
               onTap: _selectDateRange,
               child: Container(
@@ -517,22 +517,22 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary),
+                  border: Border.all(color: AppColors.brandPrimary),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
+                    Icon(Icons.calendar_today, color: AppColors.brandPrimary, size: 20),
                     const SizedBox(width: 12),
                     Text(
                       _formatDateRange(),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.darkText : AppColors.primary,
+                        color: isDark ? AppColors.darkText : AppColors.brandPrimary,
                       ),
                     ),
                     const Spacer(),
-                    Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                    Icon(Icons.arrow_drop_down, color: AppColors.brandPrimary),
                   ],
                 ),
               ),
@@ -570,7 +570,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
           if (_receivings.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: isDark ? AppColors.darkSurface : AppColors.primary,
+              color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -668,10 +668,10 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                       vertical: 8,
                                     ),
                                     leading: CircleAvatar(
-                                      backgroundColor: AppColors.primary,
+                                      backgroundColor: AppColors.brandPrimary,
                                       child: Icon(
                                         Icons.inventory_2,
-                                        color: AppColors.primary,
+                                        color: AppColors.brandPrimary,
                                       ),
                                     ),
                                     title: Text(
@@ -738,7 +738,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                                 vertical: 4,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: AppColors.primary,
+                                                color: AppColors.brandPrimary,
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                               child: Text(
@@ -781,7 +781,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
-                                            color: AppColors.primary,
+                                            color: AppColors.brandPrimary,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -810,7 +810,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
 
           return FloatingActionButton.extended(
             onPressed: _navigateToNewReceiving,
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.brandPrimary,
             icon: const Icon(Icons.add),
             label: const Text('New Receiving'),
           );

@@ -430,10 +430,10 @@ class _SalesScreenState extends State<SalesScreen> {
             const SizedBox(height: 16),
             Text(
               'Total: ${NumberFormat('#,##0').format(sale.total)} TSh',
-              style: const TextStyle(
+              style:  TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
               ),
             ),
             // Show NFC payment info if applicable
@@ -571,7 +571,7 @@ class _SalesScreenState extends State<SalesScreen> {
             icon: const Icon(Icons.print),
             label: const Text('Print'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: Colors.white,
             ),
           ),
@@ -598,9 +598,9 @@ class _SalesScreenState extends State<SalesScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.brandPrimary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.brandPrimary.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -663,9 +663,9 @@ class _SalesScreenState extends State<SalesScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.brandPrimary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                      border: Border.all(color: AppColors.brandPrimary.withOpacity(0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,7 +680,7 @@ class _SalesScreenState extends State<SalesScreen> {
                               children: [
                                 const Text('Before', style: TextStyle(fontSize: 11, color: Colors.grey)),
                                 Text('${item['quantity_before']}',
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.brandPrimary)),
                               ],
                             ),
                             const Text('−', style: TextStyle(fontSize: 24, color: AppColors.warning)),
@@ -1300,7 +1300,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                                 : Icons.radio_button_unchecked,
                                             size: 18,
                                             color: location.locationId == locationProvider.selectedLocation?.locationId
-                                                ? AppColors.primary
+                                                ? AppColors.brandPrimary
                                                 : Colors.grey,
                                           ),
                                           const SizedBox(width: 8),
@@ -1322,7 +1322,7 @@ class _SalesScreenState extends State<SalesScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: AppColors.brandPrimary,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Row(
@@ -1368,14 +1368,14 @@ class _SalesScreenState extends State<SalesScreen> {
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: saleProvider.selectedCustomer != null
-                                  ? AppColors.primary.withValues(alpha: 0.1)
+                                  ? AppColors.brandPrimary.withValues(alpha: 0.1)
                                   : AppColors.warning.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               saleProvider.selectedCustomer != null ? Icons.person : Icons.person_add,
                               size: 20,
-                              color: saleProvider.selectedCustomer != null ? AppColors.primary : AppColors.warning,
+                              color: saleProvider.selectedCustomer != null ? AppColors.brandPrimary : AppColors.warning,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1435,9 +1435,9 @@ class _SalesScreenState extends State<SalesScreen> {
                         margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
                         constraints: const BoxConstraints(maxHeight: 180),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
+                          color: AppColors.brandPrimary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                          border: Border.all(color: AppColors.brandPrimary.withValues(alpha: 0.3)),
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -1450,7 +1450,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.shopping_cart, size: 18, color: AppColors.primary),
+                                      Icon(Icons.shopping_cart, size: 18, color: AppColors.brandPrimary),
                                       const SizedBox(width: 8),
                                       Text(
                                         'Cart (${saleProvider.itemCount})',
@@ -1462,7 +1462,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                     children: [
                                       Text(
                                         '${_currencyFormat.format(saleProvider.total)} TSh',
-                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.brandPrimary),
                                       ),
                                       const SizedBox(width: 10),
                                       InkWell(
@@ -1619,7 +1619,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                                     final offer = saleProvider.getQuantityOffer(item.itemId)!;
                                                     final freeQty = offer.calculateReward(item.quantity);
                                                     final isEligible = freeQty > 0;
-                                                    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isEligible ? AppColors.success.withValues(alpha: 0.15) : AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(isEligible ? Icons.card_giftcard : Icons.card_giftcard_outlined, size: 12, color: isEligible ? AppColors.success : AppColors.primary), const SizedBox(width: 4), Text(isEligible ? '+${freeQty.toStringAsFixed(0)} FREE' : 'Buy ${offer.purchaseQuantity.toStringAsFixed(0)}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isEligible ? AppColors.success : AppColors.primary))]));
+                                                    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isEligible ? AppColors.success.withValues(alpha: 0.15) : AppColors.brandPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(isEligible ? Icons.card_giftcard : Icons.card_giftcard_outlined, size: 12, color: isEligible ? AppColors.success : AppColors.brandPrimary), const SizedBox(width: 4), Text(isEligible ? '+${freeQty.toStringAsFixed(0)} FREE' : 'Buy ${offer.purchaseQuantity.toStringAsFixed(0)}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isEligible ? AppColors.success : AppColors.brandPrimary))]));
                                                   }),
                                               ],
                                             ),
@@ -1666,13 +1666,13 @@ class _SalesScreenState extends State<SalesScreen> {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: hasCustomer
-                                  ? AppColors.primary
+                                  ? AppColors.brandPrimary
                                   : AppColors.warning,
                               width: 1.5,
                             ),
                             boxShadow: hasCustomer ? [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.15),
+                                color: AppColors.brandPrimary.withValues(alpha: 0.15),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -1698,7 +1698,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                 child: Icon(
                                   hasCustomer ? Icons.search_rounded : Icons.person_add_outlined,
                                   size: 24,
-                                  color: hasCustomer ? AppColors.primary : AppColors.warning,
+                                  color: hasCustomer ? AppColors.brandPrimary : AppColors.warning,
                                 ),
                               ),
                               suffixIcon: _searchController.text.isNotEmpty
@@ -1784,7 +1784,7 @@ class _SalesScreenState extends State<SalesScreen> {
                               trailing: IconButton(
                                 icon: Icon(
                                   Icons.add_shopping_cart,
-                                  color: isDark ? AppColors.primary.withValues(alpha: 0.8) : AppColors.primary,
+                                  color: isDark ? AppColors.brandPrimary.withValues(alpha: 0.8) : AppColors.brandPrimary,
                                 ),
                                 onPressed: () => _addItemToCart(item),
                               ),
@@ -1842,7 +1842,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: isDark ? AppColors.primary.withValues(alpha: 0.9) : AppColors.primary,
+                                    color: isDark ? AppColors.brandPrimary.withValues(alpha: 0.9) : AppColors.brandPrimary,
                                   ),
                                 ),
                               ],
@@ -1972,8 +1972,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                           ),
                                           style: OutlinedButton.styleFrom(
-                                            side: BorderSide(color: AppColors.primary, width: 1.5),
-                                            foregroundColor: AppColors.primary,
+                                            side: BorderSide(color: AppColors.brandPrimary, width: 1.5),
+                                            foregroundColor: AppColors.brandPrimary,
                                           ),
                                         ),
                                       ),
@@ -2024,7 +2024,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: saleProvider.isFullyPaid
                                               ? Colors.grey
-                                              : AppColors.primary,
+                                              : AppColors.brandPrimary,
                                           foregroundColor: Colors.white,
                                           elevation: saleProvider.isFullyPaid ? 0 : 2,
                                         ),
@@ -2171,7 +2171,7 @@ class _CartScreenState extends State<CartScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Shopping Cart'),
-        backgroundColor: isDark ? AppColors.darkCard : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.brandPrimary,
         foregroundColor: isDark ? AppColors.darkText : Colors.white,
         actions: [
           IconButton(
@@ -2399,7 +2399,7 @@ class _CartScreenState extends State<CartScreen> {
                                             final offer = saleProvider.getQuantityOffer(item.itemId)!;
                                             final freeQty = offer.calculateReward(item.quantity);
                                             final isEligible = freeQty > 0;
-                                            final offerColor = isEligible ? AppColors.success : AppColors.primary;
+                                            final offerColor = isEligible ? AppColors.success : AppColors.brandPrimary;
 
                                             return Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -2663,10 +2663,10 @@ class _CartScreenState extends State<CartScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           '${currencyFormat.format(item.calculateTotal())} TSh',
-                                          style: const TextStyle(
+                                          style:  TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: AppColors.primary,
+                                            color: AppColors.brandPrimary,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -2676,7 +2676,7 @@ class _CartScreenState extends State<CartScreen> {
                                           style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: isDark ? AppColors.darkText : AppColors.primary,
+                                            color: isDark ? AppColors.darkText : AppColors.brandPrimary,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -2808,10 +2808,10 @@ class _CartScreenState extends State<CartScreen> {
                         ),
                         Text(
                           '${currencyFormat.format(saleProvider.total)} TSh',
-                          style: const TextStyle(
+                          style:  TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                            color: AppColors.brandPrimary,
                           ),
                         ),
                       ],
@@ -2942,12 +2942,12 @@ class _PaymentDialogState extends State<PaymentDialog> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark
-            ? AppColors.primary.withValues(alpha: 0.15)
-            : AppColors.primary.withValues(alpha: 0.08),
+            ? AppColors.brandPrimary.withValues(alpha: 0.15)
+            : AppColors.brandPrimary.withValues(alpha: 0.08),
         border: Border.all(
           color: isDark
-              ? AppColors.primary.withValues(alpha: 0.4)
-              : AppColors.primary.withValues(alpha: 0.3),
+              ? AppColors.brandPrimary.withValues(alpha: 0.4)
+              : AppColors.brandPrimary.withValues(alpha: 0.3),
           width: 1.5,
         ),
         borderRadius: BorderRadius.circular(12),
@@ -2960,13 +2960,13 @@ class _PaymentDialogState extends State<PaymentDialog> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: AppColors.brandPrimary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.credit_card,
                   size: 20,
-                  color: isDark ? Colors.white : AppColors.primary,
+                  color: isDark ? Colors.white : AppColors.brandPrimary,
                 ),
               ),
               const SizedBox(width: 10),
@@ -2974,7 +2974,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 'Credit Information',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.primary,
+                  color: isDark ? Colors.white : AppColors.brandPrimary,
                   fontSize: 16,
                 ),
               ),
@@ -2984,7 +2984,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
           Divider(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.1)
-                : AppColors.primary.withValues(alpha: 0.2),
+                : AppColors.brandPrimary.withValues(alpha: 0.2),
             height: 1,
           ),
           const SizedBox(height: 12),
@@ -3012,7 +3012,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
           Divider(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.1)
-                : AppColors.primary.withValues(alpha: 0.2),
+                : AppColors.brandPrimary.withValues(alpha: 0.2),
             height: 1,
           ),
           const SizedBox(height: 10),
@@ -3665,7 +3665,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                     // NFC Scan Button
                     if (_nfcAvailable)
                       IconButton(
-                        icon: const Icon(Icons.nfc, color: AppColors.primary),
+                        icon:  Icon(Icons.nfc, color: AppColors.brandPrimary),
                         onPressed: _scanNfcCard,
                         tooltip: 'Scan NFC Card',
                       ),
@@ -3685,20 +3685,20 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.brandPrimary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.brandPrimary.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.nfc, size: 18, color: AppColors.primary.withOpacity(0.8)),
+                    Icon(Icons.nfc, size: 18, color: AppColors.brandPrimary.withOpacity(0.8)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Tap NFC card or search below',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.primary.withOpacity(0.8),
+                          color: AppColors.brandPrimary.withOpacity(0.8),
                         ),
                       ),
                     ),
@@ -3749,7 +3749,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                             return Card(
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: AppColors.primary,
+                                  backgroundColor: AppColors.brandPrimary,
                                   child: Text(
                                     customer.firstName[0].toUpperCase(),
                                     style: const TextStyle(color: Colors.white),

@@ -31,8 +31,8 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
   DateTime _selectedDate = DateTime.now();
 
   // Use app brand colors (red theme)
-  static const Color _headerColor = AppColors.primary;        // Logo red
-  static const Color _headerColorDark = AppColors.primaryDark; // Darker red
+  static Color get _headerColor => AppColors.brandPrimary;        // Logo red
+  static Color get _headerColorDark => AppColors.brandPrimaryDark; // Darker red
 
   @override
   void initState() {
@@ -354,7 +354,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
           // Header with brand color gradient
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [_headerColor, _headerColorDark],
                 begin: Alignment.topLeft,
@@ -378,7 +378,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                   child: Center(
                     child: Text(
                       '$number',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _headerColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -554,7 +554,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                         ),
                         child: Text(
                           '${sale.totalQuantity.toStringAsFixed(0)} pcs',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: _headerColor,

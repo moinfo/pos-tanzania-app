@@ -113,7 +113,7 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.supplierName),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(

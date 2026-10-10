@@ -609,7 +609,12 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
           );
         }
 
-        if (provider.products.isEmpty) {
+        // Out-of-stock items are hidden from the shop entirely rather than
+        // shown with an "Out of stock" badge - only items with quantity
+        // left appear here.
+        final visibleProducts = provider.products.where((p) => p.isInStock).toList();
+
+        if (visibleProducts.isEmpty) {
           return SliverFillRemaining(
             child: Center(
               child: Column(
@@ -656,7 +661,7 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
         return SliverList(
           delegate: SliverChildBuilderDelegate(
             (context, index) {
-              final product = provider.products[index];
+              final product = visibleProducts[index];
               return ProductCard(
                 product: product,
                 isDarkMode: widget.isDarkMode,
@@ -666,7 +671,7 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
                 onAddToCart: () => _quickAddToCart(context, provider, product),
               );
             },
-            childCount: provider.products.length,
+            childCount: visibleProducts.length,
           ),
         );
       },

@@ -90,7 +90,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('NFC Confirmations'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -171,7 +171,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
                     'Total Confirmations',
                     _confirmations.length.toString(),
                     Icons.verified,
-                    AppColors.primary,
+                    AppColors.brandPrimary,
                     isDark,
                   ),
                   const SizedBox(width: 12),

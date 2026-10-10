@@ -668,9 +668,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           child: GlassmorphicCard(
             isDark: isDark,
             child: ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppColors.primary,
-                child: Icon(Icons.category, color: Colors.white),
+              leading: CircleAvatar(
+                backgroundColor: AppColors.brandPrimary,
+                child: const Icon(Icons.category, color: Colors.white),
               ),
               title: Text(
                 category.name,
@@ -691,7 +691,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                       children: [
                         if (canEdit)
                           IconButton(
-                            icon: const Icon(Icons.edit, color: AppColors.primary),
+                            icon:  Icon(Icons.edit, color: AppColors.brandPrimary),
                             onPressed: () => _showEditCategoryDialog(category),
                             tooltip: 'Edit',
                           ),
@@ -786,10 +786,10 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                   ),
                   Text(
                     Formatters.formatCurrency(_total),
-                    style: const TextStyle(
+                    style:  TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: AppColors.brandPrimary,
                     ),
                   ),
                 ],
@@ -864,13 +864,13 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                                       },
                                       itemBuilder: (context) => [
                                         if (canEdit)
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'edit',
                                             child: Row(
                                               children: [
-                                                Icon(Icons.edit, color: AppColors.primary),
-                                                SizedBox(width: 8),
-                                                Text('Edit'),
+                                                Icon(Icons.edit, color: AppColors.brandPrimary),
+                                                const SizedBox(width: 8),
+                                                const Text('Edit'),
                                               ],
                                             ),
                                           ),

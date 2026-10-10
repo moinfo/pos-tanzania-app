@@ -104,7 +104,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppColors.brandPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
@@ -174,7 +174,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: widget.showAppBar ? AppBar(
         title: const Text('TRADE Expenses'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -200,7 +200,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
       ) : null,
       floatingActionButton: !widget.showAppBar && hasAddPermission ? FloatingActionButton(
         heroTag: 'tra_expenses_fab',
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.brandPrimary,
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -415,7 +415,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
                     if (hasEdit)
                       IconButton(
                         icon: const Icon(Icons.edit, size: 20),
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                         onPressed: () async {
                           final result = await Navigator.push(
                             context,

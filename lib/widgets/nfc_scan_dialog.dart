@@ -201,13 +201,13 @@ class _NfcScanDialogState extends State<NfcScanDialog>
                       decoration: BoxDecoration(
                         color: _hasError
                             ? AppColors.error.withValues(alpha: 0.1)
-                            : AppColors.primary.withValues(alpha: 0.1),
+                            : AppColors.brandPrimary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.nfc,
                         size: 64,
-                        color: _hasError ? AppColors.error : AppColors.primary,
+                        color: _hasError ? AppColors.error : AppColors.brandPrimary,
                       ),
                     ),
                   );
@@ -244,9 +244,9 @@ class _NfcScanDialogState extends State<NfcScanDialog>
 
             // Progress indicator when scanning
             if (_isScanning)
-              const LinearProgressIndicator(
+              LinearProgressIndicator(
                 backgroundColor: Colors.grey,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandPrimary),
               ),
 
             const SizedBox(height: 24),
@@ -258,7 +258,7 @@ class _NfcScanDialogState extends State<NfcScanDialog>
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.brandPrimary,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -414,7 +414,7 @@ class _NfcRegisterCardDialogState extends State<NfcRegisterCardDialog> {
             Card(
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.brandPrimary,
                   child: Text(
                     widget.customer.firstName[0].toUpperCase(),
                     style: const TextStyle(color: Colors.white),
@@ -489,7 +489,7 @@ class _NfcRegisterCardDialogState extends State<NfcRegisterCardDialog> {
                     : const Icon(Icons.nfc),
                 label: Text(_isScanning ? 'Scanning...' : 'Scan Card'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.brandPrimary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),

@@ -129,7 +129,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
           data: isDark
               ? ThemeData.dark().copyWith(
                   colorScheme: ColorScheme.dark(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: const Color(0xFF1E1E1E),
                     onSurface: Colors.white,
@@ -137,7 +137,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                 )
               : ThemeData.light().copyWith(
                   colorScheme: ColorScheme.light(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                   ),
                 ),
@@ -211,7 +211,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_getAppBarTitle()),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -240,7 +240,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
       bottomNavigationBar: CurvedBottomNavigation(
         currentIndex: _currentIndex.clamp(0, navItems.length - 1),
         onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: AppColors.primary,
+        selectedItemColor: AppColors.brandPrimary,
         unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
         backgroundColor: isDark ? AppColors.darkCard : Colors.white,
         items: navItems.map((item) => CurvedNavItem(
@@ -311,7 +311,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
     return Container(
       padding: const EdgeInsets.all(12),
-      color: isDark ? AppColors.darkSurface : AppColors.primary,
+      color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
       child: Column(
         children: [
           // EFD Dropdown (if EFDs available)
@@ -354,7 +354,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                 children: [
                   Icon(
                     Icons.calendar_today,
-                    color: _canChangeDateRange ? AppColors.primary : Colors.grey,
+                    color: _canChangeDateRange ? AppColors.brandPrimary : Colors.grey,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -364,13 +364,13 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: _canChangeDateRange
-                          ? (isDark ? AppColors.darkText : AppColors.primary)
+                          ? (isDark ? AppColors.darkText : AppColors.brandPrimary)
                           : Colors.grey,
                     ),
                   ),
                   const Spacer(),
                   if (_canChangeDateRange)
-                    Icon(Icons.arrow_drop_down, color: AppColors.primary)
+                    Icon(Icons.arrow_drop_down, color: AppColors.brandPrimary)
                   else
                     Icon(Icons.lock_outline, color: Colors.grey, size: 18),
                 ],
@@ -391,7 +391,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadDashboard,
-      color: AppColors.primary,
+      color: AppColors.brandPrimary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(12),
@@ -788,7 +788,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadDashboard,
-      color: AppColors.primary,
+      color: AppColors.brandPrimary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(12),
@@ -972,7 +972,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                 icon: const Icon(Icons.add_circle_outline, size: 18),
                 label: const Text('Make Deposit'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.brandPrimary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -1027,7 +1027,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadDashboard,
-      color: AppColors.primary,
+      color: AppColors.brandPrimary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(12),
@@ -1493,7 +1493,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadDashboard,
-      color: AppColors.primary,
+      color: AppColors.brandPrimary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(12),
@@ -1532,7 +1532,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadDashboard,
-      color: AppColors.primary,
+      color: AppColors.brandPrimary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(12),
@@ -1718,7 +1718,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                    color: AppColors.brandPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -2128,7 +2128,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
               ),
             ),
             const SizedBox(height: 2),
@@ -2343,7 +2343,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                   Text(
                     '${_currencyFormat.format(deposit.amount)} TZS',
                     style: TextStyle(
-                      color: AppColors.primary,
+                      color: AppColors.brandPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -2591,7 +2591,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.brandPrimary,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -2772,7 +2772,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
           data: widget.isDark
               ? ThemeData.dark().copyWith(
                   colorScheme: ColorScheme.dark(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                     surface: const Color(0xFF1E1E1E),
                     onSurface: Colors.white,
@@ -2780,7 +2780,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                 )
               : ThemeData.light().copyWith(
                   colorScheme: ColorScheme.light(
-                    primary: AppColors.primary,
+                    primary: AppColors.brandPrimary,
                     onPrimary: Colors.white,
                   ),
                 ),
@@ -2812,7 +2812,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              leading: Icon(Icons.camera_alt, color: AppColors.brandPrimary),
               title: const Text('Take Photo'),
               onTap: () async {
                 Navigator.pop(context);
@@ -2826,7 +2826,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              leading: Icon(Icons.photo_library, color: AppColors.brandPrimary),
               title: const Text('Choose from Gallery'),
               onTap: () async {
                 Navigator.pop(context);
@@ -3174,7 +3174,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                       child: ElevatedButton(
                         onPressed: _isSubmitting ? null : _submitDeposit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: AppColors.brandPrimary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -3302,7 +3302,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.primary, width: 2),
+        borderSide: BorderSide(color: AppColors.brandPrimary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
