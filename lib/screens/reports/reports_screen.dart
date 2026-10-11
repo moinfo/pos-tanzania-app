@@ -5,7 +5,9 @@ import '../../models/report.dart';
 import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
+import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/brand_backdrop.dart';
 import '../../widgets/glassmorphic_card.dart';
 import 'report_view_screen.dart';
 
@@ -188,18 +190,30 @@ class ReportsScreen extends StatelessWidget {
         // Section Header
         Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
+            Builder(builder: (context) {
+              final brand = BrandBackdrop.gradientFor(ApiService.currentClient);
+              return Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: brand == null
+                      ? AppColors.primary.withOpacity(0.1)
+                      : null,
+                  gradient: brand == null
+                      ? null
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: brand,
+                        ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: brand == null ? AppColors.primary : Colors.white,
+                  size: 20,
+                ),
+              );
+            }),
             const SizedBox(width: 12),
             Text(
               title,
@@ -259,18 +273,31 @@ class ReportsScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  _getReportIcon(reportType),
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
+              Builder(builder: (context) {
+                final brand =
+                    BrandBackdrop.gradientFor(ApiService.currentClient);
+                return Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: brand == null
+                        ? AppColors.primary.withOpacity(0.1)
+                        : null,
+                    gradient: brand == null
+                        ? null
+                        : LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: brand,
+                          ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    _getReportIcon(reportType),
+                    color: brand == null ? AppColors.primary : Colors.white,
+                    size: 24,
+                  ),
+                );
+              }),
               const SizedBox(height: 8),
               Text(
                 reportType.displayName,
