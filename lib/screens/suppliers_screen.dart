@@ -14,10 +14,10 @@ import '../services/read_cache.dart';
 import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
-import '../widgets/permission_wrapper.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 import 'supplier_credit_screen.dart';
+import '../widgets/brand_backdrop.dart';
 
 class SuppliersScreen extends StatefulWidget {
   const SuppliersScreen({super.key});
@@ -148,7 +148,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Suppliers'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -648,8 +648,8 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.primary,
+              decoration: BrandBackdrop.headerDecoration(
+                fallback: isDark ? AppColors.darkSurface : AppColors.primary,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
               ),
               child: Row(

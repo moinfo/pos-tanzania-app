@@ -17,6 +17,8 @@ import '../../widgets/offline_submit_feedback.dart';
 import '../../utils/constants.dart';
 import '../../widgets/curved_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/brand_backdrop.dart';
+import '../../utils/app_theme.dart';
 
 class FinancialBankingScreen extends StatefulWidget {
   const FinancialBankingScreen({super.key});
@@ -214,7 +216,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
     final navItems = _getNavItems();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(_getAppBarTitle()),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -2266,7 +2268,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6),
                       ),
-                    ),
+                    ).copyWith(backgroundBuilder: plainButtonBackground),
                   ),
                 if (_canEditDeposit && _canDeleteDeposit)
                   const SizedBox(width: 8),
@@ -2283,7 +2285,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6),
                       ),
-                    ),
+                    ).copyWith(backgroundBuilder: plainButtonBackground),
                   ),
               ],
             ),
@@ -2448,7 +2450,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],

@@ -21,6 +21,7 @@ import '../widgets/glassmorphic_card.dart';
 import '../services/read_cache.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/brand_backdrop.dart';
 
 class CashSubmitScreen extends StatefulWidget {
   const CashSubmitScreen({super.key});
@@ -405,7 +406,7 @@ class _CashSubmitScreenState extends State<CashSubmitScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Cash Submissions'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.success,
         foregroundColor: Colors.white,

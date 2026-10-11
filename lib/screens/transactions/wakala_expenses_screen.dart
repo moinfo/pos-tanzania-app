@@ -12,6 +12,7 @@ import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../providers/theme_provider.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class WakalaExpensesScreen extends StatefulWidget {
   const WakalaExpensesScreen({super.key});
@@ -177,7 +178,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Wakala Expenses'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

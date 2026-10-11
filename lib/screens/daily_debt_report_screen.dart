@@ -15,6 +15,7 @@ import '../widgets/app_bottom_navigation.dart';
 import '../widgets/store_switcher_title.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../utils/constants.dart';
+import '../widgets/brand_backdrop.dart';
 
 class DailyDebtReportScreen extends StatefulWidget {
   const DailyDebtReportScreen({super.key});
@@ -170,7 +171,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
     if (ApiService.currentClient?.id == 'leruma') return _buildLerumaScreen();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         // Same top bar as the rest of the app: the store sits in the centre and
         // is the switcher, instead of a separate chip fighting the title for width.
         title: const StoreSwitcherTitle(subtitle: 'Debt Collection'),
@@ -219,7 +220,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
 
     return Scaffold(
       backgroundColor: creditPageBg(context),
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const StoreSwitcherTitle(subtitle: 'DEBT COLLECTION'),
         centerTitle: true,
         backgroundColor: AppColors.primary,

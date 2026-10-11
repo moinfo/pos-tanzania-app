@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/receiving.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
+import '../widgets/brand_backdrop.dart';
 
 class ReceivingDetailsScreen extends StatefulWidget {
   final int receivingId;
@@ -50,7 +51,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text('Receiving #${widget.receivingId}'),
         // Left to appBarTheme, which is brand blue in light and the dark
         // surface in dark -- hardcoding blue kept this bar lit up on an
@@ -270,8 +271,8 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
   Widget _buildSummary() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
+      decoration: BrandBackdrop.headerDecoration(
+        fallback: AppColors.primary,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),

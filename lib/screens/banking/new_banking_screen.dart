@@ -19,6 +19,7 @@ import '../../services/offline_actions.dart';
 import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class NewBankingScreen extends StatefulWidget {
   final BankingListItem? banking;
@@ -523,7 +524,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.banking == null ? 'New Banking' : 'Edit Banking'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

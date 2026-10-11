@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart' hide Text;
-import '../widgets/tr_text.dart';
 import '../services/api_service.dart';
 
 class AppColors {

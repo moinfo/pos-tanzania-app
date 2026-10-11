@@ -14,6 +14,7 @@ import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/state_views.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// The day's takings per payment type for one location, with a drill-down
 /// into the customers behind each type.
@@ -251,7 +252,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     return Scaffold(
       appBar: widget.embedded
           ? null
-          : AppBar(
+          : AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(_selectedType ?? 'Payment Summary'),
         leading: _selectedType != null
             ? IconButton(
@@ -873,7 +874,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                 const SizedBox(width: 6),
                                 // Which register completed it -- the same
                                 // APP/WEB the web's Source column shows.
-                                Container(
+                                BrandBadgeFrame(radius: 4, width: 1, child: Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 6, vertical: 1),
                                   decoration: BoxDecoration(
@@ -887,7 +888,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                         letterSpacing: 0.4,
                                         color: badge.$2,
                                       )),
-                                ),
+                                )),
                               ],
                             ],
                           ),

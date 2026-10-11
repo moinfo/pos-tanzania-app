@@ -7,7 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/credit.dart';
 import '../models/permission_model.dart';
 import '../models/stock_location.dart';
-import '../models/nfc_wallet.dart';
 import '../providers/permission_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
@@ -21,6 +20,8 @@ import '../widgets/nfc_scan_dialog.dart';
 import '../widgets/credit/record_payment_sheet.dart';
 import '../widgets/credit/credit_list_widgets.dart';
 import 'sale_details_screen.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 class CustomerCreditScreen extends StatefulWidget {
   final int customerId;
@@ -228,7 +229,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],
@@ -265,7 +266,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
     if (ApiService.currentClient?.id == 'leruma') return _buildLerumaScreen();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.customerName),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -428,7 +429,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   Widget _buildLerumaScreen() {
     return Scaffold(
       backgroundColor: creditPageBg(context),
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -877,7 +878,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],
@@ -1769,7 +1770,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             foregroundColor: Colors.white,
-          ),
+          ).copyWith(backgroundBuilder: plainButtonBackground),
           child: _isSubmitting
               ? const SizedBox(
                   width: 20,

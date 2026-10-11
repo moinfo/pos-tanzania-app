@@ -10,6 +10,8 @@ import 'widgets/product_skeleton.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'order_history_screen.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 /// Brand colors - adapts to current client
 class LandingColors {
@@ -122,7 +124,7 @@ class _LandingScreenState extends State<LandingScreen> {
     final logoPath = client?.logoUrl ?? 'assets/images/come_and_save_logo.png';
     final title = client?.branding.appTitle ?? 'COME N\' SAVE';
 
-    return AppBar(
+    return AppBar(flexibleSpace: const BrandAppBarBackground(), 
       titleSpacing: 8,
       title: Row(
         children: [
@@ -630,7 +632,7 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: LandingColors.primaryRed,
                         foregroundColor: Colors.white,
-                      ),
+                      ).copyWith(backgroundBuilder: plainButtonBackground),
                     ),
                   ] else if (_searchController.text.isNotEmpty) ...[
                     const SizedBox(height: 8),

@@ -16,6 +16,8 @@ import '../widgets/app_bottom_navigation.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
+import '../widgets/brand_backdrop.dart';
+import '../utils/app_theme.dart';
 
 /// Suppliers Credits Screen - Shows list of suppliers with their credit balances
 /// Similar to web /suppliers_creditors page
@@ -122,7 +124,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Supplier Credits'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -858,7 +860,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.supplierName),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -1315,7 +1317,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
     final isLeruma = ApiService.currentClient?.id == 'leruma';
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Daily Credit Purchases'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -1729,7 +1731,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
     final isLeruma = ApiService.currentClient?.id == 'leruma';
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Payments to Suppliers'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -2237,7 +2239,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             foregroundColor: Colors.white,
-          ),
+          ).copyWith(backgroundBuilder: plainButtonBackground),
           child: _isSubmitting
               ? const SizedBox(
                   width: 20,

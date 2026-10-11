@@ -5,6 +5,7 @@ import '../models/sale.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/brand_backdrop.dart';
 
 class SaleDetailsScreen extends StatefulWidget {
   final int saleId;
@@ -52,7 +53,7 @@ class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text('Sale #${widget.saleId}'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -190,8 +191,8 @@ class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
   Widget _buildSummary() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
+      decoration: BrandBackdrop.headerDecoration(
+        fallback: AppColors.primary,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),

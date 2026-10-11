@@ -21,6 +21,8 @@ import 'return_items_picker.dart';
 import 'receivings_summary_screen.dart';
 import 'receivings_summary2_screen.dart';
 import 'main_store_screen.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class ReceivingsListScreen extends StatefulWidget {
   const ReceivingsListScreen({super.key});
@@ -383,7 +385,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
     final showSummaryButtons = _hasReceivingsSummaryFeature();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Receivings'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -483,7 +485,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
+                          ).copyWith(backgroundBuilder: plainButtonBackground),
                           icon: const Icon(Icons.summarize, size: 18),
                           label: const Text('Summary', style: TextStyle(fontSize: 13)),
                         ),
@@ -499,7 +501,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
+                          ).copyWith(backgroundBuilder: plainButtonBackground),
                           icon: const Icon(Icons.analytics, size: 18),
                           label: const Text('Summary 2', style: TextStyle(fontSize: 13)),
                         ),
@@ -515,7 +517,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
+                          ).copyWith(backgroundBuilder: plainButtonBackground),
                           icon: const Icon(Icons.store, size: 18),
                           label: const Text('MS', style: TextStyle(fontSize: 13)),
                         ),

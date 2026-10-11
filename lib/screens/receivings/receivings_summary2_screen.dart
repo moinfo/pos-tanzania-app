@@ -9,6 +9,8 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 /// Summary 2 Screen - Leruma receivings as primary, compare with Mainstore sales
 /// Column order: Item Name → Leruma Qty → Leruma Receiving → Mainstore Qty → Mainstore Price → Diff Qty → Diff Price
@@ -134,7 +136,7 @@ class _ReceivingsSummary2ScreenState extends State<ReceivingsSummary2Screen> {
                     rangePickerHeaderBackgroundColor: AppColors.success,
                     rangePickerHeaderForegroundColor: Colors.white,
                     rangeSelectionBackgroundColor: AppColors.success.withOpacity(0.3),
-                  ), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
+                  ), dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF1E1E1E)),
                 )
               : ThemeData.light().copyWith(
                   colorScheme: const ColorScheme.light(
@@ -197,7 +199,7 @@ class _ReceivingsSummary2ScreenState extends State<ReceivingsSummary2Screen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Summary 2'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.success,
         foregroundColor: Colors.white,
@@ -301,7 +303,7 @@ class _ReceivingsSummary2ScreenState extends State<ReceivingsSummary2Screen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                  ),
+                  ).copyWith(backgroundBuilder: plainButtonBackground),
                   child: _isLoading
                       ? const SizedBox(
                           width: 20,

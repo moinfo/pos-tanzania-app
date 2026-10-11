@@ -8,6 +8,8 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/brand_backdrop.dart';
+import '../utils/app_theme.dart';
 
 /// Map Route Screen (Delivery Route Planning)
 /// Shows ALL active customers with reordering capability
@@ -171,7 +173,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade200,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         // _headerColor is the brand accent used by the icons and reorder
         // arrows below; as an AppBar background it also kept this bar blue in
         // dark mode. appBarTheme already resolves it per mode.
@@ -389,7 +391,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                             label: const Text('Retry'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _headerColor,
-                            ),
+                            ).copyWith(backgroundBuilder: plainButtonBackground),
                           ),
                         ],
                       ),

@@ -21,6 +21,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_z_report_screen.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class ZReportsListScreen extends StatefulWidget {
   const ZReportsListScreen({super.key});
@@ -183,7 +185,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
-              ),
+              ).copyWith(backgroundBuilder: plainButtonBackground),
               child: const Text('Delete'),
             ),
           ],
@@ -611,7 +613,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Z Reports'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

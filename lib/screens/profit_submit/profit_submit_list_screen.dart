@@ -19,6 +19,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_profit_submit_screen.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class ProfitSubmitListScreen extends StatefulWidget {
   const ProfitSubmitListScreen({super.key});
@@ -255,7 +257,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],
@@ -423,7 +425,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                AppBar(
+                AppBar(flexibleSpace: const BrandAppBarBackground(), 
                   title: const Text('Profit Slip'),
                   automaticallyImplyLeading: false,
                   actions: [
@@ -576,7 +578,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
     final canDelete = permissionProvider.hasPermission(PermissionIds.cashSubmitDeleteProfit);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Profit Submissions'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

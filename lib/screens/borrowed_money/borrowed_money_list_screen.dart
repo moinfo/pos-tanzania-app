@@ -8,6 +8,8 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 import 'borrowed_money_form_screen.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class BorrowedMoneyListScreen extends StatefulWidget {
   const BorrowedMoneyListScreen({super.key});
@@ -110,7 +112,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],
@@ -161,7 +163,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
     return Scaffold(
       backgroundColor:
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Borrowed Money'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

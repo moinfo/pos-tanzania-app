@@ -7,6 +7,7 @@ import '../widgets/state_views.dart';
 import '../models/nfc_wallet.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
+import '../widgets/brand_backdrop.dart';
 
 class NfcConfirmationsScreen extends StatefulWidget {
   const NfcConfirmationsScreen({super.key});
@@ -94,7 +95,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
     final dateFormat = DateFormat('dd MMM yyyy HH:mm');
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('NFC Confirmations'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

@@ -11,6 +11,8 @@ import '../services/screen_prefetch.dart';
 import '../utils/constants.dart';
 import '../widgets/state_views.dart';
 import '../utils/formatters.dart';
+import '../widgets/brand_backdrop.dart';
+import '../utils/app_theme.dart';
 
 /// Everything sitting on this phone that the server has not got.
 ///
@@ -160,7 +162,7 @@ class _PendingUploadsScreenState extends State<PendingUploadsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.ground(context),
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Not yet uploaded'),
         backgroundColor:
             AppColors.isDark(context) ? AppColors.darkCard : AppColors.primary,
@@ -418,7 +420,7 @@ class _PendingUploadsScreenState extends State<PendingUploadsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Give up on it'),
           ),
         ],
@@ -890,21 +892,21 @@ class _StateChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colour = _stateColour(state);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: colour.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colour.withValues(alpha: 0.5)),
-      ),
-      child: Text(
-        _stateWord(state),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: colour,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: colour.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: colour.withValues(alpha: 0.5)),
         ),
-      ),
-    );
+        child: Text(
+          _stateWord(state),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: colour,
+          ),
+        ),
+      );
   }
 }
 

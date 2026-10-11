@@ -14,6 +14,8 @@ import '../models/permission_model.dart';
 import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
+import '../widgets/brand_backdrop.dart';
+import '../utils/app_theme.dart';
 
 class DiscountRequestsScreen extends StatefulWidget {
   const DiscountRequestsScreen({super.key});
@@ -113,7 +115,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Approve', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -144,7 +146,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Reject', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -175,7 +177,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -235,7 +237,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Discount Requests'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

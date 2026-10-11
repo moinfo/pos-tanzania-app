@@ -10,6 +10,8 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// Customer Care Screen (CRM View)
 /// Shows customers with credit info and days since last purchase
@@ -199,7 +201,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade200,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         // Every other screen darkens its bar in dark mode; this one alone kept
         // the brand blue, so it read as a different app.
         backgroundColor: isDark ? AppColors.darkSurface : _headerColor,
@@ -399,7 +401,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                             label: const Text('Retry'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _headerColor,
-                            ),
+                            ).copyWith(backgroundBuilder: plainButtonBackground),
                           ),
                         ],
                       ),

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
 import 'package:provider/provider.dart';
-import 'package:local_auth/local_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
@@ -17,6 +15,8 @@ import '../widgets/language_switcher.dart';
 import 'client_selector_screen.dart';
 import 'app_update_screen.dart';
 import 'pending_uploads_screen.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -88,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
-              ),
+              ).copyWith(backgroundBuilder: plainButtonBackground),
               child: const Text('Disable'),
             ),
           ],
@@ -223,7 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Settings'),
         backgroundColor: isDark ? AppColors.darkCard : AppColors.primary,
         foregroundColor: isDark ? AppColors.darkText : Colors.white,
@@ -727,7 +727,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.error,
                               foregroundColor: Colors.white,
-                            ),
+                            ).copyWith(backgroundBuilder: plainButtonBackground),
                             child: const Text('Logout'),
                           ),
                         ],

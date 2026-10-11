@@ -16,6 +16,8 @@ import '../providers/permission_provider.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 class NfcCardsScreen extends StatefulWidget {
   const NfcCardsScreen({super.key});
@@ -277,7 +279,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Deactivate'),
           ),
         ],
@@ -308,7 +310,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('NFC Cards'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -705,7 +707,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
               foregroundColor: Colors.white,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Continue'),
           ),
         ],
@@ -899,7 +901,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                     backgroundColor: AppColors.success,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
+                  ).copyWith(backgroundBuilder: plainButtonBackground),
                   child: const Text('Done', style: TextStyle(fontSize: 16)),
                 ),
               ),
@@ -1074,7 +1076,7 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
     final dateFormat = DateFormat('dd MMM yyyy HH:mm');
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Card Statement'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

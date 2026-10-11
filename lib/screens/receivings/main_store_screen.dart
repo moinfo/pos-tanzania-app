@@ -13,6 +13,7 @@ import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/state_views.dart';
 import 'new_receiving_screen.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class MainStoreScreen extends StatefulWidget {
   const MainStoreScreen({super.key});
@@ -224,7 +225,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Main Store (MS)'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -241,8 +242,8 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
           // Compact header with filters
           Container(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.primary,
+            decoration: BrandBackdrop.headerDecoration(
+              fallback: isDark ? AppColors.darkSurface : AppColors.primary,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),

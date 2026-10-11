@@ -3,6 +3,7 @@ import 'tr_text.dart';
 import 'package:provider/provider.dart';
 import '../utils/constants.dart';
 import '../screens/main_navigation.dart';
+import '../providers/location_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/permission_model.dart';
@@ -11,11 +12,16 @@ import 'curved_bottom_navigation.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
+
+  /// Highlights a tab by its label ('Contracts', 'Transactions'). Preferred
+  /// over [currentIndex], which shifts whenever a conditional tab appears.
+  final String? currentLabel;
   final Function(int)? onTap;
 
   const AppBottomNavigation({
     super.key,
     this.currentIndex = -1,
+    this.currentLabel,
     this.onTap,
   });
 
@@ -41,9 +47,19 @@ class AppBottomNavigation extends StatelessWidget {
   ///   is a drawer item here, not a tab)
   ///   (Summary + Reports in drawer). Built in that order, DISPLAYED in the
   ///   order named in _buildLerumaBar.
-  List<Map<String, dynamic>> _buildNavItems() {
+  List<Map<String, dynamic>> _buildNavItems(BuildContext context) {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
+    final hasShops = ApiService.currentClient?.features.hasShops ?? false;
+
+    // Same two conditions MainNavigation uses for its Transactions tab.
+    final permissions = Provider.of<PermissionProvider>(context);
+    final locations = Provider.of<LocationProvider>(context);
+    final hasStockLocation =
+        locations.selectedLocation != null || locations.allowedLocations.isNotEmpty;
+    final hasTransactionsPermission =
+        permissions.hasPermission(PermissionIds.transactions) ||
+            permissions.hasModulePermission(PermissionIds.transactions);
 
     final items = <Map<String, dynamic>>[
       {
@@ -89,6 +105,16 @@ class AppBottomNavigation extends StatelessWidget {
       });
     }
 
+    // Transactions replaces the stock-location screens for a user who has no
+    // location. Position matters: it sits right after Summary, as in the shell.
+    if (hasTransactionsPermission && !hasStockLocation) {
+      items.add({
+        'icon': Icons.swap_horiz,
+        'label': 'Transactions',
+        'permission': PermissionIds.transactions,
+      });
+    }
+
     // Suspended sales, Leruma only. Mirrors the config MainNavigation builds;
     // the two lists are read positionally, so an entry here without one there
     // sends every later tab to the wrong screen.
@@ -118,6 +144,16 @@ class AppBottomNavigation extends StatelessWidget {
       });
     }
 
+    // Shops, for clients with shop registration. Between Contracts and
+    // Reports, exactly where the shell puts it.
+    if (hasShops) {
+      items.add({
+        'icon': Icons.store,
+        'label': 'Shops',
+        'permission': PermissionIds.customersShops,
+      });
+    }
+
     // Reports is available to all clients -- in the drawer for Leruma
     if (!isLeruma) {
       items.add({
@@ -137,15 +173,36 @@ class AppBottomNavigation extends StatelessWidget {
     final isDark = themeProvider.isDarkMode;
 
     // Get navigation items (matches MainNavigation structure)
-    final allNavItems = _buildNavItems();
+    final allNavItems = _buildNavItems(context);
+    final features = ApiService.currentClient?.features;
 
-    // Filter items based on permissions
+    // Filter items on permission AND client feature, exactly as the shell does
+    // -- a tab the shell hides must not appear here either.
     final availableItems = <CurvedNavItem>[];
     final Map<int, int> indexMapping = {}; // Maps display index to original index
 
     for (int i = 0; i < allNavItems.length; i++) {
       final item = allNavItems[i];
       final permission = item['permission'] as String;
+
+      var featureEnabled = true;
+      if (features != null) {
+        switch (permission) {
+          case PermissionIds.contracts:
+            featureEnabled = features.hasContracts;
+            break;
+          case PermissionIds.cashSubmit:
+            featureEnabled = features.hasCashSubmit;
+            break;
+          case PermissionIds.expenses:
+            featureEnabled = features.hasExpenses;
+            break;
+          case PermissionIds.sales:
+            featureEnabled = features.hasSales;
+            break;
+        }
+      }
+      if (!featureEnabled) continue;
 
       // Check if user has permission (module or any sub-permission)
       if (permissionProvider.hasPermission(permission) ||
@@ -165,12 +222,21 @@ class AppBottomNavigation extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Map current index to display index
+    // Map the active tab to its display index: by label when given, which
+    // survives conditional tabs, otherwise by the legacy position.
     int displayIndex = 0;
-    if (currentIndex >= 0) {
+    var hasActive = false;
+    if (currentLabel != null) {
+      final at = availableItems.indexWhere((e) => e.label == currentLabel);
+      if (at >= 0) {
+        displayIndex = at;
+        hasActive = true;
+      }
+    } else if (currentIndex >= 0) {
       for (int i = 0; i < indexMapping.length; i++) {
         if (indexMapping[i] == currentIndex) {
           displayIndex = i;
+          hasActive = true;
           break;
         }
       }
@@ -183,17 +249,17 @@ class AppBottomNavigation extends StatelessWidget {
         indexMapping: indexMapping,
         // currentIndex is -1 on a pushed screen. Highlighting Home there was
         // wrong: the seller is on the statement, not on the Home tab.
-        activeDisplayIndex: currentIndex >= 0 ? displayIndex : -1,
+        activeDisplayIndex: hasActive ? displayIndex : -1,
       );
     }
 
     return CurvedBottomNavigation(
       currentIndex: displayIndex >= 0 && displayIndex < availableItems.length ? displayIndex : 0,
-      onTap: (displayIndex) {
-        // Map display index back to original index
-        final originalIndex = indexMapping[displayIndex] ?? 0;
-        _handleTap(context, originalIndex);
-      },
+      // MainNavigation reads initialIndex as a position in ITS filtered tab
+      // list, which is this same list -- so the display index goes straight
+      // through. The unfiltered index used here before landed on the wrong
+      // tab whenever an earlier one was hidden.
+      onTap: (tapped) => _handleTap(context, tapped),
       selectedItemColor: AppColors.primary,
       unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
       backgroundColor: isDark ? AppColors.darkCard : Colors.white,

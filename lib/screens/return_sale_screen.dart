@@ -5,6 +5,8 @@ import '../models/sale.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 class ReturnSaleScreen extends StatefulWidget {
   final int saleId;
@@ -341,7 +343,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text('Return — Sale #${widget.saleId}'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -679,7 +681,7 @@ class _ReturnSaleScreenState extends State<ReturnSaleScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
-              ),
+              ).copyWith(backgroundBuilder: plainButtonBackground),
             ),
           ),
         ],

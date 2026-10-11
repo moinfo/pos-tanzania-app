@@ -18,6 +18,7 @@ import '../widgets/app_bottom_navigation.dart';
 import '../widgets/searchable_picker.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// Ask for one-time discounts for a customer, on as many items as the sale
 /// needs.
@@ -528,7 +529,7 @@ class _CreateDiscountRequestScreenState
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Request a Discount'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

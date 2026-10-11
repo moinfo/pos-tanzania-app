@@ -19,6 +19,7 @@ import '../widgets/searchable_picker.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
 import 'customer_credit_history_screen.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// The customer credit limit module, not just its request form.
 ///
@@ -362,7 +363,7 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
     return Scaffold(
       backgroundColor:
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Credit Limit & Approvals'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -1101,31 +1102,31 @@ class OutcomeBadge extends StatelessWidget {
     final colour = outcomeColour(outcome);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: colour.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: colour.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            outcome.label,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-              color: colour,
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: colour.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: colour.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              outcome.label,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+                color: colour,
+              ),
             ),
-          ),
-          if (stale) ...[
-            const SizedBox(width: 3),
-            Icon(Icons.error_outline, size: 10, color: colour),
+            if (stale) ...[
+              const SizedBox(width: 3),
+              Icon(Icons.error_outline, size: 10, color: colour),
+            ],
           ],
-        ],
-      ),
-    );
+        ),
+      );
   }
 }
 

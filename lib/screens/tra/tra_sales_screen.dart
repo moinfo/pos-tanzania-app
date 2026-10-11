@@ -12,6 +12,7 @@ import '../../services/tra_service.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'new_tra_sale_screen.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class TRASalesScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -190,7 +191,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: widget.showAppBar ? AppBar(
+      appBar: widget.showAppBar ? AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('TRADE Sales'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -401,7 +402,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
               children: [
                 Row(
                   children: [
-                    Container(
+                    BrandBadgeFrame(radius: 4, width: 1, child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.1),
@@ -415,7 +416,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
                           color: AppColors.primary,
                         ),
                       ),
-                    ),
+                    )),
                     const SizedBox(width: 8),
                     Text(
                       sale.efdName,

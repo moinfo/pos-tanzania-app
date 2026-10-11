@@ -14,6 +14,8 @@ import '../providers/sale_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 class SuspendedSheetScreen extends StatefulWidget {
   const SuspendedSheetScreen({super.key});
@@ -129,7 +131,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade100,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
         title: const Text('Suspended Sheet', style: TextStyle(fontSize: 18)),
@@ -713,7 +715,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
+                    ).copyWith(backgroundBuilder: plainButtonBackground),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -910,7 +912,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange.shade600,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Unsuspend'),
           ),
         ],

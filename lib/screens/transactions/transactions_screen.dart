@@ -16,6 +16,7 @@ import 'wakala_report_screen.dart';
 import 'wakala_expenses_screen.dart';
 import 'commission_screen.dart';
 import 'capital_screen.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
@@ -27,7 +28,7 @@ class TransactionsScreen extends StatelessWidget {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Transactions'),
         elevation: 0,
       ),
@@ -269,7 +270,7 @@ class TransactionsScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: 1),
+      bottomNavigationBar: const AppBottomNavigation(currentLabel: 'Transactions'),
     );
   }
 

@@ -6,6 +6,7 @@ import '../providers/update_provider.dart';
 import '../services/update_service.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// The place in the app to update from.
 ///
@@ -68,7 +69,7 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.ground(context),
-      appBar: AppBar(title: const Text('App Update')),
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), title: const Text('App Update')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

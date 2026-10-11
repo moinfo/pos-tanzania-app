@@ -12,6 +12,7 @@ import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../services/tra_service.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class NewTRASaleScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -373,7 +374,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(isEditing ? 'Edit Sale' : 'New Sale'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

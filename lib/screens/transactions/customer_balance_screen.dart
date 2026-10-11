@@ -9,6 +9,7 @@ import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
 import 'customer_statement_screen.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class CustomerBalanceScreen extends StatefulWidget {
   const CustomerBalanceScreen({super.key});
@@ -85,7 +86,7 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Customer Balances'),
         actions: [
           IconButton(

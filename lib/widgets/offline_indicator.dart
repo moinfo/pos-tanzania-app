@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
 import '../services/offline_feature.dart';
+import 'brand_backdrop.dart';
 
 /// Widget to display offline/online status in the app bar
 class OfflineIndicator extends StatefulWidget {
@@ -105,7 +106,7 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
                 ],
                 if (widget.showSyncCount && pendingCount > 0 && !isSyncing) ...[
                   const SizedBox(width: 4),
-                  Container(
+                  BrandBadgeFrame(radius: 10, width: 1, child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.white.withValues(alpha: 0.3),
@@ -119,7 +120,7 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
+                  )),
                 ],
               ],
             ),
@@ -842,35 +843,35 @@ class SyncBadge extends StatelessWidget {
         if (count == 0) return const SizedBox.shrink();
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: offline.failedSyncCount > 0
-                ? AppColors.error
-                : AppColors.warning,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                offline.isSyncing
-                    ? Icons.sync
-                    : (offline.failedSyncCount > 0 ? Icons.error : Icons.cloud_upload),
-                size: 14,
-                color: AppColors.white,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '$count',
-                style: const TextStyle(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: offline.failedSyncCount > 0
+                  ? AppColors.error
+                  : AppColors.warning,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  offline.isSyncing
+                      ? Icons.sync
+                      : (offline.failedSyncCount > 0 ? Icons.error : Icons.cloud_upload),
+                  size: 14,
                   color: AppColors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
                 ),
-              ),
-            ],
-          ),
-        );
+                const SizedBox(width: 4),
+                Text(
+                  '$count',
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          );
       },
     );
   }

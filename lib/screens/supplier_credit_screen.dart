@@ -11,6 +11,8 @@ import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 import 'receiving_details_screen.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 class SupplierCreditScreen extends StatefulWidget {
   final int supplierId;
@@ -117,7 +119,7 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.supplierName),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -780,7 +782,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             foregroundColor: Colors.white,
-          ),
+          ).copyWith(backgroundBuilder: plainButtonBackground),
           child: _isSubmitting
               ? const SizedBox(
                   width: 20,

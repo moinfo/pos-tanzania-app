@@ -1,6 +1,39 @@
 import 'package:flutter/material.dart';
 
+import '../services/api_service.dart';
+import '../widgets/brand_backdrop.dart';
 import 'constants.dart';
+
+/// Button background for the client's brand gradient, left to right like the
+/// top and bottom bars. A disabled button keeps its flat grey, and a client
+/// with no brand gradient keeps the flat colour it always had.
+Widget brandButtonBackground(
+  BuildContext context,
+  Set<WidgetState> states,
+  Widget? child,
+) {
+  final brand = BrandBackdrop.gradientFor(ApiService.currentClient);
+  if (brand == null || states.contains(WidgetState.disabled)) return child!;
+
+  return DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: brand,
+      ),
+    ),
+    child: child,
+  );
+}
+
+/// Opt-out for a button whose colour carries meaning (delete, approve).
+Widget plainButtonBackground(
+  BuildContext context,
+  Set<WidgetState> states,
+  Widget? child,
+) =>
+    child!;
 
 /// The app's two themes, in one place.
 ///
@@ -233,6 +266,10 @@ class AppTheme {
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
 
+      // Buttons that ask for no colour of their own (or ask for the brand
+      // colour) get the brand gradient where the client has one. A button that
+      // names a semantic colour -- delete red, approve green -- opts out with
+      // `plainButtonBackground` and keeps it.
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -243,7 +280,18 @@ class AppTheme {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 2,
-        ),
+        ).copyWith(backgroundBuilder: brandButtonBackground),
+      ),
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: muted.withValues(alpha: 0.25),
+          disabledForegroundColor: muted,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ).copyWith(backgroundBuilder: brandButtonBackground),
       ),
 
       outlinedButtonTheme: OutlinedButtonThemeData(

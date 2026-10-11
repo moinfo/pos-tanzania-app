@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
 import 'package:provider/provider.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../providers/connectivity_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -15,17 +13,14 @@ import '../providers/theme_provider.dart';
 import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
-import '../widgets/glassmorphic_card.dart';
 import '../l10n/lang.dart';
 import '../widgets/brand_backdrop.dart';
 import '../widgets/language_switcher.dart';
 import '../providers/offline_provider.dart';
-import '../widgets/offline_indicator.dart';
 import '../config/clients_config.dart';
 import '../models/client_config.dart';
 import 'main_navigation.dart';
 import 'client_selector_screen.dart';
-import 'landing/landing_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -116,6 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
       // Offer biometric enrollment if available and not already enabled
       if (_isBiometricAvailable && !_isBiometricEnabled) {
         await _offerBiometricEnrollment();
+      } else if (_isBiometricEnabled) {
+        await _refreshSavedBiometricCredentials();
       }
 
       // Initialize location provider after successful login
@@ -239,6 +236,26 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       }
+    }
+  }
+
+  /// Keep the fingerprint login working after the password changes. The saved
+  /// copy is only replaced for the same username, so signing in as someone
+  /// else with a password never re-points the fingerprint at that account.
+  Future<void> _refreshSavedBiometricCredentials() async {
+    try {
+      final saved = await _biometricService.getSavedCredentials();
+      final username = _usernameController.text.trim();
+      final password = _passwordController.text;
+      if (saved['username'] != username || saved['password'] == password) {
+        return;
+      }
+      await _biometricService.enableBiometric(
+        username: username,
+        password: password,
+      );
+    } catch (_) {
+      // Best effort: the sign-in itself already succeeded.
     }
   }
 

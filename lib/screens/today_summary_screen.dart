@@ -11,6 +11,7 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/brand_backdrop.dart';
 
 class TodaySummaryScreen extends StatefulWidget {
   const TodaySummaryScreen({super.key});
@@ -106,7 +107,7 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     final locations = locationProvider.allowedLocations;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Today Summary'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

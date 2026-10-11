@@ -12,6 +12,7 @@ import '../services/api_service.dart';
 import '../widgets/offline_indicator.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
+import '../widgets/brand_backdrop.dart';
 import 'home_screen.dart';
 import 'today_summary_screen.dart';
 import 'contracts_screen.dart';
@@ -396,13 +397,28 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     });
   }
 
+  /// The sign-in screen's brand gradient, laid left to right for the thin top
+  /// and bottom bars so the two read as one strip of colour. Null for clients
+  /// without a brand gradient, which keep their flat bars.
+  LinearGradient? get _brandBarGradient {
+    final colors = BrandBackdrop.gradientFor(ApiService.currentClient);
+    if (colors == null) return null;
+    return LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: colors,
+    );
+  }
+
   /// Build flat AppBar
   Widget _buildCurvedAppBar(bool isDark, ThemeProvider themeProvider) {
+    final gradient = _brandBarGradient;
     final appBarColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Container(
       decoration: BoxDecoration(
-        color: appBarColor,
+        color: gradient == null ? appBarColor : null,
+        gradient: gradient,
       ),
       child: SafeArea(
         bottom: false,
@@ -428,13 +444,14 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (ApiService.currentClient?.logoUrl != null)
+                            // Same traced white outline as the sign-in logo, at
+                            // a hairline weight so it stays crisp at 32px.
                             Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Image.asset(
-                                ApiService.currentClient!.logoUrl!,
+                              padding: const EdgeInsets.only(right: 4),
+                              child: OutlinedLogo(
+                                client: ApiService.currentClient,
                                 height: 32,
-                                width: 32,
-                                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                stroke: 1,
                               ),
                             ),
                           Text(
@@ -473,22 +490,29 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                         Positioned(
                           top: 8,
                           right: 6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
-                            constraints: const BoxConstraints(minWidth: 17),
-                            decoration: BoxDecoration(
-                              color: AppColors.error,
-                              borderRadius: BorderRadius.circular(9),
-                              border: Border.all(color: appBarColor, width: 1.5),
-                            ),
-                            child: Text(
-                              count > 99 ? '99+' : '$count',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
+                          // Gradient ring when the client has one; the badge's
+                          // own border (bar colour) is only the fallback.
+                          child: BrandBadgeFrame(
+                            radius: 9,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
+                              constraints: const BoxConstraints(minWidth: 17),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(9),
+                                border: gradient == null
+                                    ? Border.all(color: appBarColor, width: 1.5)
+                                    : null,
+                              ),
+                              child: Text(
+                                count > 99 ? '99+' : '$count',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -847,9 +871,17 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         child: Column(
           children: [
               DrawerHeader(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
-                ),
+                // The sign-in screen's gradient, drawn diagonally as it is
+                // there (this is a block, not a thin strip like the bars).
+                decoration: () {
+                  final brand =
+                      BrandBackdrop.gradientFor(ApiService.currentClient);
+                  if (brand != null) return BrandBackdrop.decorationFor(brand);
+                  return BoxDecoration(
+                    color:
+                        isDark ? AppColors.darkSurface : AppColors.brandPrimary,
+                  );
+                }(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -966,7 +998,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ],
               child: Consumer<NotificationProvider>(
                 builder: (context, notifications, _) => ListTile(
-                  leading: Icon(Icons.approval, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.approval, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Discount & Approvals'),
                   trailing: notifications.pendingApprovals > 0
                       ? Container(
@@ -1015,8 +1047,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionIds.customerCreditLimitsAdd,
               ],
               child: ListTile(
-                leading: Icon(Icons.request_quote_outlined,
-                    color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.request_quote_outlined, fallbackColor: AppColors.brandPrimary),
                 title: const Text('Credit Limit & Approvals'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1029,7 +1060,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ),
             ExpansionTile(
-              leading: Icon(Icons.people, color: AppColors.brandPrimary),
+              leading: BrandIconTile(Icons.people, fallbackColor: AppColors.brandPrimary),
               title: const Text('Customers'),
               childrenPadding: const EdgeInsets.only(left: 16),
               children: [
@@ -1037,7 +1068,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.customers,
                   child: ListTile(
-                    leading: Icon(Icons.people_outline, color: AppColors.brandPrimary),
+                    leading: BrandIconTile(Icons.people_outline, fallbackColor: AppColors.brandPrimary),
                     title: const Text('Customers List'),
                     onTap: () {
                       Navigator.pop(context);
@@ -1052,7 +1083,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.credits,
                   child: ListTile(
-                    leading: const Icon(Icons.credit_card, color: AppColors.error),
+                    leading: BrandIconTile(Icons.credit_card, fallbackColor: AppColors.error),
                     title: const Text('Customer Credits'),
                     onTap: () {
                       Navigator.pop(context);
@@ -1068,7 +1099,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   PermissionWrapper(
                     permissionId: PermissionIds.customersShops,
                     child: ListTile(
-                      leading: Icon(Icons.store, color: AppColors.brandPrimary),
+                      leading: BrandIconTile(Icons.store, fallbackColor: AppColors.brandPrimary),
                       title: const Text('Shops'),
                       onTap: () {
                         Navigator.pop(context);
@@ -1086,7 +1117,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.customerDiscountRequests,
                 child: ListTile(
-                  leading: Icon(Icons.discount, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.discount, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Discount Requests'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1105,7 +1136,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.items,
               child: ListTile(
-                leading: Icon(Icons.inventory_2, color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.inventory_2, fallbackColor: AppColors.brandPrimary),
                 title: const Text('Items'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1118,7 +1149,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ),
             // 3. Sales Menu
             ExpansionTile(
-              leading: Icon(Icons.point_of_sale, color: AppColors.brandPrimary),
+              leading: BrandIconTile(Icons.point_of_sale, fallbackColor: AppColors.brandPrimary),
               title: const Text('Sales'),
               childrenPadding: const EdgeInsets.only(left: 16),
               children: [
@@ -1126,7 +1157,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
                   child: ListTile(
-                    leading: Icon(Icons.add_shopping_cart, color: AppColors.brandPrimary),
+                    leading: BrandIconTile(Icons.add_shopping_cart, fallbackColor: AppColors.brandPrimary),
                     title: const Text('New Sales'),
                     onTap: () {
                       Navigator.pop(context);
@@ -1144,7 +1175,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
                   child: ListTile(
-                    leading: Icon(Icons.history, color: AppColors.brandPrimary),
+                    leading: BrandIconTile(Icons.history, fallbackColor: AppColors.brandPrimary),
                     title: const Text('Sales History'),
                     onTap: () {
                       Navigator.pop(context);
@@ -1159,7 +1190,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.salesSuspended,
                   child: ListTile(
-                    leading: const Icon(Icons.pause_circle, color: AppColors.warning),
+                    leading: BrandIconTile(Icons.pause_circle, fallbackColor: AppColors.warning),
                     title: const Text('Suspended Sales'),
                     onTap: () async {
                       Navigator.pop(context);
@@ -1179,7 +1210,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ),
             // 4. Suppliers Menu
             ExpansionTile(
-              leading: Icon(Icons.local_shipping, color: AppColors.brandPrimary),
+              leading: BrandIconTile(Icons.local_shipping, fallbackColor: AppColors.brandPrimary),
               title: const Text('Suppliers'),
               childrenPadding: const EdgeInsets.only(left: 16),
               children: [
@@ -1187,7 +1218,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.suppliers,
                   child: ListTile(
-                    leading: Icon(Icons.local_shipping_outlined, color: AppColors.brandPrimary),
+                    leading: BrandIconTile(Icons.local_shipping_outlined, fallbackColor: AppColors.brandPrimary),
                     title: const Text('Suppliers List'),
                     onTap: () {
                       Navigator.pop(context);
@@ -1202,7 +1233,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.credits,
                   child: ListTile(
-                    leading: const Icon(Icons.credit_card, color: AppColors.error),
+                    leading: BrandIconTile(Icons.credit_card, fallbackColor: AppColors.error),
                     title: const Text('Supplier Credits'),
                     onTap: () {
                       Navigator.pop(context);
@@ -1219,7 +1250,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.receivings,
               child: ListTile(
-                leading: Icon(Icons.inventory, color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.inventory, fallbackColor: AppColors.brandPrimary),
                 title: const Text('Receivings'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1239,7 +1270,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
                 child: ListTile(
-                  leading: Icon(Icons.attach_money, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.attach_money, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Cash Submit'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1260,7 +1291,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmitBanking,
                 child: ListTile(
-                  leading: Icon(Icons.account_balance, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.account_balance, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Banking'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1276,7 +1307,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.banking,
                 child: ListTile(
-                  leading: Icon(Icons.analytics, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.analytics, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Financial Banking'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1292,7 +1323,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.borrowedMoney,
                 child: ListTile(
-                  leading: Icon(Icons.account_balance_wallet, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.account_balance_wallet, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Borrowed Money'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1308,7 +1339,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.tra,
                 child: ListTile(
-                  leading: Icon(Icons.receipt_long, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.receipt_long, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Trade'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1322,7 +1353,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // 8. NFC Menu - requires hasNfcCard feature
             if (ApiService.currentClient?.features.hasNfcCard ?? false)
               ExpansionTile(
-                leading: Icon(Icons.nfc, color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.nfc, fallbackColor: AppColors.brandPrimary),
                 title: const Text('NFC'),
                 childrenPadding: const EdgeInsets.only(left: 16),
                 children: [
@@ -1330,7 +1361,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
                     child: ListTile(
-                      leading: Icon(Icons.credit_card, color: AppColors.brandPrimary),
+                      leading: BrandIconTile(Icons.credit_card, fallbackColor: AppColors.brandPrimary),
                       title: const Text('NFC Cards'),
                       onTap: () {
                         Navigator.pop(context);
@@ -1345,7 +1376,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcConfirmationsView,
                     child: ListTile(
-                      leading: Icon(Icons.verified, color: AppColors.brandPrimary),
+                      leading: BrandIconTile(Icons.verified, fallbackColor: AppColors.brandPrimary),
                       title: const Text('NFC Confirmations'),
                       onTap: () {
                         Navigator.pop(context);
@@ -1360,7 +1391,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
                     child: ListTile(
-                      leading: Icon(Icons.contactless, color: AppColors.brandPrimary),
+                      leading: BrandIconTile(Icons.contactless, fallbackColor: AppColors.brandPrimary),
                       title: const Text('NFC Card Lookup'),
                       onTap: () {
                         Navigator.pop(context);
@@ -1386,7 +1417,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.salesPaymentSummary,
               child: ListTile(
-                leading: Icon(Icons.payments, color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.payments, fallbackColor: AppColors.brandPrimary),
                 title: const Text('Payment Summary'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1404,7 +1435,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.reports,
                 child: ListTile(
-                  leading: Icon(Icons.assessment, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.assessment, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Reports'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1418,7 +1449,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
                 child: ListTile(
-                  leading: Icon(Icons.summarize, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.summarize, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Summary'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1435,7 +1466,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               PermissionWrapper(
                 permissionId: PermissionIds.office,
                 child: ListTile(
-                  leading: Icon(Icons.analytics, color: AppColors.brandPrimary),
+                  leading: BrandIconTile(Icons.analytics, fallbackColor: AppColors.brandPrimary),
                   title: const Text('Financial Position'),
                   onTap: () {
                     Navigator.pop(context);
@@ -1452,7 +1483,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitZReport,
               child: ListTile(
-                leading: Icon(Icons.description, color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.description, fallbackColor: AppColors.brandPrimary),
                 title: const Text('Z Reports'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1467,7 +1498,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitProfitSubmitted,
               child: ListTile(
-                leading: Icon(Icons.trending_up, color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.trending_up, fallbackColor: AppColors.brandPrimary),
                 title: const Text('Profit Submit'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1482,7 +1513,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactions,
               child: ListTile(
-                leading: Icon(Icons.swap_horiz, color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.swap_horiz, fallbackColor: AppColors.brandPrimary),
                 title: const Text('Transactions'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1497,7 +1528,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.contracts,
               child: ListTile(
-                leading: Icon(Icons.assignment, color: AppColors.brandPrimary),
+                leading: BrandIconTile(Icons.assignment, fallbackColor: AppColors.brandPrimary),
                 title: const Text('Contracts'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1540,8 +1571,14 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               // which slid it underneath. Apply the inset here, from the
               // context that still has it, and keep the inner SafeArea from
               // adding it a second time.
-              : ColoredBox(
-                  color: isDark ? AppColors.darkCard : Colors.white,
+              // With a brand gradient the curved painter draws its own fill, so
+              // this wrapper is only the gradient behind the inset strip.
+              : DecoratedBox(
+                  decoration: _brandBarGradient != null
+                      ? BoxDecoration(gradient: _brandBarGradient)
+                      : BoxDecoration(
+                          color: isDark ? AppColors.darkCard : Colors.white,
+                        ),
                   child: Padding(
                     padding: EdgeInsets.only(
                       bottom: MediaQuery.of(context).padding.bottom,
@@ -1661,13 +1698,18 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       }
     }
 
+    final gradient = _brandBarGradient;
+
     // If no Sales screen, fall back to standard navigation
     if (salesIndex == -1) {
       return BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedItemColor: AppColors.brandPrimary,
-        unselectedItemColor: AppColors.textLight,
+        backgroundColor: gradient != null ? Colors.transparent : null,
+        elevation: gradient != null ? 0 : null,
+        selectedItemColor: gradient != null ? Colors.white : AppColors.brandPrimary,
+        unselectedItemColor:
+            gradient != null ? Colors.white70 : AppColors.textLight,
         type: BottomNavigationBarType.fixed,
         selectedFontSize: 12,
         unselectedFontSize: 11,
@@ -1714,8 +1756,11 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   size: const Size(double.infinity, 80),
                   painter: _CurvedNavPainter(
                     color: isDark ? AppColors.darkCard : Colors.white,
-                    borderColor: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                    borderColor: gradient != null
+                        ? Colors.white.withValues(alpha: 0.35)
+                        : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                     curvePosition: 0.5, // Always center
+                    gradient: gradient,
                   ),
                 ),
               ),
@@ -1777,17 +1822,31 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   Widget _buildNavItem(IconData icon, String label, int index, bool isDark) {
     final isSelected = _selectedIndex == index;
+    // On the brand gradient the idle items turn white; the selected icon sits
+    // in the notch, which shows the page behind it, so it keeps the brand blue.
+    final idleColor =
+        _brandBarGradient != null ? Colors.white : AppColors.textLight;
     return InkWell(
       onTap: () => _onItemTapped(index),
       child: Center(
         child: isSelected
-            // Selected: larger icon only, no label, moved up into curve
+            // Selected: icon only, no label, moved up into the curve and
+            // ringed in red so the active menu is unmistakable.
             ? Transform.translate(
                 offset: const Offset(0, -8),
-                child: Icon(
-                  icon,
-                  color: AppColors.brandPrimary,
-                  size: 38,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark ? AppColors.darkCard : Colors.white,
+                    border: Border.all(color: AppColors.error, width: 2.5),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: AppColors.brandPrimary,
+                    size: 28,
+                  ),
                 ),
               )
             // Unselected: smaller icon with label
@@ -1795,17 +1854,38 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    icon,
-                    color: AppColors.textLight,
-                    size: 22,
+                  // On the brand gradient each idle icon sits on its own
+                  // gradient tile (run the other way so it reads against the
+                  // bar) with a hairline white edge.
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: _brandBarGradient == null
+                        ? null
+                        : BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            gradient: LinearGradient(
+                              begin: Alignment.topRight,
+                              end: Alignment.bottomLeft,
+                              colors: BrandBackdrop.gradientFor(
+                                  ApiService.currentClient)!,
+                            ),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.45),
+                              width: 1,
+                            ),
+                          ),
+                    child: Icon(
+                      icon,
+                      color: idleColor,
+                      size: _brandBarGradient == null ? 22 : 20,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: AppColors.textLight,
+                      color: idleColor,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1824,10 +1904,14 @@ class _CurvedNavPainter extends CustomPainter {
   final Color borderColor;
   final double curvePosition; // 0.0 = left edge, 1.0 = right edge
 
+  /// When set it replaces [color] as the fill.
+  final Gradient? gradient;
+
   _CurvedNavPainter({
     required this.color,
     required this.borderColor,
     this.curvePosition = 0.5,
+    this.gradient,
   });
 
   @override
@@ -1835,6 +1919,9 @@ class _CurvedNavPainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Offset.zero & size);
+    }
 
     final borderPaint = Paint()
       ..color = borderColor
@@ -1912,7 +1999,8 @@ class _CurvedNavPainter extends CustomPainter {
   bool shouldRepaint(covariant _CurvedNavPainter oldDelegate) {
     return oldDelegate.curvePosition != curvePosition ||
            oldDelegate.color != color ||
-           oldDelegate.borderColor != borderColor;
+           oldDelegate.borderColor != borderColor ||
+           oldDelegate.gradient != gradient;
   }
 }
 

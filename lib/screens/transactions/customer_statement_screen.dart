@@ -9,6 +9,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class CustomerStatementScreen extends StatefulWidget {
   final int customerId;
@@ -115,7 +116,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.customerName),
         actions: [
           IconButton(

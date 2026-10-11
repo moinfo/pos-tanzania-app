@@ -16,7 +16,6 @@ import '../models/item.dart';
 import '../models/supervisor.dart';
 import '../models/permission_model.dart';
 import '../models/stock_location.dart';
-import '../models/nfc_wallet.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
@@ -25,6 +24,7 @@ import '../widgets/permission_wrapper.dart';
 import '../widgets/nfc_scan_dialog.dart';
 import '../utils/constants.dart';
 import 'customer_credit_screen.dart';
+import '../widgets/brand_backdrop.dart';
 
 class CustomersScreen extends StatefulWidget {
   const CustomersScreen({super.key});
@@ -327,7 +327,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         titleSpacing: 8,
         title: const Text(
           'Customers',
@@ -1481,9 +1481,9 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
               // Header
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.only(
+                decoration: BrandBackdrop.headerDecoration(
+                  fallback: AppColors.primary,
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(4),
                     topRight: Radius.circular(4),
                   ),

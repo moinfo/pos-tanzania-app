@@ -17,6 +17,7 @@ import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../utils/friendly_error.dart';
+import '../widgets/brand_backdrop.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/state_views.dart';
 import 'daily_debt_report_screen.dart';
@@ -586,40 +587,61 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: isDark ? AppColors.darkText : AppColors.text,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.brandPrimary.withOpacity(0.15)
-                          : AppColors.brandPrimary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.brandPrimary.withOpacity(isDark ? 0.3 : 0.2),
-                        width: 1,
+                // The date button is a solid fill of the sign-in gradient, the
+                // same colours as the bars, with white content. Clients with no
+                // brand gradient keep the pale tinted pill.
+                Builder(builder: (context) {
+                  final brand = BrandBackdrop.gradientFor(ApiService.currentClient);
+                  final onBrand = brand != null;
+                  return GestureDetector(
+                    onTap: () => _selectDate(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: onBrand
+                            ? LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: brand,
+                              )
+                            : null,
+                        color: onBrand
+                            ? null
+                            : (isDark
+                                ? AppColors.brandPrimary.withOpacity(0.15)
+                                : AppColors.brandPrimary.withOpacity(0.1)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: onBrand
+                            ? null
+                            : Border.all(
+                                color: AppColors.brandPrimary
+                                    .withOpacity(isDark ? 0.3 : 0.2),
+                                width: 1,
+                              ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 16,
+                            color: onBrand ? Colors.white : AppColors.brandPrimary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(_selectedDate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: onBrand
+                                  ? Colors.white
+                                  : (isDark ? AppColors.darkText : AppColors.text),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: AppColors.brandPrimary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          DateFormat('dd MMM yyyy').format(_selectedDate),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ),
             const SizedBox(height: 16),
@@ -1176,11 +1198,18 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 48,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
+              // The brand gradient where the client has one, so the card's
+              // tile matches the bars. Cards that flag a problem -- red
+              // Expenses, amber Contract Unpaid / Credit Sales -- keep their
+              // own colour; it is what tells them apart at a glance.
               gradient: LinearGradient(
-                colors: [
-                  color.withOpacity(0.8),
-                  color,
-                ],
+                colors: (color == AppColors.error || color == AppColors.warning
+                        ? null
+                        : BrandBackdrop.gradientFor(ApiService.currentClient)) ??
+                    [
+                      color.withOpacity(0.8),
+                      color,
+                    ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),

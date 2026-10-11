@@ -16,6 +16,7 @@ import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class NewZReportScreen extends StatefulWidget {
   final ZReportListItem? zReport;
@@ -522,7 +523,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(_isEditMode ? 'Edit Z Report' : 'New Z Report'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

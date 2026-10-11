@@ -8,6 +8,7 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/brand_backdrop.dart';
 
 class ContractDetailsScreen extends StatefulWidget {
   final Contract contract;
@@ -92,7 +93,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.contract.name),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -231,7 +232,7 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: 4),
+      bottomNavigationBar: const AppBottomNavigation(currentLabel: 'Contracts'),
     );
   }
 

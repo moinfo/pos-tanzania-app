@@ -8,6 +8,7 @@ import '../models/shop.dart';
 import '../models/customer.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../utils/constants.dart';
+import '../widgets/brand_backdrop.dart';
 
 class ShopsScreen extends StatefulWidget {
   /// True when shown as a tab inside MainNavigation, which already draws the
@@ -94,7 +95,7 @@ class _ShopsScreenState extends State<ShopsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Shops'),
         // Left to appBarTheme, which is brand blue in light and the dark
         // surface in dark -- hardcoding blue kept this bar lit up on an
@@ -891,7 +892,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Register Shop'),
         // Left to appBarTheme, which is brand blue in light and the dark
         // surface in dark -- hardcoding blue kept this bar lit up on an
@@ -1280,7 +1281,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Edit Shop'),
         // Left to appBarTheme, which is brand blue in light and the dark
         // surface in dark -- hardcoding blue kept this bar lit up on an
@@ -1569,7 +1570,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
     final dateFormat = DateFormat('d MMM yyyy, HH:mm');
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1786,7 +1787,7 @@ class _CustomerSelectorScreenState extends State<CustomerSelectorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Select Customer'),
         // Left to appBarTheme, which is brand blue in light and the dark
         // surface in dark -- hardcoding blue kept this bar lit up on an

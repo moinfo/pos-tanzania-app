@@ -6,6 +6,7 @@ import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
 import 'landing_screen.dart' show LandingColors;
+import '../../utils/app_theme.dart';
 
 /// Order history screen - lookup orders by phone number (used as tab)
 class OrderHistoryScreen extends StatefulWidget {
@@ -175,7 +176,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                ),
+                ).copyWith(backgroundBuilder: plainButtonBackground),
                 child: const Text('Search'),
               ),
             ],
@@ -386,20 +387,20 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with AutomaticK
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        _getStatusText(status),
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
         ),
-      ),
-    );
+        child: Text(
+          _getStatusText(status),
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
   }
 
   void _searchOrders() {

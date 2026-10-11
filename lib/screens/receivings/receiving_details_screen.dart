@@ -13,6 +13,8 @@ import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'new_receiving_screen.dart';
 import 'return_items_picker.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class ReceivingDetailsScreen extends StatefulWidget {
   final int receivingId;
@@ -86,7 +88,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
   //           onPressed: () => Navigator.pop(context, true),
   //           style: ElevatedButton.styleFrom(
   //             backgroundColor: AppColors.error,
-  //           ),
+  //           ).copyWith(backgroundBuilder: plainButtonBackground),
   //           child: const Text('Delete'),
   //         ),
   //       ],
@@ -154,7 +156,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text('Receiving #${widget.receivingId}'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.success,
         foregroundColor: Colors.white,
@@ -372,8 +374,8 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                           // Total
                           Container(
                             padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkSurface : AppColors.primary,
+                            decoration: BrandBackdrop.headerDecoration(
+                              fallback: isDark ? AppColors.darkSurface : AppColors.primary,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.1),

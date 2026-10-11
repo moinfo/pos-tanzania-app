@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/borrowed_money.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class BorrowedMoneyFormScreen extends StatefulWidget {
   final BorrowedMoneyItem? record;
@@ -116,7 +117,7 @@ class _BorrowedMoneyFormScreenState extends State<BorrowedMoneyFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(_isEditing ? 'Edit Borrowed Money' : 'Add Borrowed Money'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

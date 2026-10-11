@@ -5,6 +5,8 @@ import '../../models/public_product.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
 import 'landing_screen.dart';
+import '../../widgets/brand_backdrop.dart';
+import '../../utils/app_theme.dart';
 
 /// Product detail screen with image gallery and portfolio
 class ProductDetailScreen extends StatefulWidget {
@@ -289,7 +291,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               Positioned(
                 top: MediaQuery.of(context).padding.top + 50,
                 right: 16,
-                child: Container(
+                child: BrandBadgeFrame(radius: 16, width: 1, child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.6),
@@ -303,7 +305,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
+                )),
               ),
           ],
         ),
@@ -346,7 +348,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           Row(
             children: [
               if (_product.category.isNotEmpty)
-                Container(
+                BrandBadgeFrame(radius: 12, width: 1, child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: LandingColors.primaryRed.withOpacity(0.1),
@@ -360,7 +362,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       fontSize: 11,
                     ),
                   ),
-                ),
+                )),
               const Spacer(),
               Icon(Icons.favorite, size: 14, color: Colors.red[300]),
               const SizedBox(width: 4),
@@ -971,7 +973,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                ),
+                ).copyWith(backgroundBuilder: plainButtonBackground),
               ),
             ),
           ],

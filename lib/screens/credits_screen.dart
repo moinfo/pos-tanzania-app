@@ -15,6 +15,7 @@ import '../widgets/glassmorphic_card.dart';
 import '../utils/constants.dart';
 import 'customer_credit_screen.dart';
 import 'daily_debt_report_screen.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// Credits Screen - Shows list of supervisors with their credit balances
 /// Similar to web /credits page
@@ -1035,7 +1036,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
     if (ApiService.currentClient?.id == 'leruma') return _buildLerumaScreen();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.supervisorName),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -1133,7 +1134,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
 
     return Scaffold(
       backgroundColor: creditPageBg(context),
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,

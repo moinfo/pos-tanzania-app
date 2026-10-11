@@ -8,6 +8,8 @@ import '../models/nfc_wallet.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
+import '../widgets/brand_backdrop.dart';
+import '../utils/app_theme.dart';
 
 class NfcCardLookupScreen extends StatefulWidget {
   const NfcCardLookupScreen({super.key});
@@ -112,7 +114,7 @@ class _NfcCardLookupScreenState extends State<NfcCardLookupScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('NFC Card Lookup'),
         backgroundColor: isDark ? AppColors.darkSurface : Colors.orange[700],
         foregroundColor: Colors.white,
@@ -218,7 +220,7 @@ class _NfcCardLookupScreenState extends State<NfcCardLookupScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-              ),
+              ).copyWith(backgroundBuilder: plainButtonBackground),
             ),
           ],
         ),
@@ -504,7 +506,7 @@ class _NfcCardLookupScreenState extends State<NfcCardLookupScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
           ),
         ],
       ),

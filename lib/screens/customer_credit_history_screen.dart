@@ -11,6 +11,7 @@ import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
 import 'credit_limits_screen.dart' show OutcomeBadge, outcomeColour;
+import '../widgets/brand_backdrop.dart';
 
 /// One customer's whole credit-limit story.
 ///
@@ -98,7 +99,7 @@ class _CustomerCreditHistoryScreenState
     return Scaffold(
       backgroundColor:
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(_data?.customer.customerName ??
             widget.customerName ??
             'Credit History'),

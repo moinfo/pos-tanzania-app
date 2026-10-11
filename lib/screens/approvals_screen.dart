@@ -18,6 +18,8 @@ import '../widgets/date_range_filter_bar.dart';
 import '../widgets/state_views.dart';
 import 'create_credit_limit_request_screen.dart';
 import 'create_discount_request_screen.dart';
+import '../widgets/brand_backdrop.dart';
+import '../utils/app_theme.dart';
 
 /// Requests and approvals in one place.
 ///
@@ -280,7 +282,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Discount & Approvals'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -1796,7 +1798,7 @@ class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
                         backgroundColor: AppColors.success,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
+                      ).copyWith(backgroundBuilder: plainButtonBackground),
                     ),
                   ),
               ],
@@ -1976,21 +1978,21 @@ class _StatusBadge extends StatelessWidget {
     final (label, colour) = _look;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: colour.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.3,
-          color: colour,
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: colour.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(5),
         ),
-      ),
-    );
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
+            color: colour,
+          ),
+        ),
+      );
   }
 }
 

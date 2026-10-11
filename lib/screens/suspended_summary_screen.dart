@@ -3,7 +3,6 @@ import '../widgets/tr_text.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
-import '../services/pdf_service.dart';
 import '../models/suspended_summary.dart';
 import '../models/stock_location.dart';
 import '../models/item_comment.dart';
@@ -12,6 +11,8 @@ import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// Suspended Items Summary Screen
 /// Aggregates all items from all suspended sales
@@ -154,7 +155,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade200,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         backgroundColor: _headerColor,
         foregroundColor: Colors.white,
         title: const Text('Summary', style: TextStyle(fontSize: 18)),
@@ -352,7 +353,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                             label: const Text('Retry'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _headerColor,
-                            ),
+                            ).copyWith(backgroundBuilder: plainButtonBackground),
                           ),
                         ],
                       ),
@@ -919,7 +920,7 @@ class _CommentDialogState extends State<_CommentDialog> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],
@@ -991,9 +992,9 @@ class _CommentDialogState extends State<_CommentDialog> {
             // Header
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.only(
+              decoration: BrandBackdrop.headerDecoration(
+                fallback: AppColors.primary,
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),

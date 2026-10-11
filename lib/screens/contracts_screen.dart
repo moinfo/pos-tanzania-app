@@ -8,6 +8,7 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/skeleton_loader.dart';
 import 'contract_details_screen.dart';
+import '../widgets/brand_backdrop.dart';
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -54,7 +55,7 @@ class _ContractsScreenState extends State<ContractsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Contracts'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

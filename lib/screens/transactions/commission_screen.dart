@@ -12,6 +12,7 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../providers/theme_provider.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class CommissionScreen extends StatefulWidget {
   const CommissionScreen({super.key});
@@ -183,7 +184,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Commission'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

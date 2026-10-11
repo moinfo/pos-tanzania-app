@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../models/receiving.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 /// Pick which of a receiving's items are coming back, and how many of each.
 ///
@@ -140,7 +142,7 @@ class _ReturnItemsPickerState extends State<ReturnItemsPicker> {
     final visible = _visible;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text('Return from #${widget.receiving.receivingId}'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.warning,
         foregroundColor: Colors.white,
@@ -307,7 +309,7 @@ class _ReturnItemsPickerState extends State<ReturnItemsPicker> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.warning,
                       foregroundColor: Colors.white,
-                    ),
+                    ).copyWith(backgroundBuilder: plainButtonBackground),
                   ),
                 ],
               ),

@@ -9,6 +9,8 @@ import '../../utils/constants.dart';
 import '../../models/tra.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/tra_service.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class NewTRAPurchaseScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -215,7 +217,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(title),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -422,7 +424,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
+                        ).copyWith(backgroundBuilder: plainButtonBackground),
                         child: _isLoading
                             ? const SizedBox(
                                 width: 24,

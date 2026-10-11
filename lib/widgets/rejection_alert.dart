@@ -6,6 +6,7 @@ import '../models/pending_upload.dart';
 import '../providers/offline_provider.dart';
 import '../screens/pending_uploads_screen.dart';
 import '../utils/constants.dart';
+import '../utils/app_theme.dart';
 
 /// Makes a rejected record impossible to miss.
 ///
@@ -183,7 +184,7 @@ class _RejectionDialog extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.error,
             foregroundColor: Colors.white,
-          ),
+          ).copyWith(backgroundBuilder: plainButtonBackground),
           child: const Text('Show me'),
         ),
       ],

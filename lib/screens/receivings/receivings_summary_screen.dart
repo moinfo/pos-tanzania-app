@@ -9,6 +9,8 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class ReceivingsSummaryScreen extends StatefulWidget {
   const ReceivingsSummaryScreen({super.key});
@@ -132,7 +134,7 @@ class _ReceivingsSummaryScreenState extends State<ReceivingsSummaryScreen> {
                     rangePickerHeaderBackgroundColor: AppColors.success,
                     rangePickerHeaderForegroundColor: Colors.white,
                     rangeSelectionBackgroundColor: AppColors.success.withOpacity(0.3),
-                  ), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
+                  ), dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF1E1E1E)),
                 )
               : ThemeData.light().copyWith(
                   colorScheme: const ColorScheme.light(
@@ -195,7 +197,7 @@ class _ReceivingsSummaryScreenState extends State<ReceivingsSummaryScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Summary'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.success,
         foregroundColor: Colors.white,
@@ -299,7 +301,7 @@ class _ReceivingsSummaryScreenState extends State<ReceivingsSummaryScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                  ),
+                  ).copyWith(backgroundBuilder: plainButtonBackground),
                   child: _isLoading
                       ? const SizedBox(
                           width: 20,

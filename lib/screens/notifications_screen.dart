@@ -9,6 +9,7 @@ import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/state_views.dart';
 import 'approvals_screen.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// The notification feed.
 ///
@@ -37,7 +38,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Notifications'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

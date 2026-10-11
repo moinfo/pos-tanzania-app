@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import '../utils/constants.dart';
+import '../widgets/brand_backdrop.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String filePath;
@@ -26,7 +27,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.title),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

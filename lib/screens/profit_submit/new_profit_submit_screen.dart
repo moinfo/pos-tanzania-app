@@ -17,6 +17,8 @@ import '../../providers/theme_provider.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class NewProfitSubmitScreen extends StatefulWidget {
   final ProfitSubmitListItem? profit; // For edit mode
@@ -505,7 +507,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('New Profit Submission'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -930,7 +932,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
+                          ).copyWith(backgroundBuilder: plainButtonBackground),
                           child: _isProcessing
                               ? const SizedBox(
                                   height: 24,

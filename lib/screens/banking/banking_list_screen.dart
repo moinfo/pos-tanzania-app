@@ -23,6 +23,8 @@ import '../../widgets/skeleton_loader.dart';
 import '../../widgets/state_views.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_banking_screen.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class BankingListScreen extends StatefulWidget {
   const BankingListScreen({super.key});
@@ -204,7 +206,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
-              ),
+              ).copyWith(backgroundBuilder: plainButtonBackground),
               child: const Text('Delete'),
             ),
           ],
@@ -593,7 +595,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Banking'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

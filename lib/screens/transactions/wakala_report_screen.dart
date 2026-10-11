@@ -9,6 +9,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class WakalaReportScreen extends StatefulWidget {
   const WakalaReportScreen({super.key});
@@ -74,7 +75,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Wakala Report'),
         actions: [
           IconButton(
@@ -317,7 +318,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                       ),
                       Text(
                         Formatters.formatCurrency(item.amount),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: amountColor,
                         ),
@@ -341,7 +342,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
                 ),
                 Text(
                   Formatters.formatCurrency(section.total),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: amountColor,

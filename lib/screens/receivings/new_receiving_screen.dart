@@ -18,6 +18,8 @@ import '../../services/stock_signal.dart';
 import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/brand_backdrop.dart';
+import '../../utils/app_theme.dart';
 
 class NewReceivingScreen extends StatefulWidget {
   /// Optional list of items to preload into the cart (from Main Store)
@@ -555,7 +557,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
               backgroundColor: receivingProvider.isReturn
                   ? AppColors.warning
                   : AppColors.success,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: Text(receivingProvider.isReturn ? 'Complete Return' : 'Complete'),
           ),
         ],
@@ -645,7 +647,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         // A return is the opposite movement, so it says so and is not green.
         title: Text(context.watch<ReceivingProvider>().isReturn
             ? 'New Return'
@@ -665,7 +667,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
               }
 
               return Center(
-                child: Container(
+                child: BrandBadgeFrame(radius: 8, width: 1, child: Container(
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -687,7 +689,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                       ),
                     ],
                   ),
-                ),
+                )),
               );
             },
           ),
@@ -1278,7 +1280,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                                 horizontal: 24,
                                 vertical: 16,
                               ),
-                            ),
+                            ).copyWith(backgroundBuilder: plainButtonBackground),
                             icon: _isProcessing
                                 ? const SizedBox(
                                     width: 20,
@@ -1449,7 +1451,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
           onPressed: _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
-          ),
+          ).copyWith(backgroundBuilder: plainButtonBackground),
           child: const Text('Add'),
         ),
       ],

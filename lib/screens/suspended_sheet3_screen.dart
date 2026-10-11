@@ -10,6 +10,8 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// Full Receipt Sheet Screen (Sheet3)
 /// Shows suspended sales WITH prices AND free items from offers
@@ -130,7 +132,7 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade200,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         backgroundColor: _headerColor,
         foregroundColor: Colors.white,
         title: const Text('Receipt Sheet', style: TextStyle(fontSize: 18)),
@@ -299,7 +301,7 @@ class _SuspendedSheet3ScreenState extends State<SuspendedSheet3Screen> {
                             label: const Text('Retry'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _headerColor,
-                            ),
+                            ).copyWith(backgroundBuilder: plainButtonBackground),
                           ),
                         ],
                       ),

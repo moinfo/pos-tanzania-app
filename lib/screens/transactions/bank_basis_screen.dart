@@ -14,6 +14,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class BankBasisScreen extends StatefulWidget {
   const BankBasisScreen({super.key});
@@ -396,7 +398,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],
@@ -556,7 +558,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],
@@ -587,7 +589,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Bank Basis / Mobile Money'),
         bottom: TabBar(
           controller: _tabController,

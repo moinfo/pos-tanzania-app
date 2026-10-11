@@ -17,6 +17,7 @@ import '../services/read_cache.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/brand_backdrop.dart';
 
 class ZReportsScreen extends StatefulWidget {
   const ZReportsScreen({super.key});
@@ -135,7 +136,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Z Reports'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

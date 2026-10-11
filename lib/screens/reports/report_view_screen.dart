@@ -13,6 +13,7 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class ReportViewScreen extends StatefulWidget {
   final ReportType reportType;
@@ -203,7 +204,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     final locationProvider = context.watch<LocationProvider>();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(widget.reportType.displayName),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -327,7 +328,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                         ),
                       ))
                   .toList(),
-              child: Container(
+              child: BrandBadgeFrame(radius: 12, width: 1, child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.2),
@@ -350,7 +351,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                     const Icon(Icons.arrow_drop_down, size: 16, color: AppColors.primary),
                   ],
                 ),
-              ),
+              )),
             ),
         ],
       ),

@@ -16,6 +16,8 @@ import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../utils/app_theme.dart';
+import '../widgets/brand_backdrop.dart';
 
 class SuspendedSalesScreen extends StatefulWidget {
   const SuspendedSalesScreen({super.key, this.onResumed, this.embedded = false});
@@ -424,7 +426,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Delete'),
           ),
         ],
@@ -496,7 +498,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
     return Scaffold(
       appBar: widget.embedded
           ? null
-          : AppBar(
+          : AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Suspended Sales'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

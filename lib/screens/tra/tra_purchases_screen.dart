@@ -11,6 +11,7 @@ import '../../services/tra_service.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'new_tra_purchase_screen.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class TRAPurchasesScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -173,7 +174,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: widget.showAppBar ? AppBar(
+      appBar: widget.showAppBar ? AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('TRADE Purchases'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

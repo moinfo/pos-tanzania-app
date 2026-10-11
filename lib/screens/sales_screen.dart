@@ -42,6 +42,8 @@ import '../utils/sale_design.dart';
 import '../widgets/sale/keypad_sheet.dart';
 import '../widgets/sale/sale_sheets.dart';
 import '../models/nfc_wallet.dart';
+import '../widgets/brand_backdrop.dart';
+import '../utils/app_theme.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key, this.embedded = false});
@@ -181,7 +183,7 @@ class _SalesScreenState extends State<SalesScreen> {
       backgroundColor: _sale.pageBackground,
       appBar: widget.embedded
           ? null
-          : AppBar(
+          : AppBar(flexibleSpace: const BrandAppBarBackground(), 
               title: const Text('Sales'),
               backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
               foregroundColor: Colors.white,
@@ -788,25 +790,25 @@ class _SalesScreenState extends State<SalesScreen> {
     bool outlined = false,
   }) {
     final chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: outlined ? Border.all(color: color.withValues(alpha: 0.5)) : null,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w700, color: color),
-          ),
-        ],
-      ),
-    );
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(6),
+          border: outlined ? Border.all(color: color.withValues(alpha: 0.5)) : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 11, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.w700, color: color),
+            ),
+          ],
+        ),
+      );
 
     if (onTap == null) return chip;
     return InkWell(
@@ -1749,7 +1751,7 @@ class _SalesScreenState extends State<SalesScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.warning,
-            ),
+            ).copyWith(backgroundBuilder: plainButtonBackground),
             child: const Text('Suspend'),
           ),
         ],
@@ -2742,7 +2744,7 @@ class _SalesScreenState extends State<SalesScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
       appBar: widget.embedded
           ? null
-          : AppBar(
+          : AppBar(flexibleSpace: const BrandAppBarBackground(), 
               title: const Text('Sales'),
               backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
               foregroundColor: Colors.white,
@@ -3156,7 +3158,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                                 if (hasPendingApproved && !hasApprovedDiscount)
                                                   Builder(builder: (context) {
                                                     final req = saleProvider.getApprovedDiscountRequest(item.itemId);
-                                                    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_outlined, size: 12, color: Colors.blue.shade300), const SizedBox(width: 4), Text('Approved: ${req?.quantity?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.blue.shade300))]));
+                                                    return BrandBadgeFrame(radius: 4, width: 1, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_outlined, size: 12, color: Colors.blue.shade300), const SizedBox(width: 4), Text('Approved: ${req?.quantity?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.blue.shade300))])));
                                                   }),
                                                 if (hasOffer)
                                                   Builder(builder: (context) {
@@ -3601,7 +3603,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                     foregroundColor: Colors.white,
                                     elevation: saleProvider.isFullyPaid ? 0 : 2,
                                     padding: EdgeInsets.symmetric(horizontal: isLeruma ? 4 : 12),
-                                  ),
+                                  ).copyWith(backgroundBuilder: plainButtonBackground),
                                 ),
                               );
 
@@ -3639,7 +3641,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                     disabledBackgroundColor: Colors.grey.shade300,
                                     disabledForegroundColor: Colors.grey.shade600,
                                     padding: EdgeInsets.symmetric(horizontal: isLeruma ? 4 : 12),
-                                  ),
+                                  ).copyWith(backgroundBuilder: plainButtonBackground),
                                 ),
                               );
 
@@ -3791,7 +3793,7 @@ class _CartScreenState extends State<CartScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Shopping Cart'),
         backgroundColor: isDark ? AppColors.darkCard : AppColors.primary,
         foregroundColor: isDark ? AppColors.darkText : Colors.white,
@@ -5513,7 +5515,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(customer.phoneNumber!),
+                                    Text(customer.phoneNumber),
                                     if (customer.balance != 0)
                                       Text(
                                         'Balance: ${NumberFormat('#,###').format(customer.balance)} TSh',

@@ -6,6 +6,7 @@ import '../../models/public_order.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
 import 'landing_screen.dart' show LandingColors;
+import '../../utils/app_theme.dart';
 
 /// Shopping cart screen (used as tab)
 class CartScreen extends StatefulWidget {
@@ -443,7 +444,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                ),
+                ).copyWith(backgroundBuilder: plainButtonBackground),
                 child: const Text(
                   'Checkout',
                   style: TextStyle(

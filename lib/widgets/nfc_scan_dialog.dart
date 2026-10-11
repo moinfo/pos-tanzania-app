@@ -3,6 +3,7 @@ import 'tr_text.dart';
 import '../services/nfc_service.dart';
 import '../models/customer.dart';
 import '../utils/constants.dart';
+import '../utils/app_theme.dart';
 
 /// Dialog for scanning NFC cards
 class NfcScanDialog extends StatefulWidget {
@@ -519,7 +520,7 @@ class _NfcRegisterCardDialogState extends State<NfcRegisterCardDialog> {
                   backgroundColor: AppColors.success,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+                ).copyWith(backgroundBuilder: plainButtonBackground),
                 child: _isRegistering
                     ? const Row(
                         mainAxisAlignment: MainAxisAlignment.center,

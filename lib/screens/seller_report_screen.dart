@@ -13,6 +13,7 @@ import 'sales_history_screen.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/state_views.dart';
+import '../widgets/brand_backdrop.dart';
 
 /// Seller Report Screen - Leruma specific
 /// Shows seller/supervisor performance data by stock location
@@ -242,7 +243,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
       return Scaffold(
         appBar: widget.embedded
             ? null
-            : AppBar(
+            : AppBar(flexibleSpace: const BrandAppBarBackground(), 
                 title: const Text('Seller Report'),
                 backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
                 foregroundColor: Colors.white,
@@ -296,7 +297,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
     return Scaffold(
       appBar: widget.embedded
           ? null
-          : AppBar(
+          : AppBar(flexibleSpace: const BrandAppBarBackground(), 
               title: const Text('Seller Report'),
               backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
               foregroundColor: Colors.white,
@@ -706,7 +707,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                           ),
                         ),
                         if (_sellers.isNotEmpty)
-                          Container(
+                          BrandBadgeFrame(radius: 16, width: 1, child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.1),
@@ -720,7 +721,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ),
+                          )),
                         const Icon(Icons.edit_calendar_outlined,
                             size: 18, color: AppColors.textLight),
                       ],

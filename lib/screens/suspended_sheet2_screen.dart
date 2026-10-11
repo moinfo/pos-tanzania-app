@@ -10,6 +10,8 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/brand_backdrop.dart';
+import '../utils/app_theme.dart';
 
 /// Delivery Sheet Screen (Sheet2)
 /// Shows suspended sales without prices, includes free items from offers
@@ -130,7 +132,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade200,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         backgroundColor: _headerColor,
         foregroundColor: Colors.white,
         title: const Text('Delivery Sheet', style: TextStyle(fontSize: 18)),
@@ -299,7 +301,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                             label: const Text('Retry'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _headerColor,
-                            ),
+                            ).copyWith(backgroundBuilder: plainButtonBackground),
                           ),
                         ],
                       ),

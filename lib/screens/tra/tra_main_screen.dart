@@ -13,6 +13,7 @@ import 'tra_sales_screen.dart';
 import 'tra_purchases_screen.dart';
 import 'tra_expenses_screen.dart';
 import 'tra_reports_screen.dart';
+import '../../widgets/brand_backdrop.dart';
 
 class TRAMainScreen extends StatefulWidget {
   const TRAMainScreen({super.key});
@@ -126,7 +127,7 @@ class _TRAMainScreenState extends State<TRAMainScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: Text(_getAppBarTitle(tabs)),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,

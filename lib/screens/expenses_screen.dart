@@ -15,13 +15,13 @@ import '../models/permission_model.dart';
 import '../models/stock_location.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
-import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/skeleton_loader.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
+import '../widgets/brand_backdrop.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -227,7 +227,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Expenses'),
         // Left to appBarTheme, which is brand blue in light and the dark
         // surface in dark -- hardcoding blue kept this bar lit up on an

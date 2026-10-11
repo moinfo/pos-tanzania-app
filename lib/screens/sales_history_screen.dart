@@ -17,6 +17,7 @@ import '../utils/receipt_sms.dart';
 import '../widgets/app_bottom_navigation.dart';
 import 'package:intl/intl.dart';
 import 'return_sale_screen.dart';
+import '../widgets/brand_backdrop.dart';
 
 class SalesHistoryScreen extends StatefulWidget {
   const SalesHistoryScreen({
@@ -365,7 +366,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar(flexibleSpace: const BrandAppBarBackground(), 
         title: const Text('Sales History'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
         foregroundColor: Colors.white,
@@ -867,20 +868,20 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
         ),
-      ),
-    );
+        child: Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
   }
 }
 
