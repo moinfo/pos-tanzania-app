@@ -1,3 +1,17 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
+
+/// Whether the app talks to each client's LIVE server.
+///
+/// Always true in a release build. A debug build also uses the live server by
+/// default, so what is on screen is what is in the real system. Pass
+/// `--dart-define=LIVE_API=false` to point a debug build at the local
+/// development server (`devApiUrl`) instead.
+///
+/// NOTE the consequence: with this on, anything a debug build creates or
+/// changes -- a sale, a payment, a deletion -- is written to the live data.
+const bool kUseLiveApi =
+    kReleaseMode || bool.fromEnvironment('LIVE_API', defaultValue: true);
+
 /// Feature flags for each client
 class ClientFeatures {
   final bool hasContracts;
@@ -135,6 +149,10 @@ class ClientConfig {
     this.features = const ClientFeatures(),
     this.branding = const ClientBranding(),
   });
+
+  /// The API address this build should use: the live server, or the local
+  /// development one when `LIVE_API=false` was passed to a debug build.
+  String get activeApiUrl => kUseLiveApi ? prodApiUrl : devApiUrl;
 
   Map<String, dynamic> toJson() {
     return {

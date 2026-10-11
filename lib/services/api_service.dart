@@ -163,11 +163,7 @@ class ApiService {
   // Get base URL based on current client and build mode
   static Future<String> get baseUrl async {
     final client = await getCurrentClient();
-    if (kReleaseMode) {
-      return client.prodApiUrl;
-    } else {
-      return client.devApiUrl;
-    }
+    return client.activeApiUrl;
   }
 
   // Synchronous version for backwards compatibility (uses cached client)
@@ -176,16 +172,12 @@ class ApiService {
     if (currentClient == null) {
       // Try to load from SharedPreferences synchronously
       // This is a fallback - getCurrentClient should be called during app init
-      return ClientsConfig.getDefaultClient().devApiUrl;
+      return ClientsConfig.getDefaultClient().activeApiUrl;
     }
 
     print('📍 Current Client: ${currentClient!.displayName} (${currentClient!.id})');
 
-    if (kReleaseMode) {
-      return currentClient!.prodApiUrl;
-    } else {
-      return currentClient!.devApiUrl;
-    }
+    return currentClient!.activeApiUrl;
   }
 
   // Get stored token

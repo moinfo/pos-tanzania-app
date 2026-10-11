@@ -41,22 +41,13 @@ class PublicApiService {
   // Get base URL for public API
   static String get baseUrl {
     final client = ClientsConfig.getDefaultClient();
-    if (kReleaseMode) {
-      return client.prodApiUrl.replaceAll('/api', '/api/public');
-    } else {
-      return client.devApiUrl.replaceAll('/api', '/api/public');
-    }
+    return client.activeApiUrl.replaceAll('/api', '/api/public');
   }
 
   // Get uploads base URL
   static String get uploadsBaseUrl {
     final client = ClientsConfig.getDefaultClient();
-    String apiUrl;
-    if (kReleaseMode) {
-      apiUrl = client.prodApiUrl;
-    } else {
-      apiUrl = client.devApiUrl;
-    }
+    final String apiUrl = client.activeApiUrl;
     // Remove /api from the end and add /uploads
     if (apiUrl.endsWith('/api')) {
       return apiUrl.replaceAll('/api', '/uploads');
