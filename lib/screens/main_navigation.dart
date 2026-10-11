@@ -203,21 +203,27 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   /// push rather than doing nothing matters: without it, resuming a sale on
   /// Leruma would silently leave the seller on the suspended list with a cart
   /// they cannot see.
-  void _openSales() {
+  void _openSales() => _openTab('Sales', () => SalesScreen(key: UniqueKey()));
+
+  /// Open a drawer destination that is also a bottom-bar tab.
+  ///
+  /// Switches to the tab THROUGH [_onItemTapped], which is what rotates the bar
+  /// so the tab's icon lands in the centre notch, active. Setting
+  /// `_selectedIndex` alone changed the screen but left the bar's rotation
+  /// where it was, so the active icon sat off to one side. Where the client has
+  /// no such tab, [fallback] is pushed as a normal screen instead.
+  void _openTab(String label, Widget Function() fallback) {
     if (!mounted) return;
 
-    final salesIndex =
-        _lastAvailableScreens.indexWhere((s) => s['label'] == 'Sales');
+    final index =
+        _lastAvailableScreens.indexWhere((s) => s['label'] == label);
 
-    if (salesIndex >= 0) {
-      setState(() => _selectedIndex = salesIndex);
+    if (index >= 0) {
+      _onItemTapped(index);
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => SalesScreen(key: UniqueKey())),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => fallback()));
   }
 
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
@@ -1103,10 +1109,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       title: const Text('Shops'),
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ShopsScreen()),
-                        );
+                        _openTab('Shops', () => const ShopsScreen());
                       },
                     ),
                   ),
@@ -1517,10 +1520,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 title: const Text('Transactions'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TransactionsScreen()),
-                  );
+                  _openTab('Transactions', () => const TransactionsScreen());
                 },
               ),
             ),
@@ -1532,10 +1532,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 title: const Text('Contracts'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ContractsScreen()),
-                  );
+                  _openTab('Contracts', () => const ContractsScreen());
                 },
               ),
             ),
