@@ -17,6 +17,7 @@ import 'app_update_screen.dart';
 import 'pending_uploads_screen.dart';
 import '../utils/app_theme.dart';
 import '../widgets/brand_backdrop.dart';
+import '../widgets/session_dialogs.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -712,29 +713,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   onTap: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error,
-                              foregroundColor: Colors.white,
-                            ).copyWith(backgroundBuilder: plainButtonBackground),
-                            child: const Text('Logout'),
-                          ),
-                        ],
-                      ),
-                    );
+                    final confirmed = await showLogoutConfirmation(context);
 
-                    if (confirmed == true && mounted) {
+                    if (confirmed && mounted) {
                       await authProvider.logout();
                       if (mounted) {
                         Navigator.of(context).pushNamedAndRemoveUntil(

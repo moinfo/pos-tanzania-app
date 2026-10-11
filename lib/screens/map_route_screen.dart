@@ -257,9 +257,9 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
       ),
       body: _buildBody(isDark),
       floatingActionButton: _hasChanges
-          ? FloatingActionButton.extended(
+          ? BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
               onPressed: _isSaving ? null : _saveOrder,
-              backgroundColor: _headerColor,
+              backgroundColor: BrandFab.background(_headerColor),
               icon: _isSaving
                   ? const SizedBox(
                       width: 20,
@@ -274,7 +274,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                 _isSaving ? 'Saving...' : 'Save Order',
                 style: const TextStyle(color: Colors.white),
               ),
-            )
+            ))
           : null,
     );
   }

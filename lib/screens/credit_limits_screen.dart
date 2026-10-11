@@ -416,13 +416,13 @@ class _CreditLimitsScreenState extends State<CreditLimitsScreen>
         ],
       ),
       floatingActionButton: _canCreate
-          ? FloatingActionButton.extended(
+          ? BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
               onPressed: _openCreate,
-              backgroundColor: AppColors.primary,
+              backgroundColor: BrandFab.background(AppColors.primary),
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('New request'),
-            )
+            ))
           : null,
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
     );

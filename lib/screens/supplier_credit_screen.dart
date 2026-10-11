@@ -197,12 +197,12 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
 
           if (!canAddPayment) return const SizedBox.shrink();
 
-          return FloatingActionButton.extended(
+          return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
             onPressed: _showPaymentDialog,
-            backgroundColor: AppColors.success,
+            backgroundColor: BrandFab.background(AppColors.success),
             icon: const Icon(Icons.payment, color: Colors.white),
             label: const Text('Add Payment', style: TextStyle(color: Colors.white)),
-          );
+          ));
         },
       ),
     );
@@ -782,7 +782,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             foregroundColor: Colors.white,
-          ).copyWith(backgroundBuilder: plainButtonBackground),
+          ),
           child: _isSubmitting
               ? const SizedBox(
                   width: 20,

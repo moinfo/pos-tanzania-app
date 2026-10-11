@@ -656,21 +656,21 @@ class _WakalaScreenState extends State<WakalaScreen>
       if (!permissionProvider.hasPermission(PermissionIds.transactionsWakalaSettingAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
+      return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation, backgroundColor: BrandFab.background(null),
         onPressed: _showAddSimDialog,
         icon: const Icon(Icons.add),
         label: const Text('Add SIM'),
-      );
+      ));
     } else {
       // Float transactions tab - check add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsWakalaAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
+      return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation, backgroundColor: BrandFab.background(null),
         onPressed: _showAddTransactionDialog,
         icon: const Icon(Icons.add),
         label: const Text('Add Float'),
-      );
+      ));
     }
   }
 

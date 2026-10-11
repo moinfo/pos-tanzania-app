@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/permission_provider.dart';
+import 'brand_backdrop.dart';
 
 /// Widget that shows/hides its child based on permission
 class PermissionWrapper extends StatelessWidget {
@@ -221,12 +222,12 @@ class PermissionFAB extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (permissionId == null) {
-      return FloatingActionButton(
+      return BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: onPressed,
         tooltip: tooltip,
-        backgroundColor: backgroundColor,
+        backgroundColor: BrandFab.background(backgroundColor),
         child: child,
-      );
+      ));
     }
 
     return PermissionWrapper(
@@ -238,12 +239,12 @@ class PermissionFAB extends StatelessWidget {
         backgroundColor: Colors.grey,
         child: child,
       ),
-      child: FloatingActionButton(
+      child: BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: onPressed,
-        backgroundColor: backgroundColor,
+        backgroundColor: BrandFab.background(backgroundColor),
         tooltip: tooltip,
         child: child,
-      ),
+      )),
     );
   }
 }

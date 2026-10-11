@@ -30,6 +30,7 @@ import 'utils/constants.dart';
 import 'widgets/force_update_gate.dart';
 import 'widgets/session_expired_gate.dart';
 import 'widgets/rejection_alert.dart';
+import 'widgets/inactivity_gate.dart';
 
 /// Lets a tapped push notification navigate without a widget's BuildContext.
 ///
@@ -185,12 +186,19 @@ class MyApp extends StatelessWidget {
           // it counts lives in SQLite -- comes back after the app is killed.
           // Inside a screen it would only be seen by somebody who opened that
           // screen, which is precisely the person who does not need telling.
-          builder: (context, child) => ForceUpdateGate(
-            child: SessionExpiredGate(
-              navigatorKey: navigatorKey,
-              child: RejectionAlertHost(
+          //
+          // InactivityGate is outermost for the same reason: it has to see
+          // every touch on every route, and it signs the person out of
+          // whichever screen they walked away from.
+          builder: (context, child) => InactivityGate(
+            navigatorKey: navigatorKey,
+            child: ForceUpdateGate(
+              child: SessionExpiredGate(
                 navigatorKey: navigatorKey,
-                child: child ?? const SizedBox.shrink(),
+                child: RejectionAlertHost(
+                  navigatorKey: navigatorKey,
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),

@@ -53,6 +53,7 @@ import 'app_update_screen.dart';
 import '../providers/update_provider.dart';
 import '../widgets/update_prompt.dart';
 import '../services/token_refresher.dart';
+import '../widgets/session_dialogs.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -164,25 +165,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   Future<void> _confirmLogout(BuildContext context) async {
     Navigator.pop(context);
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Log out'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Log out'),
-          ),
-        ],
-      ),
-    );
+    final confirm = await showLogoutConfirmation(context);
 
-    if (confirm != true || !context.mounted) return;
+    if (!confirm || !context.mounted) return;
 
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;

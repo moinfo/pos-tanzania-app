@@ -932,7 +932,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                          ).copyWith(backgroundBuilder: plainButtonBackground),
+                          ),
                           child: _isProcessing
                               ? const SizedBox(
                                   height: 24,

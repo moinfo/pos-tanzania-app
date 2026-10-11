@@ -263,11 +263,11 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: _showCreateDialog,
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         child: const Icon(Icons.add),
-      ),
+      )),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
     );
   }

@@ -841,21 +841,21 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
       if (!permissionProvider.hasPermission(PermissionIds.transactionsDepositAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
+      return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation, backgroundColor: BrandFab.background(null),
         onPressed: () => _showAddTransactionDialog(true),
         icon: const Icon(Icons.add),
         label: const Text('Add Deposit'),
-      );
+      ));
     } else {
       // Withdrawals tab - check withdraw_add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsWithdrawAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
+      return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation, backgroundColor: BrandFab.background(null),
         onPressed: () => _showAddTransactionDialog(false),
         icon: const Icon(Icons.add),
         label: const Text('Add Withdrawal'),
-      );
+      ));
     }
   }
 

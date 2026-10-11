@@ -1770,7 +1770,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             foregroundColor: Colors.white,
-          ).copyWith(backgroundBuilder: plainButtonBackground),
+          ),
           child: _isSubmitting
               ? const SizedBox(
                   width: 20,

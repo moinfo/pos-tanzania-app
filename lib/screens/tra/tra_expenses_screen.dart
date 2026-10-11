@@ -200,9 +200,9 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
             ),
         ],
       ) : null,
-      floatingActionButton: !widget.showAppBar && hasAddPermission ? FloatingActionButton(
+      floatingActionButton: !widget.showAppBar && hasAddPermission ? BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         heroTag: 'tra_expenses_fab',
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -218,7 +218,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
           }
         },
         child: const Icon(Icons.add, color: Colors.white),
-      ) : null,
+      )) : null,
       body: RefreshIndicator(
         onRefresh: _loadExpenses,
         child: Column(

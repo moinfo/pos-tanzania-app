@@ -424,7 +424,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                        ).copyWith(backgroundBuilder: plainButtonBackground),
+                        ),
                         child: _isLoading
                             ? const SizedBox(
                                 width: 24,

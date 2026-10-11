@@ -214,9 +214,9 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
             ),
         ],
       ) : null,
-      floatingActionButton: !widget.showAppBar && hasAddPermission ? FloatingActionButton(
+      floatingActionButton: !widget.showAppBar && hasAddPermission ? BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         heroTag: 'tra_sales_fab',
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -229,7 +229,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
           }
         },
         child: const Icon(Icons.add, color: Colors.white),
-      ) : null,
+      )) : null,
       body: RefreshIndicator(
         onRefresh: _loadSales,
         child: Column(

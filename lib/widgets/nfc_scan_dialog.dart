@@ -520,7 +520,7 @@ class _NfcRegisterCardDialogState extends State<NfcRegisterCardDialog> {
                   backgroundColor: AppColors.success,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                ).copyWith(backgroundBuilder: plainButtonBackground),
+                ),
                 child: _isRegistering
                     ? const Row(
                         mainAxisAlignment: MainAxisAlignment.center,

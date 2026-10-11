@@ -507,35 +507,35 @@ class _ApprovalsScreenState extends State<ApprovalsScreen>
     if (!canDiscount && !canCredit) return null;
 
     if (canDiscount && !canCredit) {
-      return FloatingActionButton.extended(
+      return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: () => _openCreate(discount: true),
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.local_offer_outlined),
         label: const Text('Request a Discount'),
-      );
+      ));
     }
 
     if (canCredit && !canDiscount) {
-      return FloatingActionButton.extended(
+      return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: () => _openCreate(discount: false),
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.request_quote_outlined),
         label: const Text('Customer Credit Limit'),
-      );
+      ));
     }
 
     // Labelled, not a bare "+". Someone holding both grants was shown an
     // unlabelled plus that said nothing about what it created, so the credit
     // limit request looked as though it had never been built.
-    return FloatingActionButton.extended(
+    return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
       onPressed: _chooseRequestType,
-      backgroundColor: AppColors.primary,
+      backgroundColor: BrandFab.background(AppColors.primary),
       foregroundColor: Colors.white,
       icon: const Icon(Icons.add),
       label: const Text('New request'),
-    );
+    ));
   }
 
   Future<void> _chooseRequestType() async {

@@ -984,12 +984,12 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
         ],
       ),
       floatingActionButton: canAdd
-          ? FloatingActionButton.extended(
+          ? BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
               onPressed: _navigateToNewProfitSubmit,
-              backgroundColor: AppColors.primary,
+              backgroundColor: BrandFab.background(AppColors.primary),
               icon: const Icon(Icons.add),
               label: const Text('New Profit'),
-            )
+            ))
           : null,
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
     );

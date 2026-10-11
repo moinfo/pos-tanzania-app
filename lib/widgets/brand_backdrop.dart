@@ -61,6 +61,58 @@ class BrandBackdrop {
       );
 }
 
+/// Gives a [FloatingActionButton] the brand gradient.
+///
+/// A FAB cannot take a gradient, so the gradient is drawn behind it and the FAB
+/// itself is made transparent and flat. Every switch is conditional on the
+/// client having a gradient -- use [background] and [elevation] for the FAB's
+/// own arguments -- so any other client keeps exactly the button it had.
+///
+///     BrandFab(
+///       extended: true,
+///       child: FloatingActionButton.extended(
+///         backgroundColor: BrandFab.background(AppColors.primary),
+///         elevation: BrandFab.elevation, ...
+class BrandFab extends StatelessWidget {
+  const BrandFab({super.key, required this.child, this.extended = false});
+
+  final Widget child;
+
+  /// `FloatingActionButton.extended` is a stadium; the plain one is a circle.
+  final bool extended;
+
+  static bool get _active =>
+      BrandBackdrop.gradientFor(ApiService.currentClient) != null;
+
+  /// [original] on a client without a gradient, transparent on one with it.
+  static Color? background(Color? original) =>
+      _active ? Colors.transparent : original;
+
+  /// Flat on a gradient client (the wrapper draws the shadow), else default.
+  static double? get elevation => _active ? 0 : null;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = BrandBackdrop.gradientFor(ApiService.currentClient);
+    if (brand == null) return child;
+
+    return DecoratedBox(
+      decoration: ShapeDecoration(
+        shape: extended ? const StadiumBorder() : const CircleBorder(),
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: brand,
+        ),
+        shadows: const [
+          BoxShadow(color: Color(0x40000000), blurRadius: 8, offset: Offset(0, 3)),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
 /// The brand gradient behind an [AppBar], for its `flexibleSpace`.
 ///
 /// Paints the same left-to-right strip as the main top bar. For a client with

@@ -326,11 +326,11 @@ class _CommissionScreenState extends State<CommissionScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: _showAddDialog,
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         child: const Icon(Icons.add, color: Colors.white),
-      ),
+      )),
     );
   }
 

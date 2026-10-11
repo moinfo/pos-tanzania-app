@@ -262,12 +262,12 @@ class _ShopsScreenState extends State<ShopsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: _showAddShopDialog,
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Shop', style: TextStyle(color: Colors.white)),
-      ),
+      )),
       bottomNavigationBar:
           widget.embedded ? null : const AppBottomNavigation(currentIndex: -1),
     );

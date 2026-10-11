@@ -200,9 +200,9 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
             ),
         ],
       ) : null,
-      floatingActionButton: !widget.showAppBar && hasAddPermission ? FloatingActionButton(
+      floatingActionButton: !widget.showAppBar && hasAddPermission ? BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         heroTag: 'tra_purchases_fab',
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -218,7 +218,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
           }
         },
         child: const Icon(Icons.add, color: Colors.white),
-      ) : null,
+      )) : null,
       body: RefreshIndicator(
         onRefresh: _loadPurchases,
         child: Column(

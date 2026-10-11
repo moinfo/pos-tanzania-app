@@ -1451,7 +1451,7 @@ class _AddItemDialogState extends State<_AddItemDialog> {
           onPressed: _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
-          ).copyWith(backgroundBuilder: plainButtonBackground),
+          ),
           child: const Text('Add'),
         ),
       ],

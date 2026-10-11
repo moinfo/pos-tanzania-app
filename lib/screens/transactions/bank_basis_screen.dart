@@ -658,21 +658,21 @@ class _BankBasisScreenState extends State<BankBasisScreen>
       if (!permissionProvider.hasPermission(PermissionIds.transactionsBankBasisSettingAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
+      return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation, backgroundColor: BrandFab.background(null),
         onPressed: _showAddCategoryDialog,
         icon: const Icon(Icons.add),
         label: const Text('Add Category'),
-      );
+      ));
     } else {
       // Transactions tab - check add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsBankBasisAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
+      return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation, backgroundColor: BrandFab.background(null),
         onPressed: _showAddTransactionDialog,
         icon: const Icon(Icons.add),
         label: const Text('Add Transaction'),
-      );
+      ));
     }
   }
 

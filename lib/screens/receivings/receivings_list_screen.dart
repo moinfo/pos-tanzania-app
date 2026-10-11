@@ -815,12 +815,12 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
 
           if (!hasAddPermission) return const SizedBox.shrink();
 
-          return FloatingActionButton.extended(
+          return BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
             onPressed: _navigateToNewReceiving,
-            backgroundColor: AppColors.primary,
+            backgroundColor: BrandFab.background(AppColors.primary),
             icon: const Icon(Icons.add),
             label: const Text('New Receiving'),
-          );
+          ));
         },
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),

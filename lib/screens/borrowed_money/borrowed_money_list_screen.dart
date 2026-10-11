@@ -180,15 +180,15 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
               builder: (_) => const BorrowedMoneyFormScreen()),
         ).then((_) => _loadRecords()),
-        backgroundColor: AppColors.primary,
+        backgroundColor: BrandFab.background(AppColors.primary),
         child: const Icon(Icons.add, color: Colors.white),
-      ),
+      )),
       body: Column(
         children: [
           // Date range + total summary bar

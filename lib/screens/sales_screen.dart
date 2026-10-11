@@ -3603,7 +3603,13 @@ class _SalesScreenState extends State<SalesScreen> {
                                     foregroundColor: Colors.white,
                                     elevation: saleProvider.isFullyPaid ? 0 : 2,
                                     padding: EdgeInsets.symmetric(horizontal: isLeruma ? 4 : 12),
-                                  ).copyWith(backgroundBuilder: plainButtonBackground),
+                                    // Gradient while a payment can still be
+                                    // added; flat grey once the sale is paid.
+                                  ).copyWith(
+                                    backgroundBuilder: saleProvider.isFullyPaid
+                                        ? plainButtonBackground
+                                        : null,
+                                  ),
                                 ),
                               );
 

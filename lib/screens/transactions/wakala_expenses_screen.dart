@@ -437,11 +437,11 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
         ],
       ),
       floatingActionButton: _expenses.isNotEmpty
-          ? FloatingActionButton(
+          ? BrandFab(extended: false, child: FloatingActionButton( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
               onPressed: _showAddExpenseDialog,
-              backgroundColor: AppColors.primary,
+              backgroundColor: BrandFab.background(AppColors.primary),
               child: const Icon(Icons.add, color: Colors.white),
-            )
+            ))
           : null,
     );
   }
