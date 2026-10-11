@@ -80,7 +80,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -229,7 +229,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                             : AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.calendar_today,
                         size: 16,
                         color: AppColors.primary,
@@ -319,7 +319,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                           color: AppColors.error.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.account_balance_wallet,
                           size: 20,
                           color: AppColors.error,
@@ -338,7 +338,7 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
                   ),
                   Text(
                     'TZS ${Formatters.formatCurrency(_total)}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: AppColors.error,
@@ -785,37 +785,37 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
     final lightInputDecoration = InputDecoration(
       filled: true,
       fillColor: const Color(0xFFF9FAFB),
-      labelStyle: TextStyle(
-        color: const Color(0xFF6B7280),
+      labelStyle: const TextStyle(
+        color: Color(0xFF6B7280),
         fontWeight: FontWeight.w500,
       ),
-      hintStyle: TextStyle(
-        color: const Color(0xFF9CA3AF),
+      hintStyle: const TextStyle(
+        color: Color(0xFF9CA3AF),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: const Color(0xFFE5E7EB),
+        borderSide: const BorderSide(
+          color: Color(0xFFE5E7EB),
           width: 1.5,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.primary,
           width: 2,
         ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.error,
           width: 1.5,
         ),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.error,
           width: 2,
         ),
@@ -827,34 +827,34 @@ class _WakalaExpenseFormDialogState extends State<WakalaExpenseFormDialog> {
     final darkInputDecoration = InputDecoration(
       filled: true,
       fillColor: AppColors.darkSurface,
-      labelStyle: TextStyle(
+      labelStyle: const TextStyle(
         color: Colors.white70,
         fontWeight: FontWeight.w500,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: Colors.white24,
           width: 1,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.primary,
           width: 2,
         ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.error,
           width: 1,
         ),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           color: AppColors.error,
           width: 2,
         ),

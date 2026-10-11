@@ -103,15 +103,15 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
         return Theme(
           data: isDark
               ? ThemeData.dark().copyWith(
-                  colorScheme: ColorScheme.dark(
+                  colorScheme: const ColorScheme.dark(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
-                    surface: const Color(0xFF1E1E1E),
+                    surface: Color(0xFF1E1E1E),
                     onSurface: Colors.white,
                   ),
                 )
               : ThemeData.light().copyWith(
-                  colorScheme: ColorScheme.light(
+                  colorScheme: const ColorScheme.light(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
                   ),
@@ -576,7 +576,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
                           child: Center(
                             child: Text(
                               '#${sale.saleId}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primary,
@@ -641,7 +641,7 @@ class _MainStoreScreenState extends State<MainStoreScreen> {
                     children: [
                       Text(
                         _formatCurrency(sale.saleTotal),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color: AppColors.success,

@@ -67,7 +67,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -172,7 +172,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
           ),
           child: Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.date_range,
                 size: 20,
                 color: AppColors.primary,
@@ -388,7 +388,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Icon(Icons.table_chart, color: AppColors.primary, size: 20),
+                const Icon(Icons.table_chart, color: AppColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Daily Positions (${_report!.positions.length})',
@@ -467,7 +467,7 @@ class _PositionsScreenState extends State<PositionsScreen> {
                     )),
                     DataCell(Text(
                       _currencyFormat.format(pos.capital),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.blue,
                       ),

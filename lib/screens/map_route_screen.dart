@@ -335,7 +335,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.people, size: 16, color: _headerColor),
+                      const Icon(Icons.people, size: 16, color: _headerColor),
                       const SizedBox(width: 4),
                       Text(
                         '${_filteredCustomers.length} of ${_customers.length} customers',
@@ -375,7 +375,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline,
+                          const Icon(Icons.error_outline,
                               size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!,

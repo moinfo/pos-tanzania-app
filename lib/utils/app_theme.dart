@@ -284,7 +284,7 @@ class AppTheme {
         side: BorderSide(color: divider, width: 1.5),
       ),
 
-      tabBarTheme: TabBarThemeData(
+      tabBarTheme: const TabBarThemeData(
         labelColor: Colors.white,
         unselectedLabelColor: Colors.white70,
         indicatorColor: Colors.white,

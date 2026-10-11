@@ -121,7 +121,7 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -475,7 +475,7 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.inventory_2, color: AppColors.primary, size: 24),
+                  child: const Icon(Icons.inventory_2, color: AppColors.primary, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -632,7 +632,7 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Icon(Icons.history, color: AppColors.primary, size: 20),
+                const Icon(Icons.history, color: AppColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Transactions (${_report!.transactions.length})',
@@ -990,7 +990,7 @@ class _ItemSelectorSheetState extends State<_ItemSelectorSheet> {
                               ),
                             ),
                             trailing: isSelected
-                                ? Icon(Icons.check_circle, color: AppColors.primary)
+                                ? const Icon(Icons.check_circle, color: AppColors.primary)
                                 : null,
                             onTap: () => widget.onSelect(item),
                           );

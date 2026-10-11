@@ -349,7 +349,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Balance:',
                   style: TextStyle(fontSize: 14),
                 ),
@@ -798,7 +798,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _selectedGender,
+            initialValue: _selectedGender,
             decoration: InputDecoration(
               labelText: 'Gender',
               border: const OutlineInputBorder(),
@@ -817,7 +817,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             decoration: InputDecoration(
               labelText: 'Category',
               border: const OutlineInputBorder(),
@@ -836,7 +836,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
-            value: _selectedSupervisorId,
+            initialValue: _selectedSupervisorId,
             decoration: InputDecoration(
               labelText: 'Supervisor',
               border: const OutlineInputBorder(),
@@ -850,7 +850,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
                   value: supervisor['id'] as int,
                   child: Text(supervisor['name'] as String),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               setState(() {

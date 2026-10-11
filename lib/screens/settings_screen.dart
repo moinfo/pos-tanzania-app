@@ -194,7 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
             errorBuilder: (context, error, stackTrace) {
-              return Icon(
+              return const Icon(
                 Icons.person,
                 color: AppColors.primary,
                 size: 28,
@@ -275,7 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? Switch(
                           value: _isBiometricEnabled,
                           onChanged: _toggleBiometric,
-                          activeColor: AppColors.success,
+                          activeThumbColor: AppColors.success,
                         )
                       : null,
                 ),
@@ -325,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   trailing: Switch(
                     value: isDark,
                     onChanged: (_) => themeProvider.toggleTheme(),
-                    activeColor: AppColors.success,
+                    activeThumbColor: AppColors.success,
                   ),
                 ),
               ],
@@ -837,7 +837,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     }
                   },
                 );
-              }).toList(),
+              }),
               const SizedBox(height: 16),
             ],
           ),

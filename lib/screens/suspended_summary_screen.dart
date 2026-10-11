@@ -298,7 +298,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.inventory_2, size: 16, color: _headerColor),
+                        const Icon(Icons.inventory_2, size: 16, color: _headerColor),
                         const SizedBox(width: 4),
                         Text(
                           '${_filteredItems.length} items',
@@ -312,7 +312,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.monetization_on, size: 16, color: Colors.green),
+                        const Icon(Icons.monetization_on, size: 16, color: Colors.green),
                         const SizedBox(width: 4),
                         Text(
                           '${_currencyFormat.format(_totals!.grandTotal)} TSh',
@@ -339,7 +339,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!,
                               style: TextStyle(
@@ -616,7 +616,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
       color: isDark ? AppColors.darkCard : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: _headerColor, width: 2),
+        side: const BorderSide(color: _headerColor, width: 2),
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -636,7 +636,7 @@ class _SuspendedSummaryScreenState extends State<SuspendedSummaryScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.summarize, color: _headerColor, size: 20),
+                const Icon(Icons.summarize, color: _headerColor, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Grand Totals',
@@ -990,9 +990,9 @@ class _CommentDialogState extends State<_CommentDialog> {
             // Header
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),

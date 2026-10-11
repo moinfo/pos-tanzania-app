@@ -125,7 +125,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -606,7 +606,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   labelStyle: TextStyle(
                                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                   ),
-                                  prefixIcon: Icon(
+                                  prefixIcon: const Icon(
                                     Icons.attach_money,
                                     color: AppColors.success,
                                   ),
@@ -701,7 +701,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
 
                               // Supervisor Selection
                               DropdownButtonFormField<String>(
-                                value: _selectedSupervisorId,
+                                initialValue: _selectedSupervisorId,
                                 style: TextStyle(
                                   color: isDark ? AppColors.darkText : AppColors.text,
                                 ),

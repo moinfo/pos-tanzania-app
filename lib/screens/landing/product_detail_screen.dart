@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../models/public_product.dart';
 import '../../providers/landing_provider.dart';
 import '../../services/public_api_service.dart';
-import '../../services/screen_protection_service.dart';
 import 'landing_screen.dart';
 
 /// Product detail screen with image gallery and portfolio

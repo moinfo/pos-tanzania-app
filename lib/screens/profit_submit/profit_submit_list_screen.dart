@@ -147,28 +147,23 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: isDark
-                ? ColorScheme.dark(
+                ? const ColorScheme.dark(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
                     surface: AppColors.darkCard,
                     onSurface: AppColors.darkText,
-                    background: AppColors.darkBackground,
-                    onBackground: AppColors.darkText,
                   )
-                : ColorScheme.light(
+                : const ColorScheme.light(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
                     surface: Colors.white,
                     onSurface: Colors.black,
-                    background: Colors.white,
-                    onBackground: Colors.black,
                   ),
-            dialogBackgroundColor: isDark ? AppColors.darkCard : Colors.white,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
               ),
-            ),
+            ), dialogTheme: DialogThemeData(backgroundColor: isDark ? AppColors.darkCard : Colors.white),
           ),
           child: child!,
         );
@@ -650,7 +645,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedLocationFilter,
+                      initialValue: _selectedLocationFilter,
                       isExpanded: true,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -706,7 +701,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline,
+                      const Icon(Icons.error_outline,
                           size: 64, color: AppColors.error),
                       const SizedBox(height: 16),
                       Text(_errorMessage!,
@@ -951,7 +946,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                                                         color: AppColors.primary,
                                                       ),
                                                       const SizedBox(width: 6),
-                                                      Text(
+                                                      const Text(
                                                         'Profit Slip Attached',
                                                         style: TextStyle(
                                                           fontSize: 12,

@@ -311,7 +311,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
                           color: AppColors.error.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.receipt, color: AppColors.error, size: 18),
+                        child: const Icon(Icons.receipt, color: AppColors.error, size: 18),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -366,7 +366,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
                           color: AppColors.success.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.payments, color: AppColors.success, size: 18),
+                        child: const Icon(Icons.payments, color: AppColors.success, size: 18),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -712,7 +712,7 @@ class _SuppliersCreditsScreenState extends State<SuppliersCreditsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',
@@ -915,7 +915,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
               onTap: _selectDateRange,
               child: Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+                  const Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1056,7 +1056,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.receipt_long, size: 16, color: AppColors.error),
+                    const Icon(Icons.receipt_long, size: 16, color: AppColors.error),
                     const SizedBox(width: 8),
                     Text(
                       'RCV #${trans.receivingId}',
@@ -1189,7 +1189,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',
@@ -1405,7 +1405,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
           onTap: _selectDateRange,
           child: Row(
             children: [
-              Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+              const Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1440,7 +1440,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-              child: Icon(Icons.receipt, color: AppColors.error, size: 28),
+              child: const Icon(Icons.receipt, color: AppColors.error, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1448,7 +1448,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Total Credit Purchases', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
-                  Text(_formatter.format(summary.totalAmount), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.error)),
+                  Text(_formatter.format(summary.totalAmount), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.error)),
                 ],
               ),
             ),
@@ -1552,7 +1552,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                  child: Text(_formatter.format(credit.amount), style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error)),
+                  child: Text(_formatter.format(credit.amount), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error)),
                 ),
               ],
             ),
@@ -1609,7 +1609,7 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
 
   Widget _buildErrorView() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.error_outline, size: 64, color: AppColors.error),
+      const Icon(Icons.error_outline, size: 64, color: AppColors.error),
       const SizedBox(height: 16),
       Text(_errorMessage ?? 'An error occurred', style: const TextStyle(fontSize: 16)),
       const SizedBox(height: 16),
@@ -1819,7 +1819,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
           onTap: _selectDateRange,
           child: Row(
             children: [
-              Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+              const Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1854,7 +1854,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-              child: Icon(Icons.payments, color: AppColors.success, size: 28),
+              child: const Icon(Icons.payments, color: AppColors.success, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1862,7 +1862,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Total Payments Made', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
-                  Text(_formatter.format(summary.totalAmount), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.success)),
+                  Text(_formatter.format(summary.totalAmount), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.success)),
                 ],
               ),
             ),
@@ -1966,7 +1966,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                  child: Text(_formatter.format(debt.amount), style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.success)),
+                  child: Text(_formatter.format(debt.amount), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.success)),
                 ),
               ],
             ),
@@ -2023,7 +2023,7 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
 
   Widget _buildErrorView() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.error_outline, size: 64, color: AppColors.error),
+      const Icon(Icons.error_outline, size: 64, color: AppColors.error),
       const SizedBox(height: 16),
       Text(_errorMessage ?? 'An error occurred', style: const TextStyle(fontSize: 16)),
       const SizedBox(height: 16),

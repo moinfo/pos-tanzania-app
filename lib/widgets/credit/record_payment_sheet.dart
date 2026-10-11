@@ -293,7 +293,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
           ),
           child: Text(
             _initials(widget.customerName),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -732,7 +732,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                                     : 'Enter amount',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,

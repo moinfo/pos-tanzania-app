@@ -156,7 +156,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -564,7 +564,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                     ],
                     // Bank Selection
                     DropdownButtonFormField<String>(
-                      value: _selectedBank,
+                      initialValue: _selectedBank,
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                       decoration: InputDecoration(
@@ -598,7 +598,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
                     // Branch (SADA only)
                     if (ApiService.currentClient?.features.hasBranchSelection == true) ...[
                       DropdownButtonFormField<String>(
-                        value: _selectedBranch,
+                        initialValue: _selectedBranch,
                         dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                         style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                         decoration: InputDecoration(
@@ -749,7 +749,7 @@ class _NewBankingScreenState extends State<NewBankingScreen> {
 
                     // Supervisor Selection
                     DropdownButtonFormField<String>(
-                      value: _selectedSupervisorId,
+                      initialValue: _selectedSupervisorId,
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                       decoration: InputDecoration(

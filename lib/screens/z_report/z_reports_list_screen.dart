@@ -114,7 +114,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -701,7 +701,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.date_range,
                         size: 18,
                         color: AppColors.primary,
@@ -749,7 +749,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.error_outline,
+                              const Icon(Icons.error_outline,
                                   size: 64, color: AppColors.error),
                               const SizedBox(height: 16),
                               Text(_errorMessage!,
@@ -994,7 +994,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                         color: AppColors.primary,
                                                       ),
                                                       const SizedBox(width: 8),
-                                                      Expanded(
+                                                      const Expanded(
                                                         child: Text(
                                                           'Z Report File Attached',
                                                           style: TextStyle(
@@ -1006,7 +1006,7 @@ class _ZReportsListScreenState extends State<ZReportsListScreen> {
                                                           ),
                                                         ),
                                                       ),
-                                                      Icon(
+                                                      const Icon(
                                                         Icons.visibility,
                                                         size: 18,
                                                         color: AppColors.primary,

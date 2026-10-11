@@ -92,11 +92,11 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.check_circle, color: AppColors.success),
-            const SizedBox(width: 8),
-            const Text('Card Found'),
+            Icon(Icons.check_circle, color: AppColors.success),
+            SizedBox(width: 8),
+            Text('Card Found'),
           ],
         ),
         content: Column(
@@ -151,11 +151,11 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.warning, color: AppColors.warning),
-            const SizedBox(width: 8),
-            const Text('Card Not Registered'),
+            Icon(Icons.warning, color: AppColors.warning),
+            SizedBox(width: 8),
+            Text('Card Not Registered'),
           ],
         ),
         content: Column(
@@ -354,7 +354,7 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_errorMessage!),
                           const SizedBox(height: 16),
@@ -1090,7 +1090,7 @@ class _NfcStatementScreenState extends State<NfcStatementScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                       const SizedBox(height: 16),
                       Text(_errorMessage!),
                       const SizedBox(height: 16),

@@ -668,7 +668,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                       horizontal: 16,
                                       vertical: 8,
                                     ),
-                                    leading: CircleAvatar(
+                                    leading: const CircleAvatar(
                                       backgroundColor: AppColors.primary,
                                       child: Icon(
                                         Icons.inventory_2,
@@ -785,7 +785,7 @@ class _ReceivingsListScreenState extends State<ReceivingsListScreen> {
                                       children: [
                                         Text(
                                           _formatCurrency(receiving.totalCost),
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: AppColors.primary,

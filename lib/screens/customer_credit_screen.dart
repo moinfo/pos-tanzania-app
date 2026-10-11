@@ -436,7 +436,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            const Text(
               'STATEMENT',
               style: TextStyle(
                 fontSize: 10.5,
@@ -449,7 +449,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
               widget.customerName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 15.5,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
@@ -473,7 +473,7 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(_errorMessage!,
-                          style: TextStyle(color: AppColors.error)),
+                          style: const TextStyle(color: AppColors.error)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                           onPressed: _loadStatement,
@@ -1619,7 +1619,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
               const SizedBox(height: 16),
               if (widget.creditSales.isNotEmpty) ...[
                 DropdownButtonFormField<int>(
-                  value: _selectedSaleId,
+                  initialValue: _selectedSaleId,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Select Credit Sale (Optional)',
@@ -1656,7 +1656,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   return Column(
                     children: [
                       DropdownButtonFormField<int>(
-                        value: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
+                        initialValue: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
                         isExpanded: true,
                         decoration: InputDecoration(
                           labelText: 'Stock Location *',
@@ -1934,7 +1934,7 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
                   return Column(
                     children: [
                       DropdownButtonFormField<int>(
-                        value: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
+                        initialValue: _selectedLocationId ?? locationProvider.selectedLocation?.locationId,
                         isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Stock Location *',

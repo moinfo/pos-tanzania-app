@@ -315,7 +315,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                             color: AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(Icons.payments, color: AppColors.success, size: 20),
+                          child: const Icon(Icons.payments, color: AppColors.success, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -875,7 +875,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',
@@ -1547,7 +1547,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',

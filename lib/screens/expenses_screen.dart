@@ -773,7 +773,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
       final response = await _apiService.getSupervisors();
       if (response.isSuccess && mounted) {
         setState(() {
-          _supervisors = (response.data as List<Supervisor>?) ?? [];
+          _supervisors = response.data ?? [];
           // Set first supervisor as default if not editing and supervisors exist
           if (widget.expense == null && _supervisors.isNotEmpty && _selectedSupervisorId == null) {
             _selectedSupervisorId = _supervisors.first.id;
@@ -1112,7 +1112,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
                 // Category (Required)
                 if (widget.categories.isNotEmpty)
                   DropdownButtonFormField<int>(
-                    value: _selectedCategoryId,
+                    initialValue: _selectedCategoryId,
                     dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                     style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                     decoration: InputDecoration(
@@ -1174,7 +1174,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
             children: [
               // Payment Type
               DropdownButtonFormField<String>(
-                value: _selectedPaymentType,
+                initialValue: _selectedPaymentType,
                 dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                 style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                 decoration: InputDecoration(
@@ -1201,7 +1201,7 @@ class _ExpenseFormDialogState extends State<ExpenseFormDialog> with SingleTicker
               // Supervisor
               if (_supervisors.isNotEmpty)
                 DropdownButtonFormField<String>(
-                  value: _selectedSupervisorId,
+                  initialValue: _selectedSupervisorId,
                   dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                   style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                   decoration: InputDecoration(

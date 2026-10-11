@@ -1061,7 +1061,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                                             ),
                                             Text(
                                               'Total: ${_formatCurrency(item.calculateTotal())}',
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
                                                 color: AppColors.success,
@@ -1129,7 +1129,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                       // Payment Type dropdown
                       // For Leruma: Only show Credit Card option
                       DropdownButtonFormField<String>(
-                        value: receivingProvider.paymentType,
+                        initialValue: receivingProvider.paymentType,
                         dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                         style: TextStyle(
                           color: isDark ? AppColors.darkText : Colors.black87,
@@ -1261,7 +1261,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                               ),
                               Text(
                                 _formatCurrency(receivingProvider.total),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.success,

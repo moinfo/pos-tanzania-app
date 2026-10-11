@@ -20,7 +20,7 @@ class SaleProvider with ChangeNotifier {
   String _paymentType = 'Cash'; // Cash, Credit Card, Credit, Due
 
   // Multiple payments list
-  List<SalePayment> _payments = [];
+  final List<SalePayment> _payments = [];
 
   // Getters
   List<SaleItem> get cartItems => _cartItems;

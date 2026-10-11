@@ -103,7 +103,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -268,7 +268,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.date_range, size: 20, color: Colors.red),
+                  const Icon(Icons.date_range, size: 20, color: Colors.red),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -293,7 +293,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
           // EFD Filter
           if (widget.efds.isNotEmpty && hasAllEfdPermission)
             DropdownButtonFormField<int?>(
-              value: _selectedEfdId,
+              initialValue: _selectedEfdId,
               decoration: InputDecoration(
                 labelText: 'EFD Device',
                 filled: true,
@@ -477,7 +477,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
                       ),
                       child: Text(
                         expense.purchaseType,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: Colors.red,
@@ -487,7 +487,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'TZS ${_currencyFormat.format(expense.totalAmount)}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.red,
@@ -551,7 +551,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',

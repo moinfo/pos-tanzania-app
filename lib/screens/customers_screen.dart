@@ -129,11 +129,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
-              const Icon(Icons.nfc, color: Colors.orange),
-              const SizedBox(width: 8),
-              const Text('NFC Card Details'),
+              Icon(Icons.nfc, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('NFC Card Details'),
             ],
           ),
           content: Column(
@@ -988,7 +988,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
   String _gender = 'M';
   bool _isBodaBoda = false;
   String _discountType = 'percentage';
-  bool _oneTimeCredit = false;
+  final bool _oneTimeCredit = false;
   String _dormantStatus = 'active';
   bool _taxable = true;
   // NFC settings
@@ -1761,7 +1761,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         _buildCreditCardSection(),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedSupervisorId,
+          initialValue: _selectedSupervisorId,
           isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Supervisor Name',
@@ -1949,7 +1949,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _dormantStatus,
+          initialValue: _dormantStatus,
           decoration: const InputDecoration(
             labelText: 'Dormant Status',
             border: OutlineInputBorder(),

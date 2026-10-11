@@ -121,7 +121,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -211,8 +211,8 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
           ),
           TextButton.icon(
             onPressed: _navigateToItemTracking,
-            icon: Icon(Icons.search, color: AppColors.primary),
-            label: Text(
+            icon: const Icon(Icons.search, color: AppColors.primary),
+            label: const Text(
               'Item Tracking',
               style: TextStyle(color: AppColors.primary),
             ),
@@ -499,7 +499,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Icon(Icons.list_alt, color: AppColors.primary, size: 20),
+                const Icon(Icons.list_alt, color: AppColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Stock Items (${_report!.items.length})',
@@ -591,7 +591,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.account_balance_wallet, color: AppColors.primary, size: 20),
+                const Icon(Icons.account_balance_wallet, color: AppColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Cash Flow',
@@ -662,7 +662,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.credit_card, color: Colors.orange, size: 20),
+                    const Icon(Icons.credit_card, color: Colors.orange, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Customer Credits',
@@ -676,7 +676,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
                 ),
                 Text(
                   _currencyFormat.format(_report!.customerCreditsTotal),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: Colors.orange,
@@ -710,7 +710,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.payments, color: Colors.green, size: 20),
+                    const Icon(Icons.payments, color: Colors.green, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Customer Payments',
@@ -724,7 +724,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
                 ),
                 Text(
                   _currencyFormat.format(_report!.customerPaymentsTotal),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: Colors.green,
@@ -758,7 +758,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.account_balance, color: Colors.blue, size: 20),
+                    const Icon(Icons.account_balance, color: Colors.blue, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Supplier Bank Payments',
@@ -772,7 +772,7 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
                 ),
                 Text(
                   _currencyFormat.format(_report!.supplierBankPaymentsTotal),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: Colors.blue,

@@ -138,7 +138,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -678,7 +678,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(Icons.date_range,
+                      const Icon(Icons.date_range,
                         size: 18,
                         color: AppColors.primary,
                       ),
@@ -938,7 +938,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                               color: AppColors.primary,
                                             ),
                                             const SizedBox(width: 8),
-                                            Expanded(
+                                            const Expanded(
                                               child: Text(
                                                 'Banking Slip Attached',
                                                 style: TextStyle(
@@ -948,7 +948,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                                 ),
                                               ),
                                             ),
-                                            Icon(
+                                            const Icon(
                                               Icons.visibility,
                                               size: 18,
                                               color: AppColors.primary,

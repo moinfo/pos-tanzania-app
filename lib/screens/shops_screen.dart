@@ -304,7 +304,7 @@ class _ShopListItem extends StatelessWidget {
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.store, color: AppColors.primary),
+                child: const Icon(Icons.store, color: AppColors.primary),
               ),
               const SizedBox(width: 12),
               // Shop details
@@ -537,7 +537,7 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.store, color: AppColors.primary, size: 32),
+                child: const Icon(Icons.store, color: AppColors.primary, size: 32),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -908,7 +908,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.gps_fixed, color: AppColors.primary),
+                        const Icon(Icons.gps_fixed, color: AppColors.primary),
                         const SizedBox(width: 8),
                         const Text(
                           'GPS Location',
@@ -1055,7 +1055,7 @@ class _AddShopScreenState extends State<AddShopScreen> {
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.person, color: AppColors.primary),
+                  child: const Icon(Icons.person, color: AppColors.primary),
                 ),
                 title: Text(
                   _selectedCustomer?.displayName ?? 'Select Customer',
@@ -1297,7 +1297,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.gps_fixed, color: AppColors.primary),
+                        const Icon(Icons.gps_fixed, color: AppColors.primary),
                         const SizedBox(width: 8),
                         const Text(
                           'GPS Location',
@@ -1645,7 +1645,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
                                   color: AppColors.primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Icon(Icons.receipt, color: AppColors.primary),
+                                child: const Icon(Icons.receipt, color: AppColors.primary),
                               ),
                               title: Text(
                                 '${_currencyFormat.format(sale.total)} TSh',
@@ -1817,7 +1817,7 @@ class _CustomerSelectorScreenState extends State<CustomerSelectorScreen> {
                           backgroundColor: AppColors.primary.withOpacity(0.1),
                           child: Text(
                             customer.firstName.isNotEmpty ? customer.firstName[0].toUpperCase() : '?',
-                            style: TextStyle(color: AppColors.primary),
+                            style: const TextStyle(color: AppColors.primary),
                           ),
                         ),
                         title: Text(customer.displayName),

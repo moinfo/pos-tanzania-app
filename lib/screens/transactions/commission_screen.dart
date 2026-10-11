@@ -97,7 +97,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppColors.primary, onPrimary: Colors.white, surface: Colors.white, onSurface: Colors.black),
+            colorScheme: const ColorScheme.light(primary: AppColors.primary, onPrimary: Colors.white, surface: Colors.white, onSurface: Colors.black),
           ),
           child: child!,
         );
@@ -209,7 +209,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
+                      child: const Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -258,7 +258,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: Icon(Icons.percent, color: AppColors.success, size: 24),
+                        child: const Icon(Icons.percent, color: AppColors.success, size: 24),
                       ),
                       const SizedBox(width: 16),
                       Column(
@@ -277,7 +277,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                    child: Text('${_commissions.length} entries', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600, fontSize: 12)),
+                    child: Text('${_commissions.length} entries', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w600, fontSize: 12)),
                   ),
                 ],
               ),
@@ -291,7 +291,7 @@ class _CommissionScreenState extends State<CommissionScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_error!, style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
                             const SizedBox(height: 16),
@@ -521,7 +521,7 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
             children: [
               // Source Type
               DropdownButtonFormField<String>(
-                value: _sourceType,
+                initialValue: _sourceType,
                 decoration: const InputDecoration(labelText: 'Source Type', border: OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: 'wakala', child: Text('Wakala')),
@@ -538,7 +538,7 @@ class _CommissionFormDialogState extends State<_CommissionFormDialog> {
               const SizedBox(height: 16),
               // Source Account
               DropdownButtonFormField<int>(
-                value: _sourceOptions.any((o) => o['id'] == _sourceId) ? _sourceId : null,
+                initialValue: _sourceOptions.any((o) => o['id'] == _sourceId) ? _sourceId : null,
                 decoration: const InputDecoration(labelText: 'Account', border: OutlineInputBorder()),
                 items: _sourceOptions.map((o) => DropdownMenuItem<int>(value: o['id'], child: Text(o['name'].toString()))).toList(),
                 onChanged: (value) => setState(() => _sourceId = value),

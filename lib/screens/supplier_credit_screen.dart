@@ -281,7 +281,7 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
         supplierId: widget.supplierId,
         supplierName: widget.supplierName,
         currentBalance: _statement?.currentBalance ?? 0,
-        creditReceivings: [],
+        creditReceivings: const [],
         onPaymentComplete: () {
           Navigator.pop(context);
           _loadStatement();
@@ -511,7 +511,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
 
   bool _isSubmitting = false;
   int? _selectedReceivingId;
-  int _stockLocationId = 1; // KIWANGWA
+  final int _stockLocationId = 1; // KIWANGWA
   int _paymentMode = 1; // 1=Sales, 2=Office
   int _paidPaymentType = 2; // 1=CASH, 2=BANK (default BANK)
   DateTime _selectedDate = DateTime.now();
@@ -647,7 +647,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               const SizedBox(height: 16),
               if (widget.creditReceivings.isNotEmpty && widget.editingPayment == null) ...[
                 DropdownButtonFormField<int>(
-                  value: _selectedReceivingId,
+                  initialValue: _selectedReceivingId,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Select Receiving (Optional)',
@@ -724,7 +724,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: _paymentMode,
+                initialValue: _paymentMode,
                 decoration: const InputDecoration(
                   labelText: 'Payment Mode',
                   border: OutlineInputBorder(),
@@ -741,7 +741,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: _paidPaymentType,
+                initialValue: _paidPaymentType,
                 decoration: const InputDecoration(
                   labelText: 'Payment Type',
                   border: OutlineInputBorder(),

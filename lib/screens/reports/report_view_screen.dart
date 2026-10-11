@@ -169,13 +169,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: isDark
-                ? ColorScheme.dark(
+                ? const ColorScheme.dark(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
                     surface: AppColors.darkSurface,
                     onSurface: AppColors.darkText,
                   )
-                : ColorScheme.light(
+                : const ColorScheme.light(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
                     surface: Colors.white,
@@ -270,7 +270,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           : AppColors.primary.withOpacity(0.1),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.calendar_today,
             size: 18,
             color: AppColors.primary,
@@ -335,18 +335,18 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                    const Icon(Icons.location_on, size: 14, color: AppColors.primary),
                     const SizedBox(width: 4),
                     Text(
                       locationProvider.selectedLocation!.locationName,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(width: 2),
-                    Icon(Icons.arrow_drop_down, size: 16, color: AppColors.primary),
+                    const Icon(Icons.arrow_drop_down, size: 16, color: AppColors.primary),
                   ],
                 ),
               ),
@@ -437,7 +437,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           children: [
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.summarize,
                   color: AppColors.primary,
                   size: 20,
@@ -485,7 +485,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                       const SizedBox(height: 2),
                       Text(
                         _formatValue(entry.value, 'currency'),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -551,8 +551,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                   ),
                   // Add view icon for first column in supplier report
                   if (isSupplierReport && column.key == 'receiving_id')
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
                       child: Icon(
                         Icons.visibility,
                         size: 16,
@@ -592,7 +592,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             return DataCell(
               Text(
                 _formatValue(totals[column.key], column.type),
-                style: TextStyle(
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                 ),
@@ -666,7 +666,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           backgroundColor: isDark ? AppColors.darkCard : Colors.white,
           title: Row(
             children: [
-              Icon(Icons.inventory, color: AppColors.primary),
+              const Icon(Icons.inventory, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
                 'Receiving #$id Items',
@@ -728,7 +728,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                                   ),
                                   Text(
                                     'Price: ${Formatters.formatCurrency(_parseDouble(item['unit_price'] ?? item['item_unit_price']))}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.primary,
@@ -741,7 +741,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
                                     'Subtotal: ${Formatters.formatCurrency(_parseDouble(item['subtotal']))}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.success,
@@ -826,7 +826,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.bar_chart,
                       color: AppColors.primary,
                       size: 20,
@@ -878,7 +878,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                               ),
                               Text(
                                 Formatters.formatCurrency(value),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.primary,
@@ -892,7 +892,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                             backgroundColor: isDark
                                 ? AppColors.darkDivider
                                 : AppColors.lightDivider,
-                            valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                            valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                           ),
                         ],
                       ),
@@ -915,7 +915,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.analytics,
                 color: AppColors.primary,
                 size: 20,
@@ -962,7 +962,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                       entry.value is num
                           ? Formatters.formatCurrency(entry.value.toDouble())
                           : entry.value.toString(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,

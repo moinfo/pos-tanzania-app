@@ -132,15 +132,15 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
         return Theme(
           data: isDark
               ? ThemeData.dark().copyWith(
-                  colorScheme: ColorScheme.dark(
+                  colorScheme: const ColorScheme.dark(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
-                    surface: const Color(0xFF1E1E1E),
+                    surface: Color(0xFF1E1E1E),
                     onSurface: Colors.white,
                   ),
                 )
               : ThemeData.light().copyWith(
-                  colorScheme: ColorScheme.light(
+                  colorScheme: const ColorScheme.light(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
                   ),
@@ -172,22 +172,22 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
   // Build list of navigation items based on permissions
   List<_NavItem> _getNavItems() {
     final items = <_NavItem>[
-      _NavItem(
+      const _NavItem(
         icon: Icons.home,
         label: 'Home',
         index: 0,
       ),
-      _NavItem(
+      const _NavItem(
         icon: Icons.people,
         label: 'Beneficiaries',
         index: 1,
       ),
-      _NavItem(
+      const _NavItem(
         icon: Icons.analytics,
         label: 'EFD Analysis',
         index: 2,
       ),
-      _NavItem(
+      const _NavItem(
         icon: Icons.receipt_long,
         label: 'Deposits',
         index: 3,
@@ -196,7 +196,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
     // Only add Mismatch Report if user has permission
     if (_canViewMismatchReport) {
-      items.add(_NavItem(
+      items.add(const _NavItem(
         icon: Icons.warning_amber,
         label: 'Mismatch',
         index: 4,
@@ -374,9 +374,9 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                   ),
                   const Spacer(),
                   if (_canChangeDateRange)
-                    Icon(Icons.arrow_drop_down, color: AppColors.primary)
+                    const Icon(Icons.arrow_drop_down, color: AppColors.primary)
                   else
-                    Icon(Icons.lock_outline, color: Colors.grey, size: 18),
+                    const Icon(Icons.lock_outline, color: Colors.grey, size: 18),
                 ],
               ),
             ),
@@ -1305,10 +1305,10 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                       const SizedBox(height: 2),
                       Text(
                         _currencyFormat.format(depositedAmount),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF10B981),
+                          color: Color(0xFF10B981),
                         ),
                       ),
                     ],
@@ -1776,7 +1776,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'POS Record',
                   style: TextStyle(
                     fontSize: 12,
@@ -2188,7 +2188,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
             const SizedBox(height: 4),
             Text(
               '${_currencyFormat.format(deposit.amount)} TZS',
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
                 color: AppColors.primary,
@@ -2405,7 +2405,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '${_currencyFormat.format(deposit.amount)} TZS',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -2422,10 +2422,10 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'This action cannot be undone.',
               style: TextStyle(
-                color: const Color(0xFFEF4444),
+                color: Color(0xFFEF4444),
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -2871,15 +2871,15 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
         return Theme(
           data: widget.isDark
               ? ThemeData.dark().copyWith(
-                  colorScheme: ColorScheme.dark(
+                  colorScheme: const ColorScheme.dark(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
-                    surface: const Color(0xFF1E1E1E),
+                    surface: Color(0xFF1E1E1E),
                     onSurface: Colors.white,
                   ),
                 )
               : ThemeData.light().copyWith(
-                  colorScheme: ColorScheme.light(
+                  colorScheme: const ColorScheme.light(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
                   ),
@@ -3019,7 +3019,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                     // Bank Account Dropdown
                     _buildLabel('Bank Account *'),
                     DropdownButtonFormField<BeneficiaryBankAccount>(
-                      value: _selectedBankAccount,
+                      initialValue: _selectedBankAccount,
                       decoration: _inputDecoration('Select bank account'),
                       items: widget.target.bankAccounts.map((account) {
                         return DropdownMenuItem(
@@ -3136,7 +3136,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                     // Payment Method
                     _buildLabel('Payment Method *'),
                     DropdownButtonFormField<String>(
-                      value: _paymentMethod,
+                      initialValue: _paymentMethod,
                       decoration: _inputDecoration(''),
                       items: const [
                         DropdownMenuItem(
@@ -3402,7 +3402,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.primary, width: 2),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),

@@ -36,7 +36,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
   List<CashBasisCategory> _categories = [];
   List<CashBasisTransaction> _transactions = [];
   double _total = 0;
-  Map<int, double> _categoryTotals = {}; // Store total per category
+  final Map<int, double> _categoryTotals = {}; // Store total per category
 
   // Default date range: today only
   DateTime _startDate = DateTime.now();
@@ -208,7 +208,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<CashBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: _categories.map((category) {
@@ -611,7 +611,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<CashBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: _categories.map((category) {

@@ -51,7 +51,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy hh:mm a');
   final TextEditingController _searchController = TextEditingController();
 
-  List<Sale> _sales = [];
+  final List<Sale> _sales = [];
   List<Sale> _filteredSales = [];
   bool _isLoading = false;
 
@@ -982,14 +982,14 @@ class SaleDetailsSheet extends StatelessWidget {
                       children: [
                         // Share button
                         IconButton(
-                          icon: Icon(Icons.share, color: AppColors.primary),
+                          icon: const Icon(Icons.share, color: AppColors.primary),
                           tooltip: 'Share Receipt',
                           onPressed: () => _shareReceipt(context, sale),
                         ),
                         // SMS button -- same pair as the checkout dialog, so
                         // a receipt can be re-sent later from history.
                         IconButton(
-                          icon: Icon(Icons.sms_outlined, color: AppColors.primary),
+                          icon: const Icon(Icons.sms_outlined, color: AppColors.primary),
                           tooltip: 'SMS Receipt',
                           onPressed: () => ReceiptSms.send(context, sale,
                               phone: sale.customerPhone),
@@ -997,7 +997,7 @@ class SaleDetailsSheet extends StatelessWidget {
                         // Return items button
                         if (sale.saleId != null && sale.saleType == 0)
                           IconButton(
-                            icon: Icon(Icons.assignment_return, color: AppColors.primary),
+                            icon: const Icon(Icons.assignment_return, color: AppColors.primary),
                             tooltip: 'Return Items',
                             onPressed: () {
                               Navigator.pop(context);
@@ -1136,7 +1136,7 @@ class SaleDetailsSheet extends StatelessWidget {
                                           width: 1,
                                         ),
                                       ),
-                                      child: Row(
+                                      child: const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(
@@ -1144,7 +1144,7 @@ class SaleDetailsSheet extends StatelessWidget {
                                             size: 14,
                                             color: AppColors.success,
                                           ),
-                                          const SizedBox(width: 4),
+                                          SizedBox(width: 4),
                                           Text(
                                             'FREE (Quantity Offer)',
                                             style: TextStyle(

@@ -113,7 +113,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -202,7 +202,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
                       ),
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.date_range,
                             size: 20,
                             color: AppColors.primary,
@@ -234,7 +234,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
             // EFD Filter
             if (widget.efds.isNotEmpty && hasAllEfdPermission)
               DropdownButtonFormField<int?>(
-                value: _selectedEfdId,
+                initialValue: _selectedEfdId,
                 decoration: InputDecoration(
                   labelText: 'EFD Device',
                   filled: true,
@@ -448,7 +448,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.error_outline,
             size: 64,
             color: AppColors.error,

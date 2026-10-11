@@ -251,7 +251,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
+                        const Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
                         const SizedBox(width: 6),
                         Text(
                           DateFormat('dd/MM').format(_selectedDate),
@@ -278,7 +278,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
                           const SizedBox(height: 16),
@@ -365,7 +365,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                   child: Center(
                     child: Text(
                       '$number',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -499,7 +499,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
                 // Total row
                 const Divider(),
                 Padding(
@@ -517,7 +517,7 @@ class _SuspendedSheetScreenState extends State<SuspendedSheetScreen> {
                       ),
                       Text(
                         '${_currencyFormat.format(sale.saleTotal)} TSh',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                           color: AppColors.primary,

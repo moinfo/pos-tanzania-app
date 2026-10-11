@@ -346,7 +346,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
                                 const SizedBox(height: 12),
                                 Text(
                                   _statusFilter != null
-                                      ? 'No ${_statusFilter} requests'
+                                      ? 'No $_statusFilter requests'
                                       : 'No discount requests yet',
                                   style: TextStyle(color: isDark ? AppColors.darkTextLight : Colors.grey[500], fontSize: 15),
                                 ),
@@ -765,7 +765,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
     if (query.length < 2) return;
     setState(() => _searchingItems = true);
 
-    final locationId = 1; // Default location
+    const locationId = 1; // Default location
     final response = await _apiService.getItems(search: query, limit: 10, locationId: locationId);
     if (mounted) {
       setState(() {
@@ -1213,7 +1213,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
         labelText: label,
         labelStyle: TextStyle(color: isDark ? AppColors.darkTextLight : Colors.grey[500], fontSize: 13),
         helperText: helper,
-        helperStyle: TextStyle(fontSize: 11, color: AppColors.warning),
+        helperStyle: const TextStyle(fontSize: 11, color: AppColors.warning),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: isDark ? AppColors.darkDivider : Colors.grey.shade300),

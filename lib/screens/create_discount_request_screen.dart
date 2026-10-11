@@ -604,7 +604,7 @@ class _CreateDiscountRequestScreenState
             _field(
               isDark,
               DropdownButtonFormField<ScopedLocation>(
-                value: _location,
+                initialValue: _location,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Location',

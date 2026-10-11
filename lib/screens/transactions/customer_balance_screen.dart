@@ -290,7 +290,7 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.person,
                       color: AppColors.primary,
                       size: 20,
@@ -354,7 +354,7 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
                         const SizedBox(height: 4),
                         Text(
                           Formatters.formatCurrency(customer.totalWithdrawn),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppColors.primary,

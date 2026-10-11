@@ -36,7 +36,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
   List<BankBasisCategory> _categories = [];
   List<BankBasisTransaction> _transactions = [];
   double _total = 0;
-  Map<int, double> _categoryTotals = {};
+  final Map<int, double> _categoryTotals = {};
 
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
@@ -207,7 +207,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<BankBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: _categories.map((category) {
@@ -444,7 +444,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<BankBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: _categories.map((category) {

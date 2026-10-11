@@ -118,7 +118,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -232,7 +232,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                     // EFD Device
                     _buildLabel('EFD Device *', isDark),
                     DropdownButtonFormField<int>(
-                      value: _selectedEfdId,
+                      initialValue: _selectedEfdId,
                       decoration: _inputDecoration('Select EFD', isDark),
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -248,7 +248,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                     // Supplier
                     _buildLabel('Supplier *', isDark),
                     DropdownButtonFormField<int>(
-                      value: _selectedSupplierId,
+                      initialValue: _selectedSupplierId,
                       decoration: _inputDecoration('Select Supplier', isDark),
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -265,7 +265,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                     // Item
                     _buildLabel('Item *', isDark),
                     DropdownButtonFormField<int>(
-                      value: _selectedItemId,
+                      initialValue: _selectedItemId,
                       decoration: _inputDecoration('Select Item', isDark),
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -282,7 +282,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
                     // Purchase Type
                     _buildLabel('Purchase Type *', isDark),
                     DropdownButtonFormField<String>(
-                      value: _purchaseType,
+                      initialValue: _purchaseType,
                       decoration: _inputDecoration('Select Type', isDark),
                       dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -471,7 +471,7 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
+            const Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
               DateFormat('MMM dd, yyyy').format(date),
@@ -505,11 +505,11 @@ class _NewTRAPurchaseScreenState extends State<NewTRAPurchaseScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.primary),
+        borderSide: const BorderSide(color: AppColors.primary),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.error),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );

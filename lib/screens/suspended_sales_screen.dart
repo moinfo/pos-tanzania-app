@@ -717,7 +717,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.pause_circle,
                                                 size: 16,
                                                 color: AppColors.warning,
@@ -725,7 +725,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                               const SizedBox(width: 4),
                                               Text(
                                                 'Sale #${sale.saleId}',
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   color: AppColors.warning,
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 13,

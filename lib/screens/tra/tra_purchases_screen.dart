@@ -103,7 +103,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -268,7 +268,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.date_range, size: 20, color: AppColors.primary),
+                  const Icon(Icons.date_range, size: 20, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -293,7 +293,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
           // EFD Filter
           if (widget.efds.isNotEmpty && hasAllEfdPermission)
             DropdownButtonFormField<int?>(
-              value: _selectedEfdId,
+              initialValue: _selectedEfdId,
               decoration: InputDecoration(
                 labelText: 'EFD Device',
                 filled: true,
@@ -477,7 +477,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
                       ),
                       child: Text(
                         purchase.purchaseType,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: Colors.green,
@@ -551,7 +551,7 @@ class _TRAPurchasesScreenState extends State<TRAPurchasesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',

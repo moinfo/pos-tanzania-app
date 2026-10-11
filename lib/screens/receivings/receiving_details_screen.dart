@@ -174,7 +174,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline,
+                      const Icon(Icons.error_outline,
                           size: 64, color: AppColors.error),
                       const SizedBox(height: 16),
                       Text(_errorMessage!,
@@ -211,12 +211,12 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                                 const SizedBox(height: 12),
                                 Row(
                                   children: [
-                                    Icon(Icons.business,
+                                    const Icon(Icons.business,
                                         color: Colors.white, size: 22),
                                     const SizedBox(width: 8),
-                                    Text(
+                                    const Text(
                                       'Supplier: ',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 15,
                                         color: Colors.white70,
                                       ),
@@ -236,12 +236,12 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                                 const SizedBox(height: 12),
                                 Row(
                                   children: [
-                                    Icon(Icons.payment,
+                                    const Icon(Icons.payment,
                                         color: Colors.white, size: 22),
                                     const SizedBox(width: 8),
-                                    Text(
+                                    const Text(
                                       'Payment Type: ',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 15,
                                         color: Colors.white70,
                                       ),
@@ -314,7 +314,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                                               ),
                                               Text(
                                                 _formatCurrency(item.lineTotal),
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
                                                   color: AppColors.success,
@@ -363,7 +363,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                                       ),
                                     ),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ),
                           ),

@@ -87,7 +87,7 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -245,19 +245,19 @@ class _CustomerStatementScreenState extends State<CustomerStatementScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today,
+            const Icon(Icons.calendar_today,
                 size: 16, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
               '${Formatters.formatDate(_startDate)}  —  ${Formatters.formatDate(_endDate)}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: AppColors.primary,
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.edit, size: 14, color: AppColors.primary),
+            const Icon(Icons.edit, size: 14, color: AppColors.primary),
           ],
         ),
       ),

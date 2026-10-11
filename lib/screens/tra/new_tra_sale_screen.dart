@@ -291,7 +291,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -388,7 +388,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
               // EFD Device
               _buildLabel('EFD Device', isDark),
               DropdownButtonFormField<int>(
-                value: _selectedEfdId,
+                initialValue: _selectedEfdId,
                 decoration: _inputDecoration('Select EFD', isDark),
                 dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                 style: TextStyle(color: isDark ? Colors.white : AppColors.lightText),
@@ -786,11 +786,11 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.primary),
+        borderSide: const BorderSide(color: AppColors.primary),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.error),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
@@ -840,7 +840,7 @@ class _NewTRASaleScreenState extends State<NewTRASaleScreen> {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: AppColors.error),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );

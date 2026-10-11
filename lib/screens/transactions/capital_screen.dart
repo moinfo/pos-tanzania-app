@@ -82,7 +82,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -219,7 +219,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                         color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
+                      child: const Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -276,7 +276,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_error!, style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
                             const SizedBox(height: 16),
@@ -356,7 +356,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.work, color: AppColors.primary, size: 24),
+              child: const Icon(Icons.work, color: AppColors.primary, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(

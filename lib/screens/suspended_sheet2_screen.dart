@@ -261,7 +261,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 18, color: _headerColor),
+                        const Icon(Icons.calendar_today, size: 18, color: _headerColor),
                         const SizedBox(width: 6),
                         Text(
                           DateFormat('dd/MM').format(_selectedDate),
@@ -288,7 +288,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
                           const SizedBox(height: 16),
@@ -427,7 +427,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.local_shipping,
                     color: _headerColor,
                     size: 24,

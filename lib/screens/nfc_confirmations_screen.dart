@@ -209,7 +209,7 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_errorMessage!),
                             const SizedBox(height: 16),

@@ -918,7 +918,7 @@ class _CreateCashSubmissionDialogState
                 )
               else
                 DropdownButtonFormField<Supervisor>(
-                  value: _selectedSupervisor,
+                  initialValue: _selectedSupervisor,
                   dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                   style: TextStyle(color: isDark ? Colors.white : AppColors.text),
                   decoration: InputDecoration(

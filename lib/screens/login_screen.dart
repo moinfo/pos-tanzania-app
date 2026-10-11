@@ -546,7 +546,7 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(color: Color(0x21103863), blurRadius: 44, offset: Offset(0, -16)),
         ],
       ),
@@ -816,7 +816,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                         fontSize: 11.5, fontWeight: FontWeight.w600, color: _inkFaint),
                     children: [
-                      TextSpan(text: 'Powered by '),
+                      const TextSpan(text: 'Powered by '),
                       TextSpan(
                         text: 'Moinfotech',
                         style: TextStyle(fontWeight: FontWeight.w800, color: _inkMuted),
@@ -940,7 +940,7 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(color: Color(0x330F172A), blurRadius: 30, offset: Offset(0, -8)),
         ],
       ),

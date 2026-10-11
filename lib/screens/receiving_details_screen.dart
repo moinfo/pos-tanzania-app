@@ -8,9 +8,9 @@ class ReceivingDetailsScreen extends StatefulWidget {
   final int receivingId;
 
   const ReceivingDetailsScreen({
-    Key? key,
+    super.key,
     required this.receivingId,
-  }) : super(key: key);
+  });
 
   @override
   State<ReceivingDetailsScreen> createState() => _ReceivingDetailsScreenState();

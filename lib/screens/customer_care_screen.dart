@@ -346,7 +346,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.people, size: 16, color: _headerColor),
+                        const Icon(Icons.people, size: 16, color: _headerColor),
                         const SizedBox(width: 4),
                         Text(
                           '${_filteredCustomers.length} of ${_totals!.customerCount}',
@@ -360,11 +360,11 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.account_balance_wallet, size: 16, color: Colors.orange),
+                        const Icon(Icons.account_balance_wallet, size: 16, color: Colors.orange),
                         const SizedBox(width: 4),
                         Text(
                           '${_currencyFormat.format(_totals!.balance)} TSh',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Colors.orange,
@@ -388,7 +388,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
                           const SizedBox(height: 16),
@@ -499,13 +499,13 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
           // Header with status color gradient
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [_headerColor, _headerColorDark],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: const BorderRadius.only(
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(10),
                 topRight: Radius.circular(10),
               ),
@@ -789,7 +789,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
       color: isDark ? AppColors.darkCard : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
+        side: const BorderSide(
           color: _headerColor,
           width: 2,
         ),
@@ -812,7 +812,7 @@ class _CustomerCareScreenState extends State<CustomerCareScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.summarize, color: _headerColor, size: 20),
+                const Icon(Icons.summarize, color: _headerColor, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Totals',

@@ -91,16 +91,15 @@ class _ReceivingsSummaryScreenState extends State<ReceivingsSummaryScreen> {
         return Theme(
           data: isDark
               ? ThemeData.dark().copyWith(
-                  colorScheme: ColorScheme.dark(
+                  colorScheme: const ColorScheme.dark(
                     primary: AppColors.success,
                     onPrimary: Colors.white,
-                    surface: const Color(0xFF1E1E1E),
+                    surface: Color(0xFF1E1E1E),
                     onSurface: Colors.white,
                     secondary: AppColors.success,
                     onSecondary: Colors.white,
-                    surfaceContainerHighest: const Color(0xFF2D2D2D),
+                    surfaceContainerHighest: Color(0xFF2D2D2D),
                   ),
-                  dialogBackgroundColor: const Color(0xFF1E1E1E),
                   textButtonTheme: TextButtonThemeData(
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.success,
@@ -132,10 +131,10 @@ class _ReceivingsSummaryScreenState extends State<ReceivingsSummaryScreen> {
                     rangePickerHeaderBackgroundColor: AppColors.success,
                     rangePickerHeaderForegroundColor: Colors.white,
                     rangeSelectionBackgroundColor: AppColors.success.withOpacity(0.3),
-                  ),
+                  ), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
                 )
               : ThemeData.light().copyWith(
-                  colorScheme: ColorScheme.light(
+                  colorScheme: const ColorScheme.light(
                     primary: AppColors.success,
                     onPrimary: Colors.white,
                     surface: Colors.white,
@@ -272,7 +271,7 @@ class _ReceivingsSummaryScreenState extends State<ReceivingsSummaryScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_today, color: AppColors.success, size: 20),
+                          const Icon(Icons.calendar_today, color: AppColors.success, size: 20),
                           const SizedBox(width: 12),
                           Text(
                             _formatDateRange(),
@@ -283,7 +282,7 @@ class _ReceivingsSummaryScreenState extends State<ReceivingsSummaryScreen> {
                             ),
                           ),
                           const Spacer(),
-                          Icon(Icons.arrow_drop_down, color: AppColors.success),
+                          const Icon(Icons.arrow_drop_down, color: AppColors.success),
                         ],
                       ),
                     ),
@@ -321,7 +320,7 @@ class _ReceivingsSummaryScreenState extends State<ReceivingsSummaryScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, size: 64, color: AppColors.error),
+                            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_errorMessage!, style: const TextStyle(fontSize: 16)),
                             const SizedBox(height: 16),

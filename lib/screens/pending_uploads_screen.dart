@@ -1313,7 +1313,7 @@ class _DownloadedDataCardState extends State<_DownloadedDataCard> {
                   children: [
                     Text(
                       _expanded ? 'Hide the list' : 'See what was downloaded',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppColors.primary,
@@ -1378,7 +1378,7 @@ class _DownloadedDataCardState extends State<_DownloadedDataCard> {
               children: [
                 Text(
                   '$percent%',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,

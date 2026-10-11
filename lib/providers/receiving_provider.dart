@@ -5,7 +5,7 @@ import '../models/supplier.dart';
 
 class ReceivingProvider with ChangeNotifier {
   // Cart items
-  List<ReceivingItem> _cartItems = [];
+  final List<ReceivingItem> _cartItems = [];
 
   // Selected supplier
   Supplier? _selectedSupplier;

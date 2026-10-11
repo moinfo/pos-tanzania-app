@@ -104,7 +104,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -279,7 +279,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.date_range, size: 20, color: AppColors.primary),
+                  const Icon(Icons.date_range, size: 20, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -304,7 +304,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
           // EFD Filter
           if (widget.efds.isNotEmpty && hasAllEfdPermission)
             DropdownButtonFormField<int?>(
-              value: _selectedEfdId,
+              initialValue: _selectedEfdId,
               decoration: InputDecoration(
                 labelText: 'EFD Device',
                 filled: true,
@@ -408,7 +408,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
                       ),
                       child: Text(
                         'Z-${sale.efdNumber}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -428,7 +428,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () => _viewAttachment(sale.fileName!),
-                        child: Icon(
+                        child: const Icon(
                           Icons.attach_file,
                           size: 18,
                           color: AppColors.success,
@@ -568,7 +568,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',

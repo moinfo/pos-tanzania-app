@@ -198,7 +198,7 @@ class _WakalaScreenState extends State<WakalaScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<Sim>(
-                  value: selectedSim,
+                  initialValue: selectedSim,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'SIM Card'),
                   items: _sims.map((sim) {
@@ -435,7 +435,7 @@ class _WakalaScreenState extends State<WakalaScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<Sim>(
-                  value: selectedSim,
+                  initialValue: selectedSim,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'SIM Card'),
                   items: _sims.map((sim) {

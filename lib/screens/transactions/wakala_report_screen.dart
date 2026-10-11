@@ -293,7 +293,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
   Widget _buildExpensesSection(WakalaExpensesSection section, BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    final amountColor = AppColors.primary; // Expenses shown in red
+    const amountColor = AppColors.primary; // Expenses shown in red
 
     return GlassmorphicCard(
       child: Padding(
@@ -509,7 +509,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     final isDark = themeProvider.isDarkMode;
     final isGain = report.gainLoss >= 0;
     final gainColor = isDark ? Colors.greenAccent : Colors.green.shade700;
-    final lossColor = AppColors.primary;
+    const lossColor = AppColors.primary;
     final resultColor = isGain ? gainColor : lossColor;
 
     return GlassmorphicCard(

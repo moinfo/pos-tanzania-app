@@ -12,7 +12,7 @@ class LandingProvider with ChangeNotifier {
   List<PublicProduct> _products = [];
   List<ProductCategory> _categories = [];
   BusinessInfo? _businessInfo;
-  List<CartItem> _cart = [];
+  final List<CartItem> _cart = [];
   List<PublicOrder> _orderHistory = [];
 
   // Loading states
@@ -327,7 +327,7 @@ class LandingProvider with ChangeNotifier {
 
         // Validate stock for new price type
         if (item.quantity > newAvailableStock) {
-          return 'Insufficient stock for ${priceType} (${newAvailableStock.toInt()} available)';
+          return 'Insufficient stock for $priceType (${newAvailableStock.toInt()} available)';
         }
       }
 

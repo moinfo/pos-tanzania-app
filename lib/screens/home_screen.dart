@@ -3747,7 +3747,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 20),
 
         // My Commissions Section Title
-        _ShimmerBox(
+        const _ShimmerBox(
           width: 140,
           height: 20,
           borderRadius: 4,
@@ -3800,19 +3800,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return GlassmorphicCard(
       isDark: isDark,
       padding: const EdgeInsets.all(12),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               _ShimmerBox(width: 28, height: 28, borderRadius: 6),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: _ShimmerBox(width: double.infinity, height: 12, borderRadius: 4),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _ShimmerBox(width: 80, height: 20, borderRadius: 4),
         ],
       ),
@@ -3824,7 +3824,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return GlassmorphicCard(
       isDark: isDark,
       padding: const EdgeInsets.all(12),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -3834,9 +3834,9 @@ class _HomeScreenState extends State<HomeScreen> {
               _ShimmerBox(width: 50, height: 18, borderRadius: 4),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _ShimmerBox(width: 100, height: 14, borderRadius: 4),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _ShimmerBox(width: double.infinity, height: 6, borderRadius: 3),
         ],
       ),
@@ -3848,7 +3848,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return GlassmorphicCard(
       isDark: isDark,
       padding: const EdgeInsets.all(16),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -3857,12 +3857,12 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   _ShimmerBox(width: 40, height: 40, borderRadius: 10),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _ShimmerBox(width: 70, height: 16, borderRadius: 4),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       _ShimmerBox(width: 90, height: 12, borderRadius: 4),
                     ],
                   ),
@@ -3871,7 +3871,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _ShimmerBox(width: 70, height: 24, borderRadius: 12),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -3879,9 +3879,9 @@ class _HomeScreenState extends State<HomeScreen> {
               _ShimmerBox(width: 50, height: 12, borderRadius: 4),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _ShimmerBox(width: double.infinity, height: 8, borderRadius: 4),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -3889,7 +3889,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ShimmerBox(width: 70, height: 11, borderRadius: 4),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   _ShimmerBox(width: 80, height: 14, borderRadius: 4),
                 ],
               ),
@@ -3897,7 +3897,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   _ShimmerBox(width: 90, height: 11, borderRadius: 4),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   _ShimmerBox(width: 80, height: 14, borderRadius: 4),
                 ],
               ),
@@ -3913,19 +3913,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return GlassmorphicCard(
       isDark: isDark,
       padding: const EdgeInsets.all(16),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               _ShimmerBox(width: 44, height: 44, borderRadius: 10),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ShimmerBox(width: 80, height: 12, borderRadius: 4),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     _ShimmerBox(width: 100, height: 18, borderRadius: 4),
                   ],
                 ),

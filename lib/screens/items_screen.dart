@@ -610,13 +610,13 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   String _dormant = 'ACTIVE';
 
   List<StockLocation> _stockLocations = [];
-  Map<int, TextEditingController> _quantityControllers = {};
+  final Map<int, TextEditingController> _quantityControllers = {};
 
   // Image picker state
   final ImagePicker _imagePicker = ImagePicker();
   File? _mainImage;
-  List<File> _galleryImages = [];
-  List<File> _portfolioImages = [];
+  final List<File> _galleryImages = [];
+  final List<File> _portfolioImages = [];
 
   @override
   void initState() {
@@ -934,7 +934,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     final canSeeQuantity = permissionProvider.hasPermission(PermissionIds.itemsQuantity);
 
     return Dialog(
-      child: Container(
+      child: SizedBox(
         width: MediaQuery.of(context).size.width * 0.9,
         height: MediaQuery.of(context).size.height * 0.8,
         child: Column(
@@ -1129,7 +1129,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
         children: [
           // Stock Type
           DropdownButtonFormField<int>(
-            value: _stockType,
+            initialValue: _stockType,
             decoration: const InputDecoration(
               labelText: 'Stock Type',
               border: OutlineInputBorder(),
@@ -1143,7 +1143,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           const SizedBox(height: 16),
           // Item Type
           DropdownButtonFormField<int>(
-            value: _itemType,
+            initialValue: _itemType,
             decoration: const InputDecoration(
               labelText: 'Item Type',
               border: OutlineInputBorder(),
@@ -1257,7 +1257,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                   enabled: hasLocationPermission,
                 ),
               );
-            }).toList(),
+            }),
           ],
         ],
       ),

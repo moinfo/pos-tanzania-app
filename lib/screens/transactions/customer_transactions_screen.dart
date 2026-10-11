@@ -106,7 +106,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                           } else {
                             _filteredCustomers = _customers.where((customer) {
                               final fullName = '${customer.firstName} ${customer.lastName}'.toLowerCase();
-                              final phone = customer.phoneNumber?.toLowerCase() ?? '';
+                              final phone = customer.phoneNumber.toLowerCase() ?? '';
                               final searchQuery = query.toLowerCase();
                               return fullName.contains(searchQuery) || phone.contains(searchQuery);
                             }).toList();
@@ -156,9 +156,9 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
                                     color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
                                   ),
                                 ),
-                                subtitle: customer.phoneNumber != null && customer.phoneNumber!.isNotEmpty
+                                subtitle: customer.phoneNumber.isNotEmpty
                                     ? Text(
-                                        customer.phoneNumber!,
+                                        customer.phoneNumber,
                                         style: TextStyle(
                                           color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
                                         ),
@@ -884,7 +884,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.success.withOpacity(0.15),
-                child: Icon(Icons.arrow_downward, color: AppColors.success),
+                child: const Icon(Icons.arrow_downward, color: AppColors.success),
               ),
               title: Text(
                 Formatters.formatCurrency(deposit.amount),
@@ -996,7 +996,7 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.error.withOpacity(0.15),
-                child: Icon(Icons.arrow_upward, color: AppColors.error),
+                child: const Icon(Icons.arrow_upward, color: AppColors.error),
               ),
               title: Text(
                 Formatters.formatCurrency(withdrawal.amount),

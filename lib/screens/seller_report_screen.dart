@@ -644,7 +644,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                               color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
@@ -655,8 +655,8 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
+                                SizedBox(width: 4),
+                                Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
                               ],
                             ),
                           ),
@@ -735,7 +735,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
             ..._sellers.map((seller) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _buildSellerCard(seller, isDark),
-            )).toList(),
+            )),
           ],
         ),
       ),
@@ -1047,7 +1047,7 @@ class _SellerReportScreenState extends State<SellerReportScreen> {
               ),
               if (onTap != null) ...[
                 const SizedBox(width: 4),
-                Icon(Icons.chevron_right, size: 16, color: AppColors.primary),
+                const Icon(Icons.chevron_right, size: 16, color: AppColors.primary),
               ],
             ],
           ),

@@ -667,7 +667,7 @@ class ApiService {
       }
 
       return result;
-    } on SocketException catch (e) {
+    } on SocketException {
       return ApiResponse.error(
         message: 'Network error: Unable to connect to server. Please check your internet connection.',
       );
@@ -675,7 +675,7 @@ class ApiService {
       return ApiResponse.error(
         message: 'HTTP error: ${e.message}',
       );
-    } on FormatException catch (e) {
+    } on FormatException {
       return ApiResponse.error(
         message: 'Invalid response format from server',
       );
@@ -1935,7 +1935,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -1956,7 +1956,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -1976,7 +1976,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2089,7 +2089,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2114,7 +2114,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       _reportFailure(e);
@@ -2140,7 +2140,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2163,7 +2163,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2182,7 +2182,7 @@ class ApiService {
 
       return _handleResponse<Supplier>(
         response,
-        (data) => Supplier.fromJson(data as Map<String, dynamic>),
+        (data) => Supplier.fromJson(data),
       );
     } catch (e) {
       _reportFailure(e);
@@ -2213,7 +2213,7 @@ class ApiService {
 
       return _handleResponse<Supplier>(
         response,
-        (data) => Supplier.fromJson(data as Map<String, dynamic>),
+        (data) => Supplier.fromJson(data),
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2230,7 +2230,7 @@ class ApiService {
         headers: await _getHeaders(),
       );
 
-      return _handleResponse<void>(response, (_) => null);
+      return _handleResponse<void>(response, (_) {});
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
       // knows what did not happen, and that nothing was saved.
@@ -2330,7 +2330,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2491,7 +2491,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2750,7 +2750,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       _reportFailure(e);
@@ -2825,7 +2825,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       _reportFailure(e);
@@ -3580,7 +3580,7 @@ class ApiService {
 
       return _handleResponse<double>(
         response,
-        (data) => ((data as Map<String, dynamic>)['chip_balance'] ?? 0)
+        (data) => ((data)['chip_balance'] ?? 0)
             .toDouble(),
       );
     } catch (e) {
@@ -3607,7 +3607,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3700,7 +3700,7 @@ class ApiService {
 
       return _handleResponse<BankingListItem>(
         response,
-        (data) => BankingListItem.fromJson(data as Map<String, dynamic>),
+        (data) => BankingListItem.fromJson(data),
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3719,7 +3719,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3820,7 +3820,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       _reportFailure(e);
@@ -3840,7 +3840,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3859,7 +3859,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3979,7 +3979,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3998,7 +3998,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4229,7 +4229,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4248,7 +4248,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4280,7 +4280,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4299,7 +4299,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4392,7 +4392,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4411,7 +4411,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4493,7 +4493,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4512,7 +4512,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4574,7 +4574,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4593,7 +4593,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4675,7 +4675,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4694,7 +4694,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4756,7 +4756,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4775,7 +4775,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4857,7 +4857,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4876,7 +4876,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -7176,7 +7176,7 @@ class ApiService {
       );
       return _handleResponse<ReturnModalData>(
         response,
-        (data) => ReturnModalData.fromJson(data as Map<String, dynamic>),
+        (data) => ReturnModalData.fromJson(data),
       );
     } catch (e) {
       _reportFailure(e);
@@ -7208,7 +7208,7 @@ class ApiService {
       );
       return _handleResponse<ReturnResult>(
         response,
-        (data) => ReturnResult.fromJson(data as Map<String, dynamic>),
+        (data) => ReturnResult.fromJson(data),
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user

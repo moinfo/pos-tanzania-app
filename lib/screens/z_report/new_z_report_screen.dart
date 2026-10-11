@@ -94,7 +94,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -652,7 +652,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            suffixIcon: Icon(
+                            suffixIcon: const Icon(
                               Icons.calendar_month,
                               color: AppColors.primary,
                             ),
@@ -705,7 +705,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<int>(
-                              value: selectedLocation?.locationId,
+                              initialValue: selectedLocation?.locationId,
                               style: TextStyle(
                                 color: isDark ? AppColors.darkText : AppColors.text,
                               ),
@@ -724,7 +724,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none,
                                 ),
-                                suffixIcon: Icon(
+                                suffixIcon: const Icon(
                                   Icons.arrow_drop_down,
                                   color: AppColors.primary,
                                 ),

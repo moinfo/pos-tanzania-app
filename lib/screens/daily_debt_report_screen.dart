@@ -306,7 +306,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                             _formatter.format(total),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -1.3,
@@ -549,7 +549,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                 ),
                 child: Text(
                   creditInitials(debt.customerName),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF12833C),
@@ -591,7 +591,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
               Text(
                 '+${_formatter.format(debt.amount)}',
                 maxLines: 1,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF12833C),
@@ -617,7 +617,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
           onTap: _selectDateRange,
           child: Row(
             children: [
-              Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
+              const Icon(Icons.calendar_today, size: 20, color: AppColors.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -652,7 +652,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-              child: Icon(Icons.payments, color: AppColors.success, size: 28),
+              child: const Icon(Icons.payments, color: AppColors.success, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -660,7 +660,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Total Collection', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
-                  Text(_formatter.format(summary.totalAmount), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.success)),
+                  Text(_formatter.format(summary.totalAmount), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.success)),
                 ],
               ),
             ),
@@ -764,7 +764,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                  child: Text(_formatter.format(debt.amount), style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.success)),
+                  child: Text(_formatter.format(debt.amount), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.success)),
                 ),
               ],
             ),
@@ -823,7 +823,7 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
 
   Widget _buildErrorView() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.error_outline, size: 64, color: AppColors.error),
+      const Icon(Icons.error_outline, size: 64, color: AppColors.error),
       const SizedBox(height: 16),
       Text(_errorMessage ?? 'An error occurred', style: const TextStyle(fontSize: 16)),
       const SizedBox(height: 16),

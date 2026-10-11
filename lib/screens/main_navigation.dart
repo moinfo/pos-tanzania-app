@@ -599,7 +599,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           return Center(
             child: Text(
               ApiService.currentClient?.displayName ?? AppConstants.appName,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -839,94 +839,102 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         child: _buildCurvedAppBar(isDark, themeProvider),
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        // The profile header sits outside the scrolling list so it stays put
+        // while the menu moves underneath it.
+        child: Column(
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Update, settings and sign-out live up here rather than as
-                  // three more rows at the bottom of a menu the seller already
-                  // has to scroll. They are things you do TO the app, not with
-                  // it, and they belong beside the account they apply to.
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Profile picture (Leruma feature) or default icon
-                      _buildDrawerAvatar(user, isDark),
-                      const Spacer(),
-                      Consumer<UpdateProvider>(
-                        builder: (context, updates, _) => _DrawerHeaderAction(
-                          icon: Icons.system_update,
-                          tooltip: updates.updateAvailable
-                              ? 'Update available'
-                              : 'App update',
-                          // The dot is the only nagging that survives "Later".
-                          // It is passive, it blocks nothing, and it is how the
-                          // user knows the update did not simply vanish.
-                          showDot: updates.updateAvailable,
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Update, settings and sign-out live up here rather than as
+                    // three more rows at the bottom of a menu the seller already
+                    // has to scroll. They are things you do TO the app, not with
+                    // it, and they belong beside the account they apply to.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Profile picture (Leruma feature) or default icon
+                        _buildDrawerAvatar(user, isDark),
+                        const Spacer(),
+                        Consumer<UpdateProvider>(
+                          builder: (context, updates, _) => _DrawerHeaderAction(
+                            icon: Icons.system_update,
+                            tooltip: updates.updateAvailable
+                                ? 'Update available'
+                                : 'App update',
+                            // The dot is the only nagging that survives "Later".
+                            // It is passive, it blocks nothing, and it is how the
+                            // user knows the update did not simply vanish.
+                            showDot: updates.updateAvailable,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const AppUpdateScreen()),
+                              );
+                            },
+                          ),
+                        ),
+                        _DrawerHeaderAction(
+                          icon: Icons.settings,
+                          tooltip: 'Settings',
                           onTap: () {
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                  builder: (_) => const AppUpdateScreen()),
+                              MaterialPageRoute(builder: (_) => const SettingsScreen()),
                             );
                           },
                         ),
-                      ),
-                      _DrawerHeaderAction(
-                        icon: Icons.settings,
-                        tooltip: 'Settings',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                          );
-                        },
-                      ),
-                      _DrawerHeaderAction(
-                        icon: Icons.logout,
-                        tooltip: 'Log out',
-                        onTap: () => _confirmLogout(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    user?.displayName ?? 'User',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkText : Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                        _DrawerHeaderAction(
+                          icon: Icons.logout,
+                          tooltip: 'Log out',
+                          onTap: () => _confirmLogout(context),
+                        ),
+                      ],
                     ),
-                  ),
-                  // The installed version comes along with the update button,
-                  // so the number stays visible without costing a row.
-                  Consumer<UpdateProvider>(
-                    builder: (context, updates, _) => Text(
-                      updates.updateAvailable
-                          ? 'Version ${updates.installedLabel} · update available'
-                          : 'Version ${updates.installedLabel}',
+                    const SizedBox(height: 10),
+                    Text(
+                      user?.displayName ?? 'User',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : Colors.white70,
-                        fontSize: 12.5,
+                        color: isDark ? AppColors.darkText : Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ],
+                    // The installed version comes along with the update button,
+                    // so the number stays visible without costing a row.
+                    Consumer<UpdateProvider>(
+                      builder: (context, updates, _) => Text(
+                        updates.updateAvailable
+                            ? 'Version ${updates.installedLabel} · update available'
+                            : 'Version ${updates.installedLabel}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark ? AppColors.darkTextLight : Colors.white70,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              Expanded(
+                child: ListView(
+                  // Edge-to-edge on Android 15+: without the bottom inset the last
+                  // menu entries scroll to rest underneath the system navigation bar
+                  // and cannot be tapped.
+                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+                  children: [
             // 1. Customers Menu
             // Requests and approvals lead the section: raising a discount
             // request happens mid-sale, and an approval waiting on you is the
@@ -1497,6 +1505,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 },
               ),
             ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -1713,8 +1724,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                         double displayPosition = index + rotationOffset;
 
                         // Wrap around to keep all items in valid slots (0 to itemCount-1)
-                        while (displayPosition < 0) displayPosition += itemCount;
-                        while (displayPosition >= itemCount) displayPosition -= itemCount;
+                        while (displayPosition < 0) {
+                          displayPosition += itemCount;
+                        }
+                        while (displayPosition >= itemCount) {
+                          displayPosition -= itemCount;
+                        }
 
                         final xPos = displayPosition * itemWidth;
 

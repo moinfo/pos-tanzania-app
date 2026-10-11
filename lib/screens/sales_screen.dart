@@ -481,7 +481,7 @@ class _SalesScreenState extends State<SalesScreen> {
         );
       }
       return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Text(
           'No item matches that name or barcode',
           textAlign: TextAlign.center,
@@ -1186,7 +1186,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   children: [
                     Icon(Icons.discount_outlined,
                         size: 14, color: _sale.warning),
-                    SizedBox(width: 5),
+                    const SizedBox(width: 5),
                     Text(
                       'Item discounts',
                       style: TextStyle(
@@ -1292,7 +1292,7 @@ class _SalesScreenState extends State<SalesScreen> {
     if (saleProvider.selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Select a customer to start'),
+          content: const Text('Select a customer to start'),
           backgroundColor: _sale.warning,
         ),
       );
@@ -1843,11 +1843,11 @@ class _SalesScreenState extends State<SalesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
             Icon(Icons.check_circle, color: AppColors.success, size: 32),
-            const SizedBox(width: 12),
-            const Text('Sale Completed!'),
+            SizedBox(width: 12),
+            Text('Sale Completed!'),
           ],
         ),
         content: Column(
@@ -2989,7 +2989,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                             color: AppColors.primary,
                                           ),
                                           const SizedBox(width: 4),
-                                          Icon(Icons.shopping_cart, size: 18, color: AppColors.primary),
+                                          const Icon(Icons.shopping_cart, size: 18, color: AppColors.primary),
                                           const SizedBox(width: 8),
                                           Flexible(
                                             child: Text(
@@ -3006,12 +3006,12 @@ class _SalesScreenState extends State<SalesScreen> {
                                     ),
                                     Text(
                                       '${_currencyFormat.format(saleProvider.total)} TSh',
-                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary),
                                     ),
                                     const SizedBox(width: 10),
                                     InkWell(
                                       onTap: () => saleProvider.clearCart(),
-                                      child: Icon(Icons.delete_outline, size: 20, color: AppColors.error),
+                                      child: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
                                     ),
                                   ],
                                 ),
@@ -3113,8 +3113,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                               child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey.withValues(alpha: 0.1) : AppColors.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Icon(Icons.add, size: 16, color: saleProvider.isQuantityLockedByApprovedDiscount(item.itemId) ? Colors.grey : AppColors.success)),
                                             ),
                                             const SizedBox(width: 8),
-                                            SizedBox(width: 60, child: Text('${_currencyFormat.format(item.calculateTotal())}', textAlign: TextAlign.right, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87))),
-                                            InkWell(onTap: () => saleProvider.removeItem(idx), child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.close, size: 16, color: AppColors.error))),
+                                            SizedBox(width: 60, child: Text(_currencyFormat.format(item.calculateTotal()), textAlign: TextAlign.right, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87))),
+                                            InkWell(onTap: () => saleProvider.removeItem(idx), child: const Padding(padding: EdgeInsets.all(4), child: Icon(Icons.close, size: 16, color: AppColors.error))),
                                           ],
                                         ),
                                         // Row 2: Discount + Offer badges
@@ -3135,7 +3135,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                                         builder: (ctx) => AlertDialog(
                                                           backgroundColor: isDark ? AppColors.darkCard : Colors.white,
                                                           title: Text('Discount per item', style: TextStyle(fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
-                                                          content: Column(mainAxisSize: MainAxisSize.min, children: [Text('Max: ${_currencyFormat.format(discountLimit)} TSh', style: TextStyle(fontSize: 12, color: AppColors.warning)), const SizedBox(height: 8), TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: InputDecoration(labelText: 'Discount (TSh)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))))]),
+                                                          content: Column(mainAxisSize: MainAxisSize.min, children: [Text('Max: ${_currencyFormat.format(discountLimit)} TSh', style: const TextStyle(fontSize: 12, color: AppColors.warning)), const SizedBox(height: 8), TextField(controller: controller, keyboardType: TextInputType.number, autofocus: true, style: TextStyle(color: isDark ? Colors.white : Colors.black87), decoration: InputDecoration(labelText: 'Discount (TSh)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))))]),
                                                           actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), ElevatedButton(onPressed: () { var disc = double.tryParse(controller.text) ?? 0; if (disc > discountLimit) disc = discountLimit.toDouble(); saleProvider.updateDiscount(idx, disc * item.quantity, discountType: 1); Navigator.pop(ctx); }, child: const Text('Apply'))],
                                                         ),
                                                       );
@@ -3147,11 +3147,11 @@ class _SalesScreenState extends State<SalesScreen> {
                                                     ),
                                                   ),
                                                 if (hasOneTimeDiscount)
-                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer, size: 12, color: AppColors.success), const SizedBox(width: 4), Text('OTC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success))])),
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer, size: 12, color: AppColors.success), SizedBox(width: 4), Text('OTC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success))])),
                                                 if (hasPendingOTC && !hasOneTimeDiscount)
-                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.local_offer_outlined, size: 12, color: AppColors.warning), const SizedBox(width: 4), Text('OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning))])),
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.local_offer_outlined, size: 12, color: AppColors.warning), const SizedBox(width: 4), Text('OTC: ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning))])),
                                                 if (hasApprovedDiscount)
-                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified, size: 12, color: Colors.blue), const SizedBox(width: 4), Text('Approved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.blue))])),
+                                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified, size: 12, color: Colors.blue), SizedBox(width: 4), Text('Approved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.blue))])),
                                                 if (hasPendingApproved && !hasApprovedDiscount)
                                                   Builder(builder: (context) {
                                                     final req = saleProvider.getApprovedDiscountRequest(item.itemId);
@@ -3516,7 +3516,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                       ],
                                     ),
                                   );
-                                }).toList(),
+                                }),
                                 const SizedBox(height: 8),
                                 Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                                 const SizedBox(height: 8),
@@ -3575,7 +3575,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                     ),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppColors.warning,
-                                      side: BorderSide(color: AppColors.warning, width: 1.5),
+                                      side: const BorderSide(color: AppColors.warning, width: 1.5),
                                       padding: EdgeInsets.symmetric(horizontal: isLeruma ? 4 : 12),
                                     ),
                                   ),
@@ -3673,7 +3673,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                             ),
                                             style: OutlinedButton.styleFrom(
-                                              side: BorderSide(color: AppColors.primary, width: 1.5),
+                                              side: const BorderSide(color: AppColors.primary, width: 1.5),
                                               foregroundColor: AppColors.primary,
                                             ),
                                           ),
@@ -3913,7 +3913,7 @@ class _CartScreenState extends State<CartScreen> {
                                               width: 1,
                                             ),
                                           ),
-                                          child: Row(
+                                          child: const Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(
@@ -3921,7 +3921,7 @@ class _CartScreenState extends State<CartScreen> {
                                                 size: 12,
                                                 color: AppColors.success,
                                               ),
-                                              const SizedBox(width: 4),
+                                              SizedBox(width: 4),
                                               Text(
                                                 'One-time Discount Applied',
                                                 style: TextStyle(
@@ -3950,7 +3950,7 @@ class _CartScreenState extends State<CartScreen> {
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.local_offer_outlined,
                                                 size: 12,
                                                 color: AppColors.warning,
@@ -3958,7 +3958,7 @@ class _CartScreenState extends State<CartScreen> {
                                               const SizedBox(width: 4),
                                               Text(
                                                 'Discount Available (needs ${saleProvider.getOneTimeDiscountRequiredQty(item.itemId)?.toStringAsFixed(0) ?? "?"} qty)',
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   fontSize: 11,
                                                   color: AppColors.warning,
                                                   fontWeight: FontWeight.w600,
@@ -3981,11 +3981,11 @@ class _CartScreenState extends State<CartScreen> {
                                               width: 1,
                                             ),
                                           ),
-                                          child: Row(
+                                          child: const Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(Icons.verified, size: 12, color: Colors.blue),
-                                              const SizedBox(width: 4),
+                                              SizedBox(width: 4),
                                               Text(
                                                 'Approved Discount Applied',
                                                 style: TextStyle(
@@ -4073,7 +4073,7 @@ class _CartScreenState extends State<CartScreen> {
                                                     const SizedBox(height: 2),
                                                     Text(
                                                       'You get ${freeQty.toStringAsFixed(0)} FREE!',
-                                                      style: TextStyle(
+                                                      style: const TextStyle(
                                                         fontSize: 12,
                                                         color: AppColors.success,
                                                         fontWeight: FontWeight.bold,
@@ -4241,7 +4241,7 @@ class _CartScreenState extends State<CartScreen> {
                                                 child: Icon(Icons.lock, size: 14, color: Colors.blue.shade400),
                                               ),
                                             Text(
-                                              '${item.quantity.toStringAsFixed(0)}',
+                                              item.quantity.toStringAsFixed(0),
                                               style: TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
@@ -5033,7 +5033,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              value: _paymentMethod,
+              initialValue: _paymentMethod,
               decoration: const InputDecoration(labelText: 'Payment Method'),
               items: [
                 const DropdownMenuItem(value: 'Cash', child: Text('Cash')),
@@ -5342,7 +5342,7 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
             .where((customer) =>
                 customer.firstName.toLowerCase().contains(query.toLowerCase()) ||
                 customer.lastName.toLowerCase().contains(query.toLowerCase()) ||
-                (customer.phoneNumber?.toLowerCase().contains(query.toLowerCase()) ?? false))
+                (customer.phoneNumber.toLowerCase().contains(query.toLowerCase()) ?? false))
             .toList();
       }
     });
@@ -5512,13 +5512,12 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (customer.phoneNumber != null)
-                                      Text(customer.phoneNumber!),
-                                    if (customer.balance != null && customer.balance != 0)
+                                    Text(customer.phoneNumber!),
+                                    if (customer.balance != 0)
                                       Text(
                                         'Balance: ${NumberFormat('#,###').format(customer.balance)} TSh',
                                         style: TextStyle(
-                                          color: customer.balance! > 0
+                                          color: customer.balance > 0
                                               ? AppColors.error
                                               : AppColors.success,
                                           fontWeight: FontWeight.bold,
@@ -5565,25 +5564,25 @@ class _CustomerSelectionDialogState extends State<CustomerSelectionDialog> {
   }
 
   Widget _buildCustomerSkeletonCard() {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+    return const Card(
+      margin: EdgeInsets.symmetric(vertical: 4),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         child: Row(
           children: [
             // Avatar skeleton
-            const SkeletonLoader(
+            SkeletonLoader(
               width: 40,
               height: 40,
               borderRadius: 20,
               isDark: true,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             // Text content skeleton
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   SkeletonLoader(
                     width: 150,
                     height: 16,
@@ -5642,7 +5641,7 @@ class _OfferFreeLineTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.card_giftcard, size: 18, color: AppColors.success),
+          const Icon(Icons.card_giftcard, size: 18, color: AppColors.success),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -5661,7 +5660,7 @@ class _OfferFreeLineTile extends StatelessWidget {
                 if (item.description != null)
                   Text(
                     item.description!,
-                    style: TextStyle(fontSize: 10, color: AppColors.success),
+                    style: const TextStyle(fontSize: 10, color: AppColors.success),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -5671,7 +5670,7 @@ class _OfferFreeLineTile extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '${item.quantity.toStringAsFixed(0)} × FREE',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.success,
@@ -5679,8 +5678,8 @@ class _OfferFreeLineTile extends StatelessWidget {
           ),
           InkWell(
             onTap: onRemove,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
               child: Icon(Icons.close, size: 16, color: AppColors.error),
             ),
           ),

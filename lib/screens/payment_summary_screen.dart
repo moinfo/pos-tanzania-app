@@ -433,7 +433,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                             Row(
                               children: [
                                 Text('Sale #${sale.saleId}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
                                       color: AppColors.primary,
@@ -894,7 +894,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Text('${_money.format((row['amount'] ?? 0) as num)}',
+                    Text(_money.format((row['amount'] ?? 0) as num),
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,

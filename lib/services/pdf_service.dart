@@ -61,7 +61,7 @@ class PdfService {
               pw.Container(
                 width: double.infinity,
                 padding: const pw.EdgeInsets.symmetric(vertical: 14),
-                decoration: pw.BoxDecoration(
+                decoration: const pw.BoxDecoration(
                   border: pw.Border(
                     top: pw.BorderSide(color: PdfColors.red700, width: 4),
                     bottom: pw.BorderSide(color: PdfColors.red700, width: 4),
@@ -224,7 +224,7 @@ class PdfService {
                 decoration: pw.BoxDecoration(
                   color: PdfColors.amber50,
                   borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
+                  border: const pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
                 ),
                 child: pw.Text(
                   'Comment: ${sale.comment}',
@@ -242,7 +242,7 @@ class PdfService {
 
   static pw.Widget _buildItemsTable(SuspendedSheetSale sale) {
     return pw.Table(
-      border: pw.TableBorder(
+      border: const pw.TableBorder(
         left: pw.BorderSide(color: PdfColors.grey500, width: 2),
         right: pw.BorderSide(color: PdfColors.grey500, width: 2),
         top: pw.BorderSide(color: PdfColors.grey500, width: 2),
@@ -401,7 +401,7 @@ class PdfService {
               ),
               pw.Expanded(
                 child: pw.Container(
-                  decoration: pw.BoxDecoration(
+                  decoration: const pw.BoxDecoration(
                     border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey600, width: 2)),
                   ),
                   height: 32,
@@ -437,7 +437,7 @@ class PdfService {
               ),
               pw.Container(
                 width: 180,
-                decoration: pw.BoxDecoration(
+                decoration: const pw.BoxDecoration(
                   border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey600, width: 2)),
                 ),
                 height: 32,
@@ -588,7 +588,7 @@ class PdfService {
               pw.Container(
                 width: double.infinity,
                 padding: const pw.EdgeInsets.symmetric(vertical: 14),
-                decoration: pw.BoxDecoration(
+                decoration: const pw.BoxDecoration(
                   border: pw.Border(
                     top: pw.BorderSide(color: PdfColors.blue700, width: 4),
                     bottom: pw.BorderSide(color: PdfColors.blue700, width: 4),
@@ -734,7 +734,7 @@ class PdfService {
                 decoration: pw.BoxDecoration(
                   color: PdfColors.amber50,
                   borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
+                  border: const pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
                 ),
                 child: pw.Text(
                   'Comment: ${sale.comment}',
@@ -752,7 +752,7 @@ class PdfService {
 
   static pw.Widget _buildSheet2ItemsTable(SuspendedSheet2Sale sale) {
     return pw.Table(
-      border: pw.TableBorder(
+      border: const pw.TableBorder(
         left: pw.BorderSide(color: PdfColors.grey500, width: 2),
         right: pw.BorderSide(color: PdfColors.grey500, width: 2),
         top: pw.BorderSide(color: PdfColors.grey500, width: 2),
@@ -914,7 +914,7 @@ class PdfService {
               pw.Container(
                 width: double.infinity,
                 padding: const pw.EdgeInsets.symmetric(vertical: 14),
-                decoration: pw.BoxDecoration(
+                decoration: const pw.BoxDecoration(
                   border: pw.Border(
                     top: pw.BorderSide(color: PdfColors.green700, width: 4),
                     bottom: pw.BorderSide(color: PdfColors.green700, width: 4),
@@ -1073,7 +1073,7 @@ class PdfService {
                 decoration: pw.BoxDecoration(
                   color: PdfColors.amber50,
                   borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
+                  border: const pw.Border(left: pw.BorderSide(color: PdfColors.amber, width: 5)),
                 ),
                 child: pw.Text(
                   'Comment: ${sale.comment}',
@@ -1091,7 +1091,7 @@ class PdfService {
 
   static pw.Widget _buildSheet3ItemsTable(SuspendedSheet3Sale sale) {
     return pw.Table(
-      border: pw.TableBorder(
+      border: const pw.TableBorder(
         left: pw.BorderSide(color: PdfColors.grey500, width: 2),
         right: pw.BorderSide(color: PdfColors.grey500, width: 2),
         top: pw.BorderSide(color: PdfColors.grey500, width: 2),
@@ -1264,7 +1264,7 @@ class PdfService {
                 pw.Container(
                   width: double.infinity,
                   padding: const pw.EdgeInsets.symmetric(vertical: 18),
-                  decoration: pw.BoxDecoration(
+                  decoration: const pw.BoxDecoration(
                     border: pw.Border(
                       top: pw.BorderSide(color: PdfColors.green700, width: 4),
                       bottom: pw.BorderSide(color: PdfColors.green700, width: 4),
@@ -1535,7 +1535,7 @@ class PdfService {
     }
 
     return pw.Table(
-      border: pw.TableBorder(
+      border: const pw.TableBorder(
         left: pw.BorderSide(color: PdfColors.grey500, width: 2),
         right: pw.BorderSide(color: PdfColors.grey500, width: 2),
         top: pw.BorderSide(color: PdfColors.grey500, width: 2),
@@ -1660,8 +1660,8 @@ class PdfService {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Discount:', style: pw.TextStyle(fontSize: 20, color: PdfColors.red700)),
-                  pw.Text('-${_currencyFormat.format(totalDiscount)} TSh', style: pw.TextStyle(fontSize: 20, color: PdfColors.red700)),
+                  pw.Text('Discount:', style: const pw.TextStyle(fontSize: 20, color: PdfColors.red700)),
+                  pw.Text('-${_currencyFormat.format(totalDiscount)} TSh', style: const pw.TextStyle(fontSize: 20, color: PdfColors.red700)),
                 ],
               ),
             ],
@@ -1708,7 +1708,7 @@ class PdfService {
         children: sale.payments!.map((payment) {
           return pw.Container(
             padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: pw.BoxDecoration(
+            decoration: const pw.BoxDecoration(
               border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 1)),
             ),
             child: pw.Row(
