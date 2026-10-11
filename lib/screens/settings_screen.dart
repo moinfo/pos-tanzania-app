@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../widgets/tr_text.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +13,7 @@ import '../services/api_service.dart';
 import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../widgets/language_switcher.dart';
 import 'client_selector_screen.dart';
 import 'app_update_screen.dart';
 import 'pending_uploads_screen.dart';
@@ -280,6 +282,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : null,
                 ),
               ],
+            ),
+          ),
+
+          // Language Section
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'LANGUAGE',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          GlassmorphicCard(
+            isDark: isDark,
+            child: LanguageSelectorTile(
+              titleColor: isDark ? AppColors.darkText : AppColors.text,
+              subtitleColor: isDark ? AppColors.darkTextLight : AppColors.textLight,
+              accent: AppColors.primary,
             ),
           ),
 

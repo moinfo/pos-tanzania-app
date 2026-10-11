@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'tr_text.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';

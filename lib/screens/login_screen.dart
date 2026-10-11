@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../widgets/tr_text.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -15,6 +16,9 @@ import '../services/biometric_service.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
+import '../l10n/lang.dart';
+import '../widgets/brand_backdrop.dart';
+import '../widgets/language_switcher.dart';
 import '../providers/offline_provider.dart';
 import '../widgets/offline_indicator.dart';
 import '../config/clients_config.dart';
@@ -406,10 +410,13 @@ class _LoginScreenState extends State<LoginScreen> {
             bottom: false,
             child: LayoutBuilder(
               builder: (context, box) {
-                // Short windows -- landscape, or a portrait phone with the
-                // keyboard open -- cannot hold a pinned hero above the form: the
-                // form overflows. There the whole screen scrolls as one column.
-                if (box.maxWidth > box.maxHeight && box.maxWidth >= 560) {
+                // IMPORTANT: one widget tree per orientation. An earlier version
+                // switched layouts when the keyboard shrank the window, which
+                // rebuilt the text fields mid-typing and dropped their focus --
+                // the keyboard closed itself after every key. Portrait is now a
+                // single scrollable column whether or not the keyboard is up.
+                if (MediaQuery.of(context).orientation == Orientation.landscape &&
+                    box.maxWidth >= 560) {
                   // Landscape: brand on the left, form on the right, so the
                   // fields are on screen without scrolling past a tall hero.
                   return Row(
@@ -440,34 +447,31 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   );
                 }
-                if (box.maxHeight < 620) {
-                  return SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _buildTopBar(),
-                        _buildHero(client, availableHeight: 200),
-                        _buildFormSheet(client),
-                      ],
-                    ),
-                  );
-                }
-                return Column(
-                  children: [
-                    _buildTopBar(),
-                    Expanded(
-                      // The hero sizes its logo to the room left above the form,
-                      // so it needs that height, not a fraction of the screen.
-                      child: LayoutBuilder(
-                        builder: (context, box) => SingleChildScrollView(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(minHeight: box.maxHeight),
-                            child: _buildHero(client, availableHeight: box.maxHeight),
+                // Room the hero gets above the form (top bar and form sheet
+                // take roughly 580dp with the hero's own text); it shrinks, down to a floor, when the
+                // keyboard takes the space and the screen scrolls instead.
+                final heroHeight = (box.maxHeight - 580).clamp(190.0, 460.0);
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: box.maxHeight),
+                    // IntrinsicHeight lets the hero take the leftover space
+                    // (pinning the form to the bottom) while still scrolling
+                    // when the content is taller than the window.
+                    child: IntrinsicHeight(
+                      child: Column(
+                        children: [
+                          _buildTopBar(),
+                          Expanded(
+                            child: Center(
+                              child: _buildHero(client,
+                                  availableHeight: heroHeight),
+                            ),
                           ),
-                        ),
+                          _buildFormSheet(client),
+                        ],
                       ),
                     ),
-                    _buildFormSheet(client),
-                  ],
+                  ),
                 );
               },
             ),
@@ -523,31 +527,43 @@ class _LoginScreenState extends State<LoginScreen> {
               );
             },
           ),
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) => Material(
-              color: _surface,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                highlightColor: _hairline,
-                onTap: themeProvider.toggleTheme,
-                child: Container(
-                  width: 38, height: 38,
-                  decoration: BoxDecoration(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LanguageChip(
+                surface: _surface,
+                border: _hairline,
+                ink: _inkMuted,
+                accent: const Color(0xFF1668A6),
+              ),
+              const SizedBox(width: 8),
+              Consumer<ThemeProvider>(
+                builder: (context, themeProvider, child) => Material(
+                  color: _surface,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _hairline),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x0F103863), blurRadius: 8, offset: Offset(0, 2)),
-                    ],
-                  ),
-                  child: Icon(
-                    _dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                    size: 18,
-                    color: _inkMuted,
+                    highlightColor: _hairline,
+                    onTap: themeProvider.toggleTheme,
+                    child: Container(
+                      width: 38, height: 38,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _hairline),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x0F103863), blurRadius: 8, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Icon(
+                        _dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                        size: 18,
+                        color: _inkMuted,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -555,20 +571,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// Hero background gradient drawn from the client's own logo colours, or null
-  /// for the default light hero. Sada's mark carries blue, green, yellow and
-  /// orange: the cool blue-to-green run is the field, the warm tones are kept
-  /// for the accent so the (blue) logo tile never has to sit on blue.
-  List<Color>? _heroGradient(ClientConfig? client) {
-    if (client?.id == 'sada') {
-      return const [
-        Color(0xFF1B4F9C), // logo blue, deepened
-        Color(0xFF1479B8),
-        Color(0xFF14A38B), // blue-green blend from the logo's M
-        Color(0xFF2DB566), // logo green
-      ];
-    }
-    return null;
-  }
+  /// for the default light hero. Shared with the launch screen.
+  List<Color>? _heroGradient(ClientConfig? client) =>
+      BrandBackdrop.gradientFor(client);
 
   /// The signed-in client's own mark, sized by height so a tall logo and a wide
   /// one both sit inside the hero without distortion.
@@ -1040,7 +1045,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      hintText: hint,
+                      hintText: Lang.tr(hint),
                       hintStyle: TextStyle(
                           fontSize: 15.5, fontWeight: FontWeight.w600, color: _inkFaint),
                     ),

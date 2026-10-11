@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'tr_text.dart';
 import '../services/nfc_service.dart';
 import '../models/customer.dart';
 import '../utils/constants.dart';

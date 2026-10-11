@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../widgets/tr_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/clients_config.dart';
 import '../models/client_config.dart';

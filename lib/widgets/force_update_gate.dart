@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'tr_text.dart';
 
 import '../models/app_version_info.dart';
 import '../services/force_update.dart';
