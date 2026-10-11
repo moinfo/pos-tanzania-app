@@ -9,7 +9,11 @@ import '../widgets/app_bottom_navigation.dart';
 import '../utils/constants.dart';
 
 class ShopsScreen extends StatefulWidget {
-  const ShopsScreen({super.key});
+  /// True when shown as a tab inside MainNavigation, which already draws the
+  /// bottom navigation -- an embedded instance must not draw a second one.
+  final bool embedded;
+
+  const ShopsScreen({super.key, this.embedded = false});
 
   @override
   State<ShopsScreen> createState() => _ShopsScreenState();
@@ -262,7 +266,8 @@ class _ShopsScreenState extends State<ShopsScreen> {
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Shop', style: TextStyle(color: Colors.white)),
       ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: -1),
+      bottomNavigationBar:
+          widget.embedded ? null : const AppBottomNavigation(currentIndex: -1),
     );
   }
 }

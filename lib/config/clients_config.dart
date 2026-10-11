@@ -73,6 +73,7 @@ class ClientsConfig {
       devApiUrl: localBaseUrl,
       prodApiUrl: 'https://kiwangwa.co.tz/api',
       logoUrl: 'assets/images/sada-logo.png',
+      branding: const ClientBranding(appTitle: 'Kiwangwa Shop'),
       features: const ClientFeatures(
         hasContracts: true,
         hasOfflineMode: false,

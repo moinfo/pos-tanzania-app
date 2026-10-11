@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -382,27 +383,93 @@ class _LoginScreenState extends State<LoginScreen> {
       // FULL screen height instead of the space left above the sheet.
       body: Stack(
         children: [
-          Positioned(
-            top: 0, left: 0, right: 0, height: 330,
-            child: CustomPaint(painter: _OrbitPainter(dark: _dark)),
-          ),
-          SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                _buildTopBar(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: MediaQuery.of(context).size.height * 0.22,
-                      ),
-                      child: _buildHero(client),
-                    ),
+          if (_heroGradient(client) != null)
+            // Brand gradient behind the whole screen; the white form sheet
+            // covers the lower part, so only the hero area shows through.
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _heroGradient(client)!,
                   ),
                 ),
-                _buildFormSheet(client),
-              ],
+              ),
+            )
+          else
+            Positioned(
+              top: 0, left: 0, right: 0, height: 330,
+              child: CustomPaint(painter: _OrbitPainter(dark: _dark)),
+            ),
+          SafeArea(
+            bottom: false,
+            child: LayoutBuilder(
+              builder: (context, box) {
+                // Short windows -- landscape, or a portrait phone with the
+                // keyboard open -- cannot hold a pinned hero above the form: the
+                // form overflows. There the whole screen scrolls as one column.
+                if (box.maxWidth > box.maxHeight && box.maxWidth >= 560) {
+                  // Landscape: brand on the left, form on the right, so the
+                  // fields are on screen without scrolling past a tall hero.
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            _buildTopBar(),
+                            Expanded(
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  child: _buildHero(client,
+                                      availableHeight: box.maxHeight - 40),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: SingleChildScrollView(
+                            child: _buildFormSheet(client),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                if (box.maxHeight < 620) {
+                  return SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _buildTopBar(),
+                        _buildHero(client, availableHeight: 200),
+                        _buildFormSheet(client),
+                      ],
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    _buildTopBar(),
+                    Expanded(
+                      // The hero sizes its logo to the room left above the form,
+                      // so it needs that height, not a fraction of the screen.
+                      child: LayoutBuilder(
+                        builder: (context, box) => SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: box.maxHeight),
+                            child: _buildHero(client, availableHeight: box.maxHeight),
+                          ),
+                        ),
+                      ),
+                    ),
+                    _buildFormSheet(client),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -487,40 +554,114 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildHero(ClientConfig? client) {
+  /// Hero background gradient drawn from the client's own logo colours, or null
+  /// for the default light hero. Sada's mark carries blue, green, yellow and
+  /// orange: the cool blue-to-green run is the field, the warm tones are kept
+  /// for the accent so the (blue) logo tile never has to sit on blue.
+  List<Color>? _heroGradient(ClientConfig? client) {
+    if (client?.id == 'sada') {
+      return const [
+        Color(0xFF1B4F9C), // logo blue, deepened
+        Color(0xFF1479B8),
+        Color(0xFF14A38B), // blue-green blend from the logo's M
+        Color(0xFF2DB566), // logo green
+      ];
+    }
+    return null;
+  }
+
+  /// The signed-in client's own mark, sized by height so a tall logo and a wide
+  /// one both sit inside the hero without distortion.
+  ///
+  /// With [outlined] the mark has no background of its own: a white stroke is
+  /// traced around its shapes instead, so it stays legible on a gradient.
+  /// Flutter has no stroke for bitmap alpha, so the silhouette is drawn white
+  /// at a ring of offsets behind the real logo -- the union of those copies is
+  /// the outline.
+  Widget _buildHeroLogo(ClientConfig? client,
+      {bool outlined = false, double? height}) {
+    final logoHeight = height ?? (outlined ? 150.0 : 100.0);
+    final path = client?.id == 'leruma' || client?.logoUrl == null
+        ? 'assets/images/leruma-logo.svg'
+        : client!.logoUrl!;
+    Widget logo() => path.toLowerCase().endsWith('.svg')
+        ? SvgPicture.asset(path, height: logoHeight, fit: BoxFit.contain)
+        : Image.asset(
+            path,
+            height: logoHeight,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          );
+    if (!outlined) return logo();
+
+    const stroke = 4.5;
+    const steps = 24;
+    final silhouettes = <Widget>[
+      for (var i = 0; i < steps; i++)
+        Transform.translate(
+          offset: Offset.fromDirection(2 * math.pi * i / steps, stroke),
+          child: ColorFiltered(
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+            child: logo(),
+          ),
+        ),
+    ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(26, 0, 26, 30),
+      // Room for the stroke so it is not clipped at the logo's own bounds.
+      padding: const EdgeInsets.all(stroke + 1),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [...silhouettes, logo()],
+      ),
+    );
+  }
+
+  Widget _buildHero(ClientConfig? client, {required double availableHeight}) {
+    // Title, tagline and spacing around the logo take roughly 112dp; the rest is
+    // the logo's. The mark is portrait, so height is what limits it -- it
+    // grows to the largest size that still fits above the form.
+    final logoHeight = (availableHeight - 112).clamp(110.0, 300.0);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            decoration: BoxDecoration(
-              // Stays white in both themes: the Leruma mark is navy artwork and
-              // vanishes without its own ground.
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(color: Color(0x24103863), blurRadius: 36, offset: Offset(0, 14)),
-                BoxShadow(color: Color(0x0F103863), blurRadius: 6, offset: Offset(0, 2)),
-              ],
+          if (_heroGradient(client) != null)
+            // No background of its own: the mark sits straight on the gradient
+            // with a white stroke traced around its shapes.
+            _buildHeroLogo(client, outlined: true, height: logoHeight)
+          else
+            // A white tile carries the logo so a dark or multi-colour mark
+            // reads on the light hero.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 22),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x24103863), blurRadius: 36, offset: Offset(0, 14)),
+                  BoxShadow(color: Color(0x0F103863), blurRadius: 6, offset: Offset(0, 2)),
+                ],
+              ),
+              child: _buildHeroLogo(client),
             ),
-            child: SvgPicture.asset('assets/images/leruma-logo.svg', width: 138),
-          ),
           const SizedBox(height: 12),
           Text(
             client?.branding.appTitle ?? AppConstants.appName,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 23, fontWeight: FontWeight.w800,
-              letterSpacing: -0.5, height: 1.15, color: _ink,
+              letterSpacing: -0.5, height: 1.15,
+              color: _heroGradient(client) != null ? Colors.white : _ink,
             ),
           ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 7),
             decoration: BoxDecoration(
-              color: _brandBlue.withValues(alpha: _dark ? 0.22 : 0.1),
+              color: _heroGradient(client) != null
+                  ? Colors.white.withValues(alpha: 0.22)
+                  : _brandBlue.withValues(alpha: _dark ? 0.22 : 0.1),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
@@ -529,7 +670,9 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(
                 fontSize: 12.5, fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
-                color: _dark ? const Color(0xFF8FBEE6) : const Color(0xFF1668A6),
+                color: _heroGradient(client) != null
+                    ? Colors.white
+                    : (_dark ? const Color(0xFF8FBEE6) : const Color(0xFF1668A6)),
               ),
             ),
           ),
@@ -636,7 +779,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 16),
           _buildField(
             label: 'USERNAME', controller: _usernameController, fieldKey: 'user',
-            hint: 'e.g. anzwari.m', icon: Icons.person_outline,
+            hint: 'e.g. msembe', icon: Icons.person_outline,
           ),
           const SizedBox(height: 10),
           _buildField(
@@ -805,7 +948,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
           Container(
             margin: const EdgeInsets.only(top: 12),
-            padding: const EdgeInsets.only(top: 14, bottom: 22),
+            // Edge-to-edge on Android 15+: add the system bar's height so the
+            // footer clears it instead of sitting underneath.
+            padding: EdgeInsets.only(
+                top: 14, bottom: 22 + MediaQuery.of(context).padding.bottom),
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: _hairline)),
             ),

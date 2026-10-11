@@ -86,7 +86,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
     );
     _checkAuthStatus();
-    _checkForUpdate();
+    // check() notifies listeners straight away, and initState runs inside the
+    // build phase: calling it here threw "setState() called during build".
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
   }
 
   /// Ask the server once per sign-in whether a newer build is published, and
@@ -345,7 +347,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     // Add Shops for SADA client (shop registration with GPS)
     if (hasShops) {
       configs.add({
-        'screen': ShopsScreen(key: ValueKey('shops_$userId')),
+        'screen': ShopsScreen(key: ValueKey('shops_$userId'), embedded: true),
         'icon': Icons.store,
         'label': 'Shops',
         'permission': PermissionIds.customersShops, // customers_shops permission
@@ -1531,9 +1533,24 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               // The curved bar with the notched Sales FAB stays for every other
               // client -- it is their shipped navigation, not a shared style.
               ? _buildLerumaBottomNav(availableScreens)
-              : MediaQuery(
-                  data: MediaQuery.of(context).removePadding(removeBottom: true),
-                  child: _buildCurvedBottomNav(availableScreens, isDark),
+              // Android 15+ draws edge to edge for targetSdk 36, so the system
+              // navigation bar overlays the app. The bar's own SafeArea sees no
+              // inset by the time it is laid out as the Scaffold's bottom bar,
+              // which slid it underneath. Apply the inset here, from the
+              // context that still has it, and keep the inner SafeArea from
+              // adding it a second time.
+              : ColoredBox(
+                  color: isDark ? AppColors.darkCard : Colors.white,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).padding.bottom,
+                    ),
+                    child: MediaQuery.removePadding(
+                      context: context,
+                      removeBottom: true,
+                      child: _buildCurvedBottomNav(availableScreens, isDark),
+                    ),
+                  ),
                 ))
           : null,
     );
