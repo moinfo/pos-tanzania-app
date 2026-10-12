@@ -16,6 +16,7 @@ import '../widgets/nfc_scan_dialog.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
 import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
 import '../l10n/lang.dart';
 
 class NfcCardsScreen extends StatefulWidget {
@@ -309,6 +310,10 @@ class _NfcCardsScreenState extends State<NfcCardsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: const Text('NFC Cards'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,

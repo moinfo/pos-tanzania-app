@@ -7,6 +7,7 @@ import '../providers/theme_provider.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
 import 'curved_bottom_navigation.dart';
+import 'nav_active.dart';
 import '../widgets/tr_text.dart';
 
 class AppBottomNavigation extends StatelessWidget {
@@ -165,9 +166,18 @@ class AppBottomNavigation extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // A screen opened from the side menu: its own icon goes in the centre
+    // notch, as an extra entry after the tabs. Tapping it does nothing -- the
+    // user is already there.
+    final fromMenu = currentIndex < 0 ? NavActive.claim(ModalRoute.of(context)) : null;
+    final menuIndex = fromMenu != null ? availableItems.length : -1;
+    if (fromMenu != null) availableItems.add(fromMenu);
+
     // Map current index to display index
     int displayIndex = 0;
-    if (currentIndex >= 0) {
+    if (menuIndex >= 0) {
+      displayIndex = menuIndex;
+    } else if (currentIndex >= 0) {
       for (int i = 0; i < indexMapping.length; i++) {
         if (indexMapping[i] == currentIndex) {
           displayIndex = i;
@@ -187,16 +197,26 @@ class AppBottomNavigation extends StatelessWidget {
       );
     }
 
+    final kariakoo = ApiService.currentClient?.id == 'kariakoo_shops';
+
     return CurvedBottomNavigation(
       currentIndex: displayIndex >= 0 && displayIndex < availableItems.length ? displayIndex : 0,
       onTap: (displayIndex) {
+        if (displayIndex == menuIndex) return;
         // Map display index back to original index
         final originalIndex = indexMapping[displayIndex] ?? 0;
         _handleTap(context, originalIndex);
       },
+      // Kariakoo Shops: brand-green bar, white icons; the selected one is a
+      // green icon on a white disc in the notch. Same as MainNavigation.
       selectedItemColor: AppColors.primary,
-      unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
-      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+      selectedBadgeColor: kariakoo ? Colors.white : null,
+      unselectedItemColor: kariakoo
+          ? Colors.white.withValues(alpha: 0.72)
+          : (isDark ? Colors.white54 : AppColors.textLight),
+      backgroundColor:
+          kariakoo ? AppColors.brandPrimary : (isDark ? AppColors.darkCard : Colors.white),
+      borderColor: kariakoo ? AppColors.brandPrimaryDark : null,
       items: availableItems,
     );
   }

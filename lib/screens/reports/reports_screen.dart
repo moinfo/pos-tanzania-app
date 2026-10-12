@@ -8,6 +8,7 @@ import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 import 'report_view_screen.dart';
 import '../../widgets/tr_text.dart';
+import '../../widgets/app_bottom_navigation.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
@@ -17,6 +18,10 @@ class ReportsScreen extends StatelessWidget {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: Colors.transparent,
       body: Container(
         decoration: BoxDecoration(

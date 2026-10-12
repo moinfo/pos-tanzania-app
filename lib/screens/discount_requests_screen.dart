@@ -14,6 +14,7 @@ import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
 import '../l10n/lang.dart';
 
 class DiscountRequestsScreen extends StatefulWidget {
@@ -235,6 +236,10 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
     final canDelete = permissionProvider.hasPermission(PermissionIds.customerDiscountRequestsDelete);
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Discount Requests'),

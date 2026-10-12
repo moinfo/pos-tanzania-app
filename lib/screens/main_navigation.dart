@@ -8,6 +8,7 @@ import '../providers/location_provider.dart';
 import '../models/stock_location.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
+import '../widgets/nav_active.dart';
 import '../widgets/offline_indicator.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
@@ -955,7 +956,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionIds.customerCreditLimitsAdd,
               ],
               child: Consumer<NotificationProvider>(
-                builder: (context, notifications, _) => ListTile(
+                builder: (context, notifications, _) => _DrawerTile(
                   leading: Icon(Icons.approval, color: AppColors.brandPrimary),
                   title: const Text('Discount & Approvals'),
                   trailing: notifications.pendingApprovals > 0
@@ -1004,7 +1005,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionIds.customerCreditLimitsView,
                 PermissionIds.customerCreditLimitsAdd,
               ],
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.request_quote_outlined,
                     color: AppColors.brandPrimary),
                 title: const Text('Credit Limit & Approvals'),
@@ -1026,7 +1027,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Customers List
                 PermissionWrapper(
                   permissionId: PermissionIds.customers,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: Icon(Icons.people_outline, color: AppColors.brandPrimary),
                     title: const Text('Customers List'),
                     onTap: () {
@@ -1041,7 +1042,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Customer Credits
                 PermissionWrapper(
                   permissionId: PermissionIds.credits,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: const Icon(Icons.credit_card, color: AppColors.error),
                     title: const Text('Customer Credits'),
                     onTap: () {
@@ -1057,7 +1058,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 if (ApiService.currentClient?.features.hasShops ?? false)
                   PermissionWrapper(
                     permissionId: PermissionIds.customersShops,
-                    child: ListTile(
+                    child: _DrawerTile(
                       leading: Icon(Icons.store, color: AppColors.brandPrimary),
                       title: const Text('Shops'),
                       onTap: () {
@@ -1075,7 +1076,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasDiscountRequests ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.customerDiscountRequests,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.discount, color: AppColors.brandPrimary),
                   title: const Text('Discount Requests'),
                   onTap: () {
@@ -1094,7 +1095,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             const Divider(height: 9, thickness: 0.6, indent: 16, endIndent: 16),
             PermissionWrapper(
               permissionId: PermissionIds.items,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.inventory_2, color: AppColors.brandPrimary),
                 title: const Text('Items'),
                 onTap: () {
@@ -1115,7 +1116,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // New Sales
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: Icon(Icons.add_shopping_cart, color: AppColors.brandPrimary),
                     title: const Text('New Sales'),
                     onTap: () {
@@ -1133,7 +1134,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Sales History
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: Icon(Icons.history, color: AppColors.brandPrimary),
                     title: const Text('Sales History'),
                     onTap: () {
@@ -1148,7 +1149,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Suspended Sales
                 PermissionWrapper(
                   permissionId: PermissionIds.salesSuspended,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: const Icon(Icons.pause_circle, color: AppColors.warning),
                     title: const Text('Suspended Sales'),
                     onTap: () async {
@@ -1176,7 +1177,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Suppliers List
                 PermissionWrapper(
                   permissionId: PermissionIds.suppliers,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: Icon(Icons.local_shipping_outlined, color: AppColors.brandPrimary),
                     title: const Text('Suppliers List'),
                     onTap: () {
@@ -1191,7 +1192,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Supplier Credits
                 PermissionWrapper(
                   permissionId: PermissionIds.credits,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: const Icon(Icons.credit_card, color: AppColors.error),
                     title: const Text('Supplier Credits'),
                     onTap: () {
@@ -1208,7 +1209,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // 4. Receivings - requires receivings permission
             PermissionWrapper(
               permissionId: PermissionIds.receivings,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.inventory, color: AppColors.brandPrimary),
                 title: const Text('Receivings'),
                 onTap: () {
@@ -1228,7 +1229,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.id != 'leruma')
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.attach_money, color: AppColors.brandPrimary),
                   title: const Text('Cash Submit'),
                   onTap: () {
@@ -1249,7 +1250,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasBanking ?? true)
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmitBanking,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.account_balance, color: AppColors.brandPrimary),
                   title: const Text('Banking'),
                   onTap: () {
@@ -1265,7 +1266,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasFinancialBanking ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.banking,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.analytics, color: AppColors.brandPrimary),
                   title: const Text('Financial Banking'),
                   onTap: () {
@@ -1281,7 +1282,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasBorrowedMoney ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.borrowedMoney,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.account_balance_wallet, color: AppColors.brandPrimary),
                   title: const Text('Borrowed Money'),
                   onTap: () {
@@ -1297,7 +1298,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasTRA ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.tra,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.receipt_long, color: AppColors.brandPrimary),
                   title: const Text('Trade'),
                   onTap: () {
@@ -1319,7 +1320,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   // NFC Cards
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
-                    child: ListTile(
+                    child: _DrawerTile(
                       leading: Icon(Icons.credit_card, color: AppColors.brandPrimary),
                       title: const Text('NFC Cards'),
                       onTap: () {
@@ -1334,7 +1335,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   // NFC Confirmations
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcConfirmationsView,
-                    child: ListTile(
+                    child: _DrawerTile(
                       leading: Icon(Icons.verified, color: AppColors.brandPrimary),
                       title: const Text('NFC Confirmations'),
                       onTap: () {
@@ -1349,7 +1350,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   // NFC Card Lookup
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
-                    child: ListTile(
+                    child: _DrawerTile(
                       leading: Icon(Icons.contactless, color: AppColors.brandPrimary),
                       title: const Text('NFC Card Lookup'),
                       onTap: () {
@@ -1375,7 +1376,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.id != 'leruma')
             PermissionWrapper(
               permissionId: PermissionIds.salesPaymentSummary,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.payments, color: AppColors.brandPrimary),
                 title: const Text('Payment Summary'),
                 onTap: () {
@@ -1393,7 +1394,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.id == 'leruma') ...[
               PermissionWrapper(
                 permissionId: PermissionIds.reports,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.assessment, color: AppColors.brandPrimary),
                   title: const Text('Reports'),
                   onTap: () {
@@ -1407,7 +1408,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.summarize, color: AppColors.brandPrimary),
                   title: const Text('Summary'),
                   onTap: () {
@@ -1424,7 +1425,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.id != 'leruma')
               PermissionWrapper(
                 permissionId: PermissionIds.office,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.analytics, color: AppColors.brandPrimary),
                   title: const Text('Financial Position'),
                   onTap: () {
@@ -1441,7 +1442,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Z Reports - requires cash_submit_z_report permission
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitZReport,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.description, color: AppColors.brandPrimary),
                 title: const Text('Z Reports'),
                 onTap: () {
@@ -1456,7 +1457,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Profit Submit - requires cash_submit_profit_submitted permission
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitProfitSubmitted,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.trending_up, color: AppColors.brandPrimary),
                 title: const Text('Profit Submit'),
                 onTap: () {
@@ -1471,7 +1472,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Transactions - requires transactions permission
             PermissionWrapper(
               permissionId: PermissionIds.transactions,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.swap_horiz, color: AppColors.brandPrimary),
                 title: const Text('Transactions'),
                 onTap: () {
@@ -1486,7 +1487,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Contracts - requires contracts permission
             PermissionWrapper(
               permissionId: PermissionIds.contracts,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.assignment, color: AppColors.brandPrimary),
                 title: const Text('Contracts'),
                 onTap: () {
@@ -1529,7 +1530,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               // edge-to-edge Android (targetSdk 36) draws the buttons or
               // gesture pill over the tab labels.
               : ColoredBox(
-                  color: isDark ? AppColors.darkCard : Colors.white,
+                  color: _kariakooNav
+                      ? AppColors.brandPrimary
+                      : (isDark ? AppColors.darkCard : Colors.white),
                   child: Padding(
                     padding: EdgeInsets.only(
                       bottom: MediaQuery.of(context).viewPadding.bottom,
@@ -1626,6 +1629,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     );
   }
 
+  /// Kariakoo Shops draws its bottom bar in brand green with white icons.
+  bool get _kariakooNav => ApiService.currentClient?.id == 'kariakoo_shops';
+
   /// Build curved bottom navigation with notch for FAB
   Widget _buildCurvedBottomNav(List<Map<String, dynamic>> screens, bool isDark) {
     // Separate screens into left and right sides (excluding Sales which is the FAB)
@@ -1700,8 +1706,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 child: CustomPaint(
                   size: const Size(double.infinity, 80),
                   painter: _CurvedNavPainter(
-                    color: isDark ? AppColors.darkCard : Colors.white,
-                    borderColor: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                    color: _kariakooNav
+                        ? AppColors.brandPrimary
+                        : (isDark ? AppColors.darkCard : Colors.white),
+                    borderColor: _kariakooNav
+                        ? AppColors.brandPrimaryDark
+                        : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                     curvePosition: 0.5, // Always center
                   ),
                 ),
@@ -1771,11 +1781,23 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Selected: larger icon only, no label, moved up into curve
             ? Transform.translate(
                 offset: const Offset(0, -8),
-                child: Icon(
-                  icon,
-                  color: AppColors.brandPrimary,
-                  size: 38,
-                ),
+                child: _kariakooNav
+                    // Green icon on a white disc, identical to the bar shown
+                    // on screens opened from the side menu.
+                    ? Container(
+                        width: 52,
+                        height: 52,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: AppColors.brandPrimary, size: 30),
+                      )
+                    : Icon(
+                        icon,
+                        color: AppColors.brandPrimary,
+                        size: 38,
+                      ),
               )
             // Unselected: smaller icon with label
             : Column(
@@ -1784,15 +1806,19 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 children: [
                   Icon(
                     icon,
-                    color: AppColors.textLight,
+                    color: _kariakooNav
+                        ? Colors.white.withValues(alpha: 0.72)
+                        : AppColors.textLight,
                     size: 22,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: AppColors.textLight,
+                      color: _kariakooNav
+                          ? Colors.white.withValues(alpha: 0.72)
+                          : AppColors.textLight,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1909,6 +1935,42 @@ class _CurvedNavPainter extends CustomPainter {
 ///
 /// White on the header's own colour rather than the brand blue the list rows
 /// use -- these sit ON the header, not under it.
+/// A side-menu entry. Works like [ListTile], and also tells [NavActive] which
+/// icon and label opened the next screen, so its bottom bar can show them in
+/// the centre notch.
+class _DrawerTile extends StatelessWidget {
+  const _DrawerTile({
+    this.leading,
+    this.title,
+    this.trailing,
+    this.onTap,
+  });
+
+  final Widget? leading;
+  final Widget? title;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: leading,
+      title: title,
+      trailing: trailing,
+      onTap: onTap == null
+          ? null
+          : () {
+              final icon = leading is Icon ? (leading as Icon).icon : null;
+              final label = title is Text ? (title as Text).data : null;
+              if (icon != null && label != null) {
+                NavActive.announce(icon, label);
+              }
+              onTap!();
+            },
+    );
+  }
+}
+
 class _DrawerHeaderAction extends StatelessWidget {
   const _DrawerHeaderAction({
     required this.icon,

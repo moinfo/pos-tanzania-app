@@ -7,6 +7,7 @@ import '../models/nfc_wallet.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
 import '../l10n/lang.dart';
 
 class NfcConfirmationsScreen extends StatefulWidget {
@@ -95,6 +96,10 @@ class _NfcConfirmationsScreenState extends State<NfcConfirmationsScreen> {
     final dateFormat = DateFormat('dd MMM yyyy HH:mm');
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: const Text('NFC Confirmations'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,

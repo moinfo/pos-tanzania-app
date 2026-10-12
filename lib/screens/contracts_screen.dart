@@ -8,6 +8,7 @@ import '../utils/formatters.dart';
 import '../widgets/skeleton_loader.dart';
 import 'contract_details_screen.dart';
 import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -54,6 +55,10 @@ class _ContractsScreenState extends State<ContractsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: const Text('Contracts'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,

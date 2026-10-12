@@ -14,6 +14,7 @@ import 'client_selector_screen.dart';
 import 'app_update_screen.dart';
 import 'pending_uploads_screen.dart';
 import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
 import '../widgets/logout_dialog.dart';
 import '../widgets/language_switcher.dart';
 
@@ -221,6 +222,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Settings'),

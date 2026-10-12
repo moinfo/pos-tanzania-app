@@ -22,6 +22,11 @@ class CurvedBottomNavigation extends StatefulWidget {
   final Color? backgroundColor;
   final Color? selectedItemColor;
   final Color? unselectedItemColor;
+  final Color? borderColor;
+
+  /// When set, the selected icon sits on a filled circle of this colour (used
+  /// on the green Kariakoo bar: a green icon on a white disc).
+  final Color? selectedBadgeColor;
 
   const CurvedBottomNavigation({
     super.key,
@@ -31,6 +36,8 @@ class CurvedBottomNavigation extends StatefulWidget {
     this.backgroundColor,
     this.selectedItemColor,
     this.unselectedItemColor,
+    this.borderColor,
+    this.selectedBadgeColor,
   });
 
   @override
@@ -91,7 +98,8 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = widget.backgroundColor ?? (isDark ? AppColors.darkCard : Colors.white);
-    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+    final borderColor = widget.borderColor ??
+        (isDark ? Colors.grey.shade700 : Colors.grey.shade300);
     final selectedColor = widget.selectedItemColor ?? AppColors.primary;
     final unselectedColor = widget.unselectedItemColor ?? AppColors.textLight;
 
@@ -203,11 +211,21 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
             // Selected: larger icon only, no label, moved up into curve
             ? Transform.translate(
                 offset: const Offset(0, -8),
-                child: Icon(
-                  icon,
-                  color: selectedColor,
-                  size: 38,
-                ),
+                child: widget.selectedBadgeColor != null
+                    ? Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: widget.selectedBadgeColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: selectedColor, size: 30),
+                      )
+                    : Icon(
+                        icon,
+                        color: selectedColor,
+                        size: 38,
+                      ),
               )
             // Unselected: smaller icon with label
             : Column(

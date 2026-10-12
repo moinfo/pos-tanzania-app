@@ -471,7 +471,9 @@ class ApiService {
           'Url: ${response.request?.url}, Body: $bodyPreview');
 
       return ApiResponse<T>.error(
-        message: 'Failed to parse response: $e',
+        message: _looksLikeHtml(response.body)
+            ? friendlyUnavailableMessage
+            : 'Failed to parse response: $e',
         statusCode: statusCode,
       );
     }
@@ -1434,10 +1436,24 @@ class ApiService {
       // Not JSON -- fall through to the HTML handling below
     }
 
-    final text = body.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    // A web page (the server's own 404 / 500 / maintenance page) is never
+    // something to put in front of a user -- it used to surface as raw CSS and
+    // "404 Page Not Found ::selection { ... }" inside the error view.
+    if (_looksLikeHtml(body)) return friendlyUnavailableMessage;
+
+    final text = body.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (text.isEmpty) return fallback;
     return text.length > 200 ? '${text.substring(0, 200)}…' : text;
   }
+
+  /// Shown instead of a server web page when an endpoint cannot answer.
+  static const String friendlyUnavailableMessage =
+      'This information is not available right now. Please try again later.';
+
+  static bool _looksLikeHtml(String body) => RegExp(
+        r'<\s*(?:!doctype|html|head|body|style|title|h1|h2|p|div|center)(?![a-z])',
+        caseSensitive: false,
+      ).hasMatch(body);
 
   /// Get single customer
   Future<ApiResponse<Customer>> getCustomer(int id) async {
