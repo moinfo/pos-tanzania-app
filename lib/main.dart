@@ -268,6 +268,41 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Kariakoo Shops: green screen with the same logo as the sign-in form,
+    // outlined in white, matching the native launch screen that precedes it.
+    if (ClientsConfig.getDefaultClient().id == 'kariakoo_shops') {
+      return Scaffold(
+        backgroundColor: const Color(0xFF1B8C30),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: Colors.white, width: 4),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: Image.asset(
+                    'assets/images/kariakoo-logo.png',
+                    width: 132,
+                    height: 132,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 3,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Center(
         child: Column(

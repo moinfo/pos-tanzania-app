@@ -241,11 +241,8 @@ class LandingProvider with ChangeNotifier {
     if (hasStockDisplay) {
       final availableStock = product.getStock(priceType);
 
-      // Check if item is in stock
-      if (availableStock <= 0) {
-        return 'Out of stock';
-      }
-
+      // Same rule as the live web shop: an item with no stock on record can
+      // still be ordered, so the checks below only apply when stock is tracked.
       // Find existing cart item with same price type
       final existingIndex = _cart.indexWhere(
         (item) => item.itemId == product.itemId && item.priceType == priceType
@@ -255,7 +252,7 @@ class LandingProvider with ChangeNotifier {
       final newTotalQty = currentCartQty + quantity;
 
       // Validate stock availability
-      if (newTotalQty > availableStock) {
+      if (availableStock > 0 && newTotalQty > availableStock) {
         return 'Insufficient stock (${availableStock.toInt()} available)';
       }
     }
@@ -302,7 +299,7 @@ class LandingProvider with ChangeNotifier {
         final availableStock = item.availableStock;
 
         // Validate stock availability
-        if (quantity > availableStock) {
+        if (availableStock > 0 && quantity > availableStock) {
           return 'Maximum quantity reached (${availableStock.toInt()} available)'.tr;
         }
       }
@@ -327,7 +324,7 @@ class LandingProvider with ChangeNotifier {
             : item.retailQuantity;
 
         // Validate stock for new price type
-        if (item.quantity > newAvailableStock) {
+        if (newAvailableStock > 0 && item.quantity > newAvailableStock) {
           return 'Insufficient stock for $priceType (${newAvailableStock.toInt()} available)';
         }
       }

@@ -52,7 +52,9 @@ class ProductGridCard extends StatelessWidget {
     return at != null && DateTime.now().difference(at).inDays <= 7;
   }
 
-  bool get _outOfStock => showStockIndicator && !product.isInStock;
+  // No "Out of stock" tag: like the live web shop, items with zero stock can
+  // still be ordered, so they are shown like any other product.
+  bool get _outOfStock => false;
 
   String _price(double price) {
     if (price >= 1000000) return '${(price / 1000000).toStringAsFixed(1)}M';

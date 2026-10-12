@@ -480,7 +480,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
 
           // Stock indicator (only shown if feature enabled for this client)
-          if (showStock) ...[
+          if (showStock && _product.isInStock) ...[
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),

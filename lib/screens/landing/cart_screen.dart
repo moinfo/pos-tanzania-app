@@ -242,7 +242,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
                   const SizedBox(height: 4),
 
                   // Stock indicator (only shown if feature enabled for this client)
-                  if (provider.hasStockDisplay)
+                  if (provider.hasStockDisplay && item.availableStock > 0)
                     Row(
                       children: [
                         Icon(

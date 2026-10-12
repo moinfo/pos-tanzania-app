@@ -364,7 +364,7 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                       const Spacer(),
                       // Stock indicator (only shown if feature enabled)
-                      if (widget.showStockIndicator)
+                      if (widget.showStockIndicator && widget.product.isInStock)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(

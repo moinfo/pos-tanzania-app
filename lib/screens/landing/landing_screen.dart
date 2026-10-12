@@ -1,9 +1,8 @@
-/**
- * @author Firstname Lastname <firstname.lastname@example.com>
- * @file Description
- * @desc Created on 2026-10-10 9:29:06 am
- * @copyright GNU General Public License v3.0
- */
+/// @author Firstname Lastname <firstname.lastname@example.com>
+/// @file Description
+/// @desc Created on 2026-10-10 9:29:06 am
+/// @copyright GNU General Public License v3.0
+library;
 import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
