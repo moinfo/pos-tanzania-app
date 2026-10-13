@@ -66,7 +66,7 @@ android {
         create("sada") {
             dimension = "client"
             applicationId = "co.tz.sada.pos"
-            resValue("string", "app_name", "Moinfotech")
+            resValue("string", "app_name", "Kiwangwa Shop")
         }
         create("comeAndSave") {
             dimension = "client"

@@ -69,7 +69,7 @@ class ClientsConfig {
     ClientConfig(
       id: 'sada',
       name: 'dev-sada',
-      displayName: 'Moinfotech',
+      displayName: 'Kiwangwa Shop',
       devApiUrl: localBaseUrl,
       prodApiUrl: 'https://kiwangwa.co.tz/api',
       logoUrl: 'assets/images/sada-logo.png',

@@ -1,9 +1,14 @@
-# Flutter Launcher Icons configuration for SADA flavor
+# Flutter Launcher Icons configuration for SADA (Kiwangwa Shop) flavor.
+# The icon is the login-screen look: the mark with a white outline on the
+# blue-to-green brand gradient. `sada-icon.png` / `sada-icon-foreground.png`
+# are generated from assets/images/sada-logo.png. The Android adaptive
+# background in android/app/src/sada/res is a gradient PNG, not this flat
+# colour, so avoid re-running the tool for Android without restoring it.
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "sada-logo.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "sada-logo.png"
+  image_path: "sada-icon.png"
+  adaptive_icon_background: "#1479B8"
+  adaptive_icon_foreground: "sada-icon-foreground.png"
   remove_alpha_ios: true
   min_sdk_android: 21
