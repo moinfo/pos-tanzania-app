@@ -234,8 +234,10 @@ class _MainNavigationState extends State<MainNavigation>
         locationProvider.allowedLocations.isNotEmpty;
 
     // Check if user has transactions permission (Come & Save)
-    final hasTransactionsPermission = permissionProvider.hasPermission(PermissionIds.transactions) ||
-        permissionProvider.hasModulePermission(PermissionIds.transactions);
+    // The module grant itself, as on the web (a lone sub-permission such as
+    // transactions_deposit_add does not make the module visible).
+    final hasTransactionsPermission =
+        permissionProvider.hasPermission(PermissionIds.transactions);
 
     // Use user ID as key to force widget recreation on user change
     final userKey = ValueKey('user_$userId');
@@ -845,9 +847,11 @@ class _MainNavigationState extends State<MainNavigation>
       }
 
       // Check if user has the required permission
-      // For module permissions, also check if user has any sub-permission
-      final hasPermission = permissionProvider.hasPermission(permission) ||
-          permissionProvider.hasModulePermission(permission);
+      // A module shows only when the employee holds the module grant itself,
+      // as on the web; holding one of its sub-permissions is not enough. The
+      // dashboard is the exception: every signed-in user lands on it.
+      final hasPermission = permission == PermissionIds.home ||
+          permissionProvider.hasPermission(permission);
 
       if (hasPermission) {
         indexMapping[availableScreens.length] = i;
@@ -1062,7 +1066,14 @@ class _MainNavigationState extends State<MainNavigation>
                 },
               ),
             ),
-            ExpansionTile(
+            PermissionWrapper(
+              anyPermissions: const [
+                PermissionIds.customers,
+                PermissionIds.credits,
+                PermissionIds.customersShops,
+                PermissionIds.customerDiscountRequests,
+              ],
+              child: ExpansionTile(
               leading: BrandIconTile(Icons.people, fallbackColor: AppColors.brandPrimary),
               title: const Text('Customers'),
               childrenPadding: const EdgeInsets.only(left: 16),
@@ -1112,6 +1123,7 @@ class _MainNavigationState extends State<MainNavigation>
                   ),
               ],
             ),
+            ),
             // Discount Requests (SADA only)
             if (ApiService.currentClient?.features.hasDiscountRequests ?? false)
               PermissionWrapper(
@@ -1148,7 +1160,12 @@ class _MainNavigationState extends State<MainNavigation>
               ),
             ),
             // 3. Sales Menu
-            ExpansionTile(
+            PermissionWrapper(
+              anyPermissions: const [
+                PermissionIds.sales,
+                PermissionIds.salesSuspended,
+              ],
+              child: ExpansionTile(
               leading: BrandIconTile(Icons.point_of_sale, fallbackColor: AppColors.brandPrimary),
               title: const Text('Sales'),
               childrenPadding: const EdgeInsets.only(left: 16),
@@ -1208,8 +1225,14 @@ class _MainNavigationState extends State<MainNavigation>
                 ),
               ],
             ),
+            ),
             // 4. Suppliers Menu
-            ExpansionTile(
+            PermissionWrapper(
+              anyPermissions: const [
+                PermissionIds.suppliers,
+                PermissionIds.suppliersCreditors,
+              ],
+              child: ExpansionTile(
               leading: BrandIconTile(Icons.local_shipping, fallbackColor: AppColors.brandPrimary),
               title: const Text('Suppliers'),
               childrenPadding: const EdgeInsets.only(left: 16),
@@ -1229,9 +1252,15 @@ class _MainNavigationState extends State<MainNavigation>
                     },
                   ),
                 ),
-                // Supplier Credits
+                // Supplier Credits. The web lists it under the
+                // suppliers_creditors module, and its pages open only with
+                // the credits module too (Suppliers_creditors is built on
+                // 'credits'); showing it without either is a dead end.
                 PermissionWrapper(
-                  permissionId: PermissionIds.credits,
+                  allPermissions: const [
+                    PermissionIds.suppliersCreditors,
+                    PermissionIds.credits,
+                  ],
                   child: ListTile(
                     leading: const BrandIconTile(Icons.credit_card, fallbackColor: AppColors.error),
                     title: const Text('Supplier Credits'),
@@ -1245,6 +1274,7 @@ class _MainNavigationState extends State<MainNavigation>
                   ),
                 ),
               ],
+            ),
             ),
             // 4. Receivings - requires receivings permission
             PermissionWrapper(
@@ -1352,7 +1382,12 @@ class _MainNavigationState extends State<MainNavigation>
               ),
             // 8. NFC Menu - requires hasNfcCard feature
             if (ApiService.currentClient?.features.hasNfcCard ?? false)
-              ExpansionTile(
+              PermissionWrapper(
+                anyPermissions: const [
+                  PermissionIds.nfcCardsView,
+                  PermissionIds.nfcConfirmationsView,
+                ],
+                child: ExpansionTile(
                 leading: BrandIconTile(Icons.nfc, fallbackColor: AppColors.brandPrimary),
                 title: const Text('NFC'),
                 childrenPadding: const EdgeInsets.only(left: 16),
@@ -1403,6 +1438,7 @@ class _MainNavigationState extends State<MainNavigation>
                     ),
                   ),
                 ],
+              ),
               ),
             // Group titles removed: four labelled rows of furniture in a
             // menu that already needs scrolling. A hairline keeps the

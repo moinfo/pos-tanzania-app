@@ -58,8 +58,7 @@ class AppBottomNavigation extends StatelessWidget {
     final hasStockLocation =
         locations.selectedLocation != null || locations.allowedLocations.isNotEmpty;
     final hasTransactionsPermission =
-        permissions.hasPermission(PermissionIds.transactions) ||
-            permissions.hasModulePermission(PermissionIds.transactions);
+        permissions.hasPermission(PermissionIds.transactions);
 
     final items = <Map<String, dynamic>>[
       {
@@ -204,9 +203,10 @@ class AppBottomNavigation extends StatelessWidget {
       }
       if (!featureEnabled) continue;
 
-      // Check if user has permission (module or any sub-permission)
-      if (permissionProvider.hasPermission(permission) ||
-          permissionProvider.hasModulePermission(permission)) {
+      // The module grant itself (as on the web), except the dashboard, which
+      // every signed-in user sees. Must agree with MainNavigation's filter.
+      if (permission == PermissionIds.home ||
+          permissionProvider.hasPermission(permission)) {
         indexMapping[availableItems.length] = i;
         availableItems.add(
           CurvedNavItem(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../widgets/permission_wrapper.dart';
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -288,8 +289,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
     // Check permissions
-    final hasTransactionsPermission = permissionProvider.hasPermission(PermissionIds.transactions) ||
-        permissionProvider.hasModulePermission(PermissionIds.transactions);
+    final hasTransactionsPermission =
+        permissionProvider.hasPermission(PermissionIds.transactions);
     final hasLocation = selectedLocationId != null;
 
     print('📍 Come & Save dashboard - location: $selectedLocationId, hasTransactions: $hasTransactionsPermission');
@@ -752,11 +753,16 @@ class _HomeScreenState extends State<HomeScreen> {
               Consumer<LocationProvider>(
                 builder: (context, locationProvider, child) {
                   final hasLocation = locationProvider.selectedLocation != null;
+                  final showSalesCards = hasLocation ||
+                      ApiService.currentClient?.id != 'come_and_save';
 
                   return Column(
                     children: [
-                      // Sales Dashboard (only show if user has a location)
-                      if (hasLocation) ...[
+                      // Sales Dashboard. The SADA summary is not scoped to a stock
+                      // location (the request carries none), so every signed-in
+                      // user sees the same cards as admin; only Come & Save,
+                      // whose summary is per location, needs one.
+                      if (showSalesCards) ...[
                         // Row 1: Total Sales & Expenses
                         Row(
                           children: [
@@ -913,7 +919,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Transactions Dashboard (Come & Save - only if user has transactions permission)
                       // Shows regardless of location
                       if (_transactionsDashboardData != null) ...[
-                        if (hasLocation) const SizedBox(height: 24),
+                        if (showSalesCards) const SizedBox(height: 24),
                         _buildTransactionsDashboard(isDark),
                       ],
                     ],
@@ -2283,7 +2289,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
               const Spacer(),
-              GestureDetector(
+              PermissionWrapper(
+                permissionId: PermissionIds.credits,
+                child: GestureDetector(
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const DailyDebtReportScreen()),
@@ -2294,6 +2302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1668A6),
                   ),
                 ),
+              ),
               ),
             ],
           ),

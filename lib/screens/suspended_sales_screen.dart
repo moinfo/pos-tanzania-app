@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
+import '../widgets/permission_wrapper.dart';
+import '../models/permission_model.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -739,10 +741,13 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                         ),
                                       ],
                                     ),
-                                    IconButton(
+                                    PermissionWrapper(
+                                      permissionId: PermissionIds.salesDelete,
+                                      child: IconButton(
                                       icon: const Icon(Icons.delete_outline, color: AppColors.error),
                                       onPressed: () => _deleteSale(sale),
                                       tooltip: 'Delete',
+                                    ),
                                     ),
                                   ],
                                 ),

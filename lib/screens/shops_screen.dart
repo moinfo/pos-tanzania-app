@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
+import '../widgets/permission_wrapper.dart';
+import '../models/permission_model.dart';
+import '../providers/permission_provider.dart';
 import '../widgets/tr_text.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -262,12 +265,12 @@ class _ShopsScreenState extends State<ShopsScreen> {
           ),
         ],
       ),
-      floatingActionButton: BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
+      floatingActionButton: PermissionWrapper(permissionId: PermissionIds.customersShopsAdd, child: BrandFab(extended: true, child: FloatingActionButton.extended( elevation: BrandFab.elevation, focusElevation: BrandFab.elevation, hoverElevation: BrandFab.elevation, highlightElevation: BrandFab.elevation,
         onPressed: _showAddShopDialog,
         backgroundColor: BrandFab.background(AppColors.primary),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Shop', style: TextStyle(color: Colors.white)),
-      )),
+      ))),
       bottomNavigationBar:
           widget.embedded ? null : const AppBottomNavigation(currentIndex: -1),
     );
@@ -638,7 +641,7 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
           Row(
             children: [
               // Edit button
-              Expanded(
+              PermissionWrapper(permissionId: PermissionIds.customersShopsEdit, child: Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
@@ -653,10 +656,10 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
-              ),
+              )),
               const SizedBox(width: 12),
               // Delete button
-              Expanded(
+              PermissionWrapper(permissionId: PermissionIds.customersShopsDelete, child: Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _isDeleting ? null : () => _confirmDelete(context),
                   icon: _isDeleting
@@ -674,7 +677,7 @@ class _ShopDetailsSheetState extends State<_ShopDetailsSheet> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
-              ),
+              )),
             ],
           ),
 
