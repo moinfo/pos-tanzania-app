@@ -336,11 +336,11 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     // Turnover - requires cash_submit_turnover
     addRowIfPermitted(
       PermissionIds.cashSubmitTurnover,
-      _buildSummaryRow('Turnover A', _summaryData!['turnover']['a'], isDark: isDark),
+      _buildSummaryRow('Turnover A', _summaryData!['turnover']?['a'], isDark: isDark),
     );
     addRowIfPermitted(
       PermissionIds.cashSubmitTurnover,
-      _buildSummaryRow('Turnover C', _summaryData!['turnover']['c'], isDark: isDark),
+      _buildSummaryRow('Turnover C', _summaryData!['turnover']?['c'], isDark: isDark),
     );
     rows.add(const Divider(height: 1));
 
@@ -348,9 +348,15 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     // Calculate All Sales = Cash + Credit + LIPA NAMBA (all payment types)
     // For Leruma and SADA, exclude LIPA NAMBA from calculation
     final isSada = currentClient?.id == 'sada';
-    final allSales = (_summaryData!['cash_sales'] ?? 0) +
-                     (_summaryData!['customer_credit'] ?? 0) +
-                     ((isLeruma || isSada) ? 0 : (_summaryData!['lipa_namba'] ?? 0));
+    // The server sums these before withholding any the user may not see, so
+    // prefer its total; leruma and sada still exclude LIPA NAMBA themselves.
+    final allSales = (isLeruma || isSada)
+        ? (_summaryData!['cash_sales'] ?? 0) +
+            (_summaryData!['customer_credit'] ?? 0)
+        : (_summaryData!['all_sales'] ??
+            (_summaryData!['cash_sales'] ?? 0) +
+                (_summaryData!['customer_credit'] ?? 0) +
+                (_summaryData!['lipa_namba'] ?? 0));
     addRowIfPermitted(
       PermissionIds.cashSubmitAllSales,
       _buildSummaryRow('All Sales', allSales, highlight: true, isDark: isDark),

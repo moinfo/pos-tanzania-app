@@ -342,8 +342,12 @@ class _HomeScreenState extends State<HomeScreen> {
           _customerCredit = (summaryData?['customer_credit'] ?? 0).toDouble();
           _lipaNamba = (summaryData?['lipa_namba'] ?? 0).toDouble();
 
-          // Total Sales = Cash + Credit + LIPA NAMBA (all payment types)
-          _totalSales = _cashSales + _customerCredit + _lipaNamba;
+          // Total Sales = Cash + Credit + LIPA NAMBA (all payment types).
+          // Taken from the server, which sums them before withholding any the
+          // user may not see; adding them here would undercount.
+          _totalSales = (summaryData?['all_sales'] ??
+                  (_cashSales + _customerCredit + _lipaNamba))
+              .toDouble();
 
           _expenses = (summaryData?['expenses'] ?? 0).toDouble();
           _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
@@ -733,159 +737,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   return Column(
                     children: [
                       // Sales Dashboard (only show if user has a location)
-                      if (hasLocation) ...[
-                        // Row 1: Total Sales & Expenses
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDashboardCard(
-                                title: 'Total Sales',
-                                amount: _totalSales,
-                                icon: Icons.shopping_cart,
-                                color: AppColors.success,
-                                isDark: isDark,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildDashboardCard(
-                                title: 'Expenses',
-                                amount: _expenses,
-                                icon: Icons.money_off,
-                                color: AppColors.error,
-                                isDark: isDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // SADA: Show Profit & Gain/Loss in Row 2, then Bank Difference & Contract Unpaid
-                        if (ApiService.currentClient?.features.hasContracts ?? false) ...[
-                          // Row 2: Profit & Gain/Loss
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Profit',
-                                  amount: _profit,
-                                  icon: Icons.trending_up,
-                                  color: AppColors.brandPrimary,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Gain/Loss',
-                                  amount: _gainLoss,
-                                  icon: _gainLoss >= 0
-                                      ? Icons.arrow_upward
-                                      : Icons.arrow_downward,
-                                  color: _gainLoss >= 0
-                                      ? AppColors.success
-                                      : AppColors.error,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Row 3: Bank Difference & Contract Unpaid
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Bank Difference',
-                                  amount: _bankDifference,
-                                  icon: Icons.account_balance,
-                                  color: AppColors.info,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Contract Unpaid',
-                                  amount: _totalUnpaid,
-                                  icon: Icons.assignment_late,
-                                  color: AppColors.warning,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ] else ...[
-                          // Come & Save: Show Sales Breakdown first, then Profit, then Gain/Loss alone
-                          // Row 2: Cash Sales & Credit Sales
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Cash Sales',
-                                  amount: _cashSales,
-                                  icon: Icons.money,
-                                  color: AppColors.success,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Credit Sales',
-                                  amount: _customerCredit,
-                                  icon: Icons.credit_card,
-                                  color: AppColors.warning,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Row 3: LIPA NAMBA & Profit
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'LIPA NAMBA',
-                                  amount: _lipaNamba,
-                                  icon: Icons.phone_android,
-                                  color: AppColors.info,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Profit',
-                                  amount: _profit,
-                                  icon: Icons.trending_up,
-                                  color: AppColors.brandPrimary,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Row 4: Gain/Loss (centered alone)
-                          Center(
-                            child: SizedBox(
-                              width: (MediaQuery.of(context).size.width - 44) / 2,
-                              child: _buildDashboardCard(
-                                title: 'Gain/Loss',
-                                amount: _gainLoss,
-                                icon: _gainLoss >= 0
-                                    ? Icons.arrow_upward
-                                    : Icons.arrow_downward,
-                                color: _gainLoss >= 0
-                                    ? AppColors.success
-                                    : AppColors.error,
-                                isDark: isDark,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                      if (hasLocation) ..._buildSalesCardRows(isDark),
 
                       // Transactions Dashboard (Come & Save - only if user has transactions permission)
                       // Shows regardless of location
@@ -1154,6 +1006,88 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  /// The sales cards, laid out two to a row, minus whatever this user may not
+  /// see.
+  ///
+  /// Each card follows the Cash Submit grant the web gives the same column
+  /// (`cash_submit_all_sales`, `cash_submit_expenses`, ...), so the phone and
+  /// the web agree on who sees what. LIPA NAMBA shares `cash_submit_cash_sales`
+  /// exactly as the web's Lipa Namba column does.
+  ///
+  /// This only hides cards: `cashsubmit/today_summary` returns every figure
+  /// to any signed-in caller, so the app is the sole gate.
+  List<Widget> _buildSalesCardRows(bool isDark) {
+    final permissions = context.read<PermissionProvider>();
+    bool can(String id) => permissions.hasPermission(id);
+    final hasContracts =
+        ApiService.currentClient?.features.hasContracts ?? false;
+
+    Widget card(String title, double amount, IconData icon, Color color) =>
+        _buildDashboardCard(
+          title: title,
+          amount: amount,
+          icon: icon,
+          color: color,
+          isDark: isDark,
+        );
+
+    final gainLossIcon =
+        _gainLoss >= 0 ? Icons.arrow_upward : Icons.arrow_downward;
+    final gainLossColor = _gainLoss >= 0 ? AppColors.success : AppColors.error;
+
+    final cards = <Widget>[
+      if (can(PermissionIds.cashSubmitAllSales))
+        card('Total Sales', _totalSales, Icons.shopping_cart, AppColors.success),
+      if (can(PermissionIds.cashSubmitExpenses))
+        card('Expenses', _expenses, Icons.money_off, AppColors.error),
+      if (hasContracts) ...[
+        // SADA: Profit & Gain/Loss, then Bank Difference & Contract Unpaid
+        if (can(PermissionIds.cashSubmitProfit))
+          card('Profit', _profit, Icons.trending_up, AppColors.brandPrimary),
+        if (can(PermissionIds.cashSubmitGainLoss))
+          card('Gain/Loss', _gainLoss, gainLossIcon, gainLossColor),
+        if (can(PermissionIds.cashSubmitDifference))
+          card('Bank Difference', _bankDifference, Icons.account_balance,
+              AppColors.info),
+        if (can(PermissionIds.cashSubmitDifference))
+          card('Contract Unpaid', _totalUnpaid, Icons.assignment_late,
+              AppColors.warning),
+      ] else ...[
+        // Come & Save: sales breakdown, then profit, then gain/loss
+        if (can(PermissionIds.cashSubmitCashSales))
+          card('Cash Sales', _cashSales, Icons.money, AppColors.success),
+        if (can(PermissionIds.cashSubmitCustomerCredit))
+          card('Credit Sales', _customerCredit, Icons.credit_card,
+              AppColors.warning),
+        if (can(PermissionIds.cashSubmitCashSales))
+          card('LIPA NAMBA', _lipaNamba, Icons.phone_android, AppColors.info),
+        if (can(PermissionIds.cashSubmitProfit))
+          card('Profit', _profit, Icons.trending_up, AppColors.brandPrimary),
+        if (can(PermissionIds.cashSubmitGainLoss))
+          card('Gain/Loss', _gainLoss, gainLossIcon, gainLossColor),
+      ],
+    ];
+
+    final halfWidth = (MediaQuery.of(context).size.width - 44) / 2;
+    final rows = <Widget>[];
+    for (var i = 0; i < cards.length; i += 2) {
+      if (i > 0) rows.add(const SizedBox(height: 12));
+      if (i + 1 < cards.length) {
+        rows.add(Row(
+          children: [
+            Expanded(child: cards[i]),
+            const SizedBox(width: 12),
+            Expanded(child: cards[i + 1]),
+          ],
+        ));
+      } else {
+        // An odd one out sits centred, as Gain/Loss always has.
+        rows.add(Center(child: SizedBox(width: halfWidth, child: cards[i])));
+      }
+    }
+    return rows;
   }
 
   Widget _buildDashboardCard({
