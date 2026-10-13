@@ -76,6 +76,7 @@ class PermissionProvider with ChangeNotifier {
         final data = response['data'] as Map<String, dynamic>;
         final permissionsResponse = UserPermissionsResponse.fromJson(data);
         _permissions = permissionsResponse.permissions;
+        _lastRefresh = DateTime.now();
 
         // Save to local storage
         await _savePermissionsLocally();
@@ -93,6 +94,40 @@ class PermissionProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  DateTime? _lastRefresh;
+
+  /// Re-reads the employee's grants without any loading state, so a change an
+  /// administrator makes on the web (a grant added or taken away) reaches a
+  /// phone that is already signed in -- the web re-checks grants on every
+  /// request, the app otherwise only at sign-in. Skipped when the last
+  /// refresh is younger than [minAge]. A failed read (offline, server error)
+  /// keeps what is already held; it never clears permissions.
+  Future<void> refreshInBackground({
+    Duration minAge = const Duration(minutes: 2),
+  }) async {
+    if (_isLoading) return;
+    final last = _lastRefresh;
+    if (last != null && DateTime.now().difference(last) < minAge) return;
+    _lastRefresh = DateTime.now();
+
+    try {
+      final response = await ApiService().getUserPermissions();
+      if (response['status'] != 'success') return;
+      final data = response['data'] as Map<String, dynamic>;
+      final fresh = UserPermissionsResponse.fromJson(data).permissions;
+
+      final held = _permissions.map((p) => p.permissionId).toSet();
+      final now = fresh.map((p) => p.permissionId).toSet();
+      if (held.length == now.length && held.containsAll(now)) return;
+
+      _permissions = fresh;
+      await _savePermissionsLocally();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Background permission refresh failed: $e');
     }
   }
 

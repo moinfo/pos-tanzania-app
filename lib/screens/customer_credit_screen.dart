@@ -1736,7 +1736,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
               // Date field - only show if user has credits_edit_date permission
               Consumer<PermissionProvider>(
                 builder: (context, permissionProvider, child) {
-                  if (permissionProvider.hasPermission(PermissionIds.creditsEditDate)) {
+                  if (permissionProvider.hasPermission(PermissionIds.creditsDate)) {
                     return InkWell(
                       onTap: _selectDate,
                       child: InputDecorator(
@@ -2010,7 +2010,7 @@ class _EditPaymentDialogState extends State<EditPaymentDialog> {
               // Date field - only show if user has credits_edit_date permission
               Consumer<PermissionProvider>(
                 builder: (context, permissionProvider, child) {
-                  if (permissionProvider.hasPermission(PermissionIds.creditsEditDate)) {
+                  if (permissionProvider.hasPermission(PermissionIds.creditsDate)) {
                     return InkWell(
                       onTap: _selectDate,
                       child: InputDecorator(

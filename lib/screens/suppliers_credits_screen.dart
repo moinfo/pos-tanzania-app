@@ -2132,7 +2132,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
   @override
   Widget build(BuildContext context) {
     final permissionProvider = context.watch<PermissionProvider>();
-    final canEditDate = permissionProvider.hasPermission(PermissionIds.suppliersCreditorsEditDate);
+    final canEditDate = permissionProvider.hasPermission(PermissionIds.suppliersCreditorsDate);
 
     return AlertDialog(
       title: const Text('Add Payment'),

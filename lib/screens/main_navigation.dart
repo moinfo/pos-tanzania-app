@@ -64,7 +64,8 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> with TickerProviderStateMixin {
+class _MainNavigationState extends State<MainNavigation>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late int _selectedIndex;
 
   /// The permission-filtered tab list from the last build, so actions outside
@@ -80,6 +81,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedIndex = widget.initialIndex;
     _rotationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -112,8 +114,18 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Employee grants are managed on the web; pick up any change when the
+    // app comes back to the front (throttled inside the provider).
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<PermissionProvider>().refreshInBackground();
+    }
+  }
+
+  @override
   void dispose() {
     _rotationController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
