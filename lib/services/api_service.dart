@@ -2218,17 +2218,23 @@ class ApiService {
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
 
-      final uri = Uri.parse('$baseUrlSync/supplier_credits/statement/$supplierId')
-          .replace(queryParameters: queryParams);
-
-      return _cachedGet<SupplierStatement>(
-        uri,
-        (data) => SupplierStatement.fromJson(data),
-        cacheKey: _keyFor(uri),
-        // A statement is a record of what already happened. Same reasoning as the
-        // account above.
-        maxAge: CacheAge.ledger,
+      final stmt = await _ownedStatement(
+        supplierId,
+        queryParams,
+        // A statement is a record of what already happened. Same reasoning as
+        // the account above.
         errorFallback: 'Failed to fetch supplier statement',
+      );
+      if (!stmt.isSuccess || stmt.data == null) {
+        return ApiResponse.error(
+          message: stmt.message,
+          statusCode: stmt.statusCode,
+        );
+      }
+      return ApiResponse.success(
+        data: SupplierStatement.fromJson(stmt.data!),
+        message: 'Success',
+        servedFromCacheAt: stmt.servedFromCacheAt,
       );
     } catch (e) {
       _reportFailure(e);
@@ -2493,9 +2499,96 @@ class ApiService {
     );
   }
 
-  /// Shapes a /supplier_credits/statement reply into the account response:
-  /// the statement carries the running ledger but not the supplier's phone or
-  /// the per-receiving credit lines.
+  /// Reads /supplier_credits/statement/{id} and returns it with every balance
+  /// in the list's convention (positive = we owe the supplier).
+  ///
+  /// The deployed statement route has two defects, both visible as a balance
+  /// that disagrees with the supplier list (credit - debit):
+  ///  * opening/current balance are `paid - taken`, the opposite sign; and
+  ///  * the opening balance stops a day short -- it counts entries strictly
+  ///    before the day before the range, so that day is in neither the
+  ///    opening nor the lines.
+  /// Unless the server marks its reply `balance_convention: owed` (a fixed
+  /// server), the day before the range is fetched and added back, the sign is
+  /// flipped, and every running balance is recomputed from that opening. If
+  /// the extra day cannot be read this fails rather than show a balance that
+  /// looks right and is not.
+  Future<ApiResponse<Map<String, dynamic>>> _ownedStatement(
+    int supplierId,
+    Map<String, String> query, {
+    required String errorFallback,
+  }) async {
+    final uri = Uri.parse('$baseUrlSync/supplier_credits/statement/$supplierId')
+        .replace(queryParameters: query.isNotEmpty ? query : null);
+    final raw = await _cachedGet<Map<String, dynamic>>(
+      uri,
+      (data) => Map<String, dynamic>.from(data as Map),
+      cacheKey: _keyFor(uri),
+      maxAge: CacheAge.ledger,
+      errorFallback: errorFallback,
+    );
+    if (!raw.isSuccess || raw.data == null) return raw;
+    final m = Map<String, dynamic>.from(raw.data!);
+    if (m['balance_convention'] == 'owed') return raw;
+
+    var missing = 0.0;
+    final start = DateTime.tryParse('${m['start_date']}');
+    if (start != null) {
+      final day = DateTime(start.year, start.month, start.day)
+          .subtract(const Duration(days: 1));
+      final d = '${day.year.toString().padLeft(4, '0')}-'
+          '${day.month.toString().padLeft(2, '0')}-'
+          '${day.day.toString().padLeft(2, '0')}';
+      final prevUri = Uri.parse(
+              '$baseUrlSync/supplier_credits/statement/$supplierId')
+          .replace(queryParameters: {'start_date': d, 'end_date': d});
+      final prev = await _cachedGet<List<Map<String, dynamic>>>(
+        prevUri,
+        (data) => ((data as Map)['transactions'] as List? ?? const [])
+            .whereType<Map>()
+            .map((r) => Map<String, dynamic>.from(r))
+            .toList(),
+        cacheKey: _keyFor(prevUri),
+        maxAge: CacheAge.ledger,
+        errorFallback: errorFallback,
+      );
+      if (!prev.isSuccess || prev.data == null) {
+        return ApiResponse.error(
+          message: prev.message,
+          statusCode: prev.statusCode,
+        );
+      }
+      for (final r in prev.data!) {
+        missing += _num(r['credit']) - _num(r['debit']);
+      }
+    }
+
+    final opening = -_num(m['opening_balance']) + missing;
+    var running = opening;
+    final tx = (m['transactions'] as List? ?? const [])
+        .whereType<Map>()
+        .map((t) {
+      final row = Map<String, dynamic>.from(t);
+      running += _num(row['credit']) - _num(row['debit']);
+      row['balance'] = running;
+      return row;
+    }).toList();
+
+    m['opening_balance'] = opening;
+    m['closing_balance'] = running;
+    m['current_balance'] = -_num(m['current_balance']);
+    m['transactions'] = tx;
+    m['balance_convention'] = 'owed';
+    return ApiResponse.success(
+      data: m,
+      message: raw.message,
+      servedFromCacheAt: raw.servedFromCacheAt,
+    );
+  }
+
+  /// Shapes a corrected statement ([_ownedStatement]) into the account
+  /// response: the statement carries the running ledger but not the
+  /// supplier's phone or the per-receiving credit lines.
   static SupplierAccountResponse _accountFromStatement(dynamic data) {
     final m = Map<String, dynamic>.from(data as Map);
     final tx = (m['transactions'] as List? ?? const [])
@@ -2507,8 +2600,8 @@ class ApiService {
     }).toList();
     double credit = 0, debit = 0;
     for (final t in tx) {
-      credit += (t['credit'] as num?)?.toDouble() ?? 0;
-      debit += (t['debit'] as num?)?.toDouble() ?? 0;
+      credit += _num(t['credit']);
+      debit += _num(t['debit']);
     }
     return SupplierAccountResponse.fromJson({
       'supplier_id': m['supplier_id'],
@@ -2548,15 +2641,22 @@ class ApiService {
       if (response.isSuccess || response.statusCode != 404) return response;
 
       // Older deployment without /suppliers_creditors: the statement route
-      // holds the same ledger.
-      final legacy = Uri.parse('$baseUrlSync/supplier_credits/statement/$supplierId')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierAccountResponse>(
-        legacy,
-        (data) => _accountFromStatement(data),
-        cacheKey: _keyFor(legacy),
-        maxAge: CacheAge.ledger,
+      // holds the same ledger, with its balances corrected.
+      final stmt = await _ownedStatement(
+        supplierId,
+        queryParams,
         errorFallback: 'Failed to fetch supplier account',
+      );
+      if (!stmt.isSuccess || stmt.data == null) {
+        return ApiResponse.error(
+          message: stmt.message,
+          statusCode: stmt.statusCode,
+        );
+      }
+      return ApiResponse.success(
+        data: _accountFromStatement(stmt.data),
+        message: 'Success',
+        servedFromCacheAt: stmt.servedFromCacheAt,
       );
     } catch (e) {
       _reportFailure(e);
