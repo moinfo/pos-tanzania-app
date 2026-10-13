@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';

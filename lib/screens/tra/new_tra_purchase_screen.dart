@@ -9,7 +9,6 @@ import '../../utils/constants.dart';
 import '../../models/tra.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/tra_service.dart';
-import '../../utils/app_theme.dart';
 import '../../widgets/brand_backdrop.dart';
 
 class NewTRAPurchaseScreen extends StatefulWidget {

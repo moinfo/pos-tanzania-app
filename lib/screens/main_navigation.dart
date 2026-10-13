@@ -1074,7 +1074,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.credits,
                   child: ListTile(
-                    leading: BrandIconTile(Icons.credit_card, fallbackColor: AppColors.error),
+                    leading: const BrandIconTile(Icons.credit_card, fallbackColor: AppColors.error),
                     title: const Text('Customer Credits'),
                     onTap: () {
                       Navigator.pop(context);
@@ -1178,7 +1178,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.salesSuspended,
                   child: ListTile(
-                    leading: BrandIconTile(Icons.pause_circle, fallbackColor: AppColors.warning),
+                    leading: const BrandIconTile(Icons.pause_circle, fallbackColor: AppColors.warning),
                     title: const Text('Suspended Sales'),
                     onTap: () async {
                       Navigator.pop(context);
@@ -1221,7 +1221,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionWrapper(
                   permissionId: PermissionIds.credits,
                   child: ListTile(
-                    leading: BrandIconTile(Icons.credit_card, fallbackColor: AppColors.error),
+                    leading: const BrandIconTile(Icons.credit_card, fallbackColor: AppColors.error),
                     title: const Text('Supplier Credits'),
                     onTap: () {
                       Navigator.pop(context);

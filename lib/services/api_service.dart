@@ -468,7 +468,9 @@ class ApiService {
           'Url: ${response.request?.url}, Body: $bodyPreview');
 
       return ApiResponse<T>.error(
-        message: 'Failed to parse response: $e',
+        message: _looksLikeHtml(response.body)
+            ? _htmlErrorMessage(statusCode, fallback: 'Unexpected server response')
+            : 'Failed to parse response: $e',
         statusCode: statusCode,
       );
     }
@@ -533,7 +535,10 @@ class ApiService {
             // server's own words; anything else really is a decode failure.
             message: e is ApiPayloadError
                 ? e.message
-                : 'Failed to parse response: $e',
+                : _looksLikeHtml(response.body)
+                    ? _htmlErrorMessage(response.statusCode,
+                        fallback: 'Unexpected server response')
+                    : 'Failed to parse response: $e',
             statusCode: response.statusCode,
           );
         }
@@ -541,7 +546,11 @@ class ApiService {
 
       if (response.statusCode == 401) _handleUnauthorized(response);
       return ApiResponse<T>.error(
-        message: _extractErrorMessage(response.body, fallback: errorFallback),
+        message: _extractErrorMessage(
+          response.body,
+          fallback: errorFallback,
+          statusCode: response.statusCode,
+        ),
         statusCode: response.statusCode,
       );
     } catch (e) {
@@ -1421,7 +1430,11 @@ class ApiService {
   ///
   /// Handles the JSON envelope the API normally returns, and degrades safely
   /// when the server emits an HTML error page instead.
-  String _extractErrorMessage(String body, {required String fallback}) {
+  String _extractErrorMessage(
+    String body, {
+    required String fallback,
+    int? statusCode,
+  }) {
     try {
       final decoded = json.decode(body);
       if (decoded is Map && decoded['message'] != null) {
@@ -1431,9 +1444,42 @@ class ApiService {
       // Not JSON -- fall through to the HTML handling below
     }
 
+    // A web-server error page (a CodeIgniter 404, an nginx 502) is not a
+    // message for a seller; its tags strip down to a wall of CSS.
+    if (_looksLikeHtml(body)) {
+      return _htmlErrorMessage(statusCode, fallback: fallback);
+    }
+
     final text = body.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
     if (text.isEmpty) return fallback;
     return text.length > 200 ? '${text.substring(0, 200)}…' : text;
+  }
+
+  /// Whether [body] is an HTML document rather than an API payload.
+  static bool _looksLikeHtml(String body) {
+    final head = body.trimLeft();
+    if (head.isEmpty) return false;
+    final lower = head.substring(0, head.length > 300 ? 300 : head.length).toLowerCase();
+    return lower.startsWith('<!doctype') ||
+        lower.startsWith('<html') ||
+        lower.contains('<html') ||
+        lower.contains('<head') ||
+        lower.contains('<style');
+  }
+
+  /// What to tell the user when the server answered with an HTML page.
+  /// A 404 here means the route itself is missing on that deployment (the
+  /// app is newer than the server), which is different from a record that
+  /// was not found -- those come back as JSON.
+  static String _htmlErrorMessage(int? statusCode, {required String fallback}) {
+    if (statusCode == 404) {
+      return 'This feature is not available on the server yet. '
+          'Please contact support.';
+    }
+    if (statusCode != null && statusCode >= 500) {
+      return 'The server had a problem. Please try again in a moment.';
+    }
+    return fallback;
   }
 
   /// Get single customer
@@ -1821,6 +1867,108 @@ class ApiService {
     }
   }
 
+  /// /customers with every row in one page. The list is small (a shop's
+  /// customers), and the credit screens need all of it to group by supervisor.
+  Uri _customersUri() => Uri.parse('$baseUrlSync/customers')
+      .replace(queryParameters: const {'limit': '5000', 'offset': '0'});
+
+  static List<Map<String, dynamic>> _customerRows(dynamic data) {
+    final rows = data is Map ? data['customers'] : data;
+    return (rows is List ? rows : const [])
+        .whereType<Map>()
+        .map((r) => Map<String, dynamic>.from(r))
+        .toList();
+  }
+
+  static double _num(dynamic v) =>
+      v is num ? v.toDouble() : double.tryParse('${v ?? ''}') ?? 0;
+
+  static int _intOf(dynamic v) =>
+      v is num ? v.toInt() : int.tryParse('${v ?? ''}') ?? 0;
+
+  /// Groups /customers by supervisor into the supervisor credits response.
+  /// The customer list carries one net `balance`, so it is shown as credit
+  /// (what is owed) with nothing on the debit side; suppliers with a zero
+  /// balance are left out.
+  static SupervisorCreditsResponse _supervisorsFromCustomers(dynamic data) {
+    final byId = <int, Map<String, dynamic>>{};
+    for (final c in _customerRows(data)) {
+      final sup = c['supervisor'] is Map ? c['supervisor'] as Map : const {};
+      final id = _intOf(sup['id']);
+      final entry = byId.putIfAbsent(
+        id,
+        () => {'supervisor_id': id, 'name': '${sup['name'] ?? ''}', 'phone': '',
+               'credit': 0.0, 'debit': 0.0, 'balance': 0.0},
+      );
+      final balance = _num(c['balance']);
+      entry['balance'] = (entry['balance'] as double) + balance;
+      if (balance > 0) entry['credit'] = (entry['credit'] as double) + balance;
+    }
+    final rows = byId.values
+        .where((e) => (e['balance'] as double) != 0)
+        .map(SupervisorCredit.fromJson)
+        .toList()
+      ..sort((a, b) => b.balance.compareTo(a.balance));
+    double credit = 0, debit = 0, balance = 0;
+    for (final r in rows) {
+      credit += r.credit;
+      debit += r.debit;
+      balance += r.balance;
+    }
+    return SupervisorCreditsResponse(
+      supervisors: rows,
+      summary: CreditsSummary(
+        totalCredit: credit,
+        totalDebit: debit,
+        totalBalance: balance,
+        supervisorCount: rows.length,
+      ),
+    );
+  }
+
+  /// One supervisor's customers (with a balance) out of /customers.
+  static SupervisorCustomersResponse _supervisorCustomersFromCustomers(
+    dynamic data,
+    int supervisorId,
+  ) {
+    var name = '';
+    final rows = <CustomerCredit>[];
+    for (final c in _customerRows(data)) {
+      final sup = c['supervisor'] is Map ? c['supervisor'] as Map : const {};
+      if (_intOf(sup['id']) != supervisorId) continue;
+      name = '${sup['name'] ?? name}';
+      final balance = _num(c['balance']);
+      if (balance == 0) continue;
+      rows.add(CustomerCredit.fromJson({
+        'customer_id': _intOf(c['person_id']),
+        'first_name': '${c['first_name'] ?? ''}',
+        'last_name': '${c['last_name'] ?? ''}',
+        'phone': '${c['phone_number'] ?? ''}',
+        'credit': balance > 0 ? balance : 0.0,
+        'debit': 0.0,
+        'balance': balance,
+      }));
+    }
+    rows.sort((a, b) => b.balance.compareTo(a.balance));
+    double credit = 0, debit = 0, balance = 0;
+    for (final r in rows) {
+      credit += r.credit;
+      debit += r.debit;
+      balance += r.balance;
+    }
+    return SupervisorCustomersResponse(
+      supervisorId: supervisorId,
+      supervisorName: name,
+      customers: rows,
+      summary: CustomerCreditsSummary(
+        totalCredit: credit,
+        totalDebit: debit,
+        totalBalance: balance,
+        customerCount: rows.length,
+      ),
+    );
+  }
+
   /// Get all supervisors with credit balances (filtered by allowed stock locations)
   Future<ApiResponse<SupervisorCreditsResponse>> getSupervisorCredits({
     List<int>? locationIds,
@@ -1834,7 +1982,7 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/credits/supervisors')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      return _cachedGet<SupervisorCreditsResponse>(
+      final response = await _cachedGet<SupervisorCreditsResponse>(
         uri,
         (data) => SupervisorCreditsResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -1852,6 +2000,18 @@ class ApiService {
         maxAge: CacheAge.queue,
         errorFallback: 'Failed to fetch supervisor credits',
       );
+      if (response.isSuccess || response.statusCode != 404) return response;
+
+      // This server has no /credits/supervisors route. Every customer already
+      // carries its balance and supervisor in /customers, so group those.
+      final legacy = _customersUri();
+      return _cachedGet<SupervisorCreditsResponse>(
+        legacy,
+        (data) => _supervisorsFromCustomers(data),
+        cacheKey: _keyFor(legacy),
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch supervisor credits',
+      );
     } catch (e) {
       _reportFailure(e);
       return ApiResponse.error(message: _failureMessage(e));
@@ -1866,7 +2026,7 @@ class ApiService {
       final uri =
           Uri.parse('$baseUrlSync/credits/supervisor_customers/$supervisorId');
 
-      return _cachedGet<SupervisorCustomersResponse>(
+      final response = await _cachedGet<SupervisorCustomersResponse>(
         uri,
         (data) => SupervisorCustomersResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -1874,6 +2034,18 @@ class ApiService {
         // this is who to call on, not what to charge them. Recording a payment
         // is refused offline, so a stale figure here can inform a trip but can
         // never be written back as fact.
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch supervisor customers',
+      );
+      if (response.isSuccess || response.statusCode != 404) return response;
+
+      // No /credits/supervisor_customers route: the same rows are the
+      // supervisor's slice of /customers.
+      final legacy = _customersUri();
+      return _cachedGet<SupervisorCustomersResponse>(
+        legacy,
+        (data) => _supervisorCustomersFromCustomers(data, supervisorId),
+        cacheKey: _keyFor(legacy),
         maxAge: CacheAge.queue,
         errorFallback: 'Failed to fetch supervisor customers',
       );
@@ -2265,7 +2437,7 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierCreditsResponse>(
+      final response = await _cachedGet<SupplierCreditsResponse>(
         uri,
         (data) => SupplierCreditsResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -2275,10 +2447,80 @@ class ApiService {
         maxAge: CacheAge.queue,
         errorFallback: 'Failed to fetch supplier creditors',
       );
+      if (response.isSuccess || response.statusCode != 404) return response;
+
+      // The server has no /suppliers_creditors route (an older deployment).
+      // /supplier_credits/suppliers is the same ledger under its original
+      // name, so read the balances from there.
+      final legacy = Uri.parse('$baseUrlSync/supplier_credits/suppliers');
+      return _cachedGet<SupplierCreditsResponse>(
+        legacy,
+        (data) => _creditsFromLegacyList(data),
+        cacheKey: _keyFor(legacy),
+        maxAge: CacheAge.queue,
+        errorFallback: 'Failed to fetch supplier creditors',
+      );
     } catch (e) {
       _reportFailure(e);
       return ApiResponse.error(message: _failureMessage(e));
     }
+  }
+
+  /// Shapes the /supplier_credits/suppliers list (supplier_id, company_name,
+  /// first_name, last_name, credit, debit, balance) into the creditors
+  /// response. Suppliers with a zero balance are left out, as the creditors
+  /// endpoint does; the summary covers what is shown.
+  static SupplierCreditsResponse _creditsFromLegacyList(dynamic data) {
+    final rows = (data is List ? data : const [])
+        .whereType<Map>()
+        .map((r) => SupplierCredit.fromJson(Map<String, dynamic>.from(r)))
+        .where((s) => s.balance != 0)
+        .toList();
+    double credit = 0, debit = 0, balance = 0;
+    for (final s in rows) {
+      credit += s.credit;
+      debit += s.debit;
+      balance += s.balance;
+    }
+    return SupplierCreditsResponse(
+      suppliers: rows,
+      summary: SupplierCreditsSummary(
+        totalCredit: credit,
+        totalDebit: debit,
+        totalBalance: balance,
+        supplierCount: rows.length,
+      ),
+    );
+  }
+
+  /// Shapes a /supplier_credits/statement reply into the account response:
+  /// the statement carries the running ledger but not the supplier's phone or
+  /// the per-receiving credit lines.
+  static SupplierAccountResponse _accountFromStatement(dynamic data) {
+    final m = Map<String, dynamic>.from(data as Map);
+    final tx = (m['transactions'] as List? ?? const [])
+        .whereType<Map>()
+        .map((t) {
+      final row = Map<String, dynamic>.from(t);
+      row['id'] ??= row['payment_id'];
+      return row;
+    }).toList();
+    double credit = 0, debit = 0;
+    for (final t in tx) {
+      credit += (t['credit'] as num?)?.toDouble() ?? 0;
+      debit += (t['debit'] as num?)?.toDouble() ?? 0;
+    }
+    return SupplierAccountResponse.fromJson({
+      'supplier_id': m['supplier_id'],
+      'supplier_name': m['supplier_name'],
+      'start_date': m['start_date'],
+      'end_date': m['end_date'],
+      'opening_balance': m['opening_balance'],
+      'current_balance': m['current_balance'],
+      'total_credit': credit,
+      'total_debit': debit,
+      'transactions': tx,
+    });
   }
 
   /// Get individual supplier account with transactions
@@ -2294,12 +2536,25 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/account/$supplierId')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierAccountResponse>(
+      final response = await _cachedGet<SupplierAccountResponse>(
         uri,
         (data) => SupplierAccountResponse.fromJson(data),
         cacheKey: _keyFor(uri),
         // One supplier's ledger. Settled lines are history and cannot change
         // behind us, so a week-old copy still answers "what did we buy".
+        maxAge: CacheAge.ledger,
+        errorFallback: 'Failed to fetch supplier account',
+      );
+      if (response.isSuccess || response.statusCode != 404) return response;
+
+      // Older deployment without /suppliers_creditors: the statement route
+      // holds the same ledger.
+      final legacy = Uri.parse('$baseUrlSync/supplier_credits/statement/$supplierId')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      return _cachedGet<SupplierAccountResponse>(
+        legacy,
+        (data) => _accountFromStatement(data),
+        cacheKey: _keyFor(legacy),
         maxAge: CacheAge.ledger,
         errorFallback: 'Failed to fetch supplier account',
       );
@@ -3549,6 +3804,7 @@ class ApiService {
       final message = _extractErrorMessage(
         response.body,
         fallback: 'Failed to fetch group offers',
+        statusCode: response.statusCode,
       );
       debugPrint('⚠️ Group offers API error ${response.statusCode}: $message');
       return ApiResponse.error(message: message);

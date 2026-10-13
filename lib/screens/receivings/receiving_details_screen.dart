@@ -13,7 +13,6 @@ import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'new_receiving_screen.dart';
 import 'return_items_picker.dart';
-import '../../utils/app_theme.dart';
 import '../../widgets/brand_backdrop.dart';
 
 class ReceivingDetailsScreen extends StatefulWidget {

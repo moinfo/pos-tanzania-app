@@ -17,7 +17,6 @@ import '../widgets/glassmorphic_card.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
 import '../widgets/brand_backdrop.dart';
-import '../utils/app_theme.dart';
 
 /// Suppliers Credits Screen - Shows list of suppliers with their credit balances
 /// Similar to web /suppliers_creditors page

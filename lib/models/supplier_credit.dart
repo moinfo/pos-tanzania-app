@@ -1,3 +1,12 @@
+/// MySQL hands numeric columns back as strings on some deployments
+/// ("12" rather than 12), so integer ids are parsed rather than cast.
+int? _asInt(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  return int.tryParse(v.toString());
+}
+
 /// Supplier credit data for the suppliers creditors list screen
 class SupplierCredit {
   final int supplierId;
@@ -30,7 +39,7 @@ class SupplierCredit {
 
   factory SupplierCredit.fromJson(Map<String, dynamic> json) {
     return SupplierCredit(
-      supplierId: json['supplier_id'] ?? 0,
+      supplierId: _asInt(json['supplier_id']) ?? 0,
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       companyName: json['company_name'] ?? '',
@@ -61,7 +70,7 @@ class SupplierCreditsSummary {
       totalCredit: (json['total_credit'] ?? 0).toDouble(),
       totalDebit: (json['total_debit'] ?? 0).toDouble(),
       totalBalance: (json['total_balance'] ?? 0).toDouble(),
-      supplierCount: json['supplier_count'] ?? 0,
+      supplierCount: _asInt(json['supplier_count']) ?? 0,
     );
   }
 }
@@ -111,11 +120,11 @@ class SupplierTransaction {
 
   factory SupplierTransaction.fromJson(Map<String, dynamic> json) {
     return SupplierTransaction(
-      id: json['id'],
+      id: _asInt(json['id']),
       date: json['date'] ?? '',
       credit: (json['credit'] ?? 0).toDouble(),
       debit: (json['debit'] ?? 0).toDouble(),
-      receivingId: json['receiving_id'],
+      receivingId: _asInt(json['receiving_id']),
       description: json['description'],
       balance: (json['balance'] ?? 0).toDouble(),
     );
@@ -148,7 +157,7 @@ class SupplierCreditTransaction {
 
   factory SupplierCreditTransaction.fromJson(Map<String, dynamic> json) {
     return SupplierCreditTransaction(
-      receivingId: json['receiving_id'] ?? 0,
+      receivingId: _asInt(json['receiving_id']) ?? 0,
       date: json['date'] ?? '',
       credit: (json['credit'] ?? 0).toDouble(),
       paid: (json['paid'] ?? 0).toDouble(),
@@ -203,7 +212,7 @@ class SupplierAccountResponse {
         .toList();
 
     return SupplierAccountResponse(
-      supplierId: json['supplier_id'] ?? 0,
+      supplierId: _asInt(json['supplier_id']) ?? 0,
       supplierName: json['supplier_name'] ?? '',
       companyName: json['company_name'] ?? '',
       phone: json['phone'] ?? '',
@@ -252,14 +261,14 @@ class SupplierDailyCreditEntry {
 
   factory SupplierDailyCreditEntry.fromJson(Map<String, dynamic> json) {
     return SupplierDailyCreditEntry(
-      receivingId: json['receiving_id'] ?? 0,
+      receivingId: _asInt(json['receiving_id']) ?? 0,
       date: json['date'] ?? '',
       supplierName: json['supplier_name'] ?? '',
       companyName: json['company_name'] ?? '',
-      supplierId: json['supplier_id'] ?? 0,
+      supplierId: _asInt(json['supplier_id']) ?? 0,
       amount: (json['amount'] ?? 0).toDouble(),
       employeeName: json['employee_name'] ?? '',
-      employeeId: json['employee_id'] ?? 0,
+      employeeId: _asInt(json['employee_id']) ?? 0,
       reference: json['reference'] ?? '',
     );
   }
@@ -338,15 +347,15 @@ class SupplierDailyDebtEntry {
 
   factory SupplierDailyDebtEntry.fromJson(Map<String, dynamic> json) {
     return SupplierDailyDebtEntry(
-      id: json['id'] ?? 0,
+      id: _asInt(json['id']) ?? 0,
       date: json['date'] ?? '',
       supplierName: json['supplier_name'] ?? '',
-      supplierId: json['supplier_id'] ?? 0,
+      supplierId: _asInt(json['supplier_id']) ?? 0,
       amount: (json['amount'] ?? 0).toDouble(),
       employeeName: json['employee_name'] ?? '',
-      employeeId: json['employee_id'] ?? 0,
+      employeeId: _asInt(json['employee_id']) ?? 0,
       description: json['description'] ?? '',
-      paymentId: json['payment_id'] ?? 0,
+      paymentId: _asInt(json['payment_id']) ?? 0,
     );
   }
 }

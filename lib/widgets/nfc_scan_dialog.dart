@@ -3,7 +3,6 @@ import 'tr_text.dart';
 import '../services/nfc_service.dart';
 import '../models/customer.dart';
 import '../utils/constants.dart';
-import '../utils/app_theme.dart';
 
 /// Dialog for scanning NFC cards
 class NfcScanDialog extends StatefulWidget {

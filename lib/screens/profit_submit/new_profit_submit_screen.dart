@@ -17,7 +17,6 @@ import '../../providers/theme_provider.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
-import '../../utils/app_theme.dart';
 import '../../widgets/brand_backdrop.dart';
 
 class NewProfitSubmitScreen extends StatefulWidget {

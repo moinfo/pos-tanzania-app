@@ -11,7 +11,6 @@ import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 import 'receiving_details_screen.dart';
-import '../utils/app_theme.dart';
 import '../widgets/brand_backdrop.dart';
 
 class SupplierCreditScreen extends StatefulWidget {
