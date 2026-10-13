@@ -86,7 +86,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
     );
     _checkAuthStatus();
-    _checkForUpdate();
+    // check() notifies synchronously before its first await, which inside
+    // initState lands mid-build and trips "setState() called during build".
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
   }
 
   /// Ask the server once per sign-in whether a newer build is published, and
