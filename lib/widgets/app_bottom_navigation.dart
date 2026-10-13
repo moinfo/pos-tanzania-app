@@ -106,7 +106,10 @@ class AppBottomNavigation extends StatelessWidget {
 
     // Transactions replaces the stock-location screens for a user who has no
     // location. Position matters: it sits right after Summary, as in the shell.
-    if (hasTransactionsPermission && !hasStockLocation) {
+    // Come & Save only, as in the shell: elsewhere the bar is the admin's.
+    if (hasTransactionsPermission &&
+        !hasStockLocation &&
+        ApiService.currentClient?.id == 'come_and_save') {
       items.add({
         'icon': Icons.swap_horiz,
         'label': 'Transactions',
@@ -205,7 +208,10 @@ class AppBottomNavigation extends StatelessWidget {
 
       // The module grant itself (as on the web), except the dashboard, which
       // every signed-in user sees. Must agree with MainNavigation's filter.
-      if (permission == PermissionIds.home ||
+      // Same rule as the shell: every non-Leruma user gets the admin's tabs
+      // (content is gated by the shell); Leruma keeps its grant filter.
+      if (ApiService.currentClient?.id != 'leruma' ||
+          permission == PermissionIds.home ||
           permissionProvider.hasPermission(permission)) {
         indexMapping[availableItems.length] = i;
         availableItems.add(

@@ -202,6 +202,21 @@ class _MainNavigationState extends State<MainNavigation>
   /// they cannot see.
   void _openSales() => _openTab('Sales', () => SalesScreen(key: UniqueKey()));
 
+  /// The selected tab's screen, or a "no access" page when the employee has
+  /// not been granted the tab's module. The tab itself stays in the bar so the
+  /// bar is the admin's for everyone; only its content is withheld.
+  Widget _gateTab(Map<String, dynamic> config) {
+    final screen = config['screen'] as Widget;
+    final permission = config['permission'] as String?;
+    if (permission == null || permission == PermissionIds.home) return screen;
+
+    final allowed =
+        context.watch<PermissionProvider>().hasPermission(permission);
+    if (allowed) return screen;
+
+    return _TabNoAccess(label: config['label'] as String);
+  }
+
   /// Open a drawer destination that is also a bottom-bar tab.
   ///
   /// Switches to the tab THROUGH [_onItemTapped], which is what rotates the bar
@@ -299,7 +314,13 @@ class _MainNavigationState extends State<MainNavigation>
 
     // Add Transactions screen if user has NO stock location but has transactions permission
     // Available for both SADA and Come & Save clients
-    if (hasTransactionsPermission && !hasStockLocation) {
+    //
+    // Come & Save only: it is the one client whose bar is meant to differ by
+    // grant and location. Everywhere else this tab would make an employee's
+    // bar differ from the admin's.
+    if (hasTransactionsPermission &&
+        !hasStockLocation &&
+        ApiService.currentClient?.id == 'come_and_save') {
       configs.add({
         'screen': TransactionsScreen(key: ValueKey('transactions_$userId')),
         'icon': Icons.swap_horiz,
@@ -850,7 +871,14 @@ class _MainNavigationState extends State<MainNavigation>
       // A module shows only when the employee holds the module grant itself,
       // as on the web; holding one of its sub-permissions is not enough. The
       // dashboard is the exception: every signed-in user lands on it.
-      final hasPermission = permission == PermissionIds.home ||
+      //
+      // The bottom bar itself is the same for every user of a non-Leruma
+      // client: the admin's tabs, in the admin's order. A tab the employee
+      // holds no grant for still shows (so positions and rotation behave
+      // identically) and opens a "no access" page in place of the module --
+      // see _gateTab. Leruma keeps its grant-filtered bar.
+      final hasPermission = ApiService.currentClient?.id != 'leruma' ||
+          permission == PermissionIds.home ||
           permissionProvider.hasPermission(permission);
 
       if (hasPermission) {
@@ -1584,7 +1612,7 @@ class _MainNavigationState extends State<MainNavigation>
           const OfflineBanner(),
           Expanded(
             child: availableScreens.isNotEmpty
-                ? availableScreens[_selectedIndex]['screen'] as Widget
+                ? _gateTab(availableScreens[_selectedIndex])
                 : _buildNoScreensState(isDark),
           ),
         ],
@@ -2087,6 +2115,40 @@ class _DrawerHeaderAction extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown inside a bottom-bar tab whose module the employee has no grant for.
+class _TabNoAccess extends StatelessWidget {
+  final String label;
+  const _TabNoAccess({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 44, color: AppColors.muted(context)),
+            const SizedBox(height: 14),
+            Text(
+              'No access to $label',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Your account has not been granted this section. '
+              'Ask an administrator to assign it.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13.5, color: AppColors.muted(context)),
+            ),
+          ],
         ),
       ),
     );
