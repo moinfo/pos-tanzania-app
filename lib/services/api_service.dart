@@ -1888,7 +1888,7 @@ class ApiService {
 
   /// Groups /customers by supervisor into the supervisor credits response.
   /// The customer list carries one net `balance`, so it is shown as credit
-  /// (what is owed) with nothing on the debit side; suppliers with a zero
+  /// (what is owed) with nothing on the debit side; supervisors with a zero
   /// balance are left out.
   static SupervisorCreditsResponse _supervisorsFromCustomers(dynamic data) {
     final byId = <int, Map<String, dynamic>>{};
@@ -2586,6 +2586,70 @@ class ApiService {
     }
   }
 
+  /// Every supplier's statement lines for the period, tagged with the
+  /// supplier, for servers that lack /suppliers_creditors/daily_*_report.
+  /// A supplier whose statement is refused (one held in the other tenant
+  /// database) is skipped rather than failing the whole report.
+  Future<ApiResponse<List<Map<String, dynamic>>>> _supplierStatementRows(
+    String? startDate,
+    String? endDate,
+  ) async {
+    try {
+      final headers = await _getHeaders();
+      final listRes = await _http.get(
+        Uri.parse('$baseUrlSync/supplier_credits/suppliers'),
+        headers: headers,
+      );
+      _reportReachable(true);
+      if (listRes.statusCode != 200) {
+        return ApiResponse.error(
+          message: _extractErrorMessage(
+            listRes.body,
+            fallback: 'Failed to fetch suppliers',
+            statusCode: listRes.statusCode,
+          ),
+          statusCode: listRes.statusCode,
+        );
+      }
+      final suppliers = (json.decode(listRes.body)['data'] as List? ?? const [])
+          .whereType<Map>()
+          .toList();
+
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      final query = <String, String>{
+        'start_date': startDate ?? today,
+        'end_date': endDate ?? today,
+      };
+      final out = <Map<String, dynamic>>[];
+      for (final sup in suppliers) {
+        final id = _intOf(sup['supplier_id']);
+        final res = await _http.get(
+          Uri.parse('$baseUrlSync/supplier_credits/statement/$id')
+              .replace(queryParameters: query),
+          headers: headers,
+        );
+        if (res.statusCode != 200) continue;
+        final data = json.decode(res.body)['data'];
+        if (data is! Map) continue;
+        for (final t in (data['transactions'] as List? ?? const [])) {
+          if (t is! Map) continue;
+          out.add({
+            ...Map<String, dynamic>.from(t),
+            'supplier_id': id,
+            'supplier_name':
+                '${sup['first_name'] ?? ''} ${sup['last_name'] ?? ''}'.trim(),
+            'company_name': '${sup['company_name'] ?? ''}',
+          });
+        }
+      }
+      out.sort((a, b) => '${a['date']}'.compareTo('${b['date']}'));
+      return ApiResponse.success(data: out, message: 'Success');
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
   /// Get daily credit report for suppliers (credit purchases)
   Future<ApiResponse<SupplierDailyCreditResponse>> getSupplierDailyCreditReport({
     String? startDate,
@@ -2602,7 +2666,7 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_credit_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierDailyCreditResponse>(
+      final response = await _cachedGet<SupplierDailyCreditResponse>(
         uri,
         (data) => SupplierDailyCreditResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -2610,6 +2674,42 @@ class ApiService {
         // by tomorrow it answers the wrong question.
         maxAge: CacheAge.today,
         errorFallback: 'Failed to fetch supplier daily credit report',
+      );
+      if (response.isSuccess || response.statusCode != 404) return response;
+
+      final rows = await _supplierStatementRows(startDate, endDate);
+      if (!rows.isSuccess) {
+        return ApiResponse.error(
+          message: rows.message ?? 'Failed to fetch supplier daily credit report',
+          statusCode: rows.statusCode,
+        );
+      }
+      final credits = <Map<String, dynamic>>[];
+      for (final r in rows.data!) {
+        final amount = _num(r['credit']);
+        if (amount <= 0 || r['receiving_id'] == null) continue;
+        credits.add({
+          'receiving_id': r['receiving_id'],
+          'date': r['date'],
+          'supplier_name': r['supplier_name'],
+          'company_name': r['company_name'],
+          'supplier_id': r['supplier_id'],
+          'amount': amount,
+          'reference': 'RECV ${r['receiving_id']}',
+        });
+      }
+      return ApiResponse.success(
+        data: SupplierDailyCreditResponse.fromJson({
+          'start_date': startDate ?? '',
+          'end_date': endDate ?? '',
+          'credits': credits,
+          'summary': {
+            'total_amount':
+                credits.fold<double>(0, (t, c) => t + (c['amount'] as double)),
+            'count': credits.length,
+          },
+        }),
+        message: 'Success',
       );
     } catch (e) {
       _reportFailure(e);
@@ -2633,13 +2733,51 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_debt_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierDailyDebtResponse>(
+      final response = await _cachedGet<SupplierDailyDebtResponse>(
         uri,
         (data) => SupplierDailyDebtResponse.fromJson(data),
         cacheKey: _keyFor(uri),
         // Today's owing, same horizon and same reason as the credit report.
         maxAge: CacheAge.today,
         errorFallback: 'Failed to fetch supplier daily debt report',
+      );
+      if (response.isSuccess || response.statusCode != 404) return response;
+
+      final rows = await _supplierStatementRows(startDate, endDate);
+      if (!rows.isSuccess) {
+        return ApiResponse.error(
+          message: rows.message ?? 'Failed to fetch supplier daily debt report',
+          statusCode: rows.statusCode,
+        );
+      }
+      final debts = <Map<String, dynamic>>[];
+      for (final r in rows.data!) {
+        final amount = _num(r['debit']);
+        if (amount <= 0) continue;
+        final name = '${r['supplier_name']}'.trim();
+        final company = '${r['company_name']}'.trim();
+        debts.add({
+          'id': r['payment_id'],
+          'payment_id': r['payment_id'],
+          'date': r['date'],
+          'supplier_name': name.isNotEmpty ? name : company,
+          'supplier_id': r['supplier_id'],
+          'amount': amount,
+          'description': r['description'] ?? '',
+        });
+      }
+      return ApiResponse.success(
+        data: SupplierDailyDebtResponse.fromJson({
+          'start_date': startDate ?? '',
+          'end_date': endDate ?? '',
+          'debts': debts,
+          'summary': {
+            'total_amount':
+                debts.fold<double>(0, (t, d) => t + (d['amount'] as double)),
+            'count': debts.length,
+          },
+        }),
+        message: 'Success',
       );
     } catch (e) {
       _reportFailure(e);

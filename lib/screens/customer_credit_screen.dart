@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
+import '../utils/date_range_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -63,14 +64,11 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
   /// date picker instead.
   String? _periodPreset = 'month';
 
-  /// Whether this user may look outside today.
-  ///
-  /// Mirrors the web, which puts the credit date controls behind
-  /// `credits_edit_date` (views/credit/daily_debt_report.php and
-  /// credit_account.php). Without it the statement is pinned to today.
-  bool get _canPickPeriod => context
-      .read<PermissionProvider>()
-      .hasPermission(PermissionIds.creditsEditDate);
+  /// The date range is a read-only filter, so every user may pick it. (The
+  /// web gates it behind `credits_edit_date`, but the API serves any range
+  /// from `start_date`/`end_date` and the permission only matters when
+  /// back-dating a payment, which is still gated where payments are entered.)
+  bool get _canPickPeriod => true;
 
   static String get _today => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
@@ -137,9 +135,10 @@ class _CustomerCreditScreenState extends State<CustomerCreditScreen> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(
-        start: DateTime.parse(_startDate),
-        end: DateTime.parse(_endDate),
+      initialDateRange: pickerInitialRange(
+        DateTime.parse(_startDate),
+        DateTime.parse(_endDate),
+        DateTime.now(),
       ),
     );
 

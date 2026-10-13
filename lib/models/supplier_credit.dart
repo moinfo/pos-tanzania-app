@@ -1,3 +1,15 @@
+/// [rows] newest first by [date] (ISO yyyy-MM-dd, optionally with a time).
+/// The server lists a ledger oldest first; within one day the later entry
+/// stays above the earlier one.
+List<T> _newestFirst<T>(List<T> rows, String Function(T row) date) {
+  final indexed = rows.asMap().entries.toList()
+    ..sort((a, b) {
+      final byDate = date(b.value).compareTo(date(a.value));
+      return byDate != 0 ? byDate : b.key.compareTo(a.key);
+    });
+  return [for (final e in indexed) e.value];
+}
+
 /// MySQL hands numeric columns back as strings on some deployments
 /// ("12" rather than 12), so integer ids are parsed rather than cast.
 int? _asInt(dynamic v) {
@@ -202,14 +214,18 @@ class SupplierAccountResponse {
 
   factory SupplierAccountResponse.fromJson(Map<String, dynamic> json) {
     var transactionsJson = json['transactions'] as List? ?? [];
-    List<SupplierTransaction> transactionsList = transactionsJson
-        .map((t) => SupplierTransaction.fromJson(t))
-        .toList();
+    List<SupplierTransaction> transactionsList = _newestFirst(
+      transactionsJson.map((t) => SupplierTransaction.fromJson(t)).toList(),
+      (t) => t.date,
+    );
 
     var creditTransactionsJson = json['credit_transactions'] as List? ?? [];
-    List<SupplierCreditTransaction> creditTransactionsList = creditTransactionsJson
-        .map((c) => SupplierCreditTransaction.fromJson(c))
-        .toList();
+    List<SupplierCreditTransaction> creditTransactionsList = _newestFirst(
+      creditTransactionsJson
+          .map((c) => SupplierCreditTransaction.fromJson(c))
+          .toList(),
+      (c) => c.date,
+    );
 
     return SupplierAccountResponse(
       supplierId: _asInt(json['supplier_id']) ?? 0,

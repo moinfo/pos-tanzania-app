@@ -193,9 +193,18 @@ class SupplierStatement {
 
   factory SupplierStatement.fromJson(Map<String, dynamic> json) {
     var transactionsJson = json['transactions'] as List? ?? [];
-    List<SupplierTransaction> transactionsList = transactionsJson
+    final indexed = transactionsJson
         .map((t) => SupplierTransaction.fromJson(t))
-        .toList();
+        .toList()
+        .asMap()
+        .entries
+        .toList()
+      // Newest first; within one day the later entry stays on top.
+      ..sort((a, b) {
+        final byDate = b.value.date.compareTo(a.value.date);
+        return byDate != 0 ? byDate : b.key.compareTo(a.key);
+      });
+    final transactionsList = [for (final e in indexed) e.value];
 
     return SupplierStatement(
       supplierId: json['supplier_id'] ?? 0,

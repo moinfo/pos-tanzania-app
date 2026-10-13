@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
+import '../utils/date_range_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
@@ -828,7 +829,8 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+      initialDateRange:
+          pickerInitialRange(_startDate, _endDate, DateTime.now()),
     );
     if (picked != null) {
       setState(() {
@@ -1300,7 +1302,8 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+      initialDateRange:
+          pickerInitialRange(_startDate, _endDate, DateTime.now()),
     );
     if (picked != null) {
       setState(() { _startDate = picked.start; _endDate = picked.end; });
@@ -1714,7 +1717,8 @@ class _SupplierDailyDebtReportScreenState extends State<SupplierDailyDebtReportS
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+      initialDateRange:
+          pickerInitialRange(_startDate, _endDate, DateTime.now()),
     );
     if (picked != null) {
       setState(() { _startDate = picked.start; _endDate = picked.end; });

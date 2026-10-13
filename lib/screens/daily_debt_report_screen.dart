@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
+import '../utils/date_range_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../widgets/state_views.dart';
 import '../models/credit.dart';
 import '../widgets/credit/credit_list_widgets.dart';
-import '../models/permission_model.dart';
 import '../providers/location_provider.dart';
-import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -43,11 +42,11 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
   /// Active 5.x preset, or null when the range came from the date picker.
   String? _periodPreset = 'month';
 
-  /// The web puts this screen's whole date filter behind `credits_edit_date`
-  /// (views/credit/daily_debt_report.php). Without it the report is today's.
-  bool get _canPickPeriod => context
-      .read<PermissionProvider>()
-      .hasPermission(PermissionIds.creditsEditDate);
+  /// The date range is a read-only filter, so every user may pick it. (The
+  /// web gates it behind `credits_edit_date`, but the API serves any range
+  /// from `start_date`/`end_date` and the permission only matters when
+  /// back-dating a payment, which is still gated where payments are entered.)
+  bool get _canPickPeriod => true;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -151,7 +150,8 @@ class _DailyDebtReportScreenState extends State<DailyDebtReportScreen> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+      initialDateRange:
+          pickerInitialRange(_startDate, _endDate, DateTime.now()),
     );
     if (picked != null) {
       setState(() {

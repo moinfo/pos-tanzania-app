@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../widgets/tr_text.dart';
+import '../utils/date_range_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/permission_model.dart';
@@ -76,9 +77,10 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(
-        start: DateTime.parse(_startDate),
-        end: DateTime.parse(_endDate),
+      initialDateRange: pickerInitialRange(
+        DateTime.parse(_startDate),
+        DateTime.parse(_endDate),
+        DateTime.now(),
       ),
     );
 
