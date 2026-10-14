@@ -242,14 +242,14 @@ class ProductGridCard extends StatelessWidget {
                               child: const Icon(Icons.add_shopping_cart_rounded,
                                   size: 18, color: Colors.white),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             _action(
                               onTap: () => _openWhatsApp(context),
                               color: const Color(0xFF25D366),
                               child: const FaIcon(FontAwesomeIcons.whatsapp,
                                   size: 18, color: Colors.white),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             _action(
                               onTap: _share,
                               color: isDarkMode
@@ -277,17 +277,23 @@ class ProductGridCard extends StatelessWidget {
     required Color color,
     required Widget child,
   }) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(12),
+      // Flexible so the trio shrinks on narrow phones instead of overflowing
+      // the card; capped at 36 so it does not stretch on wide ones.
+      Flexible(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 36),
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: child,
+            ),
           ),
-          child: child,
         ),
       );
 

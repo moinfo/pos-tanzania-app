@@ -1566,6 +1566,8 @@ class _SupplierDailyCreditReportScreenState extends State<SupplierDailyCreditRep
                 children: [
                   Expanded(child: _buildDetailItem('Receiving', '#${credit.receivingId}', isDark)),
                   Container(width: 1, height: 30, color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                  Expanded(child: _buildDetailItem('Description', credit.reference, isDark)),
+                  Container(width: 1, height: 30, color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                   Expanded(child: _buildDetailItem('Employee', credit.employeeName, isDark)),
                 ],
               ),

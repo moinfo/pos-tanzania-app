@@ -836,11 +836,17 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
         return SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 6, 12, 18),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            // Square photo + a text/button block of fixed layout height. A
+            // plain aspect ratio let the block overflow on narrower phones or
+            // larger system fonts, so the height is derived from the width and
+            // the text scale instead.
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.54,
+              mainAxisExtent: (MediaQuery.sizeOf(context).width - 36) / 2 +
+                  78 +
+                  84 * MediaQuery.textScalerOf(context).scale(1),
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
