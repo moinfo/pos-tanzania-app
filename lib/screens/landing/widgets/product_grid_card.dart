@@ -1,14 +1,18 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart' hide Text;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../models/public_product.dart';
+import '../../../services/api_service.dart';
 import '../../../services/public_api_service.dart';
 import '../../../widgets/tr_text.dart';
 import '../landing_screen.dart';
 
 /// Shop-window product tile for the landing grid: square photo, rounded card,
-/// price in the brand colour, a heart, a "New" / "Out of stock" tag and a round
-/// add-to-cart button. Tapping the card opens the full product page.
+/// price in the brand colour, a heart, a "New" / "Out of stock" tag and the
+/// add-to-cart / WhatsApp / share buttons (same trio as the web shop). Tapping the card opens the full product page.
 class ProductGridCard extends StatelessWidget {
   const ProductGridCard({
     super.key,
@@ -208,57 +212,53 @@ class ProductGridCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '$currencySymbol ${_price(product.retailPrice)}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: ink,
-                                ),
-                              ),
-                              if (product.hasWholesalePrice)
-                                Text(
-                                  'Wholesale: $currencySymbol ${_price(product.wholesalePrice)}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 10.5, color: muted),
-                                ),
-                            ],
+                        Text(
+                          '$currencySymbol ${_price(product.retailPrice)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w800,
+                            color: ink,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: onAddToCart,
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: brand,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: brand.withValues(alpha: 0.35),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.add_shopping_cart_rounded,
-                              size: 19,
-                              color: Colors.white,
-                            ),
+                        if (product.hasWholesalePrice)
+                          Text(
+                            'Wholesale: $currencySymbol ${_price(product.wholesalePrice)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 10.5, color: muted),
                           ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _action(
+                              onTap: onAddToCart,
+                              color: brand,
+                              child: const Icon(Icons.add_shopping_cart_rounded,
+                                  size: 18, color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            _action(
+                              onTap: () => _openWhatsApp(context),
+                              color: const Color(0xFF25D366),
+                              child: const FaIcon(FontAwesomeIcons.whatsapp,
+                                  size: 18, color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            _action(
+                              onTap: _share,
+                              color: isDarkMode
+                                  ? const Color(0xFF3A3A3A)
+                                  : const Color(0xFF4A4F57),
+                              child: const Icon(Icons.share_rounded,
+                                  size: 17, color: Colors.white),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -270,6 +270,62 @@ class ProductGridCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _action({
+    required VoidCallback onTap,
+    required Color color,
+    required Widget child,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: child,
+        ),
+      );
+
+  String get _shopUrl {
+    final api = ApiService.baseUrlSync;
+    return api.endsWith('/api') ? api.substring(0, api.length - 4) : api;
+  }
+
+  String get _summary {
+    final b = StringBuffer(product.name.trim());
+    if (product.category.isNotEmpty) b.write(' (${product.category})');
+    b.write('\nPrice: $currencySymbol ${_price(product.retailPrice)}');
+    if (product.hasWholesalePrice) {
+      b.write('\nWholesale: $currencySymbol ${_price(product.wholesalePrice)}');
+    }
+    return b.toString();
+  }
+
+  Future<void> _share() =>
+      Share.share('$_summary\n$_shopUrl', subject: product.name);
+
+  Future<void> _openWhatsApp(BuildContext context) async {
+    const number = '255752030302';
+    final text = Uri.encodeComponent(
+      "Hi! I'm interested in:\n\n*${product.name.trim()}*\n"
+      '${_summary.substring(product.name.trim().length)}\n\n'
+      'Can you tell me more about this product?',
+    );
+    try {
+      await launchUrl(Uri.parse('https://wa.me/$number?text=$text'),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open WhatsApp')),
+        );
+      }
+    }
   }
 
   Widget _tag(String label, Color bg, Color fg) => Container(
