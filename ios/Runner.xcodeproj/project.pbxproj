@@ -1260,7 +1260,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				APP_DISPLAY_NAME = "Moinfotech";
+				APP_DISPLAY_NAME = "Kiwangwa Shop";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1283,7 +1283,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				APP_DISPLAY_NAME = "Moinfotech";
+				APP_DISPLAY_NAME = "Kiwangwa Shop";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -1305,7 +1305,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				APP_DISPLAY_NAME = "Moinfotech";
+				APP_DISPLAY_NAME = "Kiwangwa Shop";
 				PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
