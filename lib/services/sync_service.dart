@@ -8,6 +8,7 @@ import 'api_service.dart';
 import '../models/api_response.dart';
 import '../models/sale.dart';
 import 'offline_actions.dart';
+import '../providers/connectivity_provider.dart' show primaryConnectivity;
 import 'stock_signal.dart';
 
 /// Sync status enum
@@ -112,7 +113,7 @@ class SyncService {
   SyncStatus _status = SyncStatus.idle;
   bool _isSyncing = false;
   Timer? _autoSyncTimer;
-  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   // Callbacks
   Function(SyncStatus status)? onSyncStatusChanged;
@@ -162,8 +163,8 @@ class SyncService {
 
     try {
       // Listen to connectivity changes
-      _connectivitySubscription = Connectivity().onConnectivityChanged.listen((result) {
-        _handleConnectivityChange(result);
+      _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+        _handleConnectivityChange(primaryConnectivity(results));
       });
     } catch (e) {
       debugPrint('SyncService: Connectivity listener not available - $e');
@@ -264,7 +265,7 @@ class SyncService {
   /// back and what `serverReachable` reflects.
   Future<bool> _hasNetworkInterface() async {
     try {
-      final result = await Connectivity().checkConnectivity();
+      final result = primaryConnectivity(await Connectivity().checkConnectivity());
       return result != ConnectivityResult.none;
     } catch (e) {
       debugPrint('SyncService: Error checking connectivity - $e');
