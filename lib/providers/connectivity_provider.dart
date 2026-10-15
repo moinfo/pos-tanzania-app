@@ -2,10 +2,20 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+/// connectivity_plus 6 reports every active transport as a list, so a phone on
+/// wifi and mobile data at once yields both. Collapse it to the single value
+/// the rest of the app reasons about: any real link beats [none].
+ConnectivityResult primaryConnectivity(List<ConnectivityResult> results) {
+  for (final r in results) {
+    if (r != ConnectivityResult.none) return r;
+  }
+  return ConnectivityResult.none;
+}
+
 /// Provider to monitor network connectivity status
 class ConnectivityProvider extends ChangeNotifier {
   final Connectivity _connectivity = Connectivity();
-  StreamSubscription<ConnectivityResult>? _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   // Current connectivity status
   bool _isOnline = true;
@@ -39,6 +49,8 @@ class ConnectivityProvider extends ChangeNotifier {
         return 'Bluetooth';
       case ConnectivityResult.vpn:
         return 'VPN';
+      case ConnectivityResult.satellite:
+        return 'Satellite';
       case ConnectivityResult.other:
         return 'Other';
       case ConnectivityResult.none:
@@ -64,12 +76,12 @@ class ConnectivityProvider extends ChangeNotifier {
 
     try {
       // Get initial connectivity status
-      final result = await _connectivity.checkConnectivity();
+      final result = primaryConnectivity(await _connectivity.checkConnectivity());
       _updateConnectivity(result);
 
       // Listen for connectivity changes
-      _subscription = _connectivity.onConnectivityChanged.listen((result) {
-        _updateConnectivity(result);
+      _subscription = _connectivity.onConnectivityChanged.listen((results) {
+        _updateConnectivity(primaryConnectivity(results));
       });
 
       debugPrint('ConnectivityProvider: Initialized - Online: $_isOnline, Type: $connectionTypeString');
@@ -116,7 +128,7 @@ class ConnectivityProvider extends ChangeNotifier {
   /// Check connectivity manually
   Future<bool> checkConnectivity() async {
     try {
-      final result = await _connectivity.checkConnectivity();
+      final result = primaryConnectivity(await _connectivity.checkConnectivity());
       _updateConnectivity(result);
       return _isOnline;
     } catch (e) {

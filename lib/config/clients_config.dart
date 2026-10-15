@@ -127,7 +127,7 @@ class ClientsConfig {
       id: 'arg',
       name: 'dev-arg',
       displayName: 'ARG Sparkles',
-      devApiUrl: localBaseUrl,
+      devApiUrl: 'https://system.argsparkles.co.tz/api',
       prodApiUrl: 'https://system.argsparkles.co.tz/api',
       logoUrl: 'assets/images/arg-logo.png',
       branding: const ClientBranding(
