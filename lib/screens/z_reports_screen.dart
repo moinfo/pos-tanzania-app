@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +16,8 @@ import '../services/read_cache.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class ZReportsScreen extends StatefulWidget {
   const ZReportsScreen({super.key});
@@ -142,7 +144,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Filter by date range',
+            tooltip: 'Filter by date range'.tr,
           ),
         ],
       ),
@@ -215,7 +217,7 @@ class _ZReportsScreenState extends State<ZReportsScreen> {
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.description,
                             color: AppColors.primary,
                           ),
@@ -351,9 +353,9 @@ class _CreateZReportDialogState extends State<_CreateZReportDialog> {
       double.tryParse(controller.text.trim().replaceAll(',', '')) ?? 0;
 
   String? _validateAmount(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
+    if (value == null || value.trim().isEmpty) return 'Required'.tr;
     if (double.tryParse(value.trim().replaceAll(',', '')) == null) {
-      return 'Enter a valid amount';
+      return 'Enter a valid amount'.tr;
     }
     return null;
   }

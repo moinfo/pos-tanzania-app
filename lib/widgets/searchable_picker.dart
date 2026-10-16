@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
 
 /// A searchable bottom-sheet picker.
 ///
@@ -245,7 +246,7 @@ class _PickerRow extends StatelessWidget {
                   ),
                   child: Text(
                     '$number',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,

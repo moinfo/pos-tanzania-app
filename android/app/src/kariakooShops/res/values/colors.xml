@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Kariakoo green: window behind the launch logo and Android 12+ splash. -->
+    <color name="splash_background">#1B8C30</color>
 </resources>

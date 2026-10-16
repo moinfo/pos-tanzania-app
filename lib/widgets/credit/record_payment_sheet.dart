@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -10,6 +10,8 @@ import '../../services/nfc_service.dart';
 import '../../utils/constants.dart';
 import '../nfc_scan_dialog.dart';
 import 'credit_list_widgets.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 /// Record-payment sheet (design_handoff_home_credit 4.5).
 ///
@@ -293,7 +295,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
           ),
           child: Text(
             _initials(widget.customerName),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -639,11 +641,11 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                 fontWeight: FontWeight.w600,
                 color: creditInkStrong(context),
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
-                hintText: 'Note (optional)',
-                hintStyle: TextStyle(
+                hintText: 'Note (optional)'.tr,
+                hintStyle: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF8A94A6),
@@ -732,7 +734,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                                     : 'Enter amount',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,

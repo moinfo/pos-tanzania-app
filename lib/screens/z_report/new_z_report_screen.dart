@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -15,6 +15,8 @@ import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class NewZReportScreen extends StatefulWidget {
   final ZReportListItem? zReport;
@@ -124,7 +126,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt, color: AppColors.primary),
                 title: const Text('Take Photo'),
                 onTap: () {
                   Navigator.pop(context);
@@ -503,7 +505,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
               validator: isRequired
                   ? (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter $label';
+                        return 'Please enter $label'.tr;
                       }
                       return null;
                     }
@@ -638,7 +640,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                             color: isDark ? AppColors.darkText : AppColors.text,
                           ),
                           decoration: InputDecoration(
-                            hintText: 'Select date',
+                            hintText: 'Select date'.tr,
                             hintStyle: TextStyle(
                               color: isDark
                                   ? AppColors.darkTextLight
@@ -659,7 +661,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please select date';
+                              return 'Please select date'.tr;
                             }
                             return null;
                           },
@@ -705,12 +707,12 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<int>(
-                              value: selectedLocation?.locationId,
+                              initialValue: selectedLocation?.locationId,
                               style: TextStyle(
                                 color: isDark ? AppColors.darkText : AppColors.text,
                               ),
                               decoration: InputDecoration(
-                                hintText: 'Select location',
+                                hintText: 'Select location'.tr,
                                 hintStyle: TextStyle(
                                   color: isDark
                                       ? AppColors.darkTextLight
@@ -755,7 +757,7 @@ class _NewZReportScreenState extends State<NewZReportScreen> {
                               },
                               validator: (value) {
                                 if (value == null) {
-                                  return 'Please select a location';
+                                  return 'Please select a location'.tr;
                                 }
                                 return null;
                               },

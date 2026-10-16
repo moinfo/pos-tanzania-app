@@ -103,7 +103,7 @@ class ClientsConfig {
       id: 'kariakoo_shops',
       name: 'dev-kariakoo',
       displayName: 'Kariakoo Shops',
-      devApiUrl: localBaseUrl,
+      devApiUrl: 'https://kariakooshops.co.tz/api',
       prodApiUrl: 'https://kariakooshops.co.tz/api',
       logoUrl: 'assets/images/kariakoo-logo.png',
       branding: const ClientBranding(

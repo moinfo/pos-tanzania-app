@@ -201,8 +201,10 @@ class ProductCategory {
 
   factory ProductCategory.fromJson(Map<String, dynamic> json) {
     return ProductCategory(
-      name: json['name'] ?? '',
-      productCount: json['product_count'] ?? 0,
+      // The API sends {category, count}; older builds expected {name,
+      // product_count}. Accept both.
+      name: (json['name'] ?? json['category'] ?? '').toString(),
+      productCount: int.tryParse('${json['product_count'] ?? json['count'] ?? 0}') ?? 0,
     );
   }
 }

@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import '../services/nfc_service.dart';
 import '../models/customer.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// Dialog for scanning NFC cards
 class NfcScanDialog extends StatefulWidget {
@@ -247,7 +249,7 @@ class _NfcScanDialogState extends State<NfcScanDialog>
               LinearProgressIndicator(
                 backgroundColor: AppColors.track(context),
                 valueColor:
-                    const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
 
             const SizedBox(height: 24),
@@ -469,7 +471,7 @@ class _NfcRegisterCardDialogState extends State<NfcRegisterCardDialog> {
                     IconButton(
                       icon: const Icon(Icons.refresh),
                       onPressed: _isRegistering ? null : _startScanning,
-                      tooltip: 'Scan different card',
+                      tooltip: 'Scan different card'.tr,
                     ),
                   ],
                 ),

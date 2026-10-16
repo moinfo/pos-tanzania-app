@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 
 import '../../utils/sale_design.dart';
 import 'keypad_sheet.dart';
+import '../../widgets/tr_text.dart';
 
 final NumberFormat _money = NumberFormat('#,##0', 'en_US');
 

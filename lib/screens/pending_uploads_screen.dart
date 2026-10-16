@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +10,8 @@ import '../services/screen_prefetch.dart';
 import '../utils/constants.dart';
 import '../widgets/state_views.dart';
 import '../utils/formatters.dart';
+import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 /// Everything sitting on this phone that the server has not got.
 ///
@@ -158,6 +160,10 @@ class _PendingUploadsScreenState extends State<PendingUploadsScreen> {
     final tally = PendingUploadTally.of(_items);
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: AppColors.ground(context),
       appBar: AppBar(
         title: const Text('Not yet uploaded'),
@@ -306,8 +312,8 @@ class _PendingUploadsScreenState extends State<PendingUploadsScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
-          content: Text('Details copied. Paste them anywhere to re-enter or '
+        SnackBar(
+          content: const Text('Details copied. Paste them anywhere to re-enter or '
               'send them on.'),
           backgroundColor: AppColors.info,
         ),

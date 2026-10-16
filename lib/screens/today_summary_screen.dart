@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
@@ -10,6 +10,8 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 class TodaySummaryScreen extends StatefulWidget {
   const TodaySummaryScreen({super.key});
@@ -105,6 +107,10 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
     final locations = locationProvider.allowedLocations;
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: const Text('Today Summary'),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,

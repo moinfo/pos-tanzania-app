@@ -2,13 +2,37 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class AppColors {
-  // Logo colors - Blue and Dark Gray (Moinfotech branding)
-  static const Color primary = Color(0xFF1565C0);        // Logo blue
+  // Default (Moinfotech) palette: logo blue and dark gray.
+  static const Color _defaultPrimary = Color(0xFF1565C0);
+  static const Color _defaultPrimaryLight = Color(0xFF42A5F5);
+  static const Color _defaultPrimaryDark = Color(0xFF0D47A1);
+  static const Color _defaultInfo = Color(0xFF3B82F6);
   static const Color secondary = Color(0xFF2B2D42);      // Dark gray/black
 
-  // Supporting colors derived from logo colors
-  static const Color primaryLight = Color(0xFF42A5F5);   // Lighter blue
-  static const Color primaryDark = Color(0xFF0D47A1);    // Darker blue
+  // The accent colours below follow the CLIENT's brand. Kariakoo Shops is
+  // logo green, so every button, card accent, chip, badge and indicator that
+  // reads AppColors.primary / primaryDark / primaryLight / info turns green
+  // with it. A client with no custom branding keeps the default blue.
+
+  /// The accent colour of the active client.
+  static Color get primary => brandPrimary;
+
+  /// Darker shade of the accent.
+  static Color get primaryDark => brandPrimaryDark;
+
+  /// Lighter shade of the accent.
+  static Color get primaryLight => _hasBrand
+      ? _shade(brandPrimary, lightnessDelta: 0.18)
+      : _defaultPrimaryLight;
+
+  /// "Informational" accent (badges, hints): the brand colour when the client
+  /// has one, blue otherwise.
+  static Color get info => _hasBrand ? brandPrimary : _defaultInfo;
+
+  static bool get _hasBrand {
+    final branding = ApiService.currentClient?.branding;
+    return branding != null && branding.primaryColor != 0xFF1565C0;
+  }
 
   /// Client-aware primary color. Returns the client's brand color if set,
   /// otherwise falls back to the default blue.
@@ -17,7 +41,7 @@ class AppColors {
     if (branding != null && branding.primaryColor != 0xFF1565C0) {
       return Color(branding.primaryColor);
     }
-    return primary;
+    return _defaultPrimary;
   }
 
   static Color get brandPrimaryDark {
@@ -25,7 +49,34 @@ class AppColors {
     if (branding != null && branding.primaryDarkColor != 0xFF0D47A1) {
       return Color(branding.primaryDarkColor);
     }
-    return primaryDark;
+    return _defaultPrimaryDark;
+  }
+
+  /// Stand-in for `Colors.blue` (including `.shade50` ... `.shade900` and
+  /// `[700]`): the brand colour's own swatch, or the real Colors.blue when the
+  /// client has no brand colour.
+  static MaterialColor get brandSwatch {
+    if (!_hasBrand) return Colors.blue;
+    final base = brandPrimary;
+    Color at(double l) => HSLColor.fromColor(base).withLightness(l.clamp(0.0, 1.0)).toColor();
+    final l = HSLColor.fromColor(base).lightness;
+    return MaterialColor(base.toARGB32(), {
+      50: at(0.95),
+      100: at(0.89),
+      200: at(0.80),
+      300: at(l + (0.97 - l) * 0.55),
+      400: at(l + (0.97 - l) * 0.25),
+      500: base,
+      600: at(l * 0.90),
+      700: at(l * 0.78),
+      800: at(l * 0.66),
+      900: at(l * 0.52),
+    });
+  }
+
+  static Color _shade(Color c, {required double lightnessDelta}) {
+    final hsl = HSLColor.fromColor(c);
+    return hsl.withLightness((hsl.lightness + lightnessDelta).clamp(0.0, 1.0)).toColor();
   }
   static const Color secondaryLight = Color(0xFF464A5E);
 
@@ -33,7 +84,6 @@ class AppColors {
   static const Color success = Color(0xFF10B981);        // Emerald green
   static const Color error = Color(0xFFEF4444);          // Red
   static const Color warning = Color(0xFFF59E0B);        // Amber/Orange
-  static const Color info = Color(0xFF3B82F6);           // Blue
 
   // Light Theme Colors
   static const Color lightBackground = Color(0xFFF8F9FA);     // Light gray background

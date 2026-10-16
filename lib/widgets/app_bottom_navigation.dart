@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../utils/constants.dart';
 import '../screens/main_navigation.dart';
 import '../providers/permission_provider.dart';
-import '../providers/theme_provider.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
 import 'curved_bottom_navigation.dart';
+import 'nav_active.dart';
+import '../widgets/tr_text.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -132,8 +133,6 @@ class AppBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final permissionProvider = Provider.of<PermissionProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
 
     // Get navigation items (matches MainNavigation structure)
     final allNavItems = _buildNavItems();
@@ -164,9 +163,18 @@ class AppBottomNavigation extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // A screen opened from the side menu: its own icon goes in the centre
+    // notch, as an extra entry after the tabs. Tapping it does nothing -- the
+    // user is already there.
+    final fromMenu = currentIndex < 0 ? NavActive.claim(ModalRoute.of(context)) : null;
+    final menuIndex = fromMenu != null ? availableItems.length : -1;
+    if (fromMenu != null) availableItems.add(fromMenu);
+
     // Map current index to display index
     int displayIndex = 0;
-    if (currentIndex >= 0) {
+    if (menuIndex >= 0) {
+      displayIndex = menuIndex;
+    } else if (currentIndex >= 0) {
       for (int i = 0; i < indexMapping.length; i++) {
         if (indexMapping[i] == currentIndex) {
           displayIndex = i;
@@ -189,13 +197,11 @@ class AppBottomNavigation extends StatelessWidget {
     return CurvedBottomNavigation(
       currentIndex: displayIndex >= 0 && displayIndex < availableItems.length ? displayIndex : 0,
       onTap: (displayIndex) {
+        if (displayIndex == menuIndex) return;
         // Map display index back to original index
         final originalIndex = indexMapping[displayIndex] ?? 0;
         _handleTap(context, originalIndex);
       },
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
-      backgroundColor: isDark ? AppColors.darkCard : Colors.white,
       items: availableItems,
     );
   }

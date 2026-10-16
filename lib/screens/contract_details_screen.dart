@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
@@ -7,6 +7,7 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
 
 class ContractDetailsScreen extends StatefulWidget {
   final Contract contract;

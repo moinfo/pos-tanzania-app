@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -9,6 +9,9 @@ import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 /// Delivery Sheet Screen (Sheet2)
 /// Shows suspended sales without prices, includes free items from offers
@@ -31,8 +34,8 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
   DateTime _selectedDate = DateTime.now();
 
   // Use app brand colors (red theme)
-  static const Color _headerColor = AppColors.primary;        // Logo red
-  static const Color _headerColorDark = AppColors.primaryDark; // Darker red
+  static Color get _headerColor => AppColors.primary;        // Logo red
+  static Color get _headerColorDark => AppColors.primaryDark; // Darker red
 
   @override
   void initState() {
@@ -128,6 +131,10 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade200,
       appBar: AppBar(
         backgroundColor: _headerColor,
@@ -196,7 +203,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -228,7 +235,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                   controller: _searchController,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
-                    hintText: 'Search customer or item...',
+                    hintText: 'Search customer or item...'.tr,
                     hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
                     prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                     suffixIcon: _searchController.text.isNotEmpty
@@ -288,7 +295,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                           const SizedBox(height: 16),
                           Text(_error!, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
                           const SizedBox(height: 16),
@@ -354,13 +361,13 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
           // Header with brand color gradient
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [_headerColor, _headerColorDark],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.only(
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(10),
                 topRight: Radius.circular(10),
               ),
@@ -378,7 +385,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                   child: Center(
                     child: Text(
                       '$number',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _headerColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -554,7 +561,7 @@ class _SuspendedSheet2ScreenState extends State<SuspendedSheet2Screen> {
                         ),
                         child: Text(
                           '${sale.totalQuantity.toStringAsFixed(0)} pcs',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: _headerColor,

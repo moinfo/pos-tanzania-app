@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -22,6 +22,9 @@ import '../../widgets/skeleton_loader.dart';
 import '../../widgets/state_views.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_banking_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/delete_dialog.dart';
 
 class BankingListScreen extends StatefulWidget {
   const BankingListScreen({super.key});
@@ -178,37 +181,12 @@ class _BankingListScreenState extends State<BankingListScreen> {
   }
 
   Future<void> _deleteBanking(BankingListItem banking) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        final isDark = context.watch<ThemeProvider>().isDarkMode;
-        return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-          title: Text(
-            'Delete Banking',
-            style: TextStyle(color: isDark ? Colors.white : AppColors.text),
-          ),
-          content: Text(
-            'Are you sure you want to delete this banking transaction?\n\n'
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Banking',
+      message: 'Are you sure you want to delete this banking transaction?\n\n'
             'Bank: ${banking.bankName}\n'
             'Amount: ${_formatCurrency(banking.amount)}',
-            style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-              ),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
     );
 
     if (confirmed != true) return;
@@ -313,7 +291,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.visibility, color: AppColors.primary),
+                leading: Icon(Icons.visibility, color: AppColors.primary),
                 title: Text(
                   'View File',
                   style: TextStyle(color: isDark ? Colors.white : AppColors.text),
@@ -655,12 +633,12 @@ class _BankingListScreenState extends State<BankingListScreen> {
             IconButton(
               icon: const Icon(Icons.calendar_today),
               onPressed: _selectDateRange,
-              tooltip: 'Select Date Range',
+              tooltip: 'Select Date Range'.tr,
             ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _onRefresh,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -859,7 +837,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                                 ),
                                                 child: Text(
                                                   _formatCurrency(banking.amount),
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.bold,
                                                     color: AppColors.primary,
@@ -879,11 +857,11 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                                   borderRadius: BorderRadius.circular(8),
                                                 ),
                                                 child: IconButton(
-                                                  icon: const Icon(Icons.edit, color: AppColors.primary, size: 20),
+                                                  icon: Icon(Icons.edit, color: AppColors.primary, size: 20),
                                                   onPressed: () => _navigateToEditBanking(banking),
                                                   padding: const EdgeInsets.all(8),
                                                   constraints: const BoxConstraints(),
-                                                  tooltip: 'Edit banking',
+                                                  tooltip: 'Edit banking'.tr,
                                                 ),
                                               ),
                                             if (hasEditPermission && hasDeletePermission)
@@ -899,7 +877,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
                                                   onPressed: () => _deleteBanking(banking),
                                                   padding: const EdgeInsets.all(8),
                                                   constraints: const BoxConstraints(),
-                                                  tooltip: 'Delete banking',
+                                                  tooltip: 'Delete banking'.tr,
                                                 ),
                                               ),
                                           ],
@@ -1160,7 +1138,7 @@ class _BankingListScreenState extends State<BankingListScreen> {
       floatingActionButton: PermissionFAB(
         permissionId: PermissionIds.bankingAddDeposit,
         onPressed: _navigateToNewBanking,
-        tooltip: 'Add Banking',
+        tooltip: 'Add Banking'.tr,
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),

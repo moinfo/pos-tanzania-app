@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../models/public_product.dart';
 import '../../../services/public_api_service.dart';
 import '../landing_screen.dart';
+import '../../../widgets/tr_text.dart';
 
 /// Instagram-style product card - full width with swipeable images
 class ProductCard extends StatefulWidget {
@@ -363,7 +364,7 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                       const Spacer(),
                       // Stock indicator (only shown if feature enabled)
-                      if (widget.showStockIndicator)
+                      if (widget.showStockIndicator && widget.product.isInStock)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
@@ -455,7 +456,7 @@ class _ProductCardState extends State<ProductCard> {
 
   /// Open WhatsApp with pre-filled message about this product
   Future<void> _openWhatsApp() async {
-    const whatsappNumber = '255762995775'; // Tanzania format without leading 0
+    const whatsappNumber = '255752030302'; // Tanzania format without leading 0
     final product = widget.product;
     final price = _formatPrice(product.retailPrice);
 

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
 
 /// A navigation item for the curved bottom navigation bar
 class CurvedNavItem {
@@ -21,6 +22,10 @@ class CurvedBottomNavigation extends StatefulWidget {
   final Color? backgroundColor;
   final Color? selectedItemColor;
   final Color? unselectedItemColor;
+  final Color? borderColor;
+
+  /// Colour of the disc the selected icon sits on (white by default).
+  final Color? selectedBadgeColor;
 
   const CurvedBottomNavigation({
     super.key,
@@ -30,6 +35,8 @@ class CurvedBottomNavigation extends StatefulWidget {
     this.backgroundColor,
     this.selectedItemColor,
     this.unselectedItemColor,
+    this.borderColor,
+    this.selectedBadgeColor,
   });
 
   @override
@@ -69,9 +76,14 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
     }
   }
 
+  /// How many items sit left of the centred one. The right side gets the
+  /// remainder, so an even count has one more on the left.
+  static int _leftCount(int itemCount) =>
+      (itemCount - 1) - (itemCount - 1) ~/ 2;
+
   void _animateToIndex(int index) {
     final itemCount = widget.items.length;
-    final centerIndex = (itemCount - 1) / 2.0;
+    final centerIndex = _leftCount(itemCount).toDouble();
     final targetOffset = centerIndex - index;
 
     _rotationAnimation = Tween<double>(
@@ -86,100 +98,146 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
     });
   }
 
+  /// Height of the bar itself (the strip the items sit in).
+  static const double _barHeight = 64;
+
+  /// How far the selected disc rises above the bar's top edge.
+  static const double _discRise = 24;
+
+  static const double _discSize = 56;
+  static const double _discRing = 4;
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = widget.backgroundColor ?? (isDark ? AppColors.darkCard : Colors.white);
-    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+    // Same colour as the top app bar: the client's brand colour, or the dark
+    // surface in dark mode.
+    final bgColor = widget.backgroundColor ??
+        (isDark ? AppColors.darkSurface : AppColors.brandPrimary);
     final selectedColor = widget.selectedItemColor ?? AppColors.primary;
-    final unselectedColor = widget.unselectedItemColor ?? AppColors.textLight;
+    final unselectedColor = widget.unselectedItemColor ?? Colors.white;
+    final discColor = widget.selectedBadgeColor ?? Colors.white;
+    // The ring around the disc is the screen behind the bar, so the disc reads
+    // as cut out of the bar's top edge.
+    final ringColor = Theme.of(context).scaffoldBackgroundColor;
 
     // Set initial position on first build
     if (!_initialPositionSet && widget.items.isNotEmpty) {
       _initialPositionSet = true;
-      final centerIndex = (widget.items.length - 1) / 2.0;
+      final centerIndex = _leftCount(widget.items.length).toDouble();
       _currentRotationOffset = centerIndex - widget.currentIndex;
     }
 
-    return AnimatedBuilder(
-      animation: _animationController,
-      builder: (context, child) {
-        final rotationOffset = _animationController.isAnimating
-            ? _rotationAnimation.value
-            : _currentRotationOffset;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            final rotationOffset = _animationController.isAnimating
+                ? _rotationAnimation.value
+                : _currentRotationOffset;
 
-        return SafeArea(
-          top: false,
-          child: SizedBox(
-          height: 80,
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            clipBehavior: Clip.none,
-            children: [
-              // Custom curved background - ALWAYS at center (0.5)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: CustomPaint(
-                  size: const Size(double.infinity, 80),
-                  painter: _CurvedNavPainter(
-                    color: bgColor,
-                    borderColor: borderColor,
-                    curvePosition: 0.5, // Always center
+            return SizedBox(
+              height: _barHeight + _discRise,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Flat bar.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: _barHeight,
+                    child: ColoredBox(color: bgColor),
                   ),
-                ),
-              ),
-              // Navigation items - all visible, circular reorder so selected is at center
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 60,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final screenWidth = constraints.maxWidth;
-                    final itemCount = widget.items.length;
-                    final itemWidth = screenWidth / itemCount;
+                  // Items: all visible, circular reorder so the selected one is
+                  // always at the centre.
+                  Positioned.fill(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final itemCount = widget.items.length;
+                        final width = constraints.maxWidth;
+                        // The centred item gets one ordinary slot; the rest
+                        // share the two halves either side of it, so the
+                        // selected disc is always exactly centred even when
+                        // the item count is even.
+                        final leftN = _leftCount(itemCount);
+                        final rightN = itemCount - 1 - leftN;
+                        final centreZone = width / itemCount;
+                        final half = (width - centreZone) / 2;
+                        final leftW = leftN > 0 ? half / leftN : half;
+                        final rightW = rightN > 0 ? half / rightN : half;
+                        final itemWidth = leftW < rightW ? leftW : rightW;
 
-                    // Build items with animated positions (circular reorder)
-                    return Stack(
-                      children: widget.items.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final item = entry.value;
+                        // Centre x of the item at ring position [p], where
+                        // position leftN is the centred one.
+                        double centreOf(int k) {
+                          if (k < leftN) return leftW * (k + 0.5);
+                          if (k == leftN) return width / 2;
+                          return half + centreZone + rightW * (k - leftN - 0.5);
+                        }
 
-                        // Calculate which visual slot this item should be in
-                        double displayPosition = index + rotationOffset;
+                        double xFor(double p) {
+                          final k = p.floor();
+                          final f = p - k;
+                          final a = centreOf(k);
+                          // Past the last slot an item slides off the right
+                          // edge before it wraps round to the left.
+                          final b = k + 1 < itemCount ? centreOf(k + 1) : a + rightW;
+                          return a + (b - a) * f;
+                        }
 
-                        // Wrap around to keep all items in valid slots (0 to itemCount-1)
-                        while (displayPosition < 0) displayPosition += itemCount;
-                        while (displayPosition >= itemCount) displayPosition -= itemCount;
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: widget.items.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final item = entry.value;
 
-                        final xPos = displayPosition * itemWidth;
+                            // Which visual slot this item is in right now.
+                            double displayPosition = index + rotationOffset;
+                            while (displayPosition < 0) {
+                              displayPosition += itemCount;
+                            }
+                            while (displayPosition >= itemCount) {
+                              displayPosition -= itemCount;
+                            }
 
-                        return Positioned(
-                          left: xPos,
-                          top: 0,
-                          bottom: 0,
-                          width: itemWidth,
-                          child: _buildNavItem(
-                            item.icon,
-                            item.label,
-                            index,
-                            widget.currentIndex == index,
-                            selectedColor,
-                            unselectedColor,
-                          ),
+                            return Positioned(
+                              left: xFor(displayPosition) - itemWidth / 2,
+                              top: 0,
+                              bottom: 0,
+                              width: itemWidth,
+                              child: _buildNavItem(
+                                item.icon,
+                                item.label,
+                                index,
+                                widget.currentIndex == index,
+                                selectedColor,
+                                unselectedColor,
+                                discColor,
+                                ringColor,
+                              ),
+                            );
+                          }).toList(),
                         );
-                      }).toList(),
-                    );
-                  },
-                ),
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
+            );
+          },
+        ),
+        // System navigation inset, in the bar's colour.
+        ColoredBox(
+          color: bgColor,
+          child: SizedBox(
+            height: MediaQuery.of(context).viewPadding.bottom,
+            width: double.infinity,
           ),
-        ));
-      },
+        ),
+      ],
     );
   }
 
@@ -190,140 +248,66 @@ class _CurvedBottomNavigationState extends State<CurvedBottomNavigation>
     bool isSelected,
     Color selectedColor,
     Color unselectedColor,
+    Color discColor,
+    Color ringColor,
   ) {
     return InkWell(
       onTap: () => widget.onTap(index),
-      child: Center(
-        child: isSelected
-            // Selected: larger icon only, no label, moved up into curve
-            ? Transform.translate(
-                offset: const Offset(0, -8),
-                child: Icon(
-                  icon,
-                  color: selectedColor,
-                  size: 38,
-                ),
-              )
-            // Unselected: smaller icon with label
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    color: unselectedColor,
-                    size: 22,
+      child: isSelected
+          // Selected: icon on a white disc ringed in the screen colour, rising
+          // above the bar's top edge, with its label in bold white below.
+          ? Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.topCenter,
+              children: [
+                Positioned(
+                  top: 0,
+                  child: Container(
+                    width: _discSize,
+                    height: _discSize,
+                    decoration: BoxDecoration(
+                      color: discColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: ringColor, width: _discRing),
+                    ),
+                    child: Icon(icon, color: selectedColor, size: 28),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
+                ),
+                Positioned(
+                  bottom: 12,
+                  child: Text(
                     label,
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                       color: unselectedColor,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ],
+                ),
+              ],
+            )
+          // Unselected: icon with label, centred in the bar.
+          : Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: unselectedColor, size: 24),
+                    const SizedBox(height: 3),
+                    Text(
+                      label,
+                      style: TextStyle(fontSize: 11, color: unselectedColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-      ),
+            ),
     );
-  }
-}
-
-/// Custom painter for curved navigation bar with animated notch position
-class _CurvedNavPainter extends CustomPainter {
-  final Color color;
-  final Color borderColor;
-  final double curvePosition; // 0.0 = left edge, 1.0 = right edge
-
-  _CurvedNavPainter({
-    required this.color,
-    required this.borderColor,
-    this.curvePosition = 0.5,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final borderPaint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    final path = Path();
-    // Calculate curve center based on position
-    final curveX = size.width * curvePosition;
-    const curveRadius = 35.0;
-    const curveDepth = 20.0;
-
-    // Start from bottom left
-    path.moveTo(0, size.height);
-    // Line to top left
-    path.lineTo(0, curveDepth);
-    // Line to before curve
-    path.lineTo(curveX - curveRadius - 10, curveDepth);
-    // Curve down and around the selected item
-    path.quadraticBezierTo(
-      curveX - curveRadius,
-      curveDepth,
-      curveX - curveRadius + 5,
-      curveDepth + 15,
-    );
-    path.arcToPoint(
-      Offset(curveX + curveRadius - 5, curveDepth + 15),
-      radius: const Radius.circular(30),
-      clockwise: false,
-    );
-    path.quadraticBezierTo(
-      curveX + curveRadius,
-      curveDepth,
-      curveX + curveRadius + 10,
-      curveDepth,
-    );
-    // Line to top right
-    path.lineTo(size.width, curveDepth);
-    // Line to bottom right
-    path.lineTo(size.width, size.height);
-    // Close path
-    path.close();
-
-    // Draw fill
-    canvas.drawPath(path, paint);
-
-    // Draw border along the top edge only
-    final borderPath = Path();
-    borderPath.moveTo(0, curveDepth);
-    borderPath.lineTo(curveX - curveRadius - 10, curveDepth);
-    borderPath.quadraticBezierTo(
-      curveX - curveRadius,
-      curveDepth,
-      curveX - curveRadius + 5,
-      curveDepth + 15,
-    );
-    borderPath.arcToPoint(
-      Offset(curveX + curveRadius - 5, curveDepth + 15),
-      radius: const Radius.circular(30),
-      clockwise: false,
-    );
-    borderPath.quadraticBezierTo(
-      curveX + curveRadius,
-      curveDepth,
-      curveX + curveRadius + 10,
-      curveDepth,
-    );
-    borderPath.lineTo(size.width, curveDepth);
-
-    canvas.drawPath(borderPath, borderPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _CurvedNavPainter oldDelegate) {
-    return oldDelegate.curvePosition != curvePosition ||
-        oldDelegate.color != color ||
-        oldDelegate.borderColor != borderColor;
   }
 }

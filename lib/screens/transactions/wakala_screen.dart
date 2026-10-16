@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -13,6 +13,10 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/delete_dialog.dart';
 
 class WakalaScreen extends StatefulWidget {
   const WakalaScreen({super.key});
@@ -110,13 +114,13 @@ class _WakalaScreenState extends State<WakalaScreen>
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'SIM Card Name'),
+              decoration: InputDecoration(labelText: 'SIM Card Name'.tr),
               autofocus: true,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Description'.tr),
               maxLines: 2,
             ),
           ],
@@ -198,9 +202,9 @@ class _WakalaScreenState extends State<WakalaScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<Sim>(
-                  value: selectedSim,
+                  initialValue: selectedSim,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'SIM Card'),
+                  decoration: InputDecoration(labelText: 'SIM Card'.tr),
                   items: _sims.map((sim) {
                     return DropdownMenuItem(
                       value: sim,
@@ -219,9 +223,9 @@ class _WakalaScreenState extends State<WakalaScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Float Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Float Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -316,13 +320,13 @@ class _WakalaScreenState extends State<WakalaScreen>
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'SIM Card Name'),
+              decoration: InputDecoration(labelText: 'SIM Card Name'.tr),
               autofocus: true,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Description'.tr),
               maxLines: 2,
             ),
           ],
@@ -372,25 +376,10 @@ class _WakalaScreenState extends State<WakalaScreen>
   }
 
   Future<void> _deleteSim(Sim sim) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete SIM Card'),
-        content: Text('Are you sure you want to delete "${sim.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete SIM Card',
+      message: 'Are you sure you want to delete "${sim.name}"?',
     );
 
     if (confirmed == true) {
@@ -435,9 +424,9 @@ class _WakalaScreenState extends State<WakalaScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<Sim>(
-                  value: selectedSim,
+                  initialValue: selectedSim,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'SIM Card'),
+                  decoration: InputDecoration(labelText: 'SIM Card'.tr),
                   items: _sims.map((sim) {
                     return DropdownMenuItem(
                       value: sim,
@@ -456,9 +445,9 @@ class _WakalaScreenState extends State<WakalaScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Float Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Float Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -530,27 +519,10 @@ class _WakalaScreenState extends State<WakalaScreen>
   }
 
   Future<void> _deleteWakalaTransaction(WakalaTransaction transaction) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Transaction'),
-        content: Text(
-          'Are you sure you want to delete this transaction of ${Formatters.formatCurrency(transaction.amount)}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Transaction',
+      message: 'Are you sure you want to delete this transaction of ${Formatters.formatCurrency(transaction.amount)}?',
     );
 
     if (confirmed == true) {
@@ -577,6 +549,10 @@ class _WakalaScreenState extends State<WakalaScreen>
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: const Text('Wakala Management'),
         bottom: TabBar(
@@ -698,9 +674,9 @@ class _WakalaScreenState extends State<WakalaScreen>
           child: GlassmorphicCard(
             isDark: isDark,
             child: ListTile(
-              leading: const CircleAvatar(
+              leading: CircleAvatar(
                 backgroundColor: AppColors.primary,
-                child: Icon(Icons.sim_card, color: Colors.white),
+                child: const Icon(Icons.sim_card, color: Colors.white),
               ),
               title: Text(
                 sim.name,
@@ -721,15 +697,15 @@ class _WakalaScreenState extends State<WakalaScreen>
                       children: [
                         if (canEdit)
                           IconButton(
-                            icon: const Icon(Icons.edit, color: AppColors.primary),
+                            icon: Icon(Icons.edit, color: AppColors.primary),
                             onPressed: () => _showEditSimDialog(sim),
-                            tooltip: 'Edit',
+                            tooltip: 'Edit'.tr,
                           ),
                         if (canDelete)
                           IconButton(
                             icon: const Icon(Icons.delete, color: AppColors.error),
                             onPressed: () => _deleteSim(sim),
-                            tooltip: 'Delete',
+                            tooltip: 'Delete'.tr,
                           ),
                       ],
                     )
@@ -768,7 +744,7 @@ class _WakalaScreenState extends State<WakalaScreen>
                   ),
                   Text(
                     Formatters.formatCurrency(_total),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
@@ -801,9 +777,9 @@ class _WakalaScreenState extends State<WakalaScreen>
                       child: GlassmorphicCard(
                         isDark: isDark,
                         child: ListTile(
-                          leading: const CircleAvatar(
+                          leading: CircleAvatar(
                             backgroundColor: AppColors.primary,
-                            child: Icon(Icons.sim_card, color: Colors.white),
+                            child: const Icon(Icons.sim_card, color: Colors.white),
                           ),
                           title: Text(
                             transaction.simName,
@@ -844,13 +820,13 @@ class _WakalaScreenState extends State<WakalaScreen>
                                       },
                                       itemBuilder: (context) => [
                                         if (canEdit)
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'edit',
                                             child: Row(
                                               children: [
                                                 Icon(Icons.edit, color: AppColors.primary),
-                                                SizedBox(width: 8),
-                                                Text('Edit'),
+                                                const SizedBox(width: 8),
+                                                const Text('Edit'),
                                               ],
                                             ),
                                           ),

@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 
 import '../providers/update_provider.dart';
 import '../screens/app_update_screen.dart';
 import '../services/update_service.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
 
 /// Tell the user a new version exists, without trapping them in it.
 ///

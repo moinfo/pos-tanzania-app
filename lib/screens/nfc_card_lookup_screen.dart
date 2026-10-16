@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -7,6 +7,8 @@ import '../models/nfc_wallet.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 class NfcCardLookupScreen extends StatefulWidget {
   const NfcCardLookupScreen({super.key});
@@ -120,7 +122,7 @@ class _NfcCardLookupScreenState extends State<NfcCardLookupScreen> {
             IconButton(
               icon: const Icon(Icons.clear),
               onPressed: _clearResult,
-              tooltip: 'Clear',
+              tooltip: 'Clear'.tr,
             ),
         ],
       ),

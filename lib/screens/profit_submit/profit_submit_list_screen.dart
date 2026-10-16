@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,6 +18,9 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../pdf_viewer_screen.dart';
 import 'new_profit_submit_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/delete_dialog.dart';
 
 class ProfitSubmitListScreen extends StatefulWidget {
   const ProfitSubmitListScreen({super.key});
@@ -152,23 +155,18 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                     onPrimary: Colors.white,
                     surface: AppColors.darkCard,
                     onSurface: AppColors.darkText,
-                    background: AppColors.darkBackground,
-                    onBackground: AppColors.darkText,
                   )
                 : ColorScheme.light(
                     primary: AppColors.primary,
                     onPrimary: Colors.white,
                     surface: Colors.white,
                     onSurface: Colors.black,
-                    background: Colors.white,
-                    onBackground: Colors.black,
                   ),
-            dialogBackgroundColor: isDark ? AppColors.darkCard : Colors.white,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
               ),
-            ),
+            ), dialogTheme: DialogThemeData(backgroundColor: isDark ? AppColors.darkCard : Colors.white),
           ),
           child: child!,
         );
@@ -242,28 +240,11 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Profit Submit'),
-        content: Text(
-          'Are you sure you want to delete this profit submission?\n\n'
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Profit Submit',
+      message: 'Are you sure you want to delete this profit submission?\n\n'
           'Amount: ${_formatCurrency(profit.amount)}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
 
     if (confirmed != true) return;
@@ -346,7 +327,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                 ),
                 const SizedBox(height: 8),
                 ListTile(
-                  leading: const Icon(Icons.visibility, color: AppColors.primary),
+                  leading: Icon(Icons.visibility, color: AppColors.primary),
                   title: const Text('View File'),
                   onTap: () {
                     Navigator.pop(context);
@@ -588,7 +569,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Filter by date range',
+            tooltip: 'Filter by date range'.tr,
           ),
         ],
       ),
@@ -650,7 +631,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedLocationFilter,
+                      initialValue: _selectedLocationFilter,
                       isExpanded: true,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -668,7 +649,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
+                          borderSide: BorderSide(
                             color: AppColors.primary,
                             width: 2,
                           ),
@@ -706,7 +687,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline,
+                      const Icon(Icons.error_outline,
                           size: 64, color: AppColors.error),
                       const SizedBox(height: 16),
                       Text(_errorMessage!,
@@ -839,7 +820,7 @@ class _ProfitSubmitListScreenState extends State<ProfitSubmitListScreen> {
                                                 // Edit button
                                                 if (canEdit)
                                                   IconButton(
-                                                    icon: const Icon(
+                                                    icon: Icon(
                                                       Icons.edit_outlined,
                                                       color: AppColors.primary,
                                                     ),

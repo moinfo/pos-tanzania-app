@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -16,6 +16,9 @@ import '../../widgets/offline_submit_feedback.dart';
 import '../../utils/constants.dart';
 import '../../widgets/curved_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/delete_dialog.dart';
 
 class FinancialBankingScreen extends StatefulWidget {
   const FinancialBankingScreen({super.key});
@@ -172,22 +175,22 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
   // Build list of navigation items based on permissions
   List<_NavItem> _getNavItems() {
     final items = <_NavItem>[
-      _NavItem(
+      const _NavItem(
         icon: Icons.home,
         label: 'Home',
         index: 0,
       ),
-      _NavItem(
+      const _NavItem(
         icon: Icons.people,
         label: 'Beneficiaries',
         index: 1,
       ),
-      _NavItem(
+      const _NavItem(
         icon: Icons.analytics,
         label: 'EFD Analysis',
         index: 2,
       ),
-      _NavItem(
+      const _NavItem(
         icon: Icons.receipt_long,
         label: 'Deposits',
         index: 3,
@@ -196,7 +199,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
     // Only add Mismatch Report if user has permission
     if (_canViewMismatchReport) {
-      items.add(_NavItem(
+      items.add(const _NavItem(
         icon: Icons.warning_amber,
         label: 'Mismatch',
         index: 4,
@@ -244,9 +247,6 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
       bottomNavigationBar: CurvedBottomNavigation(
         currentIndex: _currentIndex.clamp(0, navItems.length - 1),
         onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
-        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
         items: navItems.map((item) => CurvedNavItem(
           icon: item.icon,
           label: item.label,
@@ -376,7 +376,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                   if (_canChangeDateRange)
                     Icon(Icons.arrow_drop_down, color: AppColors.primary)
                   else
-                    Icon(Icons.lock_outline, color: Colors.grey, size: 18),
+                    const Icon(Icons.lock_outline, color: Colors.grey, size: 18),
                 ],
               ),
             ),
@@ -1305,10 +1305,10 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
                       const SizedBox(height: 2),
                       Text(
                         _currencyFormat.format(depositedAmount),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF10B981),
+                          color: Color(0xFF10B981),
                         ),
                       ),
                     ],
@@ -2088,7 +2088,7 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem('Total', stats.totalTransactions, Colors.blue, isDark),
+          _buildStatItem('Total', stats.totalTransactions, AppColors.brandSwatch, isDark),
           _buildStatDivider(isDark),
           _buildStatItem('Verified', stats.verifiedCount, Colors.green, isDark),
           // Only show Mismatch if user has permission
@@ -2356,102 +2356,15 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
 
   /// Show delete deposit confirmation dialog
   Future<void> _showDeleteDepositConfirmation(FinancialDeposit deposit) async {
-    final themeProvider = context.read<ThemeProvider>();
-    final isDark = themeProvider.isDarkMode;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-        title: Row(
-          children: [
-            const Icon(Icons.warning_amber, color: Color(0xFFEF4444)),
-            const SizedBox(width: 8),
-            Text(
-              'Delete Deposit',
-              style: TextStyle(
-                color: isDark ? AppColors.darkText : Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Are you sure you want to delete this deposit?',
-              style: TextStyle(
-                color: isDark ? AppColors.darkText : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    deposit.beneficiaryName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkText : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${_currencyFormat.format(deposit.amount)} TZS',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Ref: ${deposit.referenceNumber}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? AppColors.darkTextLight : Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'This action cannot be undone.',
-              style: TextStyle(
-                color: const Color(0xFFEF4444),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextLight : Colors.grey,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Deposit',
+      message: 'Are you sure you want to delete this deposit?',
+      itemName: deposit.beneficiaryName,
+      details: {
+        'Amount': '${_currencyFormat.format(deposit.amount)} TZS',
+        'Reference': deposit.referenceNumber,
+      },
     );
 
     if (confirmed == true) {
@@ -2912,7 +2825,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              leading: Icon(Icons.camera_alt, color: AppColors.primary),
               title: const Text('Take Photo'),
               onTap: () async {
                 Navigator.pop(context);
@@ -2926,7 +2839,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              leading: Icon(Icons.photo_library, color: AppColors.primary),
               title: const Text('Choose from Gallery'),
               onTap: () async {
                 Navigator.pop(context);
@@ -3019,7 +2932,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                     // Bank Account Dropdown
                     _buildLabel('Bank Account *'),
                     DropdownButtonFormField<BeneficiaryBankAccount>(
-                      value: _selectedBankAccount,
+                      initialValue: _selectedBankAccount,
                       decoration: _inputDecoration('Select bank account'),
                       items: widget.target.bankAccounts.map((account) {
                         return DropdownMenuItem(
@@ -3067,14 +2980,14 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                       decoration: _inputDecoration('Enter amount'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter deposit amount';
+                          return 'Please enter deposit amount'.tr;
                         }
                         final amount = double.tryParse(value.replaceAll(',', ''));
                         if (amount == null || amount <= 0) {
-                          return 'Please enter a valid amount';
+                          return 'Please enter a valid amount'.tr;
                         }
                         if (amount > widget.target.remainingAmount) {
-                          return 'Amount exceeds remaining (${_currencyFormat.format(widget.target.remainingAmount)})';
+                          return 'Amount exceeds remaining (${_currencyFormat.format(widget.target.remainingAmount)})'.tr;
                         }
                         return null;
                       },
@@ -3125,7 +3038,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                       decoration: _inputDecoration('Enter reference number'),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Please enter reference number';
+                          return 'Please enter reference number'.tr;
                         }
                         return null;
                       },
@@ -3136,7 +3049,7 @@ class _MakeDepositFormState extends State<_MakeDepositForm> {
                     // Payment Method
                     _buildLabel('Payment Method *'),
                     DropdownButtonFormField<String>(
-                      value: _paymentMethod,
+                      initialValue: _paymentMethod,
                       decoration: _inputDecoration(''),
                       items: const [
                         DropdownMenuItem(

@@ -160,32 +160,27 @@ class ApiService {
     print('🗑️ Client cleared from cache and preferences');
   }
 
+  /// Every build -- debug, profile and release -- talks to the client's live
+  /// domain (e.g. https://kariakooshops.co.tz/api). For local development
+  /// against the Laravel/CodeIgniter server on this PC, build with
+  /// `--dart-define=LIVE_API=false` (plus `adb reverse tcp:8085 tcp:8085`).
+  static const bool _useLiveApi =
+      bool.fromEnvironment('LIVE_API', defaultValue: true);
+
+  /// The API root for [client] under the current build mode / LIVE_API flag.
+  static String apiUrlFor(ClientConfig client) =>
+      (kReleaseMode || _useLiveApi) ? client.prodApiUrl : client.devApiUrl;
+
   // Get base URL based on current client and build mode
-  static Future<String> get baseUrl async {
-    final client = await getCurrentClient();
-    if (kReleaseMode) {
-      return client.prodApiUrl;
-    } else {
-      return client.devApiUrl;
-    }
-  }
+  static Future<String> get baseUrl async => apiUrlFor(await getCurrentClient());
 
   // Synchronous version for backwards compatibility (uses cached client)
   static String get baseUrlSync {
-    // If no client is cached, load it synchronously
-    if (currentClient == null) {
-      // Try to load from SharedPreferences synchronously
-      // This is a fallback - getCurrentClient should be called during app init
-      return ClientsConfig.getDefaultClient().devApiUrl;
-    }
-
-    print('📍 Current Client: ${currentClient!.displayName} (${currentClient!.id})');
-
-    if (kReleaseMode) {
-      return currentClient!.prodApiUrl;
-    } else {
-      return currentClient!.devApiUrl;
-    }
+    // getCurrentClient should be called during app init; until then fall back
+    // to the default client, using the same release/live rule as above (a
+    // release build must never fall back to the localhost URL).
+    final client = currentClient ?? ClientsConfig.getDefaultClient();
+    return apiUrlFor(client);
   }
 
   // Get stored token
@@ -476,7 +471,9 @@ class ApiService {
           'Url: ${response.request?.url}, Body: $bodyPreview');
 
       return ApiResponse<T>.error(
-        message: 'Failed to parse response: $e',
+        message: _looksLikeHtml(response.body)
+            ? friendlyUnavailableMessage
+            : 'Failed to parse response: $e',
         statusCode: statusCode,
       );
     }
@@ -667,7 +664,7 @@ class ApiService {
       }
 
       return result;
-    } on SocketException catch (e) {
+    } on SocketException {
       return ApiResponse.error(
         message: 'Network error: Unable to connect to server. Please check your internet connection.',
       );
@@ -675,7 +672,7 @@ class ApiService {
       return ApiResponse.error(
         message: 'HTTP error: ${e.message}',
       );
-    } on FormatException catch (e) {
+    } on FormatException {
       return ApiResponse.error(
         message: 'Invalid response format from server',
       );
@@ -1439,10 +1436,24 @@ class ApiService {
       // Not JSON -- fall through to the HTML handling below
     }
 
-    final text = body.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    // A web page (the server's own 404 / 500 / maintenance page) is never
+    // something to put in front of a user -- it used to surface as raw CSS and
+    // "404 Page Not Found ::selection { ... }" inside the error view.
+    if (_looksLikeHtml(body)) return friendlyUnavailableMessage;
+
+    final text = body.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (text.isEmpty) return fallback;
     return text.length > 200 ? '${text.substring(0, 200)}…' : text;
   }
+
+  /// Shown instead of a server web page when an endpoint cannot answer.
+  static const String friendlyUnavailableMessage =
+      'This information is not available right now. Please try again later.';
+
+  static bool _looksLikeHtml(String body) => RegExp(
+        r'<\s*(?:!doctype|html|head|body|style|title|h1|h2|p|div|center)(?![a-z])',
+        caseSensitive: false,
+      ).hasMatch(body);
 
   /// Get single customer
   Future<ApiResponse<Customer>> getCustomer(int id) async {
@@ -1523,6 +1534,9 @@ class ApiService {
     // the selected location -- about a third of the full payload. The items
     // management screen keeps the full shape for editing.
     bool lean = false,
+    /// Item management: also list items with no stock at [locationId]. The
+    /// server hides them by default because the sales grid cannot sell them.
+    bool includeOutOfStock = false,
     /// Only items of this variation. Receiving passes 'CTN': a delivery is
     /// cartons, and the receiving refuses a PC row outright, so offering one
     /// to a clerk only wastes their trip to the counter.
@@ -1536,6 +1550,7 @@ class ApiService {
         if (category != null) 'category': category,
         if (locationId != null) 'location_id': locationId.toString(),
         if (lean) 'lean': '1',
+        if (includeOutOfStock) 'include_out_of_stock': '1',
         if (variation != null) 'variation': variation,
       };
 
@@ -1842,7 +1857,7 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/credits/supervisors')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      return _cachedGet<SupervisorCreditsResponse>(
+      final primary = await _cachedGet<SupervisorCreditsResponse>(
         uri,
         (data) => SupervisorCreditsResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -1860,6 +1875,8 @@ class ApiService {
         maxAge: CacheAge.queue,
         errorFallback: 'Failed to fetch supervisor credits',
       );
+      if (!_routeMissing(primary)) return primary;
+      return _supervisorCreditsFromLedgers(_keyFor(uri), locationIds);
     } catch (e) {
       _reportFailure(e);
       return ApiResponse.error(message: _failureMessage(e));
@@ -1874,7 +1891,7 @@ class ApiService {
       final uri =
           Uri.parse('$baseUrlSync/credits/supervisor_customers/$supervisorId');
 
-      return _cachedGet<SupervisorCustomersResponse>(
+      final primary = await _cachedGet<SupervisorCustomersResponse>(
         uri,
         (data) => SupervisorCustomersResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -1885,6 +1902,8 @@ class ApiService {
         maxAge: CacheAge.queue,
         errorFallback: 'Failed to fetch supervisor customers',
       );
+      if (!_routeMissing(primary)) return primary;
+      return _supervisorCustomersFromLedgers(_keyFor(uri), supervisorId);
     } catch (e) {
       _reportFailure(e);
       return ApiResponse.error(message: _failureMessage(e));
@@ -1908,7 +1927,7 @@ class ApiService {
       final uri = Uri.parse('$baseUrlSync/credits/daily_debt_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
-      return _cachedGet<DailyDebtReportResponse>(
+      final primary = await _cachedGet<DailyDebtReportResponse>(
         uri,
         (data) => DailyDebtReportResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -1916,6 +1935,13 @@ class ApiService {
         // I going this morning" and by tomorrow it names the wrong doors.
         maxAge: CacheAge.today,
         errorFallback: 'Failed to fetch daily debt report',
+      );
+      if (!_routeMissing(primary)) return primary;
+      return _dailyDebtFromLedgers(
+        _keyFor(uri),
+        startDate: startDate,
+        endDate: endDate,
+        locationIds: locationIds,
       );
     } catch (e) {
       _reportFailure(e);
@@ -1935,7 +1961,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -1956,7 +1982,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -1976,7 +2002,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2089,7 +2115,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2114,7 +2140,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       _reportFailure(e);
@@ -2140,7 +2166,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2163,7 +2189,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2182,7 +2208,7 @@ class ApiService {
 
       return _handleResponse<Supplier>(
         response,
-        (data) => Supplier.fromJson(data as Map<String, dynamic>),
+        (data) => Supplier.fromJson(data),
       );
     } catch (e) {
       _reportFailure(e);
@@ -2213,7 +2239,7 @@ class ApiService {
 
       return _handleResponse<Supplier>(
         response,
-        (data) => Supplier.fromJson(data as Map<String, dynamic>),
+        (data) => Supplier.fromJson(data),
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2230,7 +2256,7 @@ class ApiService {
         headers: await _getHeaders(),
       );
 
-      return _handleResponse<void>(response, (_) => null);
+      return _handleResponse<void>(response, (_) {});
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
       // knows what did not happen, and that nothing was saved.
@@ -2259,6 +2285,386 @@ class ApiService {
     }
   }
 
+  // ==================== CREDIT LIST FALLBACKS ====================
+  //
+  // Some deployments (kariakooshops.co.tz) serve only the per-customer and
+  // per-supplier credit endpoints, not the list endpoints the credit screens
+  // were written against (credits/supervisors, credits/supervisor_customers,
+  // credits/daily_debt_report, suppliers_creditors[/account]); those answer
+  // 404. Rather than show an empty error screen, the lists are rebuilt here from
+  // endpoints that do exist, using the same arithmetic as the web pages:
+  //   customers: Credit = credit sales, Debit = payments, Balance = Debit - Credit
+  //   suppliers: Balance = Credit - Debit
+
+  bool _routeMissing(ApiResponse<dynamic> r) =>
+      !r.isSuccess && (r.statusCode == 404 || r.statusCode == 405);
+
+  Future<dynamic> _getData(String path, [Map<String, String>? query]) async {
+    final uri = Uri.parse('$baseUrlSync/$path').replace(
+        queryParameters: query != null && query.isNotEmpty ? query : null);
+    final res = await _http.get(uri, headers: await _getHeaders());
+    _reportReachable(true);
+    if (res.statusCode == 401) _handleUnauthorized(res);
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(
+          _extractErrorMessage(res.body, fallback: 'HTTP ${res.statusCode}'));
+    }
+    return json.decode(res.body)['data'];
+  }
+
+  double _num(dynamic v) =>
+      (v is num) ? v.toDouble() : double.tryParse('$v') ?? 0;
+
+  List<_CustomerLedger>? _ledgerCache;
+  String? _ledgerCacheKey;
+  DateTime? _ledgerCacheAt;
+
+  /// Every credit customer's credit/debit, from customers + credits/statement.
+  /// Kept for a minute so opening a supervisor straight after the list does not
+  /// re-download every statement.
+  Future<List<_CustomerLedger>> _loadCustomerLedgers({
+    List<int>? locationIds,
+    String? startDate,
+    String? endDate,
+  }) async {
+    final key = '${locationIds?.join(',')}|$startDate|$endDate|$baseUrlSync';
+    if (_ledgerCache != null &&
+        _ledgerCacheKey == key &&
+        DateTime.now().difference(_ledgerCacheAt!) <
+            const Duration(minutes: 1)) {
+      return _ledgerCache!;
+    }
+
+    final customers = <Map<String, dynamic>>[];
+    var offset = 0;
+    while (true) {
+      final data = await _getData(
+          'customers', {'limit': '200', 'offset': offset.toString()});
+      final page = (data['customers'] as List).cast<Map<String, dynamic>>();
+      customers.addAll(page);
+      offset += page.length;
+      final total = (data['total'] as num?)?.toInt() ?? customers.length;
+      if (page.isEmpty || offset >= total) break;
+    }
+
+    // Only customers that belong to a supervisor can appear (the web joins on
+    // it) and only those that can hold credit or still carry a balance.
+    final eligible = customers.where((c) {
+      if (c['supervisor'] is! Map) return false;
+      return c['is_allowed_credit'] == true || _num(c['balance']) != 0;
+    }).toList();
+
+    final scope = (locationIds != null && locationIds.isNotEmpty)
+        ? locationIds.toSet()
+        : null;
+    final ledgers = <_CustomerLedger>[];
+
+    for (var i = 0; i < eligible.length; i += 6) {
+      final chunk = eligible.skip(i).take(6);
+      ledgers.addAll(await Future.wait(chunk.map((c) async {
+        final id = (c['person_id'] as num).toInt();
+        final sup = c['supervisor'] as Map;
+        final ledger = _CustomerLedger(
+          id: id,
+          firstName: (c['first_name'] ?? '').toString(),
+          lastName: (c['last_name'] ?? '').toString(),
+          phone: (c['phone_number'] ?? '').toString(),
+          supervisorId: (sup['id'] as num).toInt(),
+          supervisorName: (sup['name'] ?? '').toString(),
+        );
+        final data = await _getData('credits/statement/$id', {
+          'start_date': startDate ?? '2000-01-01',
+          'end_date': endDate ?? '2099-12-31',
+        });
+        for (final t in (data['transactions'] as List? ?? const [])) {
+          final loc = t['stock_location_id'];
+          if (scope != null &&
+              loc != null &&
+              !scope.contains((loc as num).toInt())) {
+            continue;
+          }
+          ledger.credit += _num(t['credit']);
+          ledger.debit += _num(t['debit']);
+          // A payment received is a ledger row with its own id; credit sales
+          // arrive with a null id.
+          if (t['id'] != null && _num(t['debit']) > 0) {
+            ledger.payments.add(Map<String, dynamic>.from(t as Map));
+          }
+        }
+        // The statement lists only ledger rows that fall inside the date
+        // filter, but current_balance is SUM(credit sales) - SUM(all payments).
+        // A payment the date filter cannot reach (e.g. an undated opening
+        // entry) is therefore missing from the rows, and the web counts it in
+        // Debit. Reconcile against the server's own figure so the totals match.
+        if (scope == null && startDate == null && endDate == null) {
+          final implied = ledger.credit - _num(data['current_balance']);
+          if (implied > ledger.debit) ledger.debit = implied;
+        }
+        return ledger;
+      })));
+    }
+
+    _ledgerCache = ledgers;
+    _ledgerCacheKey = key;
+    _ledgerCacheAt = DateTime.now();
+    return ledgers;
+  }
+
+  double _sum(Iterable<double> v) => v.fold<double>(0, (a, b) => a + b);
+
+  Future<ApiResponse<SupervisorCreditsResponse>> _supervisorCreditsFromLedgers(
+    String cacheKey,
+    List<int>? locationIds,
+  ) async {
+    try {
+      final ledgers = await _loadCustomerLedgers(locationIds: locationIds);
+      final bySupervisor = <int, List<_CustomerLedger>>{};
+      for (final l in ledgers) {
+        bySupervisor.putIfAbsent(l.supervisorId, () => []).add(l);
+      }
+
+      final rows = <Map<String, dynamic>>[];
+      bySupervisor.forEach((id, list) {
+        // The web lists a supervisor only once a customer has a credit sale.
+        if (!list.any((l) => l.credit > 0)) return;
+        final credit = _sum(list.map((l) => l.credit));
+        final debit = _sum(list.map((l) => l.debit));
+        rows.add({
+          'supervisor_id': id,
+          'name': list.first.supervisorName,
+          'phone': '',
+          'credit': credit,
+          'debit': debit,
+          'balance': debit - credit,
+        });
+      });
+      rows.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+
+      final data = {
+        'supervisors': rows,
+        'summary': {
+          'total_credit': _sum(rows.map((r) => r['credit'] as double)),
+          'total_debit': _sum(rows.map((r) => r['debit'] as double)),
+          'total_balance': _sum(rows.map((r) => r['balance'] as double)),
+          'supervisor_count': rows.length,
+        },
+      };
+      unawaited(ReadCache.instance.write(cacheKey, data));
+      return ApiResponse.success(
+        data: SupervisorCreditsResponse.fromJson(data),
+        message: 'Success',
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  Future<ApiResponse<SupervisorCustomersResponse>>
+      _supervisorCustomersFromLedgers(String cacheKey, int supervisorId) async {
+    try {
+      final ledgers = await _loadCustomerLedgers();
+      final mine = ledgers
+          .where((l) => l.supervisorId == supervisorId && l.credit > 0)
+          .toList()
+        ..sort((a, b) => a.fullName.compareTo(b.fullName));
+
+      final rows = mine
+          .map((l) => {
+                'customer_id': l.id,
+                'first_name': l.firstName,
+                'last_name': l.lastName,
+                'phone': l.phone,
+                'credit': l.credit,
+                'debit': l.debit,
+                'balance': l.balance,
+              })
+          .toList();
+      final supName = ledgers
+          .where((l) => l.supervisorId == supervisorId)
+          .map((l) => l.supervisorName)
+          .firstOrNull;
+
+      final data = {
+        'supervisor_id': supervisorId,
+        'supervisor_name': supName ?? '',
+        'customers': rows,
+        'summary': {
+          'total_credit': _sum(mine.map((l) => l.credit)),
+          'total_debit': _sum(mine.map((l) => l.debit)),
+          'total_balance': _sum(mine.map((l) => l.balance)),
+          'customer_count': rows.length,
+        },
+      };
+      unawaited(ReadCache.instance.write(cacheKey, data));
+      return ApiResponse.success(
+        data: SupervisorCustomersResponse.fromJson(data),
+        message: 'Success',
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  Future<ApiResponse<DailyDebtReportResponse>> _dailyDebtFromLedgers(
+    String cacheKey, {
+    String? startDate,
+    String? endDate,
+    List<int>? locationIds,
+  }) async {
+    try {
+      String ymd(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
+          '${d.month.toString().padLeft(2, '0')}-'
+          '${d.day.toString().padLeft(2, '0')}';
+      final today = ymd(DateTime.now());
+      final from = startDate ?? today;
+      final to = endDate ?? today;
+
+      final ledgers = await _loadCustomerLedgers(
+        locationIds: locationIds,
+        startDate: from,
+        endDate: to,
+      );
+
+      // One line per customer per day, like the web report (SUM(dr) grouped by
+      // client and date).
+      final rows = <Map<String, dynamic>>[];
+      for (final l in ledgers) {
+        final byDate = <String, Map<String, dynamic>>{};
+        for (final p in l.payments) {
+          final date = (p['date'] ?? '').toString();
+          final row = byDate.putIfAbsent(
+              date,
+              () => {
+                    'id': p['id'] ?? 0,
+                    'date': date,
+                    'customer_name': l.fullName,
+                    'customer_id': l.id,
+                    'amount': 0.0,
+                    'supervisor_name': l.supervisorName,
+                    'supervisor_id': l.supervisorId,
+                    'location_name': '',
+                    'employee_name': '',
+                    'employee_id': 0,
+                    'description': p['description'] ?? '',
+                    'payment_id': p['id'] ?? 0,
+                  });
+          row['amount'] = (row['amount'] as double) + _num(p['debit']);
+        }
+        rows.addAll(byDate.values);
+      }
+      rows.sort((a, b) => (b['date'] as String).compareTo(a['date'] as String));
+
+      final data = {
+        'start_date': from,
+        'end_date': to,
+        'debts': rows,
+        'summary': {
+          'total_amount': _sum(rows.map((r) => r['amount'] as double)),
+          'count': rows.length,
+        },
+      };
+      unawaited(ReadCache.instance.write(cacheKey, data));
+      return ApiResponse.success(
+        data: DailyDebtReportResponse.fromJson(data),
+        message: 'Success',
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  Future<ApiResponse<SupplierCreditsResponse>> _supplierCreditorsFromSuppliers(
+    String cacheKey,
+  ) async {
+    try {
+      final list = (await _getData('supplier_credits/suppliers') as List)
+          .cast<Map<String, dynamic>>();
+
+      var totalCredit = 0.0, totalDebit = 0.0, totalBalance = 0.0;
+      final rows = <Map<String, dynamic>>[];
+      for (final s in list) {
+        final credit = _num(s['credit']);
+        final debit = _num(s['debit']);
+        final balance = credit - debit;
+        totalCredit += credit;
+        totalDebit += debit;
+        totalBalance += balance;
+        // The web page hides suppliers that are fully settled but still counts
+        // them in the totals.
+        if (balance == 0) continue;
+        rows.add({
+          'supplier_id': s['supplier_id'],
+          'first_name': s['first_name'] ?? '',
+          'last_name': s['last_name'] ?? '',
+          'company_name': s['company_name'] ?? '',
+          'phone': s['phone'] ?? '',
+          'credit': credit,
+          'debit': debit,
+          'balance': balance,
+        });
+      }
+
+      final data = {
+        'suppliers': rows,
+        'summary': {
+          'total_credit': totalCredit,
+          'total_debit': totalDebit,
+          'total_balance': totalBalance,
+          'supplier_count': rows.length,
+        },
+      };
+      unawaited(ReadCache.instance.write(cacheKey, data));
+      return ApiResponse.success(
+        data: SupplierCreditsResponse.fromJson(data),
+        message: 'Success',
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  Future<ApiResponse<SupplierAccountResponse>> _supplierAccountFromStatement(
+    String cacheKey,
+    int supplierId, {
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final data = Map<String, dynamic>.from(await _getData(
+        'supplier_credits/statement/$supplierId',
+        {
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+        },
+      ) as Map);
+
+      var totalCredit = 0.0, totalDebit = 0.0;
+      final txs = <Map<String, dynamic>>[];
+      for (final t in (data['transactions'] as List? ?? const [])) {
+        final m = Map<String, dynamic>.from(t as Map);
+        totalCredit += _num(m['credit']);
+        totalDebit += _num(m['debit']);
+        m['id'] ??= m['payment_id'];
+        txs.add(m);
+      }
+      data['transactions'] = txs;
+      data['total_credit'] = totalCredit;
+      data['total_debit'] = totalDebit;
+      unawaited(ReadCache.instance.write(cacheKey, data));
+      return ApiResponse.success(
+        data: SupplierAccountResponse.fromJson(data),
+        message: 'Success',
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
   // ==================== SUPPLIERS CREDITORS API ====================
 
   /// Get all suppliers with credit balances
@@ -2273,7 +2679,7 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierCreditsResponse>(
+      final primary = await _cachedGet<SupplierCreditsResponse>(
         uri,
         (data) => SupplierCreditsResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -2283,6 +2689,8 @@ class ApiService {
         maxAge: CacheAge.queue,
         errorFallback: 'Failed to fetch supplier creditors',
       );
+      if (!_routeMissing(primary)) return primary;
+      return _supplierCreditorsFromSuppliers(_keyFor(uri));
     } catch (e) {
       _reportFailure(e);
       return ApiResponse.error(message: _failureMessage(e));
@@ -2302,7 +2710,7 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/account/$supplierId')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierAccountResponse>(
+      final primary = await _cachedGet<SupplierAccountResponse>(
         uri,
         (data) => SupplierAccountResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -2310,6 +2718,13 @@ class ApiService {
         // behind us, so a week-old copy still answers "what did we buy".
         maxAge: CacheAge.ledger,
         errorFallback: 'Failed to fetch supplier account',
+      );
+      if (!_routeMissing(primary)) return primary;
+      return _supplierAccountFromStatement(
+        _keyFor(uri),
+        supplierId,
+        startDate: startDate,
+        endDate: endDate,
       );
     } catch (e) {
       _reportFailure(e);
@@ -2322,15 +2737,24 @@ class ApiService {
     SupplierPaymentFormData formData,
   ) async {
     try {
-      final response = await _http.post(
+      var response = await _http.post(
         Uri.parse('$baseUrlSync/suppliers_creditors/add_payment'),
         headers: await _getHeaders(),
         body: json.encode(formData.toJson()),
       );
+      if (response.statusCode == 404 || response.statusCode == 405) {
+        // Deployment without the creditors controller: supplier_credits
+        // takes the same payload.
+        response = await _http.post(
+          Uri.parse('$baseUrlSync/supplier_credits/add_payment'),
+          headers: await _getHeaders(),
+          body: json.encode(formData.toJson()),
+        );
+      }
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2355,7 +2779,7 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_credit_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierDailyCreditResponse>(
+      final primary = await _cachedGet<SupplierDailyCreditResponse>(
         uri,
         (data) => SupplierDailyCreditResponse.fromJson(data),
         cacheKey: _keyFor(uri),
@@ -2363,6 +2787,12 @@ class ApiService {
         // by tomorrow it answers the wrong question.
         maxAge: CacheAge.today,
         errorFallback: 'Failed to fetch supplier daily credit report',
+      );
+      if (!_routeMissing(primary)) return primary;
+      return _supplierDailyCreditFromReceivings(
+        _keyFor(uri),
+        startDate: startDate,
+        endDate: endDate,
       );
     } catch (e) {
       _reportFailure(e);
@@ -2386,13 +2816,192 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrlSync/suppliers_creditors/daily_debt_report')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      return _cachedGet<SupplierDailyDebtResponse>(
+      final primary = await _cachedGet<SupplierDailyDebtResponse>(
         uri,
         (data) => SupplierDailyDebtResponse.fromJson(data),
         cacheKey: _keyFor(uri),
         // Today's owing, same horizon and same reason as the credit report.
         maxAge: CacheAge.today,
         errorFallback: 'Failed to fetch supplier daily debt report',
+      );
+      if (!_routeMissing(primary)) return primary;
+      return _supplierDailyDebtFromStatements(
+        _keyFor(uri),
+        startDate: startDate,
+        endDate: endDate,
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  // ---- Supplier daily credit / debt fallbacks (same reasoning as above) ----
+
+  String _today() {
+    final d = DateTime.now();
+    return '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// supplier_id -> {first_name, last_name, company_name}
+  Future<Map<int, Map<String, dynamic>>> _supplierDirectory() async {
+    final list = (await _getData('supplier_credits/suppliers') as List)
+        .cast<Map<String, dynamic>>();
+    return {for (final s in list) (s['supplier_id'] as num).toInt(): s};
+  }
+
+  String _supplierPerson(Map<String, dynamic>? s) =>
+      '${s?['first_name'] ?? ''} ${s?['last_name'] ?? ''}'.trim();
+
+  /// Web: Suppliers Credits > Daily Credit Report -- receivings bought on
+  /// credit in the range, with the item bought and who authorised it.
+  Future<ApiResponse<SupplierDailyCreditResponse>>
+      _supplierDailyCreditFromReceivings(
+    String cacheKey, {
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final from = startDate ?? _today();
+      final to = endDate ?? _today();
+      final suppliers = await _supplierDirectory();
+
+      final receivings = <Map<String, dynamic>>[];
+      var offset = 0;
+      while (true) {
+        final data = await _getData('receivings', {
+          'start_date': from,
+          'end_date': to,
+          'limit': '100',
+          'offset': offset.toString(),
+        });
+        final page = (data['receivings'] as List).cast<Map<String, dynamic>>();
+        receivings.addAll(page);
+        offset += page.length;
+        final total = (data['total_count'] as num?)?.toInt() ?? receivings.length;
+        if (page.isEmpty || offset >= total) break;
+      }
+
+      final credit = receivings
+          .where((r) => r['payment_type'] == 'Credit Card' && r['supplier_id'] != null)
+          .toList();
+
+      final rows = <Map<String, dynamic>>[];
+      for (var i = 0; i < credit.length; i += 6) {
+        rows.addAll(await Future.wait(credit.skip(i).take(6).map((r) async {
+          final id = (r['receiving_id'] as num).toInt();
+          final detail = await _getData('receivings/$id') as Map;
+          final items = (detail['items'] as List? ?? const [])
+              .map((it) => (it['item_name'] ?? '').toString())
+              .where((n) => n.isNotEmpty)
+              .join(', ');
+          final sid = (r['supplier_id'] as num).toInt();
+          final sup = suppliers[sid];
+          return <String, dynamic>{
+            'receiving_id': id,
+            'date': (r['receiving_time'] ?? '').toString(),
+            'supplier_name': _supplierPerson(sup),
+            'company_name': (sup?['company_name'] ?? r['supplier_name'] ?? '').toString(),
+            'supplier_id': sid,
+            'amount': _num(r['total_cost']),
+            'employee_name': (r['employee_name'] ?? '').toString(),
+            'employee_id': (detail['employee_id'] as num?)?.toInt() ?? 0,
+            'reference': items.isNotEmpty ? items : (r['reference'] ?? '').toString(),
+          };
+        })));
+      }
+      rows.sort((a, b) => (b['date'] as String).compareTo(a['date'] as String));
+
+      final data = {
+        'start_date': from,
+        'end_date': to,
+        'credits': rows,
+        'summary': {
+          'total_amount': _sum(rows.map((r) => r['amount'] as double)),
+          'count': rows.length,
+        },
+      };
+      unawaited(ReadCache.instance.write(cacheKey, data));
+      return ApiResponse.success(
+        data: SupplierDailyCreditResponse.fromJson(data),
+        message: 'Success',
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  /// Web: Suppliers Credits > Daily Debt Paid -- payments made to suppliers in
+  /// the range, one line per payment. The statement does not say who
+  /// authorised a payment, so the employee is left blank.
+  Future<ApiResponse<SupplierDailyDebtResponse>> _supplierDailyDebtFromStatements(
+    String cacheKey, {
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final from = startDate ?? _today();
+      final to = endDate ?? _today();
+      final suppliers = await _supplierDirectory();
+      final ids = suppliers.keys.toList();
+
+      final rows = <Map<String, dynamic>>[];
+      for (var i = 0; i < ids.length; i += 6) {
+        final batch = await Future.wait(ids.skip(i).take(6).map((id) async {
+          final out = <Map<String, dynamic>>[];
+          Map st;
+          try {
+            st = await _getData('supplier_credits/statement/$id',
+                {'start_date': from, 'end_date': to}) as Map;
+          } on Exception catch (e) {
+            // The list can name a supplier whose statement the server will not
+            // produce (deleted since); that is no payments, not a failed report.
+            if (e.toString().toLowerCase().contains('not found')) return out;
+            rethrow;
+          }
+          for (final t in (st['transactions'] as List? ?? const [])) {
+            if (t['payment_id'] == null || _num(t['debit']) <= 0) continue;
+            out.add({
+              'id': t['payment_id'],
+              'date': (t['date'] ?? '').toString(),
+              'supplier_name': _supplierPerson(suppliers[id]).isNotEmpty
+                  ? _supplierPerson(suppliers[id])
+                  : (suppliers[id]?['company_name'] ?? '').toString(),
+              'supplier_id': id,
+              'amount': _num(t['debit']),
+              'employee_name': '',
+              'employee_id': 0,
+              'description': (t['description'] ?? '').toString(),
+              'payment_id': t['payment_id'],
+            });
+          }
+          return out;
+        }));
+        for (final b in batch) {
+          rows.addAll(b);
+        }
+      }
+      rows.sort((a, b) {
+        final c = (b['date'] as String).compareTo(a['date'] as String);
+        return c != 0 ? c : (a['id'] as num).compareTo(b['id'] as num);
+      });
+
+      final data = {
+        'start_date': from,
+        'end_date': to,
+        'debts': rows,
+        'summary': {
+          'total_amount': _sum(rows.map((r) => r['amount'] as double)),
+          'count': rows.length,
+        },
+      };
+      unawaited(ReadCache.instance.write(cacheKey, data));
+      return ApiResponse.success(
+        data: SupplierDailyDebtResponse.fromJson(data),
+        message: 'Success',
       );
     } catch (e) {
       _reportFailure(e);
@@ -2491,7 +3100,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -2750,7 +3359,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       _reportFailure(e);
@@ -2825,7 +3434,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       _reportFailure(e);
@@ -3580,7 +4189,7 @@ class ApiService {
 
       return _handleResponse<double>(
         response,
-        (data) => ((data as Map<String, dynamic>)['chip_balance'] ?? 0)
+        (data) => ((data)['chip_balance'] ?? 0)
             .toDouble(),
       );
     } catch (e) {
@@ -3607,7 +4216,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3700,7 +4309,7 @@ class ApiService {
 
       return _handleResponse<BankingListItem>(
         response,
-        (data) => BankingListItem.fromJson(data as Map<String, dynamic>),
+        (data) => BankingListItem.fromJson(data),
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3719,7 +4328,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3820,7 +4429,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       _reportFailure(e);
@@ -3840,7 +4449,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3859,7 +4468,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3979,7 +4588,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -3998,7 +4607,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4229,7 +4838,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4248,7 +4857,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4280,7 +4889,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4299,7 +4908,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4392,7 +5001,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4411,7 +5020,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4493,7 +5102,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4512,7 +5121,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4574,7 +5183,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4593,7 +5202,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4675,7 +5284,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4694,7 +5303,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4756,7 +5365,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4775,7 +5384,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4857,7 +5466,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -4876,7 +5485,7 @@ class ApiService {
 
       return _handleResponse<Map<String, dynamic>>(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -7176,7 +7785,7 @@ class ApiService {
       );
       return _handleResponse<ReturnModalData>(
         response,
-        (data) => ReturnModalData.fromJson(data as Map<String, dynamic>),
+        (data) => ReturnModalData.fromJson(data),
       );
     } catch (e) {
       _reportFailure(e);
@@ -7208,7 +7817,7 @@ class ApiService {
       );
       return _handleResponse<ReturnResult>(
         response,
-        (data) => ReturnResult.fromJson(data as Map<String, dynamic>),
+        (data) => ReturnResult.fromJson(data),
       );
     } catch (e) {
       // Cannot be queued: see OnlineOnly. Name the action so the user
@@ -8091,4 +8700,36 @@ class ApiPayloadError implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// One customer's credit position, rebuilt from credits/statement. See
+/// [ApiService._loadCustomerLedgers].
+class _CustomerLedger {
+  _CustomerLedger({
+    required this.id,
+    required this.firstName,
+    required this.lastName,
+    required this.phone,
+    required this.supervisorId,
+    required this.supervisorName,
+  });
+
+  final int id;
+  final String firstName;
+  final String lastName;
+  final String phone;
+  final int supervisorId;
+  final String supervisorName;
+
+  /// Credit sales taken.
+  double credit = 0;
+
+  /// Payments received.
+  double debit = 0;
+
+  /// Payment rows (ledger entries with an id), for the daily collection report.
+  final List<Map<String, dynamic>> payments = [];
+
+  double get balance => debit - credit;
+  String get fullName => '$firstName $lastName'.trim();
 }

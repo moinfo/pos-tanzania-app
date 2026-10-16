@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/permission_model.dart';
@@ -13,10 +13,12 @@ import '../services/read_cache.dart';
 import '../utils/constants.dart';
 import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
-import '../widgets/permission_wrapper.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 import 'supplier_credit_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
+import '../widgets/delete_dialog.dart';
 
 class SuppliersScreen extends StatefulWidget {
   const SuppliersScreen({super.key});
@@ -105,23 +107,10 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   }
 
   Future<void> _deleteSupplier(Supplier supplier) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Supplier'),
-        content: Text('Are you sure you want to delete "${supplier.displayName}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirm = await showDeleteDialog(
+      context,
+      title: 'Delete Supplier',
+      message: 'Are you sure you want to delete "${supplier.displayName}"?',
     );
 
     if (confirm == true && mounted) {
@@ -159,7 +148,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search suppliers...',
+                hintText: 'Search suppliers...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -349,7 +338,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Balance:',
                   style: TextStyle(fontSize: 14),
                 ),
@@ -744,14 +733,14 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _companyNameController,
             decoration: InputDecoration(
-              labelText: 'Company Name *',
+              labelText: 'Company Name *'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Company name is required';
+                return 'Company name is required'.tr;
               }
               return null;
             },
@@ -763,14 +752,14 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
                 child: TextFormField(
                   controller: _firstNameController,
                   decoration: InputDecoration(
-                    labelText: 'First Name *',
+                    labelText: 'First Name *'.tr,
                     border: const OutlineInputBorder(),
                     filled: true,
                     fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'First name is required';
+                      return 'First name is required'.tr;
                     }
                     return null;
                   },
@@ -781,14 +770,14 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
                 child: TextFormField(
                   controller: _lastNameController,
                   decoration: InputDecoration(
-                    labelText: 'Last Name *',
+                    labelText: 'Last Name *'.tr,
                     border: const OutlineInputBorder(),
                     filled: true,
                     fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Last name is required';
+                      return 'Last name is required'.tr;
                     }
                     return null;
                   },
@@ -798,9 +787,9 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _selectedGender,
+            initialValue: _selectedGender,
             decoration: InputDecoration(
-              labelText: 'Gender',
+              labelText: 'Gender'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -817,9 +806,9 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             decoration: InputDecoration(
-              labelText: 'Category',
+              labelText: 'Category'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -836,9 +825,9 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
-            value: _selectedSupervisorId,
+            initialValue: _selectedSupervisorId,
             decoration: InputDecoration(
-              labelText: 'Supervisor',
+              labelText: 'Supervisor'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -850,7 +839,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
                   value: supervisor['id'] as int,
                   child: Text(supervisor['name'] as String),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               setState(() {
@@ -871,7 +860,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _emailController,
             decoration: InputDecoration(
-              labelText: 'Email',
+              labelText: 'Email'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -880,7 +869,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
             validator: (value) {
               if (value != null && value.isNotEmpty) {
                 if (!value.contains('@')) {
-                  return 'Invalid email address';
+                  return 'Invalid email address'.tr;
                 }
               }
               return null;
@@ -890,7 +879,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _phoneController,
             decoration: InputDecoration(
-              labelText: 'Phone Number',
+              labelText: 'Phone Number'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -901,7 +890,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _address1Controller,
             decoration: InputDecoration(
-              labelText: 'Address Line 1',
+              labelText: 'Address Line 1'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -911,7 +900,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _address2Controller,
             decoration: InputDecoration(
-              labelText: 'Address Line 2',
+              labelText: 'Address Line 2'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -921,7 +910,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _cityController,
             decoration: InputDecoration(
-              labelText: 'City',
+              labelText: 'City'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -934,7 +923,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
                 child: TextFormField(
                   controller: _stateController,
                   decoration: InputDecoration(
-                    labelText: 'State',
+                    labelText: 'State'.tr,
                     border: const OutlineInputBorder(),
                     filled: true,
                     fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -946,7 +935,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
                 child: TextFormField(
                   controller: _zipController,
                   decoration: InputDecoration(
-                    labelText: 'ZIP Code',
+                    labelText: 'ZIP Code'.tr,
                     border: const OutlineInputBorder(),
                     filled: true,
                     fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -959,7 +948,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _countryController,
             decoration: InputDecoration(
-              labelText: 'Country',
+              labelText: 'Country'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -978,7 +967,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _agencyNameController,
             decoration: InputDecoration(
-              labelText: 'Agency Name',
+              labelText: 'Agency Name'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -988,7 +977,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _accountNumberController,
             decoration: InputDecoration(
-              labelText: 'Account Number',
+              labelText: 'Account Number'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -998,7 +987,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _taxIdController,
             decoration: InputDecoration(
-              labelText: 'Tax ID',
+              labelText: 'Tax ID'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -1008,7 +997,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> with SingleTic
           TextFormField(
             controller: _commentsController,
             decoration: InputDecoration(
-              labelText: 'Comments',
+              labelText: 'Comments'.tr,
               border: const OutlineInputBorder(),
               filled: true,
               fillColor: isDark ? AppColors.darkCard : Colors.grey[200],

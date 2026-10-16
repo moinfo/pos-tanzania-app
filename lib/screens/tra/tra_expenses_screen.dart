@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../utils/constants.dart';
@@ -10,6 +10,10 @@ import '../../services/tra_service.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'new_tra_purchase_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/delete_dialog.dart';
 
 class TRAExpensesScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -125,23 +129,10 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
   }
 
   Future<void> _deleteExpense(TRAPurchase expense) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Expense'),
-        content: Text('Are you sure you want to delete expense "${expense.itemName}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirm = await showDeleteDialog(
+      context,
+      title: 'Delete Expense',
+      message: 'Are you sure you want to delete expense "${expense.itemName}"?',
     );
 
     if (confirm == true) {
@@ -171,6 +162,10 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
     final hasDeletePermission = permissionProvider.hasPermission(PermissionIds.traDeleteExpenses);
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: widget.showAppBar ? AppBar(
         title: const Text('TRADE Expenses'),
@@ -268,7 +263,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.date_range, size: 20, color: Colors.red),
+                  const Icon(Icons.date_range, size: 20, color: Colors.red),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -293,9 +288,9 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
           // EFD Filter
           if (widget.efds.isNotEmpty && hasAllEfdPermission)
             DropdownButtonFormField<int?>(
-              value: _selectedEfdId,
+              initialValue: _selectedEfdId,
               decoration: InputDecoration(
-                labelText: 'EFD Device',
+                labelText: 'EFD Device'.tr,
                 filled: true,
                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                 border: OutlineInputBorder(
@@ -477,7 +472,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
                       ),
                       child: Text(
                         expense.purchaseType,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: Colors.red,
@@ -487,7 +482,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'TZS ${_currencyFormat.format(expense.totalAmount)}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.red,
@@ -551,7 +546,7 @@ class _TRAExpensesScreenState extends State<TRAExpensesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',

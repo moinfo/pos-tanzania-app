@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,6 +11,10 @@ import '../../services/tra_service.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'new_tra_sale_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/delete_dialog.dart';
 
 class TRASalesScreen extends StatefulWidget {
   final List<EFDDevice> efds;
@@ -126,23 +130,10 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
   }
 
   Future<void> _deleteSale(TRASale sale) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Sale'),
-        content: Text('Are you sure you want to delete Z-Report #${sale.efdNumber}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirm = await showDeleteDialog(
+      context,
+      title: 'Delete Sale',
+      message: 'Are you sure you want to delete Z-Report #${sale.efdNumber}?',
     );
 
     if (confirm == true) {
@@ -188,6 +179,10 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
     final hasDeletePermission = permissionProvider.hasPermission(PermissionIds.traDeleteSales);
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: widget.showAppBar ? AppBar(
         title: const Text('TRADE Sales'),
@@ -304,9 +299,9 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
           // EFD Filter
           if (widget.efds.isNotEmpty && hasAllEfdPermission)
             DropdownButtonFormField<int?>(
-              value: _selectedEfdId,
+              initialValue: _selectedEfdId,
               decoration: InputDecoration(
-                labelText: 'EFD Device',
+                labelText: 'EFD Device'.tr,
                 filled: true,
                 fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                 border: OutlineInputBorder(
@@ -339,7 +334,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
   Widget _buildSummarySection(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: isDark ? AppColors.darkCard.withOpacity(0.5) : Colors.blue.shade50,
+      color: isDark ? AppColors.darkCard.withOpacity(0.5) : AppColors.brandSwatch.shade50,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -428,7 +423,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () => _viewAttachment(sale.fileName!),
-                        child: Icon(
+                        child: const Icon(
                           Icons.attach_file,
                           size: 18,
                           color: AppColors.success,
@@ -568,7 +563,7 @@ class _TRASalesScreenState extends State<TRASalesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -8,6 +8,7 @@ import '../providers/location_provider.dart';
 import '../models/stock_location.dart';
 import '../models/permission_model.dart';
 import '../services/api_service.dart';
+import '../widgets/nav_active.dart';
 import '../widgets/offline_indicator.dart';
 import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
@@ -51,6 +52,10 @@ import 'app_update_screen.dart';
 import '../providers/update_provider.dart';
 import '../widgets/update_prompt.dart';
 import '../services/token_refresher.dart';
+import '../widgets/tr_text.dart';
+import '../widgets/logout_dialog.dart';
+import '../l10n/lang.dart';
+import '../widgets/curved_bottom_navigation.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -68,23 +73,11 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   /// the bottom bar (e.g. landing on the cart after resuming a suspended
   /// sale) can find a tab's index without re-running the filter logic.
   List<Map<String, dynamic>> _lastAvailableScreens = const [];
-  late AnimationController _rotationController;
-  late Animation<double> _rotationAnimation;
-  double _currentRotationOffset = 0.0; // Offset to rotate items (in item units)
-  int _totalNavItems = 0; // Will be set on first build to trigger sync
-  bool _initialPositionSet = false; // Track if initial position has been set
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
-    _rotationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
-      CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
-    );
     _checkAuthStatus();
     _checkForUpdate();
   }
@@ -104,12 +97,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
     await maybeShowUpdatePrompt(context);
-  }
-
-  @override
-  void dispose() {
-    _rotationController.dispose();
-    super.dispose();
   }
 
   @override
@@ -160,25 +147,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   Future<void> _confirmLogout(BuildContext context) async {
     Navigator.pop(context);
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Log out'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Log out'),
-          ),
-        ],
-      ),
+    final confirm = await showLogoutDialog(
+      context,
+      userName: context.read<AuthProvider>().user?.fullName,
     );
 
-    if (confirm != true || !context.mounted) return;
+    if (!confirm || !context.mounted) return;
 
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
@@ -366,30 +340,8 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   }
 
   void _onItemTapped(int index) {
-    // Calculate rotation offset to bring selected item to center
-    // Center index is (totalItems - 1) / 2
-    // Offset = centerIndex - selectedIndex (how much to shift)
-    final centerIndex = (_totalNavItems - 1) / 2.0;
-    final newOffset = centerIndex - index;
-
-    _animateRotationTo(newOffset);
-
     setState(() {
       _selectedIndex = index;
-    });
-  }
-
-  void _animateRotationTo(double targetOffset) {
-    _rotationAnimation = Tween<double>(
-      begin: _currentRotationOffset,
-      end: targetOffset,
-    ).animate(CurvedAnimation(
-      parent: _rotationController,
-      curve: Curves.easeInOut,
-    ));
-
-    _rotationController.forward(from: 0).then((_) {
-      _currentRotationOffset = targetOffset;
     });
   }
 
@@ -412,7 +364,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 builder: (context) => IconButton(
                   icon: const Icon(Icons.menu, color: Colors.white, size: 26),
                   onPressed: () => Scaffold.of(context).openDrawer(),
-                  tooltip: 'Menu',
+                  tooltip: 'Menu'.tr,
                 ),
               ),
               // Logo + Title. Leruma shows the active stock location here and
@@ -459,7 +411,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       IconButton(
                         icon: const Icon(Icons.notifications_none,
                             color: Colors.white, size: 26),
-                        tooltip: 'Notifications',
+                        tooltip: 'Notifications'.tr,
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -599,7 +551,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           return Center(
             child: Text(
               ApiService.currentClient?.displayName ?? AppConstants.appName,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -640,7 +592,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           child: PopupMenuButton<StockLocation>(
             offset: const Offset(0, 40),
             color: Colors.white,
-            tooltip: 'Switch store',
+            tooltip: 'Switch store'.tr,
             onSelected: (location) => locationProvider.selectLocation(location),
             itemBuilder: (context) => locationProvider.allowedLocations
                 .map(
@@ -839,8 +791,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         child: _buildCurvedAppBar(isDark, themeProvider),
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        // The account header stays put; only the menu below it scrolls, and it
+        // can scroll far enough to lift the last row clear of the system
+        // navigation bar.
+        child: Column(
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
@@ -882,7 +836,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       ),
                       _DrawerHeaderAction(
                         icon: Icons.settings,
-                        tooltip: 'Settings',
+                        tooltip: 'Settings'.tr,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
@@ -893,7 +847,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                       ),
                       _DrawerHeaderAction(
                         icon: Icons.logout,
-                        tooltip: 'Log out',
+                        tooltip: 'Log out'.tr,
                         onTap: () => _confirmLogout(context),
                       ),
                     ],
@@ -927,6 +881,15 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ],
               ),
             ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom + 16,
+                ),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: ClampingScrollPhysics(),
+                ),
+                children: [
             // 1. Customers Menu
             // Requests and approvals lead the section: raising a discount
             // request happens mid-sale, and an approval waiting on you is the
@@ -954,7 +917,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionIds.customerCreditLimitsAdd,
               ],
               child: Consumer<NotificationProvider>(
-                builder: (context, notifications, _) => ListTile(
+                builder: (context, notifications, _) => _DrawerTile(
                   leading: Icon(Icons.approval, color: AppColors.brandPrimary),
                   title: const Text('Discount & Approvals'),
                   trailing: notifications.pendingApprovals > 0
@@ -1003,7 +966,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 PermissionIds.customerCreditLimitsView,
                 PermissionIds.customerCreditLimitsAdd,
               ],
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.request_quote_outlined,
                     color: AppColors.brandPrimary),
                 title: const Text('Credit Limit & Approvals'),
@@ -1025,7 +988,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Customers List
                 PermissionWrapper(
                   permissionId: PermissionIds.customers,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: Icon(Icons.people_outline, color: AppColors.brandPrimary),
                     title: const Text('Customers List'),
                     onTap: () {
@@ -1040,7 +1003,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Customer Credits
                 PermissionWrapper(
                   permissionId: PermissionIds.credits,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: const Icon(Icons.credit_card, color: AppColors.error),
                     title: const Text('Customer Credits'),
                     onTap: () {
@@ -1056,7 +1019,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 if (ApiService.currentClient?.features.hasShops ?? false)
                   PermissionWrapper(
                     permissionId: PermissionIds.customersShops,
-                    child: ListTile(
+                    child: _DrawerTile(
                       leading: Icon(Icons.store, color: AppColors.brandPrimary),
                       title: const Text('Shops'),
                       onTap: () {
@@ -1074,7 +1037,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasDiscountRequests ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.customerDiscountRequests,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.discount, color: AppColors.brandPrimary),
                   title: const Text('Discount Requests'),
                   onTap: () {
@@ -1093,7 +1056,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             const Divider(height: 9, thickness: 0.6, indent: 16, endIndent: 16),
             PermissionWrapper(
               permissionId: PermissionIds.items,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.inventory_2, color: AppColors.brandPrimary),
                 title: const Text('Items'),
                 onTap: () {
@@ -1114,7 +1077,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // New Sales
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: Icon(Icons.add_shopping_cart, color: AppColors.brandPrimary),
                     title: const Text('New Sales'),
                     onTap: () {
@@ -1132,7 +1095,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Sales History
                 PermissionWrapper(
                   permissionId: PermissionIds.sales,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: Icon(Icons.history, color: AppColors.brandPrimary),
                     title: const Text('Sales History'),
                     onTap: () {
@@ -1147,7 +1110,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Suspended Sales
                 PermissionWrapper(
                   permissionId: PermissionIds.salesSuspended,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: const Icon(Icons.pause_circle, color: AppColors.warning),
                     title: const Text('Suspended Sales'),
                     onTap: () async {
@@ -1175,7 +1138,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Suppliers List
                 PermissionWrapper(
                   permissionId: PermissionIds.suppliers,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: Icon(Icons.local_shipping_outlined, color: AppColors.brandPrimary),
                     title: const Text('Suppliers List'),
                     onTap: () {
@@ -1190,7 +1153,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 // Supplier Credits
                 PermissionWrapper(
                   permissionId: PermissionIds.credits,
-                  child: ListTile(
+                  child: _DrawerTile(
                     leading: const Icon(Icons.credit_card, color: AppColors.error),
                     title: const Text('Supplier Credits'),
                     onTap: () {
@@ -1207,7 +1170,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // 4. Receivings - requires receivings permission
             PermissionWrapper(
               permissionId: PermissionIds.receivings,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.inventory, color: AppColors.brandPrimary),
                 title: const Text('Receivings'),
                 onTap: () {
@@ -1227,7 +1190,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.id != 'leruma')
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.attach_money, color: AppColors.brandPrimary),
                   title: const Text('Cash Submit'),
                   onTap: () {
@@ -1248,7 +1211,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasBanking ?? true)
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmitBanking,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.account_balance, color: AppColors.brandPrimary),
                   title: const Text('Banking'),
                   onTap: () {
@@ -1264,7 +1227,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasFinancialBanking ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.banking,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.analytics, color: AppColors.brandPrimary),
                   title: const Text('Financial Banking'),
                   onTap: () {
@@ -1280,7 +1243,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasBorrowedMoney ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.borrowedMoney,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.account_balance_wallet, color: AppColors.brandPrimary),
                   title: const Text('Borrowed Money'),
                   onTap: () {
@@ -1296,7 +1259,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.features.hasTRA ?? false)
               PermissionWrapper(
                 permissionId: PermissionIds.tra,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.receipt_long, color: AppColors.brandPrimary),
                   title: const Text('Trade'),
                   onTap: () {
@@ -1318,7 +1281,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   // NFC Cards
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
-                    child: ListTile(
+                    child: _DrawerTile(
                       leading: Icon(Icons.credit_card, color: AppColors.brandPrimary),
                       title: const Text('NFC Cards'),
                       onTap: () {
@@ -1333,7 +1296,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   // NFC Confirmations
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcConfirmationsView,
-                    child: ListTile(
+                    child: _DrawerTile(
                       leading: Icon(Icons.verified, color: AppColors.brandPrimary),
                       title: const Text('NFC Confirmations'),
                       onTap: () {
@@ -1348,7 +1311,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   // NFC Card Lookup
                   PermissionWrapper(
                     permissionId: PermissionIds.nfcCardsView,
-                    child: ListTile(
+                    child: _DrawerTile(
                       leading: Icon(Icons.contactless, color: AppColors.brandPrimary),
                       title: const Text('NFC Card Lookup'),
                       onTap: () {
@@ -1374,7 +1337,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.id != 'leruma')
             PermissionWrapper(
               permissionId: PermissionIds.salesPaymentSummary,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.payments, color: AppColors.brandPrimary),
                 title: const Text('Payment Summary'),
                 onTap: () {
@@ -1392,7 +1355,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.id == 'leruma') ...[
               PermissionWrapper(
                 permissionId: PermissionIds.reports,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.assessment, color: AppColors.brandPrimary),
                   title: const Text('Reports'),
                   onTap: () {
@@ -1406,7 +1369,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
               PermissionWrapper(
                 permissionId: PermissionIds.cashSubmit,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.summarize, color: AppColors.brandPrimary),
                   title: const Text('Summary'),
                   onTap: () {
@@ -1423,7 +1386,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             if (ApiService.currentClient?.id != 'leruma')
               PermissionWrapper(
                 permissionId: PermissionIds.office,
-                child: ListTile(
+                child: _DrawerTile(
                   leading: Icon(Icons.analytics, color: AppColors.brandPrimary),
                   title: const Text('Financial Position'),
                   onTap: () {
@@ -1440,7 +1403,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Z Reports - requires cash_submit_z_report permission
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitZReport,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.description, color: AppColors.brandPrimary),
                 title: const Text('Z Reports'),
                 onTap: () {
@@ -1455,7 +1418,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Profit Submit - requires cash_submit_profit_submitted permission
             PermissionWrapper(
               permissionId: PermissionIds.cashSubmitProfitSubmitted,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.trending_up, color: AppColors.brandPrimary),
                 title: const Text('Profit Submit'),
                 onTap: () {
@@ -1470,7 +1433,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Transactions - requires transactions permission
             PermissionWrapper(
               permissionId: PermissionIds.transactions,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.swap_horiz, color: AppColors.brandPrimary),
                 title: const Text('Transactions'),
                 onTap: () {
@@ -1485,7 +1448,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Contracts - requires contracts permission
             PermissionWrapper(
               permissionId: PermissionIds.contracts,
-              child: ListTile(
+              child: _DrawerTile(
                 leading: Icon(Icons.assignment, color: AppColors.brandPrimary),
                 title: const Text('Contracts'),
                 onTap: () {
@@ -1495,6 +1458,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     MaterialPageRoute(builder: (_) => const ContractsScreen()),
                   );
                 },
+              ),
+            ),
+                ],
               ),
             ),
           ],
@@ -1520,10 +1486,11 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               // The curved bar with the notched Sales FAB stays for every other
               // client -- it is their shipped navigation, not a shared style.
               ? _buildLerumaBottomNav(availableScreens)
-              : MediaQuery(
-                  data: MediaQuery.of(context).removePadding(removeBottom: true),
-                  child: _buildCurvedBottomNav(availableScreens, isDark),
-                ))
+              // The curved bar draws its own fixed 80px, so the system
+              // navigation inset is added back underneath it. Without this,
+              // edge-to-edge Android (targetSdk 36) draws the buttons or
+              // gesture pill over the tab labels.
+              : _buildCurvedBottomNav(availableScreens, isDark))
           : null,
     );
   }
@@ -1612,25 +1579,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   /// Build curved bottom navigation with notch for FAB
   Widget _buildCurvedBottomNav(List<Map<String, dynamic>> screens, bool isDark) {
-    // Separate screens into left and right sides (excluding Sales which is the FAB)
-    // Left: Home, Summary  |  Center: Sales FAB  |  Right: Seller, Reports
-    final leftItems = <Map<String, dynamic>>[];
-    final rightItems = <Map<String, dynamic>>[];
-    int salesIndex = -1;
-
-    // Define which items go on the left side
-    const leftLabels = {'Home', 'Summary', 'Expenses'};
-
-    for (int i = 0; i < screens.length; i++) {
-      final label = screens[i]['label'] as String;
-      if (label == 'Sales') {
-        salesIndex = i;
-      } else if (leftLabels.contains(label)) {
-        leftItems.add({...screens[i], 'originalIndex': i});
-      } else {
-        rightItems.add({...screens[i], 'originalIndex': i});
-      }
-    }
+    final salesIndex = screens.indexWhere((s) => s['label'] == 'Sales');
 
     // If no Sales screen, fall back to standard navigation
     if (salesIndex == -1) {
@@ -1651,236 +1600,21 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       );
     }
 
-    // Update total nav items count and sync initial rotation offset
-    final itemCount = screens.length;
-    _totalNavItems = itemCount;
-
-    // Set initial position on first build
-    if (!_initialPositionSet && itemCount > 0) {
-      _initialPositionSet = true;
-      final centerIndex = (_totalNavItems - 1) / 2.0;
-      _currentRotationOffset = centerIndex - _selectedIndex;
-    }
-
-    return AnimatedBuilder(
-      animation: _rotationController,
-      builder: (context, child) {
-        // Use animation value when animating, otherwise use current offset
-        final rotationOffset = _rotationController.isAnimating
-            ? _rotationAnimation.value
-            : _currentRotationOffset;
-
-        return SizedBox(
-          height: 80,
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            clipBehavior: Clip.none,
-            children: [
-              // Custom curved background - ALWAYS at center (0.5)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: CustomPaint(
-                  size: const Size(double.infinity, 80),
-                  painter: _CurvedNavPainter(
-                    color: isDark ? AppColors.darkCard : Colors.white,
-                    borderColor: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                    curvePosition: 0.5, // Always center
-                  ),
-                ),
-              ),
-              // Navigation items - all visible, circular reorder so selected is at center
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 60,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final screenWidth = constraints.maxWidth;
-                    final itemWidth = screenWidth / screens.length;
-                    final itemCount = screens.length;
-
-                    // Build items with animated positions (circular reorder)
-                    return Stack(
-                      children: screens.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final item = entry.value;
-
-                        // Calculate which visual slot this item should be in
-                        // offset tells us how much to shift each item's display position
-                        double displayPosition = index + rotationOffset;
-
-                        // Wrap around to keep all items in valid slots (0 to itemCount-1)
-                        while (displayPosition < 0) displayPosition += itemCount;
-                        while (displayPosition >= itemCount) displayPosition -= itemCount;
-
-                        final xPos = displayPosition * itemWidth;
-
-                        return Positioned(
-                          left: xPos,
-                          top: 0,
-                          bottom: 0,
-                          width: itemWidth,
-                          child: _buildNavItem(
-                            item['icon'] as IconData,
-                            item['label'] as String,
-                            index,
-                            isDark,
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-              ),
-            ],
+    // The rotating bar (selected tab raised in the centre) is shared with the
+    // screens opened from the side menu, so the two can never drift apart.
+    return CurvedBottomNavigation(
+      items: [
+        for (final screen in screens)
+          CurvedNavItem(
+            icon: screen['icon'] as IconData,
+            label: screen['label'] as String,
           ),
-        );
-      },
+      ],
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index, bool isDark) {
-    final isSelected = _selectedIndex == index;
-    return InkWell(
-      onTap: () => _onItemTapped(index),
-      child: Center(
-        child: isSelected
-            // Selected: larger icon only, no label, moved up into curve
-            ? Transform.translate(
-                offset: const Offset(0, -8),
-                child: Icon(
-                  icon,
-                  color: AppColors.brandPrimary,
-                  size: 38,
-                ),
-              )
-            // Unselected: smaller icon with label
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    color: AppColors.textLight,
-                    size: 22,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppColors.textLight,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
-}
-
-// Custom painter for curved navigation bar with animated notch position
-class _CurvedNavPainter extends CustomPainter {
-  final Color color;
-  final Color borderColor;
-  final double curvePosition; // 0.0 = left edge, 1.0 = right edge
-
-  _CurvedNavPainter({
-    required this.color,
-    required this.borderColor,
-    this.curvePosition = 0.5,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final borderPaint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    final path = Path();
-    // Calculate curve center based on position
-    // curvePosition is already the exact ratio (0.0 to 1.0) of where the item center is
-    final curveX = size.width * curvePosition;
-    const curveRadius = 35.0;
-    const curveDepth = 20.0;
-
-    // Start from bottom left
-    path.moveTo(0, size.height);
-    // Line to top left
-    path.lineTo(0, curveDepth);
-    // Line to before curve
-    path.lineTo(curveX - curveRadius - 10, curveDepth);
-    // Curve down and around the selected item
-    path.quadraticBezierTo(
-      curveX - curveRadius,
-      curveDepth,
-      curveX - curveRadius + 5,
-      curveDepth + 15,
-    );
-    path.arcToPoint(
-      Offset(curveX + curveRadius - 5, curveDepth + 15),
-      radius: const Radius.circular(30),
-      clockwise: false,
-    );
-    path.quadraticBezierTo(
-      curveX + curveRadius,
-      curveDepth,
-      curveX + curveRadius + 10,
-      curveDepth,
-    );
-    // Line to top right
-    path.lineTo(size.width, curveDepth);
-    // Line to bottom right
-    path.lineTo(size.width, size.height);
-    // Close path
-    path.close();
-
-    // Draw fill
-    canvas.drawPath(path, paint);
-
-    // Draw border along the top edge only
-    final borderPath = Path();
-    borderPath.moveTo(0, curveDepth);
-    borderPath.lineTo(curveX - curveRadius - 10, curveDepth);
-    borderPath.quadraticBezierTo(
-      curveX - curveRadius,
-      curveDepth,
-      curveX - curveRadius + 5,
-      curveDepth + 15,
-    );
-    borderPath.arcToPoint(
-      Offset(curveX + curveRadius - 5, curveDepth + 15),
-      radius: const Radius.circular(30),
-      clockwise: false,
-    );
-    borderPath.quadraticBezierTo(
-      curveX + curveRadius,
-      curveDepth,
-      curveX + curveRadius + 10,
-      curveDepth,
-    );
-    borderPath.lineTo(size.width, curveDepth);
-
-    canvas.drawPath(borderPath, borderPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _CurvedNavPainter oldDelegate) {
-    return oldDelegate.curvePosition != curvePosition ||
-           oldDelegate.color != color ||
-           oldDelegate.borderColor != borderColor;
-  }
 }
 
 /// Section heading in the drawer (design_handoff_home_credit, screen 2).
@@ -1889,6 +1623,42 @@ class _CurvedNavPainter extends CustomPainter {
 ///
 /// White on the header's own colour rather than the brand blue the list rows
 /// use -- these sit ON the header, not under it.
+/// A side-menu entry. Works like [ListTile], and also tells [NavActive] which
+/// icon and label opened the next screen, so its bottom bar can show them in
+/// the centre notch.
+class _DrawerTile extends StatelessWidget {
+  const _DrawerTile({
+    this.leading,
+    this.title,
+    this.trailing,
+    this.onTap,
+  });
+
+  final Widget? leading;
+  final Widget? title;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: leading,
+      title: title,
+      trailing: trailing,
+      onTap: onTap == null
+          ? null
+          : () {
+              final icon = leading is Icon ? (leading as Icon).icon : null;
+              final label = title is Text ? (title as Text).data : null;
+              if (icon != null && label != null) {
+                NavActive.announce(icon, label);
+              }
+              onTap!();
+            },
+    );
+  }
+}
+
 class _DrawerHeaderAction extends StatelessWidget {
   const _DrawerHeaderAction({
     required this.icon,

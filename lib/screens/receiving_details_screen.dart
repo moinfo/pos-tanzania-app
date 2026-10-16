@@ -1,16 +1,17 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import '../models/receiving.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
 
 class ReceivingDetailsScreen extends StatefulWidget {
   final int receivingId;
 
   const ReceivingDetailsScreen({
-    Key? key,
+    super.key,
     required this.receivingId,
-  }) : super(key: key);
+  });
 
   @override
   State<ReceivingDetailsScreen> createState() => _ReceivingDetailsScreenState();
@@ -250,7 +251,7 @@ class _ReceivingDetailsScreenState extends State<ReceivingDetailsScreen> {
                     ),
                     Text(
                       '${NumberFormat('#,###').format(item.lineTotal)} TSh',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,

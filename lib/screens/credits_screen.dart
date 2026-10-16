@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
@@ -14,6 +14,8 @@ import '../widgets/glassmorphic_card.dart';
 import '../utils/constants.dart';
 import 'customer_credit_screen.dart';
 import 'daily_debt_report_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// Credits Screen - Shows list of supervisors with their credit balances
 /// Similar to web /credits page
@@ -266,7 +268,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadCredits,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -315,7 +317,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                             color: AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(Icons.payments, color: AppColors.success, size: 20),
+                          child: const Icon(Icons.payments, color: AppColors.success, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -357,7 +359,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                 padding: EdgeInsets.zero,
                 child: TextField(
                   decoration: InputDecoration(
-                    hintText: 'Search supervisor or phone...',
+                    hintText: 'Search supervisor or phone...'.tr,
                     hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
                     prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
                     border: InputBorder.none,
@@ -450,7 +452,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
             const SizedBox(height: 12),
             CreditSearchField(
               controller: _searchController,
-              hintText: 'Search supervisor or phone',
+              hintText: 'Search supervisor or phone'.tr,
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
             const SizedBox(height: 10),
@@ -875,7 +877,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',
@@ -1043,7 +1045,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadCustomers,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -1075,7 +1077,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
                 padding: EdgeInsets.zero,
                 child: TextField(
                   decoration: InputDecoration(
-                    hintText: 'Search customer or phone...',
+                    hintText: 'Search customer or phone...'.tr,
                     hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
                     prefixIcon: Icon(Icons.search, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
                     border: InputBorder.none,
@@ -1166,7 +1168,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadCustomers,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -1188,7 +1190,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
             ],
             CreditSearchField(
               controller: _searchController,
-              hintText: 'Search customer or phone',
+              hintText: 'Search customer or phone'.tr,
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
             const SizedBox(height: 10),
@@ -1547,7 +1549,7 @@ class _SupervisorCustomersScreenState extends State<SupervisorCustomersScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'An error occurred',

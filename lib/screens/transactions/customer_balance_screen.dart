@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../models/transaction.dart';
@@ -8,6 +8,8 @@ import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
 import 'customer_statement_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../widgets/app_bottom_navigation.dart';
 
 class CustomerBalanceScreen extends StatefulWidget {
   const CustomerBalanceScreen({super.key});
@@ -84,6 +86,10 @@ class _CustomerBalanceScreenState extends State<CustomerBalanceScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: const Text('Customer Balances'),
         actions: [

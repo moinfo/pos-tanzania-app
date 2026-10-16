@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
 import '../../widgets/state_views.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +12,9 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/app_bottom_navigation.dart';
 
 class ReportViewScreen extends StatefulWidget {
   final ReportType reportType;
@@ -202,6 +205,10 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     final locationProvider = context.watch<LocationProvider>();
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: Text(widget.reportType.displayName),
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
@@ -211,13 +218,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
+            tooltip: 'Select Date Range'.tr,
           ),
           // Refresh
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadReport,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -741,7 +748,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
                                     'Subtotal: ${Formatters.formatCurrency(_parseDouble(item['subtotal']))}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.success,

@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 
 import '../models/pending_upload.dart';
 import '../providers/offline_provider.dart';
 import '../screens/pending_uploads_screen.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
 
 /// Makes a rejected record impossible to miss.
 ///

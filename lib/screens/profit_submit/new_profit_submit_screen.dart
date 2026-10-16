@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,6 +16,8 @@ import '../../providers/theme_provider.dart';
 import '../../widgets/app_bottom_navigation.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class NewProfitSubmitScreen extends StatefulWidget {
   final ProfitSubmitListItem? profit; // For edit mode
@@ -153,7 +155,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt, color: AppColors.primary),
                 title: const Text('Take Photo'),
                 onTap: () {
                   Navigator.pop(context);
@@ -161,7 +163,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: AppColors.primary),
+                leading: Icon(Icons.photo_library, color: AppColors.primary),
                 title: const Text('Choose from Gallery'),
                 onTap: () {
                   Navigator.pop(context);
@@ -169,7 +171,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.attach_file, color: AppColors.primary),
+                leading: Icon(Icons.attach_file, color: AppColors.primary),
                 title: const Text('Choose PDF/Image File'),
                 onTap: () {
                   Navigator.pop(context);
@@ -602,11 +604,11 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   color: isDark ? AppColors.darkText : AppColors.text,
                                 ),
                                 decoration: InputDecoration(
-                                  labelText: 'Profit Amount (TSh)',
+                                  labelText: 'Profit Amount (TSh)'.tr,
                                   labelStyle: TextStyle(
                                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                   ),
-                                  prefixIcon: Icon(
+                                  prefixIcon: const Icon(
                                     Icons.attach_money,
                                     color: AppColors.success,
                                   ),
@@ -640,11 +642,11 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Please enter profit amount';
+                                    return 'Please enter profit amount'.tr;
                                   }
                                   final amount = double.tryParse(value);
                                   if (amount == null || amount <= 0) {
-                                    return 'Please enter a valid amount';
+                                    return 'Please enter a valid amount'.tr;
                                   }
                                   return null;
                                 },
@@ -659,11 +661,11 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   color: isDark ? AppColors.darkText : AppColors.text,
                                 ),
                                 decoration: InputDecoration(
-                                  labelText: 'Date',
+                                  labelText: 'Date'.tr,
                                   labelStyle: TextStyle(
                                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                   ),
-                                  prefixIcon: const Icon(
+                                  prefixIcon: Icon(
                                     Icons.calendar_today,
                                     color: AppColors.primary,
                                   ),
@@ -685,7 +687,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
+                                    borderSide: BorderSide(
                                       color: AppColors.primary,
                                       width: 2,
                                     ),
@@ -701,17 +703,17 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
 
                               // Supervisor Selection
                               DropdownButtonFormField<String>(
-                                value: _selectedSupervisorId,
+                                initialValue: _selectedSupervisorId,
                                 style: TextStyle(
                                   color: isDark ? AppColors.darkText : AppColors.text,
                                 ),
                                 dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                                 decoration: InputDecoration(
-                                  labelText: 'Supervisor',
+                                  labelText: 'Supervisor'.tr,
                                   labelStyle: TextStyle(
                                     color: isDark ? AppColors.darkTextLight : AppColors.textLight,
                                   ),
-                                  prefixIcon: const Icon(
+                                  prefixIcon: Icon(
                                     Icons.supervisor_account,
                                     color: AppColors.primary,
                                   ),
@@ -733,7 +735,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
+                                    borderSide: BorderSide(
                                       color: AppColors.primary,
                                       width: 2,
                                     ),
@@ -754,7 +756,7 @@ class _NewProfitSubmitScreenState extends State<NewProfitSubmitScreen> {
                                 },
                                 validator: (value) {
                                   if (value == null) {
-                                    return 'Please select a supervisor';
+                                    return 'Please select a supervisor'.tr;
                                   }
                                   return null;
                                 },

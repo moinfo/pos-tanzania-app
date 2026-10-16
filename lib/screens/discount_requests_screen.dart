@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,6 +13,10 @@ import '../models/permission_model.dart';
 import '../providers/permission_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
+import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
+import '../l10n/lang.dart';
+import '../widgets/delete_dialog.dart';
 
 class DiscountRequestsScreen extends StatefulWidget {
   const DiscountRequestsScreen({super.key});
@@ -165,20 +169,10 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
   }
 
   Future<void> _deleteRequest(DiscountRequest request) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Discount Request'),
-        content: Text('Delete discount request for ${request.itemName}?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Discount Request',
+      message: 'Delete discount request for ${request.itemName}?',
     );
 
     if (confirmed == true) {
@@ -233,6 +227,10 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
     final canDelete = permissionProvider.hasPermission(PermissionIds.customerDiscountRequestsDelete);
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Discount Requests'),
@@ -261,7 +259,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
                 // Search bar
                 TextField(
                   decoration: InputDecoration(
-                    hintText: 'Search by item or customer...',
+                    hintText: 'Search by item or customer...'.tr,
                     hintStyle: TextStyle(color: isDark ? AppColors.darkTextLight : Colors.grey[400], fontSize: 14),
                     prefixIcon: Icon(Icons.search, color: isDark ? AppColors.darkTextLight : Colors.grey[400], size: 20),
                     border: OutlineInputBorder(
@@ -274,7 +272,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                      borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                     ),
                     filled: true,
                     fillColor: isDark ? AppColors.darkCard : Colors.grey[50],
@@ -315,7 +313,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
           // List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? Center(child: CircularProgressIndicator(color: AppColors.primary))
                 : _errorMessage != null
                     ? Center(
                         child: Padding(
@@ -346,7 +344,7 @@ class _DiscountRequestsScreenState extends State<DiscountRequestsScreen> {
                                 const SizedBox(height: 12),
                                 Text(
                                   _statusFilter != null
-                                      ? 'No ${_statusFilter} requests'
+                                      ? 'No $_statusFilter requests'
                                       : 'No discount requests yet',
                                   style: TextStyle(color: isDark ? AppColors.darkTextLight : Colors.grey[500], fontSize: 15),
                                 ),
@@ -765,7 +763,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
     if (query.length < 2) return;
     setState(() => _searchingItems = true);
 
-    final locationId = 1; // Default location
+    const locationId = 1; // Default location
     final response = await _apiService.getItems(search: query, limit: 10, locationId: locationId);
     if (mounted) {
       setState(() {
@@ -949,7 +947,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.person, size: 16, color: AppColors.info),
+                      Icon(Icons.person, size: 16, color: AppColors.info),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1043,8 +1041,8 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
 
               // Price info
               if (_loadingPrices)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: LinearProgressIndicator(color: AppColors.primary),
                 ),
               if (_itemPrices != null) ...[
@@ -1180,15 +1178,15 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         filled: true,
         fillColor: isDark ? AppColors.darkCard : Colors.grey[50],
         contentPadding: const EdgeInsets.symmetric(vertical: 10),
         isDense: true,
         suffixIcon: isLoading
-            ? const Padding(
-                padding: EdgeInsets.all(12),
+            ? Padding(
+                padding: const EdgeInsets.all(12),
                 child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
               )
             : null,
@@ -1213,7 +1211,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
         labelText: label,
         labelStyle: TextStyle(color: isDark ? AppColors.darkTextLight : Colors.grey[500], fontSize: 13),
         helperText: helper,
-        helperStyle: TextStyle(fontSize: 11, color: AppColors.warning),
+        helperStyle: const TextStyle(fontSize: 11, color: AppColors.warning),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: isDark ? AppColors.darkDivider : Colors.grey.shade300),
@@ -1224,7 +1222,7 @@ class _CreateDiscountRequestSheetState extends State<_CreateDiscountRequestSheet
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         filled: true,
         fillColor: isDark ? AppColors.darkCard : Colors.grey[50],
@@ -1428,8 +1426,8 @@ class _EditDiscountRequestSheetState extends State<_EditDiscountRequestSheet> {
 
               // Price info
               if (_loadingPrices)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: LinearProgressIndicator(color: AppColors.primary),
                 ),
               if (_itemPrices != null) ...[
@@ -1593,7 +1591,7 @@ class _EditDiscountRequestSheetState extends State<_EditDiscountRequestSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         filled: true,
         fillColor: isDark ? AppColors.darkCard : Colors.grey[50],

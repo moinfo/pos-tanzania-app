@@ -2,6 +2,16 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+/// connectivity_plus 6 reports every active transport as a list, so a phone on
+/// wifi and mobile data at once yields both. Collapse it to the single value
+/// the rest of the app reasons about: any real link beats [none].
+ConnectivityResult primaryConnectivity(List<ConnectivityResult> results) {
+  for (final r in results) {
+    if (r != ConnectivityResult.none) return r;
+  }
+  return ConnectivityResult.none;
+}
+
 /// Provider to monitor network connectivity status
 class ConnectivityProvider extends ChangeNotifier {
   final Connectivity _connectivity = Connectivity();
@@ -97,11 +107,12 @@ class ConnectivityProvider extends ChangeNotifier {
 
     try {
       // Get initial connectivity status
-      _updateConnectivity(_collapse(await _connectivity.checkConnectivity()));
+      final result = primaryConnectivity(await _connectivity.checkConnectivity());
+      _updateConnectivity(result);
 
       // Listen for connectivity changes
       _subscription = _connectivity.onConnectivityChanged.listen((results) {
-        _updateConnectivity(_collapse(results));
+        _updateConnectivity(primaryConnectivity(results));
       });
 
       debugPrint('ConnectivityProvider: Initialized - Online: $_isOnline, Type: $connectionTypeString');
@@ -120,16 +131,6 @@ class ConnectivityProvider extends ChangeNotifier {
   @visibleForTesting
   void applyConnectivityResult(ConnectivityResult result) =>
       _updateConnectivity(result);
-
-  /// connectivity_plus reports every active transport, so a phone on wifi
-  /// behind a VPN answers with two. The rest of the app only asks "which
-  /// radio", so take the first one that is actually carrying traffic; all of
-  /// them being none is the only way to be offline.
-  static ConnectivityResult _collapse(List<ConnectivityResult> results) =>
-      results.firstWhere(
-        (r) => r != ConnectivityResult.none,
-        orElse: () => ConnectivityResult.none,
-      );
 
   void _updateConnectivity(ConnectivityResult result) {
     final wasOnline = _isOnline;
@@ -170,7 +171,8 @@ class ConnectivityProvider extends ChangeNotifier {
   /// Check connectivity manually
   Future<bool> checkConnectivity() async {
     try {
-      _updateConnectivity(_collapse(await _connectivity.checkConnectivity()));
+      final result = primaryConnectivity(await _connectivity.checkConnectivity());
+      _updateConnectivity(result);
       return _isOnline;
     } catch (e) {
       debugPrint('ConnectivityProvider: Error checking connectivity - $e');

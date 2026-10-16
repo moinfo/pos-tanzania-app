@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +18,9 @@ import '../widgets/app_bottom_navigation.dart';
 import '../widgets/permission_wrapper.dart';
 import '../widgets/state_views.dart';
 import '../services/stock_signal.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
+import '../widgets/delete_dialog.dart';
 
 class ItemsScreen extends StatefulWidget {
   const ItemsScreen({super.key});
@@ -90,14 +93,17 @@ class _ItemsScreenState extends State<ItemsScreen> {
       _errorMessage = null;
     });
 
-    // Get selected location for filtering (especially for days calculation)
-    final locationProvider = context.read<LocationProvider>();
-    final selectedLocationId = locationProvider.selectedLocation?.locationId;
-
     final response = await _apiService.getItems(
       search: _searchController.text.isEmpty ? null : _searchController.text,
-      limit: 100,
-      locationId: selectedLocationId,
+      limit: 1000,
+      // No location filter on purpose. Given a location, the server returns
+      // only items with stock there (the sales grid wants that), which hid
+      // every out-of-stock item from item management. Without it the server
+      // returns the whole active catalogue, and each item carries its stock
+      // per location (quantity_by_location), which is what the card below
+      // shows for the selected location. Works on servers with and without
+      // the include_out_of_stock option.
+      includeOutOfStock: true,
     );
 
     if (!mounted) return;
@@ -137,23 +143,10 @@ class _ItemsScreenState extends State<ItemsScreen> {
   }
 
   Future<void> _deleteItem(Item item) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Item'),
-        content: Text('Are you sure you want to delete "${item.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirm = await showDeleteDialog(
+      context,
+      title: 'Delete Item',
+      message: 'Are you sure you want to delete "${item.name}"?',
     );
 
     if (confirm == true && mounted) {
@@ -260,7 +253,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search items...',
+                hintText: 'Search items...'.tr,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -440,7 +433,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
               ),
               child: Text(
                 '$number',
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
@@ -474,7 +467,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: item.variation == 'CTN' ? Colors.blue.withOpacity(0.2)
+                      color: item.variation == 'CTN' ? AppColors.brandSwatch.withOpacity(0.2)
                            : item.variation == 'BUNDLE' ? Colors.orange.withOpacity(0.2)
                            : Colors.green.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4),
@@ -483,7 +476,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: item.variation == 'CTN' ? Colors.blue
+                          color: item.variation == 'CTN' ? AppColors.brandSwatch
                                : item.variation == 'BUNDLE' ? Colors.orange
                                : Colors.green,
                         )),
@@ -610,13 +603,13 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   String _dormant = 'ACTIVE';
 
   List<StockLocation> _stockLocations = [];
-  Map<int, TextEditingController> _quantityControllers = {};
+  final Map<int, TextEditingController> _quantityControllers = {};
 
   // Image picker state
   final ImagePicker _imagePicker = ImagePicker();
   File? _mainImage;
-  List<File> _galleryImages = [];
-  List<File> _portfolioImages = [];
+  final List<File> _galleryImages = [];
+  final List<File> _portfolioImages = [];
 
   @override
   void initState() {
@@ -934,7 +927,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     final canSeeQuantity = permissionProvider.hasPermission(PermissionIds.itemsQuantity);
 
     return Dialog(
-      child: Container(
+      child: SizedBox(
         width: MediaQuery.of(context).size.width * 0.9,
         height: MediaQuery.of(context).size.height * 0.8,
         child: Column(
@@ -1020,13 +1013,13 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
         children: [
           TextFormField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Item Name *',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Item Name *'.tr,
+              border: const OutlineInputBorder(),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Please enter item name';
+                return 'Please enter item name'.tr;
               }
               return null;
             },
@@ -1034,25 +1027,25 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           const SizedBox(height: 16),
           TextFormField(
             controller: _itemNumberController,
-            decoration: const InputDecoration(
-              labelText: 'Item Number/Barcode',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Item Number/Barcode'.tr,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _categoryController,
-            decoration: const InputDecoration(
-              labelText: 'Category',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Category'.tr,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _descriptionController,
-            decoration: const InputDecoration(
-              labelText: 'Description',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Description'.tr,
+              border: const OutlineInputBorder(),
             ),
             maxLines: 3,
           ),
@@ -1062,9 +1055,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
               children: [
                 TextFormField(
                   controller: _costPriceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Cost Price',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: 'Cost Price'.tr,
+                    border: const OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -1073,17 +1066,17 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             ),
           TextFormField(
             controller: _unitPriceController,
-            decoration: const InputDecoration(
-              labelText: 'Unit Price *',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Unit Price *'.tr,
+              border: const OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter unit price';
+                return 'Please enter unit price'.tr;
               }
               if (double.tryParse(value) == null) {
-                return 'Please enter a valid number';
+                return 'Please enter a valid number'.tr;
               }
               return null;
             },
@@ -1091,9 +1084,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           const SizedBox(height: 16),
           TextFormField(
             controller: _discountLimitController,
-            decoration: const InputDecoration(
-              labelText: 'Discount Limit',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Discount Limit'.tr,
+              border: const OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
           ),
@@ -1101,10 +1094,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           // Wholesale Price
           TextFormField(
             controller: _wholesalePriceController,
-            decoration: const InputDecoration(
-              labelText: 'Wholesale Price',
-              border: OutlineInputBorder(),
-              helperText: 'Price for wholesale/bulk orders',
+            decoration: InputDecoration(
+              labelText: 'Wholesale Price'.tr,
+              border: const OutlineInputBorder(),
+              helperText: 'Price for wholesale/bulk orders'.tr,
             ),
             keyboardType: TextInputType.number,
           ),
@@ -1129,10 +1122,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
         children: [
           // Stock Type
           DropdownButtonFormField<int>(
-            value: _stockType,
-            decoration: const InputDecoration(
-              labelText: 'Stock Type',
-              border: OutlineInputBorder(),
+            initialValue: _stockType,
+            decoration: InputDecoration(
+              labelText: 'Stock Type'.tr,
+              border: const OutlineInputBorder(),
             ),
             items: const [
               DropdownMenuItem(value: 0, child: Text('Stock Item')),
@@ -1143,10 +1136,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           const SizedBox(height: 16),
           // Item Type
           DropdownButtonFormField<int>(
-            value: _itemType,
-            decoration: const InputDecoration(
-              labelText: 'Item Type',
-              border: OutlineInputBorder(),
+            initialValue: _itemType,
+            decoration: InputDecoration(
+              labelText: 'Item Type'.tr,
+              border: const OutlineInputBorder(),
             ),
             items: const [
               DropdownMenuItem(value: 0, child: Text('Standard')),
@@ -1158,9 +1151,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           // Receiving Quantity
           TextFormField(
             controller: _receivingQuantityController,
-            decoration: const InputDecoration(
-              labelText: 'Receiving Quantity',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Receiving Quantity'.tr,
+              border: const OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
           ),
@@ -1168,9 +1161,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           // Reorder Level
           TextFormField(
             controller: _reorderLevelController,
-            decoration: const InputDecoration(
-              labelText: 'Reorder Level',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Reorder Level'.tr,
+              border: const OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
           ),
@@ -1181,9 +1174,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
               Expanded(
                 child: TextFormField(
                   controller: _qtyPerPackController,
-                  decoration: const InputDecoration(
-                    labelText: 'Qty Per Pack',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: 'Qty Per Pack'.tr,
+                    border: const OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -1192,9 +1185,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
               Expanded(
                 child: TextFormField(
                   controller: _packNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Pack Name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: 'Pack Name'.tr,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
               ),
@@ -1204,18 +1197,18 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           // HSN Code
           TextFormField(
             controller: _hsnCodeController,
-            decoration: const InputDecoration(
-              labelText: 'HSN Code',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'HSN Code'.tr,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           // Arrange/Sort
           TextFormField(
             controller: _arrangeController,
-            decoration: const InputDecoration(
-              labelText: 'Sort Order',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Sort Order'.tr,
+              border: const OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
           ),
@@ -1257,7 +1250,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                   enabled: hasLocationPermission,
                 ),
               );
-            }).toList(),
+            }),
           ],
         ],
       ),
@@ -1339,8 +1332,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                           child: GestureDetector(
                             onTap: _pickMainImage,
                             child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.blue,
+                              decoration: BoxDecoration(
+                                color: AppColors.brandSwatch,
                                 shape: BoxShape.circle,
                               ),
                               padding: const EdgeInsets.all(4),
@@ -1450,7 +1443,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
-                            color: Colors.blue,
+                            color: AppColors.brandSwatch,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text('New', style: TextStyle(color: Colors.white, fontSize: 8)),
@@ -1550,7 +1543,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
-                            color: Colors.blue,
+                            color: AppColors.brandSwatch,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text('New', style: TextStyle(color: Colors.white, fontSize: 8)),

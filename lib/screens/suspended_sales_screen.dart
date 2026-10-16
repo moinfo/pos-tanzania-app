@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
@@ -15,6 +15,9 @@ import '../utils/constants.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
+import '../widgets/delete_dialog.dart';
 
 class SuspendedSalesScreen extends StatefulWidget {
   const SuspendedSalesScreen({super.key, this.onResumed, this.embedded = false});
@@ -409,25 +412,10 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
 
   Future<void> _deleteSale(SuspendedSale sale) async {
     // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Suspended Sale'),
-        content: Text('Are you sure you want to delete sale #${sale.saleId}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Suspended Sale',
+      message: 'Are you sure you want to delete sale #${sale.saleId}?',
     );
 
     if (confirmed != true) return;
@@ -561,7 +549,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadSuspendedSales,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),
@@ -576,7 +564,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search by customer, seller or sale #...',
+                    hintText: 'Search by customer, seller or sale #...'.tr,
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
@@ -697,7 +685,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                           ),
                                           child: Text(
                                             '${index + 1}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: AppColors.primary,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 13,
@@ -717,7 +705,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.pause_circle,
                                                 size: 16,
                                                 color: AppColors.warning,
@@ -725,7 +713,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                               const SizedBox(width: 4),
                                               Text(
                                                 'Sale #${sale.saleId}',
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   color: AppColors.warning,
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 13,
@@ -739,7 +727,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                     IconButton(
                                       icon: const Icon(Icons.delete_outline, color: AppColors.error),
                                       onPressed: () => _deleteSale(sale),
-                                      tooltip: 'Delete',
+                                      tooltip: 'Delete'.tr,
                                     ),
                                   ],
                                 ),
@@ -921,7 +909,7 @@ class _SuspendedSalesScreenState extends State<SuspendedSalesScreen> {
                                         ],
                                         Text(
                                           '${_currencyFormat.format(sale.total)} TSh',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
                                             color: AppColors.primary,

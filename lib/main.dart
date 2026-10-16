@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
@@ -22,11 +23,14 @@ import 'services/api_service.dart';
 import 'services/offline_feature.dart';
 import 'services/push_service.dart';
 import 'config/clients_config.dart';
+import 'l10n/lang.dart';
 import 'utils/app_theme.dart';
 import 'utils/constants.dart';
 import 'widgets/force_update_gate.dart';
 import 'widgets/session_expired_gate.dart';
 import 'widgets/rejection_alert.dart';
+import 'widgets/inactivity_gate.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// Lets a tapped push notification navigate without a widget's BuildContext.
 ///
@@ -50,6 +54,9 @@ Future<void> main() async {
   // provider's constructor meant the app painted light, then flipped -- a
   // white flash on every launch for anyone using dark mode.
   await ThemeProvider.preload();
+
+  // Saved English / Kiswahili choice, read before the first frame.
+  await Lang.load();
 
   // What the server last said about offline mode, read before any screen can
   // queue anything. Refreshed from /api/app_version once the session starts.
@@ -154,8 +161,17 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UpdateProvider()),
       ],
       child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) => MaterialApp(
+        builder: (context, themeProvider, child) => ListenableBuilder(
+          listenable: Lang.instance,
+          builder: (context, _) => MaterialApp(
           navigatorKey: navigatorKey,
+          locale: Lang.locale,
+          supportedLocales: Lang.supportedLocales,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
@@ -175,11 +191,17 @@ class MyApp extends StatelessWidget {
               navigatorKey: navigatorKey,
               child: RejectionAlertHost(
                 navigatorKey: navigatorKey,
-                child: child ?? const SizedBox.shrink(),
+                // Innermost, so it sees every touch on every screen: signs
+                // the user out after 5 idle minutes, with a 30 second warning.
+                child: InactivityGate(
+                  navigatorKey: navigatorKey,
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
         home: PushBootstrap(firebaseReady: firebaseReady, child: const SplashScreen()),
+          ),
         ),
       ),
     );
@@ -247,6 +269,76 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Kariakoo Shops: green screen with the same logo as the sign-in form,
+    // outlined in white, matching the native launch screen that precedes it.
+    if (ClientsConfig.getDefaultClient().id == 'kariakoo_shops') {
+      return Scaffold(
+        backgroundColor: const Color(0xFF1B8C30),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: Colors.white, width: 4),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: Image.asset(
+                    'assets/images/kariakoo-logo.png',
+                    width: 132,
+                    height: 132,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 3,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Saichi: brand-blue screen with the SCL logo, outlined in white like the
+    // Kariakoo splash above, matching the sign-in form.
+    if (ClientsConfig.getDefaultClient().id == 'saichi') {
+      return Scaffold(
+        backgroundColor: Color(ClientsConfig.getDefaultClient().branding.primaryColor),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: Colors.white, width: 4),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: SvgPicture.asset(
+                    'assets/images/scl_logo.svg',
+                    width: 132,
+                    height: 132,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 3,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Center(
         child: Column(

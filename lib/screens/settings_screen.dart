@@ -1,7 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
-import 'package:local_auth/local_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/location_provider.dart';
@@ -15,6 +13,10 @@ import '../widgets/glassmorphic_card.dart';
 import 'client_selector_screen.dart';
 import 'app_update_screen.dart';
 import 'pending_uploads_screen.dart';
+import '../widgets/tr_text.dart';
+import '../widgets/app_bottom_navigation.dart';
+import '../widgets/logout_dialog.dart';
+import '../widgets/language_switcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -123,12 +125,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Cannot enable from settings - need password
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
+          SnackBar(
+            content: const Text(
               'To enable biometric login, please logout and login with your password',
             ),
             backgroundColor: AppColors.info,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -220,6 +222,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Settings'),
@@ -275,11 +281,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? Switch(
                           value: _isBiometricEnabled,
                           onChanged: _toggleBiometric,
-                          activeColor: AppColors.success,
+                          activeThumbColor: AppColors.primary,
                         )
                       : null,
                 ),
               ],
+            ),
+          ),
+
+          // Language Section
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'LANGUAGE',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          GlassmorphicCard(
+            isDark: isDark,
+            child: LanguageSelectorTile(
+              titleColor: isDark ? AppColors.darkText : AppColors.text,
+              subtitleColor: isDark ? AppColors.darkTextLight : AppColors.textLight,
+              accent: AppColors.primary,
             ),
           ),
 
@@ -325,7 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   trailing: Switch(
                     value: isDark,
                     onChanged: (_) => themeProvider.toggleTheme(),
-                    activeColor: AppColors.success,
+                    activeThumbColor: AppColors.primary,
                   ),
                 ),
               ],
@@ -687,29 +716,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   onTap: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Logout'),
-                          ),
-                        ],
-                      ),
+                    final confirmed = await showLogoutDialog(
+                      context,
+                      userName: authProvider.user?.fullName,
                     );
 
-                    if (confirmed == true && mounted) {
+                    if (confirmed && mounted) {
                       await authProvider.logout();
                       if (mounted) {
                         Navigator.of(context).pushNamedAndRemoveUntil(
@@ -837,7 +849,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     }
                   },
                 );
-              }).toList(),
+              }),
               const SizedBox(height: 16),
             ],
           ),

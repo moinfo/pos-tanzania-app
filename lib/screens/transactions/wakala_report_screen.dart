@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -8,6 +8,8 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../widgets/app_bottom_navigation.dart';
 
 class WakalaReportScreen extends StatefulWidget {
   const WakalaReportScreen({super.key});
@@ -73,6 +75,10 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: const Text('Wakala Report'),
         actions: [
@@ -376,7 +382,7 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
             const Divider(height: 24),
             _buildSummaryRow('Calculated Capital', report.calculatedCapital, amountColor),
             const SizedBox(height: 12),
-            _buildSummaryRow('Capital', report.capital, isDark ? Colors.cyanAccent : Colors.blue.shade700),
+            _buildSummaryRow('Capital', report.capital, isDark ? Colors.cyanAccent : AppColors.brandSwatch.shade700),
             const SizedBox(height: 12),
             _buildSummaryRow('Commission', report.commission, isDark ? Colors.amberAccent : Colors.orange.shade700),
             const SizedBox(height: 12),

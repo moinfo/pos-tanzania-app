@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +16,8 @@ import '../utils/friendly_error.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// Ask for more credit headroom for one customer.
 ///
@@ -328,7 +330,7 @@ class _CreateCreditLimitRequestScreenState
           if (widget.customerId == null && !_picking)
             IconButton(
               icon: const Icon(Icons.person_search),
-              tooltip: 'Change customer',
+              tooltip: 'Change customer'.tr,
               onPressed: _clearCustomer,
             ),
         ],
@@ -349,7 +351,7 @@ class _CreateCreditLimitRequestScreenState
           child: TextField(
             controller: _customerSearch,
             decoration: InputDecoration(
-              hintText: 'Search by name or phone number...',
+              hintText: 'Search by name or phone number...'.tr,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchingCustomers
                   ? const Padding(
@@ -514,14 +516,14 @@ class _CreateCreditLimitRequestScreenState
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
               ],
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(
-                labelText: 'Amount requested (TSh)',
+              decoration: InputDecoration(
+                labelText: 'Amount requested (TSh)'.tr,
                 border: InputBorder.none,
-                helperText: 'A one-time allowance, not a permanent increase',
+                helperText: 'A one-time allowance, not a permanent increase'.tr,
               ),
               validator: (value) {
                 final parsed = double.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) return 'Enter an amount';
+                if (parsed == null || parsed <= 0) return 'Enter an amount'.tr;
                 return null;
               },
             ),
@@ -532,8 +534,8 @@ class _CreateCreditLimitRequestScreenState
             TextFormField(
               controller: _reason,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
+              decoration: InputDecoration(
+                labelText: 'Reason'.tr,
                 border: InputBorder.none,
               ),
               validator: (value) =>
@@ -546,8 +548,8 @@ class _CreateCreditLimitRequestScreenState
             TextFormField(
               controller: _notes,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Extra notes (optional)',
+              decoration: InputDecoration(
+                labelText: 'Extra notes (optional)'.tr,
                 border: InputBorder.none,
               ),
             ),

@@ -1,6 +1,6 @@
 name: pos_tanzania_mobile
 description: Point of Sales Tanzania Mobile App - Flutter application for POS management
-version: 1.0.0+72
+version: 1.0.2+72
 publish_to: 'none'
 
 environment:
@@ -8,6 +8,8 @@ environment:
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   # HTTP client
@@ -29,7 +31,7 @@ dependencies:
   file_picker: ^10.0.0
 
   # Date formatting
-  intl: ^0.18.1
+  intl: ^0.20.2
 
   # Shared preferences
   shared_preferences: ^2.2.2

@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../screens/login_screen.dart';
 import '../services/session_guard.dart';
+import '../widgets/tr_text.dart';
 
 /// Takes the screen when the server stops accepting this session.
 ///

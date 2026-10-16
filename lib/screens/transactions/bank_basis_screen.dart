@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -13,6 +13,10 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/delete_dialog.dart';
 
 class BankBasisScreen extends StatefulWidget {
   const BankBasisScreen({super.key});
@@ -36,7 +40,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
   List<BankBasisCategory> _categories = [];
   List<BankBasisTransaction> _transactions = [];
   double _total = 0;
-  Map<int, double> _categoryTotals = {};
+  final Map<int, double> _categoryTotals = {};
 
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
@@ -119,13 +123,13 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name (e.g., M-Pesa, Airtel Money)'),
+              decoration: InputDecoration(labelText: 'Name (e.g., M-Pesa, Airtel Money)'.tr),
               autofocus: true,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Description'.tr),
               maxLines: 2,
             ),
           ],
@@ -207,9 +211,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<BankBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: 'Category'.tr),
                   items: _categories.map((category) {
                     return DropdownMenuItem(
                       value: category,
@@ -228,9 +232,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -325,13 +329,13 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: 'Name'.tr),
               autofocus: true,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Description'.tr),
               maxLines: 2,
             ),
           ],
@@ -381,25 +385,10 @@ class _BankBasisScreenState extends State<BankBasisScreen>
   }
 
   Future<void> _deleteBankBasisCategory(BankBasisCategory category) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Category'),
-        content: Text('Are you sure you want to delete "${category.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Category',
+      message: 'Are you sure you want to delete "${category.name}"?',
     );
 
     if (confirmed == true) {
@@ -444,9 +433,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<BankBasisCategory>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Category'),
+                  decoration: InputDecoration(labelText: 'Category'.tr),
                   items: _categories.map((category) {
                     return DropdownMenuItem(
                       value: category,
@@ -465,9 +454,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: 'TZS ',
+                  decoration: InputDecoration(
+                    labelText: 'Amount'.tr,
+                    prefixText: 'TZS '.tr,
                   ),
                   keyboardType: TextInputType.number,
                 ),
@@ -539,27 +528,10 @@ class _BankBasisScreenState extends State<BankBasisScreen>
   }
 
   Future<void> _deleteBankBasisTransaction(BankBasisTransaction transaction) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Transaction'),
-        content: Text(
-          'Are you sure you want to delete this transaction of ${Formatters.formatCurrency(transaction.amount)}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Transaction',
+      message: 'Are you sure you want to delete this transaction of ${Formatters.formatCurrency(transaction.amount)}?',
     );
 
     if (confirmed == true) {
@@ -586,6 +558,10 @@ class _BankBasisScreenState extends State<BankBasisScreen>
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: const Text('Bank Basis / Mobile Money'),
         bottom: TabBar(
@@ -700,9 +676,9 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           child: GlassmorphicCard(
             isDark: isDark,
             child: ListTile(
-              leading: const CircleAvatar(
+              leading: CircleAvatar(
                 backgroundColor: AppColors.primary,
-                child: Icon(Icons.category, color: Colors.white),
+                child: const Icon(Icons.category, color: Colors.white),
               ),
               title: Text(
                 category.name,
@@ -723,15 +699,15 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                       children: [
                         if (canEdit)
                           IconButton(
-                            icon: const Icon(Icons.edit, color: AppColors.primary),
+                            icon: Icon(Icons.edit, color: AppColors.primary),
                             onPressed: () => _showEditCategoryDialog(category),
-                            tooltip: 'Edit',
+                            tooltip: 'Edit'.tr,
                           ),
                         if (canDelete)
                           IconButton(
                             icon: const Icon(Icons.delete, color: AppColors.error),
                             onPressed: () => _deleteBankBasisCategory(category),
-                            tooltip: 'Delete',
+                            tooltip: 'Delete'.tr,
                           ),
                       ],
                     )
@@ -818,7 +794,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                   ),
                   Text(
                     Formatters.formatCurrency(_total),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
@@ -896,13 +872,13 @@ class _BankBasisScreenState extends State<BankBasisScreen>
                                       },
                                       itemBuilder: (context) => [
                                         if (canEdit)
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'edit',
                                             child: Row(
                                               children: [
                                                 Icon(Icons.edit, color: AppColors.primary),
-                                                SizedBox(width: 8),
-                                                Text('Edit'),
+                                                const SizedBox(width: 8),
+                                                const Text('Edit'),
                                               ],
                                             ),
                                           ),

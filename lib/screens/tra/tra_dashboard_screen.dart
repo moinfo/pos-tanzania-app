@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../utils/constants.dart';
@@ -9,6 +9,8 @@ import '../../providers/permission_provider.dart';
 import '../../services/tra_service.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 /// Dashboard content widget for embedding in TRAMainScreen
 class TRADashboardContent extends StatefulWidget {
@@ -234,9 +236,9 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
             // EFD Filter
             if (widget.efds.isNotEmpty && hasAllEfdPermission)
               DropdownButtonFormField<int?>(
-                value: _selectedEfdId,
+                initialValue: _selectedEfdId,
                 decoration: InputDecoration(
-                  labelText: 'EFD Device',
+                  labelText: 'EFD Device'.tr,
                   filled: true,
                   fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
                   border: OutlineInputBorder(
@@ -352,7 +354,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
             title: 'Total Purchases',
             value: d.totalPurchases,
             icon: Icons.shopping_cart,
-            color: Colors.blue,
+            color: AppColors.brandSwatch,
             isDark: isDark,
           ),
         ),
@@ -448,7 +450,7 @@ class _TRADashboardContentState extends State<TRADashboardContent> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.error_outline,
             size: 64,
             color: AppColors.error,

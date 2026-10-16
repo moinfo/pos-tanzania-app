@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +17,8 @@ import '../widgets/app_bottom_navigation.dart';
 import '../widgets/searchable_picker.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
 
 /// Ask for one-time discounts for a customer, on as many items as the sale
 /// needs.
@@ -84,8 +86,8 @@ String? _rowProblem(
   double discount,
   NumberFormat money,
 ) {
-  if (quantity <= 0) return 'Enter a quantity';
-  if (discount <= 0) return 'Enter a discount amount';
+  if (quantity <= 0) return 'Enter a quantity'.tr;
+  if (discount <= 0) return 'Enter a discount amount'.tr;
   if (discount >= item.unitPrice) {
     return 'The discount cannot reach the item price '
         '(${money.format(item.unitPrice)})';
@@ -604,10 +606,10 @@ class _CreateDiscountRequestScreenState
             _field(
               isDark,
               DropdownButtonFormField<ScopedLocation>(
-                value: _location,
+                initialValue: _location,
                 isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
+                decoration: InputDecoration(
+                  labelText: 'Location'.tr,
                   border: InputBorder.none,
                 ),
                 items: options.locations
@@ -723,9 +725,9 @@ class _CreateDiscountRequestScreenState
             TextFormField(
               controller: _reason,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                helperText: 'Applies to every item on this request',
+              decoration: InputDecoration(
+                labelText: 'Reason'.tr,
+                helperText: 'Applies to every item on this request'.tr,
                 border: InputBorder.none,
               ),
               validator: (value) =>
@@ -910,7 +912,7 @@ class _CreateDiscountRequestScreenState
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.add_circle_outline,
+                        : Icon(Icons.add_circle_outline,
                             size: 20, color: AppColors.primary),
                     const SizedBox(width: 10),
                     Text(
@@ -1008,7 +1010,7 @@ class _CreateDiscountRequestScreenState
             ),
             IconButton(
               icon: const Icon(Icons.close, size: 18),
-              tooltip: 'Remove item',
+              tooltip: 'Remove item'.tr,
               color: muted,
               onPressed: () => setState(() {
                 _lines.removeAt(index);
@@ -1182,18 +1184,18 @@ class _RowEditorSheetState extends State<_RowEditorSheet> {
                             ],
                             style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w700),
-                            decoration: const InputDecoration(
-                              labelText: 'Quantity',
+                            decoration: InputDecoration(
+                              labelText: 'Quantity'.tr,
                               // Both number fields carry a helper so they end
                               // up the same height; one with and one without
                               // leaves the pair visibly misaligned.
-                              helperText: 'on the sale',
+                              helperText: 'on the sale'.tr,
                               border: InputBorder.none,
                             ),
                             validator: (value) {
                               final parsed = double.tryParse(value ?? '');
                               if (parsed == null || parsed <= 0) {
-                                return 'Enter a quantity';
+                                return 'Enter a quantity'.tr;
                               }
                               return null;
                             },
@@ -1216,9 +1218,9 @@ class _RowEditorSheetState extends State<_RowEditorSheet> {
                             ],
                             style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w700),
-                            decoration: const InputDecoration(
-                              labelText: 'Discount',
-                              helperText: 'per item',
+                            decoration: InputDecoration(
+                              labelText: 'Discount'.tr,
+                              helperText: 'per item'.tr,
                               border: InputBorder.none,
                             ),
                             validator: (value) => _rowProblem(

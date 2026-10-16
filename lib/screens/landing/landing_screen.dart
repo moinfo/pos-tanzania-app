@@ -1,15 +1,23 @@
-import 'package:flutter/material.dart';
+/// @author Firstname Lastname <firstname.lastname@example.com>
+/// @file Description
+/// @desc Created on 2026-10-10 9:29:06 am
+/// @copyright GNU General Public License v3.0
+library;
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
 import '../../models/public_product.dart';
-import '../../services/screen_protection_service.dart';
 import '../../services/api_service.dart';
 import '../login_screen.dart';
-import 'widgets/product_card.dart';
+import 'widgets/product_grid_card.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'widgets/product_skeleton.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'order_history_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../widgets/language_switcher.dart';
+import '../../l10n/lang.dart';
 
 /// Brand colors - adapts to current client
 class LandingColors {
@@ -27,6 +35,17 @@ class LandingColors {
     }
     return const Color(0xFFFF4D4D); // Default: lighter red
   }
+
+  /// Deeper shade of the brand colour: gradients, prices, secondary buttons.
+  static Color get deep {
+    final hsl = HSLColor.fromColor(primaryRed);
+    return hsl.withLightness((hsl.lightness * 0.62).clamp(0.0, 1.0)).toColor();
+  }
+
+  /// Page background: a whisper of the brand colour over off-white, so the
+  /// white cards read as raised.
+  static Color get pageLight => Color.lerp(const Color(0xFFF6F8FB), primaryRed, 0.045)!;
+
   static const Color black = Color(0xFF000000);
   static const Color white = Color(0xFFFFFFFF);
   static const Color lightGrey = Color(0xFFF5F5F5);
@@ -42,9 +61,10 @@ class LandingScreen extends StatefulWidget {
 }
 
 class _LandingScreenState extends State<LandingScreen> {
-  int _currentIndex = 0;
+  // Tabs run Cart | Home | Orders, with Home in the middle and open first.
+  int _currentIndex = 1;
   bool _isDarkMode = false;
-  final PageController _pageController = PageController();
+  final PageController _pageController = PageController(initialPage: 1);
 
   @override
   void initState() {
@@ -63,7 +83,7 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = _isDarkMode ? const Color(0xFF121212) : LandingColors.white;
+    final bgColor = _isDarkMode ? const Color(0xFF121212) : LandingColors.pageLight;
     final cardColor = _isDarkMode ? const Color(0xFF1E1E1E) : LandingColors.white;
     final textColor = _isDarkMode ? LandingColors.white : LandingColors.black;
 
@@ -98,7 +118,6 @@ class _LandingScreenState extends State<LandingScreen> {
             setState(() => _currentIndex = index);
           },
           children: [
-            _HomeTab(isDarkMode: _isDarkMode),
             CartScreen(
               isDarkMode: _isDarkMode,
               onNavigateToOrders: () {
@@ -107,6 +126,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 setState(() => _currentIndex = 2);
               },
             ),
+            _HomeTab(isDarkMode: _isDarkMode),
             OrderHistoryScreen(isDarkMode: _isDarkMode),
           ],
         ),
@@ -116,44 +136,67 @@ class _LandingScreenState extends State<LandingScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    final iconColor = _isDarkMode ? LandingColors.white : LandingColors.black;
+    // The bar carries the client's brand colour (Kariakoo: logo green), with
+    // white text and icons on it.
+    final brand = LandingColors.primaryRed;
+    const iconColor = Colors.white;
 
     final client = ApiService.currentClient;
     final logoPath = client?.logoUrl ?? 'assets/images/come_and_save_logo.png';
     final title = client?.branding.appTitle ?? 'COME N\' SAVE';
 
     return AppBar(
-      titleSpacing: 8,
+      backgroundColor: brand,
+      foregroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      titleSpacing: 10,
       title: Row(
         children: [
-          Image.asset(
-            logoPath,
-            height: 36,
-            fit: BoxFit.contain,
+          // White ring so the green logo tile stands out on the green bar.
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(9),
+              child: Image.asset(
+                logoPath,
+                height: 34,
+                width: 34,
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
+          const SizedBox(width: 10),
           Expanded(
-            child: Center(
-              child: Text(
-                title.toUpperCase(),
-                style: TextStyle(
-                  color: LandingColors.primaryRed,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+            child: Text(
+              title.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                letterSpacing: 0.4,
               ),
             ),
           ),
         ],
       ),
       centerTitle: false,
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(
-          color: _isDarkMode ? Colors.grey[800] : Colors.grey[300],
-          height: 1,
-        ),
-      ),
       actions: [
+        // English / Kiswahili
+        Center(
+          child: LanguageChip(
+            surface: Colors.white.withValues(alpha: 0.16),
+            border: Colors.white.withValues(alpha: 0.55),
+            ink: Colors.white,
+            accent: Colors.white,
+            activeInk: brand,
+          ),
+        ),
         // Dark mode toggle
         IconButton(
           icon: Icon(
@@ -167,10 +210,11 @@ class _LandingScreenState extends State<LandingScreen> {
         ),
         // Login button
         IconButton(
-          icon: Icon(
-            Icons.admin_panel_settings,
+          tooltip: 'Login'.tr,
+          icon: const Icon(
+            Icons.login_rounded,
             color: iconColor,
-            size: 22,
+            size: 24,
           ),
           onPressed: () {
             Navigator.push(
@@ -189,55 +233,42 @@ class _LandingScreenState extends State<LandingScreen> {
         final cartCount = provider.cart.length;
 
         return Container(
-          color: _isDarkMode ? const Color(0xFF121212) : LandingColors.lightGrey,
+          color: _isDarkMode ? const Color(0xFF121212) : LandingColors.pageLight,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            // Lift the pill above the system navigation buttons / gesture
+            // bar; edge-to-edge Android otherwise draws them over it.
+            padding: EdgeInsets.fromLTRB(
+                16, 6, 16, 10 + MediaQuery.of(context).viewPadding.bottom),
             child: Container(
               height: 70,
                 decoration: BoxDecoration(
-                  gradient: _isDarkMode
-                      ? const LinearGradient(
-                          colors: [Color(0xFF2A2A2A), Color(0xFF1E1E1E)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        )
-                      : const LinearGradient(
-                          colors: [Colors.white, Color(0xFFFAFAFA)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    colors: [
+                      LandingColors.primaryRed,
+                      HSLColor.fromColor(LandingColors.primaryRed)
+                          .withLightness((HSLColor.fromColor(LandingColors.primaryRed).lightness * 0.68)
+                              .clamp(0.0, 1.0))
+                          .toColor(),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(26),
                   boxShadow: [
                     BoxShadow(
-                      color: _isDarkMode
-                          ? Colors.black.withValues(alpha: 0.4)
-                          : Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                      spreadRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: _isDarkMode
-                          ? Colors.black.withValues(alpha: 0.2)
-                          : Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+                      color: LandingColors.primaryRed.withValues(alpha: _isDarkMode ? 0.30 : 0.42),
+                      blurRadius: 22,
+                      offset: const Offset(0, 9),
                     ),
                   ],
-                  border: Border.all(
-                    color: _isDarkMode
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.03),
-                    width: 1,
-                  ),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(26),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildNavItem(0, Icons.home_rounded, 'Home'),
-                      _buildNavItem(1, Icons.shopping_bag_rounded, 'Cart', badge: cartCount),
+                      _buildNavItem(0, Icons.shopping_bag_rounded, 'Cart', badge: cartCount),
+                      _buildNavItem(1, Icons.home_rounded, 'Home'),
                       _buildNavItem(2, Icons.receipt_long_rounded, 'Orders'),
                     ],
                   ),
@@ -271,19 +302,12 @@ class _LandingScreenState extends State<LandingScreen> {
         ),
         decoration: isSelected
             ? BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    LandingColors.primaryRed,
-                    LandingColors.primaryLight,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(18),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: LandingColors.primaryRed.withValues(alpha: 0.4),
-                    blurRadius: 12,
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
@@ -301,8 +325,8 @@ class _LandingScreenState extends State<LandingScreen> {
                   child: Icon(
                     icon,
                     color: isSelected
-                        ? Colors.white
-                        : (_isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                        ? LandingColors.primaryRed
+                        : Colors.white.withValues(alpha: 0.82),
                     size: 24,
                   ),
                 ),
@@ -313,19 +337,11 @@ class _LandingScreenState extends State<LandingScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        gradient: isSelected
-                            ? const LinearGradient(
-                                colors: [Colors.white, Color(0xFFF0F0F0)],
-                              )
-                            : LinearGradient(
-                                colors: [LandingColors.primaryRed, LandingColors.primaryLight],
-                              ),
+                        color: isSelected ? LandingColors.primaryRed : Colors.white,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: isSelected
-                                ? Colors.black.withValues(alpha: 0.2)
-                                : LandingColors.primaryRed.withValues(alpha: 0.4),
+                            color: Colors.black.withValues(alpha: 0.25),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -335,7 +351,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       child: Text(
                         badge > 99 ? '99+' : '$badge',
                         style: TextStyle(
-                          color: isSelected ? LandingColors.primaryRed : Colors.white,
+                          color: isSelected ? Colors.white : LandingColors.primaryRed,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -366,10 +382,10 @@ class _LandingScreenState extends State<LandingScreen> {
                   ? Text(
                       label,
                       key: ValueKey('${label}_selected'),
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: LandingColors.primaryRed,
                         fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: 0.3,
                       ),
                     )
@@ -392,8 +408,15 @@ class _HomeTab extends StatefulWidget {
   State<_HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
+class _HomeTabState extends State<_HomeTab>
+    with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
+
+  /// One lap of the bulb round a card's border; every card shares it.
+  late final AnimationController _orbit = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 7),
+  )..repeat();
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -407,6 +430,7 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
 
   @override
   void dispose() {
+    _orbit.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -421,8 +445,6 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     super.build(context);
-
-    final bgColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : LandingColors.lightGrey;
 
     return RefreshIndicator(
       color: LandingColors.primaryRed,
@@ -459,126 +481,305 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
               },
             ),
           ),
-          // Search bar with sort options
-          SliverToBoxAdapter(
-            child: Consumer<LandingProvider>(
-              builder: (context, provider, _) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  color: widget.isDarkMode ? const Color(0xFF121212) : Colors.white,
-                  child: Row(
-                    children: [
-                      // Search field
-                      Expanded(
-                        child: SizedBox(
-                          height: 40,
-                          child: TextField(
-                            controller: _searchController,
-                            style: TextStyle(
-                              color: widget.isDarkMode ? Colors.white : Colors.black,
-                              fontSize: 14,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Search...',
-                              hintStyle: TextStyle(
-                                color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.search,
-                                color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
-                                size: 20,
-                              ),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: Icon(
-                                        Icons.clear,
-                                        color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
-                                        size: 18,
-                                      ),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        context.read<LandingProvider>().searchProducts('');
-                                        setState(() {});
-                                      },
-                                    )
-                                  : null,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: bgColor,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                            ),
-                            onSubmitted: (value) {
-                              context.read<LandingProvider>().searchProducts(value);
-                            },
-                            onChanged: (value) {
-                              setState(() {});
-                              Future.delayed(const Duration(milliseconds: 500), () {
-                                if (_searchController.text == value) {
-                                  context.read<LandingProvider>().searchProducts(value);
-                                }
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Products count
-                      Text(
-                        '${provider.totalProducts}',
-                        style: TextStyle(
-                          color: widget.isDarkMode ? Colors.grey[400] : LandingColors.darkGrey,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Sort dropdown
-                      PopupMenuButton<String>(
-                        initialValue: provider.sortBy,
-                        onSelected: (value) => provider.changeSortOrder(value),
-                        padding: EdgeInsets.zero,
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(value: 'latest', child: Text('Latest')),
-                          const PopupMenuItem(value: 'popular', child: Text('Most Popular')),
-                          const PopupMenuItem(value: 'price_low', child: Text('Price: Low to High')),
-                          const PopupMenuItem(value: 'price_high', child: Text('Price: High to Low')),
-                          const PopupMenuItem(value: 'name', child: Text('Name')),
-                        ],
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _getSortLabel(provider.sortBy),
-                              style: TextStyle(
-                                color: widget.isDarkMode ? Colors.grey[300] : LandingColors.black,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_drop_down,
-                              color: widget.isDarkMode ? Colors.grey[300] : LandingColors.black,
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
+          // Branded hero with the search pill
+          SliverToBoxAdapter(child: _buildHero()),
+          // Category chips
+          SliverToBoxAdapter(child: _buildCategoryChips()),
+          // Result count + sort
+          SliverToBoxAdapter(child: _buildResultsBar()),
           // Products grid
           _buildProductsGrid(),
           // Loading indicator
           _buildLoadingIndicator(),
         ],
       ),
+    );
+  }
+
+  Widget _buildHero() {
+    final brand = LandingColors.primaryRed;
+    final deep = LandingColors.deep;
+    final dark = widget.isDarkMode;
+    final client = ApiService.currentClient;
+    final tagline = client?.branding.tagline ?? '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [brand, deep],
+        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+        boxShadow: [
+          BoxShadow(
+            color: brand.withValues(alpha: dark ? 0.25 : 0.35),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Soft decorative discs.
+          Positioned(
+            right: -50,
+            top: -60,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 40,
+            bottom: -40,
+            child: Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.07),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome to',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                client?.branding.appTitle ?? client?.displayName ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  height: 1.1,
+                ),
+              ),
+              if (tagline.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  tagline,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              // Search pill
+              Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: dark ? const Color(0xFF1E1E1E) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  style: TextStyle(
+                    color: dark ? Colors.white : Colors.black,
+                    fontSize: 15,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search...'.tr,
+                    hintStyle: TextStyle(
+                      color: dark ? Colors.grey[500] : Colors.grey[600],
+                      fontSize: 15,
+                    ),
+                    prefixIcon: Icon(Icons.search_rounded, color: brand, size: 24),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.close_rounded,
+                              color: dark ? Colors.grey[400] : LandingColors.darkGrey,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              context.read<LandingProvider>().searchProducts('');
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  onSubmitted: (value) {
+                    context.read<LandingProvider>().searchProducts(value);
+                  },
+                  onChanged: (value) {
+                    setState(() {});
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      if (_searchController.text == value) {
+                        context.read<LandingProvider>().searchProducts(value);
+                      }
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    final brand = LandingColors.primaryRed;
+    final dark = widget.isDarkMode;
+
+    return Consumer<LandingProvider>(
+      builder: (context, provider, _) {
+        final categories = provider.categories.where((c) => c.name.isNotEmpty).toList();
+        if (categories.isEmpty) return const SizedBox(height: 6);
+
+        Widget chip(String label, bool selected, VoidCallback onTap) {
+          return GestureDetector(
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+              decoration: BoxDecoration(
+                color: selected
+                    ? brand
+                    : (dark ? const Color(0xFF1E1E1E) : Colors.white),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: selected ? brand : (dark ? Colors.white24 : const Color(0xFFE2E6EA)),
+                ),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: brand.withValues(alpha: 0.30),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected
+                      ? Colors.white
+                      : (dark ? Colors.grey[300] : const Color(0xFF3B4756)),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 62,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(14, 14, 6, 10),
+            children: [
+              chip('All', provider.selectedCategory == null,
+                  () => provider.filterByCategory(null)),
+              for (final c in categories)
+                chip(c.name, provider.selectedCategory == c.name,
+                    () => provider.filterByCategory(c.name)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildResultsBar() {
+    final dark = widget.isDarkMode;
+    final brand = LandingColors.primaryRed;
+
+    return Consumer<LandingProvider>(
+      builder: (context, provider, _) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 2, 10, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${provider.totalProducts} products',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: dark ? Colors.grey[300] : const Color(0xFF3B4756),
+                  ),
+                ),
+              ),
+              PopupMenuButton<String>(
+                initialValue: provider.sortBy,
+                onSelected: (value) => provider.changeSortOrder(value),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'latest', child: Text('Latest')),
+                  const PopupMenuItem(value: 'popular', child: Text('Most Popular')),
+                  const PopupMenuItem(value: 'price_low', child: Text('Price: Low to High')),
+                  const PopupMenuItem(value: 'price_high', child: Text('Price: High to Low')),
+                  const PopupMenuItem(value: 'name', child: Text('Name')),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: brand.withValues(alpha: dark ? 0.2 : 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.tune_rounded, size: 16, color: brand),
+                      const SizedBox(width: 6),
+                      Text(
+                        _getSortLabel(provider.sortBy),
+                        style: TextStyle(
+                          color: brand,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -649,21 +850,37 @@ class _HomeTabState extends State<_HomeTab> with AutomaticKeepAliveClientMixin {
           );
         }
 
-        // Show cache indicator if data is from cache
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final product = provider.products[index];
-              return ProductCard(
-                product: product,
-                isDarkMode: widget.isDarkMode,
-                showStockIndicator: provider.hasStockDisplay,
-                onTap: () => _openProductDetail(context, product),
-                onLike: () => provider.toggleLike(product.itemId),
-                onAddToCart: () => _quickAddToCart(context, provider, product),
-              );
-            },
-            childCount: provider.products.length,
+        return SliverPadding(
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 18),
+          sliver: SliverGrid(
+            // Square photo + a text/button block of fixed layout height. A
+            // plain aspect ratio let the block overflow on narrower phones or
+            // larger system fonts, so the height is derived from the width and
+            // the text scale instead.
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              mainAxisExtent: (MediaQuery.sizeOf(context).width - 36) / 2 +
+                  78 +
+                  84 * MediaQuery.textScalerOf(context).scale(1),
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final product = provider.products[index];
+                return ProductGridCard(
+                  product: product,
+                  isDarkMode: widget.isDarkMode,
+                  orbit: _orbit,
+                  orbitPhase: (index * 0.23) % 1.0,
+                  showStockIndicator: provider.hasStockDisplay,
+                  onTap: () => _openProductDetail(context, product),
+                  onLike: () => provider.toggleLike(product.itemId),
+                  onAddToCart: () => _quickAddToCart(context, provider, product),
+                );
+              },
+              childCount: provider.products.length,
+            ),
           ),
         );
       },

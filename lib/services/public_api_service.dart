@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/public_product.dart';
 import '../models/public_order.dart';
 import '../config/clients_config.dart';
+import 'api_service.dart';
 
 /// API Service for public-facing landing page endpoints (no authentication required)
 class PublicApiService {
@@ -38,25 +39,15 @@ class PublicApiService {
     return prefs.getString(key);
   }
 
+  // The same API root the rest of the app uses (honours release / LIVE_API)
+  static String get _apiUrl => ApiService.apiUrlFor(ClientsConfig.getDefaultClient());
+
   // Get base URL for public API
-  static String get baseUrl {
-    final client = ClientsConfig.getDefaultClient();
-    if (kReleaseMode) {
-      return client.prodApiUrl.replaceAll('/api', '/api/public');
-    } else {
-      return client.devApiUrl.replaceAll('/api', '/api/public');
-    }
-  }
+  static String get baseUrl => _apiUrl.replaceAll('/api', '/api/public');
 
   // Get uploads base URL
   static String get uploadsBaseUrl {
-    final client = ClientsConfig.getDefaultClient();
-    String apiUrl;
-    if (kReleaseMode) {
-      apiUrl = client.prodApiUrl;
-    } else {
-      apiUrl = client.devApiUrl;
-    }
+    final apiUrl = _apiUrl;
     // Remove /api from the end and add /uploads
     if (apiUrl.endsWith('/api')) {
       return apiUrl.replaceAll('/api', '/uploads');

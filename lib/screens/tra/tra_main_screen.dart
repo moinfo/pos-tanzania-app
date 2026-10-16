@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../utils/constants.dart';
 import '../../models/tra.dart';
@@ -12,6 +12,8 @@ import 'tra_sales_screen.dart';
 import 'tra_purchases_screen.dart';
 import 'tra_expenses_screen.dart';
 import 'tra_reports_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class TRAMainScreen extends StatefulWidget {
   const TRAMainScreen({super.key});
@@ -145,9 +147,6 @@ class _TRAMainScreenState extends State<TRAMainScreen> {
                   _selectedIndex = index;
                 });
               },
-              backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-              selectedItemColor: AppColors.primary,
-              unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
               items: tabs.map((tab) => CurvedNavItem(
                 icon: tab.icon,
                 label: tab.label,
@@ -163,7 +162,7 @@ class _TRAMainScreenState extends State<TRAMainScreen> {
       case 0:
         return 'TRADE';
       default:
-        return 'TRADE ${tabs[_selectedIndex].label}';
+        return 'TRADE ${tabs[_selectedIndex].label}'.tr;
     }
   }
 }

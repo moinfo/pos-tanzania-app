@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
 import '../services/offline_submit.dart';
 import '../utils/constants.dart';
 import 'offline_indicator.dart';
+import '../widgets/tr_text.dart';
 
 /// Tell the person what happened, in the same words everywhere.
 ///

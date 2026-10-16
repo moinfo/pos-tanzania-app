@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/borrowed_money.dart';
@@ -7,6 +7,10 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/glassmorphic_card.dart';
 import 'borrowed_money_form_screen.dart';
+import '../../widgets/tr_text.dart';
+import '../../widgets/app_bottom_navigation.dart';
+import '../../l10n/lang.dart';
+import '../../widgets/delete_dialog.dart';
 
 class BorrowedMoneyListScreen extends StatefulWidget {
   const BorrowedMoneyListScreen({super.key});
@@ -72,7 +76,7 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
       initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
+          colorScheme: ColorScheme.light(
             primary: AppColors.primary,
             onPrimary: Colors.white,
           ),
@@ -91,29 +95,10 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
   }
 
   Future<void> _deleteRecord(BorrowedMoneyItem record) async {
-    final isDark = context.read<ThemeProvider>().isDarkMode;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-        title: Text('Delete Record',
-            style: TextStyle(color: isDark ? Colors.white : AppColors.text)),
-        content: Text(
-          'Delete this borrowed money record?\n\nAmount: ${_formatCurrency(record.amount)}\nDate: ${_formatDate(record.date)}',
-          style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showDeleteDialog(
+      context,
+      title: 'Delete Record',
+      message: 'Delete this borrowed money record?\n\nAmount: ${_formatCurrency(record.amount)}\nDate: ${_formatDate(record.date)}',
     );
 
     if (confirmed != true) return;
@@ -158,6 +143,10 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
 
     return Scaffold(
+      // Opened from the side menu: the bottom bar shows this entry's icon in the
+      // centre notch. Embedded as a tab (inside the shell's Scaffold), the shell draws the bar.
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       backgroundColor:
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
@@ -168,12 +157,12 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
           IconButton(
             icon: const Icon(Icons.calendar_today),
             onPressed: _selectDateRange,
-            tooltip: 'Select Date Range',
+            tooltip: 'Select Date Range'.tr,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadRecords,
-            tooltip: 'Refresh',
+            tooltip: 'Refresh'.tr,
           ),
         ],
       ),

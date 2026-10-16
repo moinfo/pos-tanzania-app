@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 
 import '../models/app_version_info.dart';
 import '../services/force_update.dart';
 import '../services/update_service.dart';
+import '../widgets/tr_text.dart';
 
 /// Covers the whole app once the server has refused this build.
 ///

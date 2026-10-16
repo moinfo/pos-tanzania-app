@@ -209,7 +209,7 @@ class AppTheme {
         // up the borders, label, hint and focus colours below.
         hintStyle: TextStyle(color: muted),
         labelStyle: TextStyle(color: muted),
-        floatingLabelStyle: const TextStyle(color: AppColors.primary),
+        floatingLabelStyle: TextStyle(color: AppColors.primary),
         helperStyle: TextStyle(color: muted, fontSize: 11.5),
         prefixIconColor: muted,
         suffixIconColor: muted,
@@ -223,7 +223,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -249,7 +249,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary),
+          side: BorderSide(color: AppColors.primary),
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -260,14 +260,14 @@ class AppTheme {
         style: TextButton.styleFrom(foregroundColor: AppColors.primary),
       ),
 
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 4,
       ),
 
       progressIndicatorTheme:
-          const ProgressIndicatorThemeData(color: AppColors.primary),
+          ProgressIndicatorThemeData(color: AppColors.primary),
 
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
@@ -284,7 +284,7 @@ class AppTheme {
         side: BorderSide(color: divider, width: 1.5),
       ),
 
-      tabBarTheme: TabBarThemeData(
+      tabBarTheme: const TabBarThemeData(
         labelColor: Colors.white,
         unselectedLabelColor: Colors.white70,
         indicatorColor: Colors.white,

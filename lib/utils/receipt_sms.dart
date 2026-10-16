@@ -1,12 +1,13 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/sale.dart';
 import '../services/api_service.dart';
 import 'constants.dart';
+import '../widgets/tr_text.dart';
 
 /// Sending a sale receipt as a plain SMS.
 ///

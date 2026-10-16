@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import '../models/sale.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/tr_text.dart';
 
 class SaleDetailsScreen extends StatefulWidget {
   final int saleId;
@@ -170,7 +171,7 @@ class _SaleDetailsScreenState extends State<SaleDetailsScreen> {
                     ),
                     Text(
                       '${NumberFormat('#,###').format(item.lineTotal)} TSh',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,

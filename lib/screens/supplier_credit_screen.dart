@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/permission_model.dart';
@@ -10,6 +10,10 @@ import '../utils/constants.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/state_views.dart';
 import 'receiving_details_screen.dart';
+import '../widgets/tr_text.dart';
+import '../l10n/lang.dart';
+import '../widgets/delete_dialog.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 class SupplierCreditScreen extends StatefulWidget {
   final int supplierId;
@@ -116,6 +120,10 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
+      // Same bottom bar as the main shell; skipped when this screen is embedded
+      // as a tab (the shell's Scaffold draws it then).
+      bottomNavigationBar:
+          Scaffold.maybeOf(context) == null ? const AppBottomNavigation(currentIndex: -1) : null,
       appBar: AppBar(
         title: Text(widget.supplierName),
         backgroundColor: AppColors.primary,
@@ -281,7 +289,7 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
         supplierId: widget.supplierId,
         supplierName: widget.supplierName,
         currentBalance: _statement?.currentBalance ?? 0,
-        creditReceivings: [],
+        creditReceivings: const [],
         onPaymentComplete: () {
           Navigator.pop(context);
           _loadStatement();
@@ -294,23 +302,13 @@ class _SupplierCreditScreenState extends State<SupplierCreditScreen> {
   Future<void> _deletePayment(SupplierTransaction transaction) async {
     if (transaction.paymentId == null) return;
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Payment'),
-        content: Text('Are you sure you want to delete this payment of ${NumberFormat('#,###').format(transaction.debit)} TSh?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirm = await showDeleteDialog(
+      context,
+      title: 'Delete Payment',
+      message: 'Are you sure you want to delete this payment?',
+      details: {
+        'Amount': '${NumberFormat('#,###').format(transaction.debit)} TSh',
+      },
     );
 
     if (confirm == true && mounted) {
@@ -511,7 +509,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
 
   bool _isSubmitting = false;
   int? _selectedReceivingId;
-  int _stockLocationId = 1; // KIWANGWA
+  final int _stockLocationId = 1; // KIWANGWA
   int _paymentMode = 1; // 1=Sales, 2=Office
   int _paidPaymentType = 2; // 1=CASH, 2=BANK (default BANK)
   DateTime _selectedDate = DateTime.now();
@@ -647,12 +645,12 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               const SizedBox(height: 16),
               if (widget.creditReceivings.isNotEmpty && widget.editingPayment == null) ...[
                 DropdownButtonFormField<int>(
-                  value: _selectedReceivingId,
+                  initialValue: _selectedReceivingId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Receiving (Optional)',
-                    border: OutlineInputBorder(),
-                    hintText: 'Choose a receiving to pay against',
+                  decoration: InputDecoration(
+                    labelText: 'Select Receiving (Optional)'.tr,
+                    border: const OutlineInputBorder(),
+                    hintText: 'Choose a receiving to pay against'.tr,
                   ),
                   items: widget.creditReceivings.map((receiving) {
                     return DropdownMenuItem<int>(
@@ -673,21 +671,21 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               ],
               TextFormField(
                 controller: _amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Amount *',
-                  border: OutlineInputBorder(),
-                  prefixText: 'TSh ',
+                decoration: InputDecoration(
+                  labelText: 'Payment Amount *'.tr,
+                  border: const OutlineInputBorder(),
+                  prefixText: 'TSh '.tr,
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter payment amount';
+                    return 'Please enter payment amount'.tr;
                   }
                   if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
+                    return 'Please enter a valid number'.tr;
                   }
                   if (double.parse(value) <= 0) {
-                    return 'Amount must be greater than 0';
+                    return 'Amount must be greater than 0'.tr;
                   }
                   return null;
                 },
@@ -697,7 +695,7 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
                 onTap: hasDatePermission ? _selectDate : null,
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Payment Date',
+                    labelText: 'Payment Date'.tr,
                     border: const OutlineInputBorder(),
                     filled: true,
                     fillColor: isDark ? AppColors.darkCard : Colors.grey[200],
@@ -724,10 +722,10 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: _paymentMode,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Mode',
-                  border: OutlineInputBorder(),
+                initialValue: _paymentMode,
+                decoration: InputDecoration(
+                  labelText: 'Payment Mode'.tr,
+                  border: const OutlineInputBorder(),
                 ),
                 items: const [
                   DropdownMenuItem(value: 1, child: Text('Sales')),
@@ -741,10 +739,10 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: _paidPaymentType,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Type',
-                  border: OutlineInputBorder(),
+                initialValue: _paidPaymentType,
+                decoration: InputDecoration(
+                  labelText: 'Payment Type'.tr,
+                  border: const OutlineInputBorder(),
                 ),
                 items: const [
                   DropdownMenuItem(value: 1, child: Text('CASH')),
@@ -759,9 +757,9 @@ class _SupplierPaymentDialogState extends State<SupplierPaymentDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'Description (optional)'.tr,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),

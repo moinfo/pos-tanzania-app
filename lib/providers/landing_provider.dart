@@ -3,6 +3,7 @@ import '../config/clients_config.dart';
 import '../models/public_product.dart';
 import '../models/public_order.dart';
 import '../services/public_api_service.dart';
+import '../l10n/lang.dart';
 
 /// Provider for landing page state management
 class LandingProvider with ChangeNotifier {
@@ -12,7 +13,7 @@ class LandingProvider with ChangeNotifier {
   List<PublicProduct> _products = [];
   List<ProductCategory> _categories = [];
   BusinessInfo? _businessInfo;
-  List<CartItem> _cart = [];
+  final List<CartItem> _cart = [];
   List<PublicOrder> _orderHistory = [];
 
   // Loading states
@@ -240,11 +241,8 @@ class LandingProvider with ChangeNotifier {
     if (hasStockDisplay) {
       final availableStock = product.getStock(priceType);
 
-      // Check if item is in stock
-      if (availableStock <= 0) {
-        return 'Out of stock';
-      }
-
+      // Same rule as the live web shop: an item with no stock on record can
+      // still be ordered, so the checks below only apply when stock is tracked.
       // Find existing cart item with same price type
       final existingIndex = _cart.indexWhere(
         (item) => item.itemId == product.itemId && item.priceType == priceType
@@ -254,7 +252,7 @@ class LandingProvider with ChangeNotifier {
       final newTotalQty = currentCartQty + quantity;
 
       // Validate stock availability
-      if (newTotalQty > availableStock) {
+      if (availableStock > 0 && newTotalQty > availableStock) {
         return 'Insufficient stock (${availableStock.toInt()} available)';
       }
     }
@@ -301,8 +299,8 @@ class LandingProvider with ChangeNotifier {
         final availableStock = item.availableStock;
 
         // Validate stock availability
-        if (quantity > availableStock) {
-          return 'Maximum quantity reached (${availableStock.toInt()} available)';
+        if (availableStock > 0 && quantity > availableStock) {
+          return 'Maximum quantity reached (${availableStock.toInt()} available)'.tr;
         }
       }
 
@@ -326,8 +324,8 @@ class LandingProvider with ChangeNotifier {
             : item.retailQuantity;
 
         // Validate stock for new price type
-        if (item.quantity > newAvailableStock) {
-          return 'Insufficient stock for ${priceType} (${newAvailableStock.toInt()} available)';
+        if (newAvailableStock > 0 && item.quantity > newAvailableStock) {
+          return 'Insufficient stock for $priceType (${newAvailableStock.toInt()} available)';
         }
       }
 

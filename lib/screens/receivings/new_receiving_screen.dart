@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import '../../utils/constants.dart';
 
@@ -17,6 +17,8 @@ import '../../services/stock_signal.dart';
 import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../widgets/app_bottom_navigation.dart';
+import '../../widgets/tr_text.dart';
+import '../../l10n/lang.dart';
 
 class NewReceivingScreen extends StatefulWidget {
   /// Optional list of items to preload into the cart (from Main Store)
@@ -129,7 +131,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
               onPressed: _returnPastReceiving,
               icon: const Icon(Icons.receipt_long),
               color: AppColors.warning,
-              tooltip: 'Load a receiving by its number',
+              tooltip: 'Load a receiving by its number'.tr,
             ),
         ],
       ),
@@ -149,10 +151,10 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
           controller: controller,
           autofocus: true,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Receiving number',
-            hintText: 'e.g. 8439',
-            prefixText: 'RECV ',
+          decoration: InputDecoration(
+            labelText: 'Receiving number'.tr,
+            hintText: 'e.g. 8439'.tr,
+            prefixText: 'RECV '.tr,
           ),
           onSubmitted: (v) => Navigator.pop(context, int.tryParse(v.trim())),
         ),
@@ -788,7 +790,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                   controller: _searchController,
                   style: TextStyle(color: isDark ? AppColors.darkText : Colors.black87),
                   decoration: InputDecoration(
-                    hintText: 'Search items to receive...',
+                    hintText: 'Search items to receive...'.tr,
                     hintStyle: TextStyle(
                       color: isDark ? AppColors.darkTextLight : Colors.grey.shade600,
                     ),
@@ -1061,7 +1063,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                                             ),
                                             Text(
                                               'Total: ${_formatCurrency(item.calculateTotal())}',
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
                                                 color: AppColors.success,
@@ -1129,13 +1131,13 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                       // Payment Type dropdown
                       // For Leruma: Only show Credit Card option
                       DropdownButtonFormField<String>(
-                        value: receivingProvider.paymentType,
+                        initialValue: receivingProvider.paymentType,
                         dropdownColor: isDark ? AppColors.darkCard : Colors.white,
                         style: TextStyle(
                           color: isDark ? AppColors.darkText : Colors.black87,
                         ),
                         decoration: InputDecoration(
-                          labelText: 'Payment Type',
+                          labelText: 'Payment Type'.tr,
                           labelStyle: TextStyle(
                             color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
                           ),
@@ -1200,11 +1202,11 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                       //     color: isDark ? AppColors.darkText : Colors.black87,
                       //   ),
                       //   decoration: InputDecoration(
-                      //     labelText: 'Reference (Optional)',
+                      //     labelText: 'Reference (Optional)'.tr,
                       //     labelStyle: TextStyle(
                       //       color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
                       //     ),
-                      //     hintText: 'PO number, invoice...',
+                      //     hintText: 'PO number, invoice...'.tr,
                       //     hintStyle: TextStyle(
                       //       color: isDark ? AppColors.darkTextLight : Colors.grey.shade500,
                       //     ),
@@ -1226,11 +1228,11 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                       //     color: isDark ? AppColors.darkText : Colors.black87,
                       //   ),
                       //   decoration: InputDecoration(
-                      //     labelText: 'Comment (Optional)',
+                      //     labelText: 'Comment (Optional)'.tr,
                       //     labelStyle: TextStyle(
                       //       color: isDark ? AppColors.darkTextLight : Colors.grey.shade700,
                       //     ),
-                      //     hintText: 'Additional notes...',
+                      //     hintText: 'Additional notes...'.tr,
                       //     hintStyle: TextStyle(
                       //       color: isDark ? AppColors.darkTextLight : Colors.grey.shade500,
                       //     ),
@@ -1261,7 +1263,7 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                               ),
                               Text(
                                 _formatCurrency(receivingProvider.total),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.success,
@@ -1395,9 +1397,9 @@ class _AddItemDialogState extends State<_AddItemDialog> {
           TextField(
             controller: _quantityController,
             focusNode: _quantityFocus,
-            decoration: const InputDecoration(
-              labelText: 'Quantity',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Quantity'.tr,
+              border: const OutlineInputBorder(),
             ),
             // decimal: true is what puts a usable keypad on iOS; plain
             // number gives a pad with no way to type a half-carton.
@@ -1414,9 +1416,9 @@ class _AddItemDialogState extends State<_AddItemDialog> {
           const SizedBox(height: 16),
           TextField(
             controller: _costPriceController,
-            decoration: const InputDecoration(
-              labelText: 'Cost Price (TSh)',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: 'Cost Price (TSh)'.tr,
+              border: const OutlineInputBorder(),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
