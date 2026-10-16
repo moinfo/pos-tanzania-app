@@ -67,7 +67,8 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> with TickerProviderStateMixin {
+class _MainNavigationState extends State<MainNavigation>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late int _selectedIndex;
 
   /// The permission-filtered tab list from the last build, so actions outside
@@ -79,8 +80,24 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    WidgetsBinding.instance.addObserver(this);
     _checkAuthStatus();
     _checkForUpdate();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Coming back to the app is when a grant changed on the web is most likely
+  /// to matter, so re-read them (throttled inside the provider).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<PermissionProvider>().refresh();
+    }
   }
 
   /// Ask the server once per sign-in whether a newer build is published, and
@@ -121,9 +138,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   /// Periodic check for auth token validity
   Future<void> _checkAuthStatus() async {
     // Check every 30 seconds if token still exists
+    var ticks = 0;
     while (mounted) {
       await Future.delayed(const Duration(seconds: 30));
       if (mounted) {
+        // ...and every couple of minutes pick up grant changes.
+        if (++ticks % 4 == 0) context.read<PermissionProvider>().refresh();
         final authProvider = context.read<AuthProvider>();
         await authProvider.checkTokenValidity();
         // Renew the session before it lapses, so a seller is not asked for

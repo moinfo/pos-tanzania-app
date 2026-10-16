@@ -2,6 +2,8 @@ import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/borrowed_money.dart';
+import '../../models/permission_model.dart';
+import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
@@ -166,15 +168,18 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const BorrowedMoneyFormScreen()),
-        ).then((_) => _loadRecords()),
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton:
+          context.watch<PermissionProvider>().hasPermission(PermissionIds.borrowedMoneyAdd)
+              ? FloatingActionButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const BorrowedMoneyFormScreen()),
+                  ).then((_) => _loadRecords()),
+                  backgroundColor: AppColors.primary,
+                  child: const Icon(Icons.add, color: Colors.white),
+                )
+              : null,
       body: Column(
         children: [
           // Date range + total summary bar
@@ -353,6 +358,10 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
+                                              if (context
+                                                  .watch<PermissionProvider>()
+                                                  .hasPermission(PermissionIds
+                                                      .borrowedMoneyEdit))
                                               IconButton(
                                                 icon: const Icon(
                                                     Icons.edit_outlined,
@@ -369,6 +378,10 @@ class _BorrowedMoneyListScreenState extends State<BorrowedMoneyListScreen> {
                                                 ).then(
                                                     (_) => _loadRecords()),
                                               ),
+                                              if (context
+                                                  .watch<PermissionProvider>()
+                                                  .hasPermission(PermissionIds
+                                                      .borrowedMoneyDelete))
                                               IconButton(
                                                 icon: const Icon(
                                                     Icons.delete_outline,

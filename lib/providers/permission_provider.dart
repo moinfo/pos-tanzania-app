@@ -96,6 +96,48 @@ class PermissionProvider with ChangeNotifier {
     }
   }
 
+  DateTime? _lastRefresh;
+
+  /// Re-read the grants from the server WITHOUT disturbing the UI: no loading
+  /// flag, and listeners are told only when the set actually changed.
+  ///
+  /// This is what makes an administrator's change on the web Employees screen
+  /// reach a phone that is already signed in. Before it, grants were fetched
+  /// once at login and cached, so revoking (or adding) a module changed
+  /// nothing on the device until the user signed out and back in.
+  ///
+  /// A failed or non-success response keeps what is cached -- being offline
+  /// must not take a seller's access away.
+  Future<void> refresh({bool force = false}) async {
+    final now = DateTime.now();
+    if (!force &&
+        _lastRefresh != null &&
+        now.difference(_lastRefresh!) < const Duration(seconds: 20)) {
+      return;
+    }
+    _lastRefresh = now;
+
+    try {
+      final response = await ApiService().getUserPermissions();
+      if (response['status'] != 'success') return;
+
+      final fresh = UserPermissionsResponse.fromJson(
+              response['data'] as Map<String, dynamic>)
+          .permissions;
+
+      final before = _permissions.map((p) => p.permissionId).toSet();
+      final after = fresh.map((p) => p.permissionId).toSet();
+      if (before.length == after.length && before.containsAll(after)) return;
+
+      _permissions = fresh;
+      await _savePermissionsLocally();
+      debugPrint('🔄 Permissions changed on the server: ${after.length} granted');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Permission refresh skipped: $e');
+    }
+  }
+
   /// Save permissions to local storage
   Future<void> _savePermissionsLocally() async {
     try {

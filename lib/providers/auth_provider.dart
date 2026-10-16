@@ -125,6 +125,10 @@ class AuthProvider with ChangeNotifier {
           // If no permissions in local storage, fetch from API
           if (_permissionProvider!.permissions.isEmpty) {
             await _permissionProvider!.fetchPermissions();
+          } else {
+            // The cache paints the menu at once; the server has the last word.
+            // Not awaited: nothing about resuming a session waits on it.
+            _permissionProvider!.refresh(force: true);
           }
         }
 
