@@ -70,7 +70,7 @@ class ClientsConfig {
       id: 'sada',
       name: 'dev-sada',
       displayName: 'Kiwangwa Shop',
-      devApiUrl: localBaseUrl,
+      devApiUrl: 'https://kiwangwa.co.tz/api',
       prodApiUrl: 'https://kiwangwa.co.tz/api',
       logoUrl: 'assets/images/sada-logo.png',
       branding: const ClientBranding(appTitle: 'Kiwangwa Shop'),
