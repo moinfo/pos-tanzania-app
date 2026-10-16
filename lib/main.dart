@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker_android/image_picker_android.dart';
@@ -260,11 +261,24 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  // Drives the ball orbiting the Saichi logo.
+  late final AnimationController _orbit = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat();
+
   @override
   void initState() {
     super.initState();
     _checkAuth();
+  }
+
+  @override
+  void dispose() {
+    _orbit.dispose();
+    super.dispose();
   }
 
   @override
@@ -313,25 +327,61 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: Colors.white, width: 4),
+              SizedBox(
+                width: 230,
+                height: 230,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Faint track the ball runs along.
+                    Container(
+                      width: 210,
+                      height: 210,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(32),
+                        border: Border.all(color: Colors.white, width: 4),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: SvgPicture.asset(
+                          'assets/images/scl_logo.svg',
+                          width: 132,
+                          height: 132,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    AnimatedBuilder(
+                      animation: _orbit,
+                      builder: (_, __) {
+                        final a = _orbit.value * 2 * math.pi - math.pi / 2;
+                        return Transform.translate(
+                          offset: Offset(105 * math.cos(a), 105 * math.sin(a)),
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(color: Colors.black26, blurRadius: 6),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: SvgPicture.asset(
-                    'assets/images/scl_logo.svg',
-                    width: 132,
-                    height: 132,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-              const CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 3,
               ),
             ],
           ),

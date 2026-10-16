@@ -383,7 +383,7 @@ class ProductGridCard extends StatelessWidget {
       Share.share('$_summary\n$_shopUrl', subject: product.name);
 
   Future<void> _openWhatsApp(BuildContext context) async {
-    const number = '255752030302';
+    const number = '255713727566';
     final text = Uri.encodeComponent(
       "Hi! I'm interested in:\n\n*${product.name.trim()}*\n"
       '${_summary.substring(product.name.trim().length)}\n\n'

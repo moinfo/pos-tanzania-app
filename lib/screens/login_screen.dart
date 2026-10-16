@@ -339,8 +339,9 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _submitBiometric() async {
-    if (_bioPrompting)
+    if (_bioPrompting) {
       return; // guard double taps while the sensor is prompting
+    }
     setState(() => _bioPrompting = true);
     try {
       await _loginWithBiometric();
@@ -409,10 +410,19 @@ class _LoginScreenState extends State<LoginScreen>
     final topPad = MediaQuery.paddingOf(context).top;
     final systemBottom = MediaQuery.paddingOf(context).bottom;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    // The hero gives way to the keyboard instead of pushing the form off-screen.
-    final heroHeight =
-        topPad + (keyboardOpen ? 196.0 : math.min(size.height * 0.40, 330.0));
     const overlap = 38.0;
+    const cardMargin = 18.0;
+    if (size.width > size.height) return _buildModernLandscape(client);
+    // The logo spans the form card's width; the hero grows to fit it (and
+    // gives way to the keyboard instead of pushing the form off-screen).
+    final logoWidth = size.width - cardMargin * 2;
+    final logoHeight = keyboardOpen ? 76.0 : logoWidth * 0.5;
+    final heroHeight = topPad +
+        58 +
+        logoHeight +
+        (keyboardOpen ? 0.0 : 18 + 34) +
+        overlap +
+        6;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light
@@ -440,7 +450,10 @@ class _LoginScreenState extends State<LoginScreen>
                     child: Padding(
                       padding: EdgeInsets.only(
                           top: topPad + 58, bottom: overlap + 6),
-                      child: _buildHero(client, compact: keyboardOpen),
+                      child: _buildHero(client,
+                          compact: keyboardOpen,
+                          logoWidth: logoWidth,
+                          logoHeight: logoHeight),
                     ),
                   ),
                 ),
@@ -476,6 +489,72 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Landscape: the logo hero on the left, the form scrolling on the right,
+  /// so neither is squeezed into the short screen height.
+  Widget _buildModernLandscape(ClientConfig? client) {
+    final size = MediaQuery.sizeOf(context);
+    final side = MediaQuery.paddingOf(context);
+    final topPad = side.top;
+    final heroWidth = size.width * 0.42;
+    final logoWidth = math.min(heroWidth - 56, 360.0);
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light
+          .copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: _bg,
+        body: Stack(
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: heroWidth,
+                  height: double.infinity,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.horizontal(
+                        right: Radius.circular(40)),
+                    child: CustomPaint(
+                      painter: _HeroPainter(
+                        animation: _loop,
+                        brand: _brandBlue,
+                        deep: _brandDeep,
+                        dark: _dark,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                            math.max(28.0, side.left), topPad + 8, 28, 8),
+                        child: Center(
+                          child: _buildHero(client,
+                              logoWidth: logoWidth,
+                              logoHeight: logoWidth * 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.fromLTRB(
+                        0, topPad + 56, side.right, 14 + side.bottom),
+                    child: _buildFormSheet(client, floating: true),
+                  ),
+                ),
+              ],
+            ),
+            Positioned(
+              top: topPad + 6,
+              left: 0,
+              right: 0,
+              child: _buildTopBar(glass: false),
+            ),
+          ],
         ),
       ),
     );
@@ -810,15 +889,20 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   /// The logo tile for this client, drawn at [size] square.
-  Widget _logoArtwork(ClientConfig? client, double size) {
+  Widget _logoArtwork(ClientConfig? client, double width, double height) {
     if (client?.id == 'saichi') {
+      // Banner crop of the square tile: the SCL lettering sits in the middle.
       return SvgPicture.asset('assets/images/scl_logo.svg',
-          width: size, height: size, fit: BoxFit.cover);
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          alignment: const Alignment(0, -0.25));
     }
+    final size = math.min(width, height);
     // Other marks are artwork without a ground of their own: keep them on white.
     return Container(
-      width: size,
-      height: size,
+      width: width,
+      height: height,
       color: Colors.white,
       padding: EdgeInsets.all(size * 0.14),
       child: client?.id == 'leruma' || client?.logoUrl == null
@@ -833,7 +917,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   /// Logo with two rippling halos and a gentle float, popping in on entry.
-  Widget _buildLogoBadge(ClientConfig? client, double size) {
+  Widget _buildLogoBadge(ClientConfig? client, double width, double height) {
     return AnimatedBuilder(
       animation: Listenable.merge([_loop, _intro]),
       builder: (context, _) {
@@ -846,12 +930,12 @@ class _LoginScreenState extends State<LoginScreen>
 
         Widget ripple(double phase) {
           final r = (t + phase) % 1.0;
-          final d = size * (1.05 + 0.85 * r);
+          final grow = 8 + 22 * r;
           return Container(
-            width: d,
-            height: d,
+            width: width + grow * 2,
+            height: height + grow * 2,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(size * 0.34 + 14 * r),
+              borderRadius: BorderRadius.circular(34 + 14 * r),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.42 * (1 - r)),
                 width: 2,
@@ -867,8 +951,8 @@ class _LoginScreenState extends State<LoginScreen>
             child: Transform.scale(
               scale: 0.5 + 0.5 * pop,
               child: SizedBox(
-                width: size,
-                height: size,
+                width: width,
+                height: height,
                 child: Stack(
                   clipBehavior: Clip.none,
                   alignment: Alignment.center,
@@ -876,10 +960,10 @@ class _LoginScreenState extends State<LoginScreen>
                     ripple(0),
                     ripple(0.5),
                     Container(
-                      width: size,
-                      height: size,
+                      width: width,
+                      height: height,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(size * 0.27),
+                        borderRadius: BorderRadius.circular(30),
                         border: Border.all(color: Colors.white, width: 3.5),
                         boxShadow: [
                           BoxShadow(
@@ -894,8 +978,8 @@ class _LoginScreenState extends State<LoginScreen>
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(size * 0.27 - 3.5),
-                        child: _logoArtwork(client, size - 7),
+                        borderRadius: BorderRadius.circular(30 - 3.5),
+                        child: _logoArtwork(client, width - 7, height - 7),
                       ),
                     ),
                   ],
@@ -908,74 +992,50 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  /// Hero content on the gradient: the logo, the app name, the tagline.
-  Widget _buildHero(ClientConfig? client, {bool compact = false}) {
-    final title = client?.branding.appTitle ?? AppConstants.appName;
+  /// Hero content on the gradient: the logo banner (as wide as the form card
+  /// below it) and the tagline.
+  Widget _buildHero(ClientConfig? client,
+      {bool compact = false, required double logoWidth, double? logoHeight}) {
     final tagline = client?.branding.tagline ?? "Always make customer's rights";
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildLogoBadge(client, compact ? 62 : 104),
-        SizedBox(height: compact ? 12 : 22),
-        AnimatedBuilder(
-          animation: _intro,
-          builder: (context, child) {
-            final t = Curves.easeOut
-                .transform(((_intro.value - 0.25) / 0.55).clamp(0.0, 1.0));
-            return Opacity(
-              opacity: t,
-              child: Transform.translate(
-                  offset: Offset(0, 12 * (1 - t)), child: child),
-            );
-          },
-          child: Column(
-            children: [
-              Text(
-                title,
+        _buildLogoBadge(
+            client, logoWidth, logoHeight ?? (compact ? 76 : logoWidth * 0.5)),
+        if (!compact) ...[
+          const SizedBox(height: 18),
+          AnimatedBuilder(
+            animation: _intro,
+            builder: (context, child) {
+              final t = Curves.easeOut
+                  .transform(((_intro.value - 0.25) / 0.55).clamp(0.0, 1.0));
+              return Opacity(
+                opacity: t,
+                child: Transform.translate(
+                    offset: Offset(0, 12 * (1 - t)), child: child),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.38)),
+              ),
+              child: Text(
+                tagline,
                 textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: compact ? 21 : 27,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.4,
-                  height: 1.1,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.25,
                   color: Colors.white,
-                  shadows: const [
-                    Shadow(
-                        color: Color(0x33000000),
-                        blurRadius: 12,
-                        offset: Offset(0, 3)),
-                  ],
                 ),
               ),
-              if (!compact) ...[
-                const SizedBox(height: 9),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.38)),
-                  ),
-                  child: Text(
-                    tagline,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.25,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -1674,8 +1734,9 @@ class _LoginScreenState extends State<LoginScreen>
                     obscureText: obscure,
                     // Typing clears the inline error, per the spec
                     onChanged: (_) {
-                      if (_inlineError != null)
+                      if (_inlineError != null) {
                         setState(() => _inlineError = null);
+                      }
                     },
                     onSubmitted: (_) => _submit(),
                     cursorColor: _brandBlue,

@@ -1,3 +1,4 @@
+import '../widgets/saichi_logo_tile.dart';
 import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -376,7 +377,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          if (ApiService.currentClient?.logoUrl != null)
+                          if (ApiService.currentClient?.id == 'saichi')
+                            const Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: SaichiLogoTile(size: 36),
+                            )
+                          else if (ApiService.currentClient?.logoUrl != null)
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: Image.asset(

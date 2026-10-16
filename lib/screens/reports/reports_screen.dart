@@ -5,7 +5,7 @@ import '../../models/permission_model.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../utils/constants.dart';
-import '../../widgets/glassmorphic_card.dart';
+import '../../widgets/breathing_stat_card.dart';
 import 'report_view_screen.dart';
 import '../../widgets/tr_text.dart';
 import '../../widgets/app_bottom_navigation.dart';
@@ -42,6 +42,7 @@ class ReportsScreen extends StatelessWidget {
               _buildSection(
                 context: context,
                 title: 'Summary Reports',
+                color: AppColors.brandPrimary,
                 icon: Icons.summarize,
                 isDark: isDark,
                 reports: [
@@ -93,6 +94,7 @@ class ReportsScreen extends StatelessWidget {
               _buildSection(
                 context: context,
                 title: 'Detailed Reports',
+                color: AppColors.success,
                 icon: Icons.list_alt,
                 isDark: isDark,
                 reports: [
@@ -124,6 +126,7 @@ class ReportsScreen extends StatelessWidget {
               _buildSection(
                 context: context,
                 title: 'Inventory Reports',
+                color: const Color(0xFFF59E0B),
                 icon: Icons.inventory,
                 isDark: isDark,
                 reports: [
@@ -143,6 +146,7 @@ class ReportsScreen extends StatelessWidget {
               _buildSection(
                 context: context,
                 title: 'Graphical Reports',
+                color: const Color(0xFF8B5CF6),
                 icon: Icons.bar_chart,
                 isDark: isDark,
                 reports: [
@@ -171,6 +175,7 @@ class ReportsScreen extends StatelessWidget {
   Widget _buildSection({
     required BuildContext context,
     required String title,
+    required Color color,
     required IconData icon,
     required bool isDark,
     required List<_ReportItem> reports,
@@ -196,12 +201,12 @@ class ReportsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 icon,
-                color: AppColors.primary,
+                color: color,
                 size: 20,
               ),
             ),
@@ -221,6 +226,7 @@ class ReportsScreen extends StatelessWidget {
         // Report Cards Grid
         GridView.builder(
           shrinkWrap: true,
+          clipBehavior: Clip.none, // let the glow and lift spill past the grid
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
@@ -234,6 +240,7 @@ class ReportsScreen extends StatelessWidget {
             return _buildReportCard(
               context: context,
               reportType: report.type,
+              color: color,
               isDark: isDark,
             );
           },
@@ -245,51 +252,46 @@ class ReportsScreen extends StatelessWidget {
   Widget _buildReportCard({
     required BuildContext context,
     required ReportType reportType,
+    required Color color,
     required bool isDark,
   }) {
-    return GlassmorphicCard(
+    return BreathingSurface(
+      color: color,
       isDark: isDark,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ReportViewScreen(reportType: reportType),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  _getReportIcon(reportType),
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                reportType.displayName,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.darkText : AppColors.text,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+      phaseKey: reportType.displayName,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReportViewScreen(reportType: reportType),
           ),
+        );
+      },
+      builder: (context, t) => Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            BreathingIconTile(
+              icon: _getReportIcon(reportType),
+              color: color,
+              t: t,
+              size: 44,
+              iconSize: 22,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              reportType.displayName,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.darkText : AppColors.text,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );

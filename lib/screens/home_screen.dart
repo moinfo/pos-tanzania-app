@@ -16,6 +16,7 @@ import '../config/clients_config.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../utils/friendly_error.dart';
+import '../widgets/breathing_stat_card.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/state_views.dart';
 import 'daily_debt_report_screen.dart';
@@ -1094,66 +1095,13 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color color,
     required bool isDark,
   }) {
-    return GlassmorphicCard(
+    return BreathingStatCard(
+      title: title,
+      amount: amount,
+      icon: icon,
+      color: color,
       isDark: isDark,
-      padding: const EdgeInsets.all(14.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon container
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              gradient: LinearGradient(
-                colors: [
-                  color.withOpacity(isDark ? 0.3 : 0.2),
-                  color.withOpacity(isDark ? 0.2 : 0.1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(
-                color: color.withOpacity(isDark ? 0.4 : 0.3),
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: isDark ? color.withOpacity(0.9) : color,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Title
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-
-          // Amount
-          Text(
-            Formatters.formatCurrency(amount),
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkText : AppColors.text,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
+      compact: true,
     );
   }
 
@@ -1164,69 +1112,12 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color color,
     required bool isDark,
   }) {
-    return GlassmorphicCard(
+    return BreathingStatCard(
+      title: title,
+      amount: amount,
+      icon: icon,
+      color: color,
       isDark: isDark,
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon container with gradient
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                colors: [
-                  color.withOpacity(0.8),
-                  color,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Title
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-
-          // Amount
-          Text(
-            Formatters.formatCurrency(amount),
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkText : AppColors.text,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
     );
   }
 

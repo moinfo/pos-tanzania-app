@@ -3,6 +3,7 @@
 /// @desc Created on 2026-10-10 9:29:06 am
 /// @copyright GNU General Public License v3.0
 library;
+import '../../widgets/saichi_logo_tile.dart';
 import 'package:flutter/material.dart' hide Text;
 import 'package:provider/provider.dart';
 import '../../providers/landing_provider.dart';
@@ -153,6 +154,9 @@ class _LandingScreenState extends State<LandingScreen> {
       titleSpacing: 10,
       title: Row(
         children: [
+          if (client?.id == 'saichi')
+            const SaichiLogoTile(size: 38)
+          else
           // White ring so the green logo tile stands out on the green bar.
           Container(
             decoration: BoxDecoration(

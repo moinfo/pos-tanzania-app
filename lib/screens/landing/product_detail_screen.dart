@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart' hide Text;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/public_product.dart';
 import '../../providers/landing_provider.dart';
+import '../../services/api_service.dart';
 import '../../services/public_api_service.dart';
 import 'landing_screen.dart';
 import '../../widgets/tr_text.dart';
@@ -174,6 +178,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
       ),
       actions: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.94),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            tooltip: 'Share',
+            icon: const Icon(Icons.share_rounded, color: Color(0xFF14213D)),
+            onPressed: _share,
+          ),
+        ),
         Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -420,63 +436,100 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
           const SizedBox(height: 14),
 
-          // Price
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                'TZS',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: brand,
-                ),
+          // Price banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  brand.withOpacity(widget.isDarkMode ? 0.28 : 0.14),
+                  brand.withOpacity(widget.isDarkMode ? 0.12 : 0.04),
+                ],
               ),
-              const SizedBox(width: 5),
-              Text(
-                _formatPrice(_product.retailPrice),
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                  letterSpacing: -0.5,
-                  color: brand,
-                ),
-              ),
-              if (_product.hasWholesalePrice) ...[
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: brand.withOpacity(0.10),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: brand.withOpacity(0.35)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Wholesale',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: brand,
-                        ),
+              border: Border.all(color: brand.withOpacity(0.25)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Price',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4,
+                        color: _subtextColor,
                       ),
-                      Text(
-                        'TZS ${_formatPrice(_product.wholesalePrice)}',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                          color: brand,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'TZS',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: brand,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _formatPrice(_product.retailPrice),
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                            letterSpacing: -0.5,
+                            color: brand,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+                if (_product.hasWholesalePrice) ...[
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: brand.withOpacity(0.35)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Wholesale',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _subtextColor,
+                          ),
+                        ),
+                        Text(
+                          'TZS ${_formatPrice(_product.wholesalePrice)}',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            color: brand,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
 
           // Stock indicator (only shown if feature enabled for this client)
@@ -1021,7 +1074,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 12, 14, 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         decoration: BoxDecoration(
           color: _cardColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
@@ -1033,75 +1086,168 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
                 Text(
                   'Total',
                   style: TextStyle(
                     color: _subtextColor,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(width: 8),
+                Text(
+                  '$_quantity × TZS ${_formatPrice(unitPrice)}',
+                  style: TextStyle(color: _subtextColor, fontSize: 12),
+                ),
+                const Spacer(),
                 Text(
                   'TZS ${_formatPrice(total)}',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: 20,
                     fontWeight: FontWeight.w900,
                     color: _textColor,
                   ),
                 ),
               ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: GestureDetector(
-                onTap: _addToCart,
-                child: Container(
-                  height: 54,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [brand, deep],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: brand.withOpacity(0.40),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_shopping_cart_rounded, size: 22, color: Colors.white),
-                      SizedBox(width: 10),
-                      Text(
-                        'Add to Cart',
-                        style: TextStyle(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 0.2,
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _addToCart,
+                    child: Container(
+                      height: 54,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [brand, deep],
                         ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: brand.withOpacity(0.40),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                    ],
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_shopping_cart_rounded,
+                              size: 22, color: Colors.white),
+                          SizedBox(width: 10),
+                          Text(
+                            'Add to Cart',
+                            style: TextStyle(
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                _actionSquare(
+                  tooltip: 'WhatsApp',
+                  color: const Color(0xFF25D366),
+                  onTap: _openWhatsApp,
+                  child: const FaIcon(FontAwesomeIcons.whatsapp,
+                      color: Colors.white, size: 26),
+                ),
+                const SizedBox(width: 10),
+                _actionSquare(
+                  tooltip: 'Share',
+                  color: const Color(0xFF14213D),
+                  onTap: _share,
+                  child: const Icon(Icons.share_rounded,
+                      color: Colors.white, size: 24),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _actionSquare({
+    required String tooltip,
+    required Color color,
+    required VoidCallback onTap,
+    required Widget child,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 54,
+          height: 54,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.38),
+                blurRadius: 12,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  String get _shopUrl {
+    final api = ApiService.baseUrlSync;
+    return api.endsWith('/api') ? api.substring(0, api.length - 4) : api;
+  }
+
+  String get _summary {
+    final b = StringBuffer(_product.name.trim());
+    if (_product.category.isNotEmpty) b.write(' (${_product.category})');
+    b.write('\nPrice: TZS ${_formatPrice(_product.retailPrice)}');
+    if (_product.hasWholesalePrice) {
+      b.write('\nWholesale: TZS ${_formatPrice(_product.wholesalePrice)}');
+    }
+    return b.toString();
+  }
+
+  Future<void> _share() =>
+      Share.share('$_summary\n$_shopUrl', subject: _product.name);
+
+  Future<void> _openWhatsApp() async {
+    const number = '255713727566';
+    final text = Uri.encodeComponent(
+      "Hi! I'm interested in:\n\n*${_product.name.trim()}*\n"
+      '${_summary.substring(_product.name.trim().length)}\n\n'
+      'Can you tell me more about this product?',
+    );
+    try {
+      await launchUrl(Uri.parse('https://wa.me/$number?text=$text'),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open WhatsApp')),
+        );
+      }
+    }
   }
 
   void _addToCart() {
