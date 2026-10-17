@@ -1244,7 +1244,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open WhatsApp')),
+          const SnackBar(content: Text('Could not open WhatsApp')),
         );
       }
     }
