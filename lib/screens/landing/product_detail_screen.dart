@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart' hide Text;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/public_product.dart';
 import '../../providers/landing_provider.dart';
+import '../../services/api_service.dart';
 import '../../services/public_api_service.dart';
 import 'landing_screen.dart';
 import '../../widgets/tr_text.dart';
@@ -1012,16 +1016,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildBottomBar() {
     final brand = LandingColors.primaryRed;
-    final deep = HSLColor.fromColor(brand)
-        .withLightness((HSLColor.fromColor(brand).lightness * 0.7).clamp(0.0, 1.0))
-        .toColor();
+
     final unitPrice =
         _priceType == 'wholesale' ? _product.wholesalePrice : _product.retailPrice;
     final total = unitPrice * _quantity;
 
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 12, 14, 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         decoration: BoxDecoration(
           color: _cardColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
@@ -1033,75 +1035,186 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // Row 1: what this selection costs, and what is already in the cart.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  'Total',
-                  style: TextStyle(
-                    color: _subtextColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'TZS ${_formatPrice(total)}',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    color: _textColor,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$_quantity × TZS ${_formatPrice(unitPrice)}',
+                      style: TextStyle(color: _subtextColor, fontSize: 12),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'TZS ${_formatPrice(total)}',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: _textColor,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: GestureDetector(
-                onTap: _addToCart,
-                child: Container(
-                  height: 54,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [brand, deep],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: brand.withOpacity(0.40),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_shopping_cart_rounded, size: 22, color: Colors.white),
-                      SizedBox(width: 10),
-                      Text(
-                        'Add to Cart',
-                        style: TextStyle(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 0.2,
+            const SizedBox(height: 10),
+            // Row 2: the same small icon trio as the landing-page card. Once
+            // something is in the cart, a checkout button with the cart count
+            // appears to the right of Share.
+            Row(
+              children: [
+                _actionSquare(
+                  tooltip: 'Add to Cart',
+                  color: brand,
+                  onTap: _addToCart,
+                  child: const Icon(Icons.add_shopping_cart_rounded,
+                      size: 18, color: Colors.white),
+                ),
+                const SizedBox(width: 6),
+                _actionSquare(
+                  tooltip: 'WhatsApp',
+                  color: const Color(0xFF25D366),
+                  onTap: _openWhatsApp,
+                  child: const FaIcon(FontAwesomeIcons.whatsapp,
+                      size: 18, color: Colors.white),
+                ),
+                const SizedBox(width: 6),
+                _actionSquare(
+                  tooltip: 'Share',
+                  color: widget.isDarkMode
+                      ? const Color(0xFF3A3A3A)
+                      : const Color(0xFF4A4F57),
+                  onTap: _share,
+                  child: const Icon(Icons.share_rounded,
+                      size: 17, color: Colors.white),
+                ),
+                Selector<LandingProvider, int>(
+                  // Distinct products, not units: adding the same product again
+                  // raises its quantity in the cart, not this count.
+                  selector: (_, p) => p.cart.map((c) => c.itemId).toSet().length,
+                  builder: (_, count, __) {
+                    if (count == 0) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 10),
+                      child: GestureDetector(
+                        onTap: _openCart,
+                        child: Container(
+                          height: 36,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: brand.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: brand, width: 1.5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.shopping_cart_checkout_rounded,
+                                  size: 17, color: brand),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Checkout · $count',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: brand,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// 36px rounded tile, the same size and radius as the landing-page card's
+  /// action buttons.
+  Widget _actionSquare({
+    required String tooltip,
+    required Color color,
+    required VoidCallback onTap,
+    required Widget child,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  String get _shopUrl {
+    final api = ApiService.baseUrlSync;
+    return api.endsWith('/api') ? api.substring(0, api.length - 4) : api;
+  }
+
+  String get _summary {
+    final b = StringBuffer(_product.name.trim());
+    if (_product.category.isNotEmpty) b.write(' (${_product.category})');
+    b.write('\nPrice: TZS ${_formatPrice(_product.retailPrice)}');
+    if (_product.hasWholesalePrice) {
+      b.write('\nWholesale: TZS ${_formatPrice(_product.wholesalePrice)}');
+    }
+    return b.toString();
+  }
+
+  Future<void> _share() =>
+      Share.share('$_summary\n$_shopUrl', subject: _product.name);
+
+  /// Same number and message as the landing-page card's WhatsApp button.
+  Future<void> _openWhatsApp() async {
+    const number = '255752030302';
+    final text = Uri.encodeComponent(
+      "Hi! I'm interested in:\n\n*${_product.name.trim()}*\n"
+      '${_summary.substring(_product.name.trim().length)}\n\n'
+      'Can you tell me more about this product?',
+    );
+    try {
+      await launchUrl(Uri.parse('https://wa.me/$number?text=$text'),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open WhatsApp')),
+        );
+      }
+    }
+  }
+
+  /// Back to the landing screen, straight into checkout.
+  ///
+  /// The page is popped first and the request made after the frame: the
+  /// checkout sheet is a route, and opening it while this page is still on
+  /// top would put it above this page and the pop would close the sheet.
+  void _openCart() {
+    final provider = context.read<LandingProvider>();
+    final navigator = Navigator.of(context);
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    if (navigator.canPop()) navigator.pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) => provider.openCheckout());
   }
 
   void _addToCart() {
@@ -1133,30 +1246,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text('${_product.name} added to cart'),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
-        action: SnackBarAction(
-          label: 'View Cart',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-    );
+    // No toast on success: it covered the buttons. The "In cart" chip above
+    // Add to Cart appears and updates instead, and leads to checkout.
   }
 
   /// Show message when user tries to long-press save image

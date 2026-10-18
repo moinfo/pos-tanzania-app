@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Text;
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/public_order.dart';
@@ -36,6 +37,25 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
   @override
   bool get wantKeepAlive => true;
 
+  late final LandingProvider _landing;
+
+  @override
+  void initState() {
+    super.initState();
+    _landing = context.read<LandingProvider>();
+    _landing.checkoutRequest.addListener(_openCheckoutIfRequested);
+    // The page can be built because of the request, after it was made.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openCheckoutIfRequested());
+  }
+
+  /// "View Cart" from anywhere in the shop lands here with checkout open.
+  void _openCheckoutIfRequested() {
+    if (!mounted || !_landing.checkoutPending) return;
+    _landing.checkoutPending = false;
+    if (_landing.isCartEmpty) return;
+    _showCheckoutDialog(_landing);
+  }
+
   Color get _bgColor => widget.isDarkMode ? const Color(0xFF121212) : Colors.white;
   Color get _cardColor => widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
   Color get _textColor => widget.isDarkMode ? Colors.white : Colors.black;
@@ -43,6 +63,7 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
 
   @override
   void dispose() {
+    _landing.checkoutRequest.removeListener(_openCheckoutIfRequested);
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
@@ -783,76 +804,454 @@ class _CartScreenState extends State<CartScreen> with AutomaticKeepAliveClientMi
     }
   }
 
+  /// Shown once the order is saved: a clear "it worked" moment with the order
+  /// number (copyable), what was ordered and what happens next.
   void _showOrderSuccess(PublicOrder order) {
     final isDark = widget.isDarkMode;
-    final dialogBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final dialogTextColor = isDark ? Colors.white : Colors.black;
-    final dialogSubtextColor = isDark ? Colors.grey[400] : Colors.grey[600];
+    final bg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final ink = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final muted = isDark ? Colors.grey[400]! : const Color(0xFF6B7280);
+    final panel = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF5F6F8);
+    final brand = LandingColors.primaryRed;
+    final products = order.items.map((i) => i.itemId).toSet().length;
+    final count = products > 0 ? products : order.itemsCount;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: dialogBgColor,
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green[500], size: 28),
-            const SizedBox(width: 8),
-            Text('Order Placed!', style: TextStyle(color: dialogTextColor)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Order Number: ${order.orderNumber}', style: TextStyle(color: dialogTextColor)),
-            const SizedBox(height: 8),
-            Text('Total: TZS ${_formatPrice(order.total)}', style: TextStyle(color: dialogTextColor)),
-            const SizedBox(height: 16),
-            Text(
-              'We will contact you at ${order.customer.phone} to confirm your order.',
-              style: TextStyle(color: dialogSubtextColor),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(); // Close dialog
-              // Navigate to Orders tab
-              widget.onNavigateToOrders?.call();
-            },
-            child: const Text('View My Orders'),
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
-        ],
+          clipBehavior: Clip.antiAlias,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Brand-coloured header with the check mark popping in.
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(top: 30, bottom: 26),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        brand,
+                        HSLColor.fromColor(brand)
+                            .withLightness(
+                                (HSLColor.fromColor(brand).lightness * 0.7)
+                                    .clamp(0.0, 1.0))
+                            .toColor(),
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.3, end: 1.0),
+                        duration: const Duration(milliseconds: 650),
+                        curve: Curves.elasticOut,
+                        builder: (_, scale, child) =>
+                            Transform.scale(scale: scale, child: child),
+                        child: Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.18),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.45),
+                                width: 2),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 62,
+                              height: 62,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                              ),
+                              child: Icon(Icons.check_rounded,
+                                  size: 42, color: brand),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Order Placed!',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Thank you for shopping with us',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+                  child: Column(
+                    children: [
+                      // Order number, tap to copy.
+                      InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          Clipboard.setData(
+                              ClipboardData(text: order.orderNumber));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Order number copied'),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: brand,
+                              duration: const Duration(seconds: 2),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: brand.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: brand.withValues(alpha: 0.4),
+                                width: 1.2),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.confirmation_number_outlined,
+                                  size: 22, color: brand),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Order number',
+                                        style: TextStyle(
+                                            fontSize: 11.5, color: muted)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      order.orderNumber,
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.5,
+                                        color: ink,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.copy_rounded, size: 19, color: brand),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // What was ordered.
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: panel,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.shopping_bag_outlined,
+                                size: 20, color: muted),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                count == 1 ? '1 product' : '$count products',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: ink,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              'TZS ${_formatPrice(order.total)}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // What happens next.
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.phone_in_talk_outlined,
+                              size: 19, color: brand),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'We will contact you at ${order.customer.phone} '
+                              'to confirm your order.',
+                              style: TextStyle(
+                                  fontSize: 13.5, height: 1.4, color: muted),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                  child: Column(
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop();
+                          // Navigate to Orders tab
+                          widget.onNavigateToOrders?.call();
+                        },
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          backgroundColor: brand,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                        ),
+                        icon: const Icon(Icons.receipt_long_rounded, size: 20),
+                        label: const Text('View My Orders',
+                            style: TextStyle(
+                                fontSize: 15.5, fontWeight: FontWeight.w800)),
+                      ),
+                      const SizedBox(height: 6),
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        child: Text('Continue shopping',
+                            style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: muted)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
+  /// Confirmation shown before the whole cart is emptied. Says what is about
+  /// to be lost (how many products and the total) so "Clear" is never a
+  /// surprise, with the safe choice first and the destructive one in red.
   void _confirmClearCart(LandingProvider provider) {
     final isDark = widget.isDarkMode;
-    final dialogBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final dialogTextColor = isDark ? Colors.white : Colors.black;
+    final bg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final ink = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final muted = isDark ? Colors.grey[400]! : const Color(0xFF6B7280);
+    const danger = Color(0xFFE53935);
+
+    final products = provider.cart.map((c) => c.itemId).toSet().length;
+    final total = provider.cartTotal;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: dialogBgColor,
-        title: Text('Clear Cart?', style: TextStyle(color: dialogTextColor)),
-        content: Text('Are you sure you want to remove all items from your cart?', style: TextStyle(color: dialogTextColor)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              provider.clearCart();
-              Navigator.pop(context);
-            },
-            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Soft red header with the icon popping in.
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(top: 28, bottom: 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      danger.withValues(alpha: isDark ? 0.22 : 0.14),
+                      danger.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.6, end: 1.0),
+                  duration: const Duration(milliseconds: 420),
+                  curve: Curves.elasticOut,
+                  builder: (_, scale, child) =>
+                      Transform.scale(scale: scale, child: child),
+                  child: Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: danger.withValues(alpha: 0.12),
+                      border: Border.all(
+                          color: danger.withValues(alpha: 0.35), width: 2),
+                    ),
+                    child: const Icon(Icons.remove_shopping_cart_rounded,
+                        size: 36, color: danger),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: Column(
+                  children: [
+                    Text(
+                      'Clear your cart?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                        color: ink,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'All items will be removed from your cart. '
+                      'This cannot be undone.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, height: 1.4, color: muted),
+                    ),
+                    const SizedBox(height: 16),
+                    // What is about to be lost.
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF2A2A2A)
+                            : const Color(0xFFF5F6F8),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.shopping_bag_outlined,
+                              size: 20, color: muted),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              products == 1
+                                  ? '1 product'
+                                  : '$products products',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: ink,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            'TZS ${_formatPrice(total)}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: ink,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 22),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          foregroundColor: ink,
+                          side: BorderSide(
+                              color: isDark
+                                  ? Colors.grey[700]!
+                                  : const Color(0xFFD1D5DB)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('Keep items',
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          provider.clearCart();
+                          Navigator.pop(dialogContext);
+                        },
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          backgroundColor: danger,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                        ),
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            size: 20),
+                        label: const Text('Clear cart',
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -341,6 +341,36 @@ class LandingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Tab the landing screen should switch to (0 = Cart, 1 = Home, 2 = Orders).
+  /// Screens pushed on top of the landing screen set this, then pop back; the
+  /// landing screen consumes it and resets it to null.
+  final ValueNotifier<int?> tabRequest = ValueNotifier<int?>(null);
+
+  /// Set by [openCheckout]; the cart screen takes it (once) and opens its
+  /// checkout sheet. A flag rather than a call because the cart page may not
+  /// be built yet when the request is made.
+  bool checkoutPending = false;
+
+  /// Bumped on every [openCheckout] so an already-built cart screen reacts.
+  final ValueNotifier<int> checkoutRequest = ValueNotifier<int>(0);
+
+  void openCartTab() => tabRequest.value = 0;
+
+  /// Show the cart tab with the checkout sheet already open. Does nothing
+  /// beyond opening the tab when the cart is empty.
+  void openCheckout() {
+    checkoutPending = _cart.isNotEmpty;
+    openCartTab();
+    checkoutRequest.value++;
+  }
+
+  @override
+  void dispose() {
+    tabRequest.dispose();
+    checkoutRequest.dispose();
+    super.dispose();
+  }
+
   /// Clear cart
   void clearCart() {
     _cart.clear();
