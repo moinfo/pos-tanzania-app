@@ -4,8 +4,6 @@
 # POS Tanzania Mobile - Client Build Script
 # ============================================
 # Usage:
-#   ./build_client.sh sada          # Build SADA APK
-#   ./build_client.sh comeAndSave   # Build Come & Save APK
 #   ./build_client.sh leruma        # Build Leruma APK
 #   ./build_client.sh all           # Build all clients
 #   ./build_client.sh               # Show help
@@ -20,18 +18,14 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Available flavors
-FLAVORS=("sada" "comeAndSave" "leruma")
+FLAVORS=("leruma")
 
 # Display names
 declare -A DISPLAY_NAMES
-DISPLAY_NAMES["sada"]="SADA POS"
-DISPLAY_NAMES["comeAndSave"]="Come & Save POS"
 DISPLAY_NAMES["leruma"]="Leruma POS"
 
 # Application IDs
 declare -A APP_IDS
-APP_IDS["sada"]="co.tz.sada.pos"
-APP_IDS["comeAndSave"]="co.tz.comeandsave.pos"
 APP_IDS["leruma"]="co.tz.leruma.pos"
 
 print_header() {
@@ -54,8 +48,6 @@ print_help() {
     echo -e "  ${YELLOW}all${NC} - Build all clients"
     echo ""
     echo "Examples:"
-    echo "  ./build_client.sh sada          # Build SADA APK"
-    echo "  ./build_client.sh comeAndSave   # Build Come & Save APK"
     echo "  ./build_client.sh leruma        # Build Leruma APK"
     echo "  ./build_client.sh all           # Build all clients"
     echo ""
@@ -119,7 +111,7 @@ case "$1" in
         echo "APKs are in the 'releases' folder:"
         ls -la releases/*.apk 2>/dev/null || echo "No APKs found"
         ;;
-    "sada"|"comeAndSave"|"leruma")
+    "leruma")
         build_flavor "$1"
         ;;
     *)

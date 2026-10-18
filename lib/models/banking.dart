@@ -102,8 +102,8 @@ class TanzaniaBanks {
   ];
 }
 
-// Branch options (SADA only)
-class SadaBranches {
-  static const List<String> branches = ['KIWANGWA', 'LOLIONDO'];
+/// The branch stamped on every banking record. There is no selector: this
+/// deployment has a single branch, but the API still takes the field.
+class BankingBranch {
   static const String defaultBranch = 'KIWANGWA';
 }

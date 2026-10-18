@@ -463,24 +463,6 @@ class _TodaySummaryScreenState extends State<TodaySummaryScreen> {
       _buildSummaryRow('Banking Amount LOLIONDO', _summaryData!['banking_loliondo'] ?? 0, highlight: true, isDark: isDark),
     );
 
-    // Borrowed Money - requires cash_submit_borrowed_money (SADA only)
-    addRowIfPermitted(
-      PermissionIds.cashSubmitBorrowedMoney,
-      _buildSummaryRow('Borrowed Money', _summaryData!['borrowed_money'], isDark: isDark),
-    );
-
-    // Balance Borrowed Money - cumulative borrowed minus LOLIONDO repayments (SADA only)
-    addRowIfPermitted(
-      PermissionIds.cashSubmitBorrowedMoney,
-      _buildSummaryRow(
-        'Balance Borrowed',
-        _summaryData!['balance_borrowed'] ?? 0,
-        highlight: true,
-        color: ((_summaryData!['balance_borrowed'] ?? 0) as num) > 0 ? AppColors.warning : null,
-        isDark: isDark,
-      ),
-    );
-
     // Cash Amount - requires cash_submit_cash_amount
     addRowIfPermitted(
       PermissionIds.cashSubmitCashAmount,

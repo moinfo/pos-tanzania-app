@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
 import 'providers/sale_provider.dart';
 import 'providers/notification_provider.dart';
@@ -16,12 +15,10 @@ import 'providers/landing_provider.dart';
 import 'providers/update_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
-import 'screens/client_selector_screen.dart';
 import 'screens/landing/landing_screen.dart';
 import 'services/api_service.dart';
 import 'services/offline_feature.dart';
 import 'services/push_service.dart';
-import 'config/clients_config.dart';
 import 'utils/app_theme.dart';
 import 'utils/constants.dart';
 import 'widgets/force_update_gate.dart';
@@ -286,20 +283,6 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     if (mounted) {
-
-      // Check if client is selected
-      final prefs = await SharedPreferences.getInstance();
-      final selectedClientId = prefs.getString('selected_client_id');
-
-      // If no client selected and client switching is enabled (DEBUG mode), show client selector
-      if (selectedClientId == null && ClientsConfig.isClientSwitchingEnabled) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const ClientSelectorScreen(),
-          ),
-        );
-        return;
-      }
 
       // In RELEASE mode or if client is already selected, initialize API service with client
       final client = await ApiService.getCurrentClient();

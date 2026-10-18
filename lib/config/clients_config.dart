@@ -4,43 +4,14 @@ class ClientsConfig {
   // ============================================
   // FLAVOR CONFIGURATION (Set at build time)
   // ============================================
-  // The flavor is set automatically when building with:
-  //   flutter build apk --flavor sada --dart-define=FLAVOR=sada
-  //   flutter build apk --flavor comeAndSave --dart-define=FLAVOR=comeAndSave
-  //   flutter build apk --flavor leruma --dart-define=FLAVOR=leruma
-//    # SADA
-//     flutter build apk --flavor sada --dart-define=FLAVOR=sada --release --android-skip-build-dependency-validation
-//
-//     # Saichi
-//     flutter build apk --flavor saichi --dart-define=FLAVOR=saichi --release --android-skip-build-dependency-validation
-//
-//     # Come & Save
-//     flutter build apk --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release --android-skip-build-dependency-validation
-//
-//     # Leruma
-//     flutter build apk --flavor leruma --dart-define=FLAVOR=leruma --release --android-skip-build-dependency-validation
-
-//  # Android APK
-//   flutter build apk --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
-//
-//   # Android App Bundle
-
-
-//   # Android App Bundle
-//   flutter build appbundle --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
-//
-//   # iOS
-//   flutter build ios --flavor comeAndSave --dart-define=FLAVOR=comeAndSave --release
+  //   flutter build apk --flavor leruma --dart-define=FLAVOR=leruma --release
+  //   flutter build ios --flavor leruma --dart-define=FLAVOR=leruma --release
 
   static const String _buildFlavor = String.fromEnvironment('FLAVOR', defaultValue: '');
 
   // Map flavor names to client IDs
   static const Map<String, String> _flavorToClientId = {
-    'sada': 'sada',
-    'comeAndSave': 'come_and_save',
     'leruma': 'leruma',
-    'kariakooShops': 'kariakoo_shops',
-    'saichi': 'saichi',
   };
 
   // ============================================
@@ -48,7 +19,7 @@ class ClientsConfig {
   // ============================================
   // Only used if FLAVOR is not set (legacy builds)
   // Set this to the client ID you want to build for in PRODUCTION
-  static const String PRODUCTION_CLIENT_ID = 'saichi';
+  static const String PRODUCTION_CLIENT_ID = 'leruma';
 
   // ============================================
   // NETWORK CONFIGURATION
@@ -59,91 +30,12 @@ class ClientsConfig {
 
   // Base URLs
   static const String localBaseUrl = 'http://$LOCAL_HOST:$LOCAL_PORT/api';
-  static const String prodBaseUrl = 'https://kiwangwa.co.tz/api';
+  static const String prodBaseUrl = 'https://leruma.co.tz/api';
 
   // ============================================
   // CLIENT DEFINITIONS
   // ============================================
   static final List<ClientConfig> availableClients = [
-    // SADA
-    ClientConfig(
-      id: 'sada',
-      name: 'dev-sada',
-      displayName: 'Moinfotech',
-      devApiUrl: localBaseUrl,
-      prodApiUrl: 'https://kiwangwa.co.tz/api',
-      logoUrl: 'assets/images/sada-logo.png',
-      features: const ClientFeatures(
-        hasContracts: true,
-        hasOfflineMode: false,
-        hasShops: true, // Shop registration with GPS coordinates
-        hasDiscountRequests: true, // Customer discount request workflow
-        hasBranchSelection: true, // Branch dropdown (KIWANGWA / LOLIONDO) on banking
-        hasBorrowedMoney: true, // Borrowed money CRUD tracking
-      ),
-    ),
-    // Come & Save
-    ClientConfig(
-      id: 'come_and_save',
-      name: 'dev-come_and_save',
-      displayName: 'Come & Save',
-      devApiUrl: localBaseUrl,
-      prodApiUrl: 'https://comeandsave.co.tz/api',
-      features: const ClientFeatures(
-        hasContracts: false,
-        hasNfcCard: true,
-        hasOfflineMode: false,
-        hasLandingPage: true, // Public shop landing page enabled
-        hasLocationBasedPricing: true, // Different prices per stock location
-        hasLandingStockDisplay: true, // Show stock and validate orders on landing page
-      ),
-    ),
-    // Kariakoo Shops
-    ClientConfig(
-      id: 'kariakoo_shops',
-      name: 'dev-kariakoo',
-      displayName: 'Kariakoo Shops',
-      devApiUrl: localBaseUrl,
-      prodApiUrl: 'https://kariakooshops.co.tz/api',
-      logoUrl: 'assets/images/kariakoo-logo.png',
-      branding: const ClientBranding(
-        primaryColor: 0xFF1B8C30,      // Kariakoo green
-        primaryDarkColor: 0xFF0A6B1A,  // Dark green
-        appTitle: 'Kariakoo Shops',
-        tagline: 'Your Marketplace Destination',
-      ),
-      features: const ClientFeatures(
-        hasContracts: false,
-        hasNfcCard: true,
-        hasOfflineMode: false,
-        hasLandingPage: true,
-        hasLocationBasedPricing: true,
-        hasLandingStockDisplay: true,
-      ),
-    ),
-    // Saichi
-    ClientConfig(
-      id: 'saichi',
-      name: 'dev-saichi',
-      displayName: 'SCL',
-      devApiUrl: localBaseUrl,
-      prodApiUrl: 'https://saichi.co.tz/api',
-      logoUrl: 'assets/images/scl_logo.png',
-      branding: const ClientBranding(
-        primaryColor: 0xFF1E90D4,
-        primaryDarkColor: 0xFF1270A8,
-        appTitle: 'SCL',
-        tagline: 'Smart Commerce & Logistics',
-      ),
-      features: const ClientFeatures(
-        hasContracts: false,
-        hasNfcCard: true,
-        hasOfflineMode: false,
-        hasLandingPage: true,
-        hasLocationBasedPricing: true,
-        hasLandingStockDisplay: true,
-      ),
-    ),
     // Leruma
     ClientConfig(
       id: 'leruma',
@@ -157,7 +49,6 @@ class ClientsConfig {
         tagline: 'We always care customers rights',
       ),
       features: const ClientFeatures(
-        hasContracts: false,
         hasProfitSubmit: false,
         hasCommissionDashboard: true,
         hasReceivingsSummary: true,
@@ -239,16 +130,8 @@ class ClientsConfig {
   // Get flavor display name for UI
   static String get flavorDisplayName {
     switch (_buildFlavor) {
-      case 'sada':
-        return 'SADA';
-      case 'comeAndSave':
-        return 'Come & Save';
       case 'leruma':
         return 'Leruma';
-      case 'kariakooShops':
-        return 'Kariakoo Shops';
-      case 'saichi':
-        return 'Saichi';
       default:
         return getDefaultClient().displayName;
     }

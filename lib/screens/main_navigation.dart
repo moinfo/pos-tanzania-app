@@ -13,7 +13,6 @@ import '../widgets/permission_wrapper.dart';
 import '../utils/constants.dart';
 import 'home_screen.dart';
 import 'today_summary_screen.dart';
-import 'contracts_screen.dart';
 import 'z_report/z_reports_list_screen.dart';
 import 'cash_submit_screen.dart';
 import 'expenses_screen.dart';
@@ -44,9 +43,7 @@ import 'nfc_card_lookup_screen.dart';
 import 'credits_screen.dart';
 import 'suppliers_credits_screen.dart';
 import 'tra/tra_main_screen.dart';
-import 'shops_screen.dart';
 import 'discount_requests_screen.dart';
-import 'borrowed_money/borrowed_money_list_screen.dart';
 import 'app_update_screen.dart';
 import '../providers/update_provider.dart';
 import '../widgets/update_prompt.dart';
@@ -218,8 +215,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
-    final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
-    final hasShops = ApiService.currentClient?.features.hasShops ?? false;
     final hasDiscountRequests = ApiService.currentClient?.features.hasDiscountRequests ?? false;
 
     // Check if user has a stock location assigned
@@ -329,26 +324,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         'label': 'Seller',
         'permission': PermissionIds.cashSubmitSellerReport, // Leruma seller report
         'lerumaOnly': true, // Flag for Leruma-specific screen
-      });
-    }
-
-    // Add Contracts for clients with contracts feature (SADA)
-    if (hasContracts) {
-      configs.add({
-        'screen': ContractsScreen(key: ValueKey('contracts_$userId')),
-        'icon': Icons.assignment,
-        'label': 'Contracts',
-        'permission': PermissionIds.contracts, // module: contracts
-      });
-    }
-
-    // Add Shops for SADA client (shop registration with GPS)
-    if (hasShops) {
-      configs.add({
-        'screen': ShopsScreen(key: ValueKey('shops_$userId')),
-        'icon': Icons.store,
-        'label': 'Shops',
-        'permission': PermissionIds.customersShops, // customers_shops permission
       });
     }
 
@@ -772,9 +747,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       bool featureEnabled = true;
       if (features != null) {
         switch (permission) {
-          case PermissionIds.contracts:
-            featureEnabled = features.hasContracts;
-            break;
           case PermissionIds.zreports:
             featureEnabled = features.hasZReports;
             break;
@@ -1052,22 +1024,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                     },
                   ),
                 ),
-                // Shops (SADA only)
-                if (ApiService.currentClient?.features.hasShops ?? false)
-                  PermissionWrapper(
-                    permissionId: PermissionIds.customersShops,
-                    child: ListTile(
-                      leading: Icon(Icons.store, color: AppColors.brandPrimary),
-                      title: const Text('Shops'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ShopsScreen()),
-                        );
-                      },
-                    ),
-                  ),
               ],
             ),
             // Discount Requests (SADA only)
@@ -1276,22 +1232,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   },
                 ),
               ),
-            // 6.6 Borrowed Money - SADA only
-            if (ApiService.currentClient?.features.hasBorrowedMoney ?? false)
-              PermissionWrapper(
-                permissionId: PermissionIds.borrowedMoney,
-                child: ListTile(
-                  leading: Icon(Icons.account_balance_wallet, color: AppColors.brandPrimary),
-                  title: const Text('Borrowed Money'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const BorrowedMoneyListScreen()),
-                    );
-                  },
-                ),
-              ),
             // 7. TRADE (TRA) - requires tra permission
             if (ApiService.currentClient?.features.hasTRA ?? false)
               PermissionWrapper(
@@ -1478,21 +1418,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const TransactionsScreen()),
-                  );
-                },
-              ),
-            ),
-            // Contracts - requires contracts permission
-            PermissionWrapper(
-              permissionId: PermissionIds.contracts,
-              child: ListTile(
-                leading: Icon(Icons.assignment, color: AppColors.brandPrimary),
-                title: const Text('Contracts'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ContractsScreen()),
                   );
                 },
               ),

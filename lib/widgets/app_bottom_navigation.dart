@@ -42,7 +42,6 @@ class AppBottomNavigation extends StatelessWidget {
   ///   order named in _buildLerumaBar.
   List<Map<String, dynamic>> _buildNavItems() {
     final isLeruma = ApiService.currentClient?.id == 'leruma';
-    final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
 
     final items = <Map<String, dynamic>>[
       {
@@ -105,15 +104,6 @@ class AppBottomNavigation extends StatelessWidget {
         'icon': Icons.person_outline,
         'label': 'Seller',
         'permission': PermissionIds.cashSubmitSellerReport,
-      });
-    }
-
-    // Add Contracts for clients with contracts feature (SADA)
-    if (hasContracts) {
-      items.add({
-        'icon': Icons.assignment,
-        'label': 'Contracts',
-        'permission': PermissionIds.contracts,
       });
     }
 

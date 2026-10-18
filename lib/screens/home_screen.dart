@@ -46,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
   double _gainLoss = 0;
   double _profit = 0;
   double _bankDifference = 0;
-  double _totalUnpaid = 0;
   // Come & Save specific - sales breakdown
   double _cashSales = 0;
   double _customerCredit = 0;
@@ -199,12 +198,10 @@ class _HomeScreenState extends State<HomeScreen> {
       // Load dashboard based on client type
       final hasCommissionDashboard = currentClient?.features.hasCommissionDashboard ?? false;
 
-      if (hasCommissionDashboard) {
-        await _loadLerumaDashboard();
-      } else if (clientId == 'come_and_save') {
+      if (clientId == 'come_and_save' && !hasCommissionDashboard) {
         await _loadComeAndSaveDashboard();
       } else {
-        await _loadSadaDashboard();
+        await _loadLerumaDashboard();
       }
     } catch (e) {
       // Kept, unlike the dead catches on the list screens: this try block
@@ -217,58 +214,6 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _error = 'Something went wrong loading the dashboard. Pull down to retry.';
         _offline = false;
-        _cachedAt = null;
-        _isLoading = false;
-      });
-    }
-  }
-
-  /// Load dashboard for SADA (with contracts and full features)
-  Future<void> _loadSadaDashboard() async {
-    // Format selected date for API
-    final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
-
-    // Get summary for selected date
-    final summaryResponse = await _apiService.getCashSubmitTodaySummary(
-      date: dateString,
-    );
-
-    // Get contracts for unpaid calculation
-    final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
-    double totalUnpaid = 0;
-
-    if (hasContracts) {
-      final contractsResponse = await _apiService.getContracts();
-      if (contractsResponse.isSuccess) {
-        final contracts = contractsResponse.data ?? [];
-        for (var contract in contracts) {
-          totalUnpaid += (contract.daysUnpaid * 10000);
-        }
-      }
-    }
-
-    if (summaryResponse.isSuccess) {
-      final summaryData = summaryResponse.data;
-
-      setState(() {
-        _totalSales = (summaryData?['all_sales'] ?? 0).toDouble();
-        _expenses = (summaryData?['expenses'] ?? 0).toDouble();
-        _gainLoss = (summaryData?['gain_loss'] ?? 0).toDouble();
-        _profit = (summaryData?['profit'] ?? 0).toDouble();
-
-        final bankingAmount = (summaryData?['banking_amount'] ?? 0).toDouble();
-        final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
-        _bankDifference = bankingAmount - supplierBank;
-
-        _totalUnpaid = totalUnpaid;
-        _isLoading = false;
-        _cachedAt = summaryResponse.servedFromCacheAt;
-        _offline = false;
-      });
-    } else {
-      setState(() {
-        _offline = isTransportFailure(summaryResponse);
-        _error = _offline ? null : FriendlyError.of(summaryResponse.message);
         _cachedAt = null;
         _isLoading = false;
       });
@@ -353,7 +298,6 @@ class _HomeScreenState extends State<HomeScreen> {
           final supplierBank = (summaryData?['supplier_debit_bank'] ?? 0).toDouble();
           _bankDifference = bankingAmount - supplierBank;
 
-          _totalUnpaid = 0; // Come & Save doesn't have contracts
           _isLoading = false;
           _cachedAt = _olderCacheAge(
               summaryResponse.servedFromCacheAt, transactionsCachedAt);
@@ -760,62 +704,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // SADA: Show Profit & Gain/Loss in Row 2, then Bank Difference & Contract Unpaid
-                        if (ApiService.currentClient?.features.hasContracts ?? false) ...[
-                          // Row 2: Profit & Gain/Loss
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Profit',
-                                  amount: _profit,
-                                  icon: Icons.trending_up,
-                                  color: AppColors.brandPrimary,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Gain/Loss',
-                                  amount: _gainLoss,
-                                  icon: _gainLoss >= 0
-                                      ? Icons.arrow_upward
-                                      : Icons.arrow_downward,
-                                  color: _gainLoss >= 0
-                                      ? AppColors.success
-                                      : AppColors.error,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Row 3: Bank Difference & Contract Unpaid
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Bank Difference',
-                                  amount: _bankDifference,
-                                  icon: Icons.account_balance,
-                                  color: AppColors.info,
-                                  isDark: isDark,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDashboardCard(
-                                  title: 'Contract Unpaid',
-                                  amount: _totalUnpaid,
-                                  icon: Icons.assignment_late,
-                                  color: AppColors.warning,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ] else ...[
                           // Come & Save: Show Sales Breakdown first, then Profit, then Gain/Loss alone
                           // Row 2: Cash Sales & Credit Sales
                           Row(
@@ -884,7 +772,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ),
-                        ],
                       ],
 
                       // Transactions Dashboard (Come & Save - only if user has transactions permission)

@@ -485,18 +485,4 @@ class PermissionIds {
   static const String customerDiscountRequestsDelete = 'customer_discount_requests_delete';
   static const String customerDiscountRequestsApprove = 'customer_discount_requests_approve';
   static const String customerDiscountRequestsReject = 'customer_discount_requests_reject';
-
-  // Shops permissions (under customers module, SADA only)
-  static const String customersShops = 'customers_shops';
-  static const String customersShopsView = 'customers_shops_view';
-  static const String customersShopsAdd = 'customers_shops_add';
-  static const String customersShopsEdit = 'customers_shops_edit';
-  static const String customersShopsDelete = 'customers_shops_delete';
-
-  // Borrowed Money permissions (SADA only)
-  static const String borrowedMoney = 'borrowed_money';
-  static const String borrowedMoneyAdd = 'borrowed_money_add';
-  static const String borrowedMoneyEdit = 'borrowed_money_edit';
-  static const String borrowedMoneyDelete = 'borrowed_money_delete';
-  static const String cashSubmitBorrowedMoney = 'cash_submit_borrowed_money';
 }

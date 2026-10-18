@@ -11,17 +11,10 @@ plugins {
 }
 
 // ---------------------------------------------------------------------------
-// Only the `leruma` flavor has a google-services.json (at src/leruma/).
-//
-// By default this plugin FAILS THE BUILD when it cannot find one, which would
-// break sada, comeAndSave, kariakooShops and saichi -- four shipping clients
-// that have nothing to do with push. WARN downgrades that to a build warning,
-// so those flavors compile exactly as before and simply carry no Firebase
-// config. The Dart side treats "Firebase unavailable" as a normal state and
-// falls back to polling, so they behave correctly at runtime too.
-//
-// If another client is onboarded to push later, drop their google-services.json
-// into android/app/src/<flavor>/ and nothing here needs to change.
+// The `leruma` flavor has its google-services.json at src/leruma/. WARN keeps
+// a build without one (e.g. a debug build on a fresh checkout) from failing;
+// the Dart side treats "Firebase unavailable" as a normal state and falls back
+// to polling.
 // ---------------------------------------------------------------------------
 configure<com.google.gms.googleservices.GoogleServicesPlugin.GoogleServicesPluginConfig> {
     missingGoogleServicesStrategy =
@@ -63,30 +56,10 @@ android {
     flavorDimensions += "client"
 
     productFlavors {
-        create("sada") {
-            dimension = "client"
-            applicationId = "co.tz.sada.pos"
-            resValue("string", "app_name", "Moinfotech")
-        }
-        create("comeAndSave") {
-            dimension = "client"
-            applicationId = "co.tz.comeandsave.pos"
-            resValue("string", "app_name", "Come & Save POS")
-        }
         create("leruma") {
             dimension = "client"
             applicationId = "co.tz.leruma.pos"
             resValue("string", "app_name", "Leruma Distribution Center")
-        }
-        create("kariakooShops") {
-            dimension = "client"
-            applicationId = "co.tz.kariakooshops.pos"
-            resValue("string", "app_name", "Kariakoo Shops")
-        }
-        create("saichi") {
-            dimension = "client"
-            applicationId = "co.tz.saichi.pos"
-            resValue("string", "app_name", "Saichi POS")
         }
     }
 

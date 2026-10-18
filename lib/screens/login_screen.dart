@@ -16,10 +16,8 @@ import '../utils/constants.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../providers/offline_provider.dart';
 import '../widgets/offline_indicator.dart';
-import '../config/clients_config.dart';
 import '../models/client_config.dart';
 import 'main_navigation.dart';
-import 'client_selector_screen.dart';
 import 'landing/landing_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -330,15 +328,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _openClientSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: const Color(0x80041A3D),
-      builder: (_) => _buildClientSheet(),
-    );
-  }
-
   @override
   // ---------------------------------------------------------------------------
   // Theme-aware surfaces.
@@ -580,48 +569,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         letterSpacing: -0.5,
                         color: _ink)),
               ),
-              // Debug builds only. Each client ships its own flavor, so in a
-              // release the switcher can only point somewhere the build cannot
-              // talk to -- and a seller tapping it would land on another
-              // company's login.
-              if (kDebugMode) ...[
-                const SizedBox(width: 8),
-                Material(
-                  color: _tint(_brandBlue, const Color(0xFFEAF3FB)),
-                  borderRadius: BorderRadius.circular(999),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(999),
-                    highlightColor: _tint(_brandBlue, const Color(0xFFDCEBF8)),
-                    onTap: _openClientSheet,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 11, vertical: 7),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                            color: _tint(_brandBlue, const Color(0xFFCFE3F4)),
-                            width: 1.5),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.swap_horiz_rounded,
-                              size: 13, color: _brandBlue),
-                          const SizedBox(width: 5),
-                          Text(
-                            client?.displayName ?? 'Client',
-                            maxLines: 1,
-                            style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                color: _brandBlue),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
           const SizedBox(height: 3),
@@ -932,114 +879,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildClientSheet() {
-    final clients = ClientsConfig.availableClients;
-    final current = ApiService.currentClient?.id;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(color: Color(0x330F172A), blurRadius: 30, offset: Offset(0, -8)),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 38, height: 4,
-              margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                color: _hairline,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-          const Text('Change client',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _navy)),
-          const SizedBox(height: 2),
-          Text('Pick the business this device sells for',
-              style: TextStyle(
-                  fontSize: 12.5, fontWeight: FontWeight.w600, color: _inkMuted)),
-          const SizedBox(height: 14),
-          ...clients.map((c) {
-            final selected = c.id == current;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Material(
-                color: selected ? _tint(_brandBlue, _tint(_brandBlue, const Color(0xFFF1F5FB))) : _fieldFill(false),
-                borderRadius: BorderRadius.circular(14),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  highlightColor: const Color(0xFFE9F0FA),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Reuse the existing switcher so the API host change and
-                    // session clearing keep going through one code path.
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ClientSelectorScreen()),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: selected ? const Color(0xFFD5E3F7) : const Color(0xFFEEF1F5),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 38, height: 38,
-                          decoration: BoxDecoration(
-                            color: _navy, borderRadius: BorderRadius.circular(10),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            c.displayName.isNotEmpty ? c.displayName[0].toUpperCase() : '?',
-                            style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(c.displayName,
-                                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 15, fontWeight: FontWeight.w700)),
-                              Text(
-                                Uri.tryParse(c.prodApiUrl)?.host ?? c.prodApiUrl,
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.w600,
-                                    color: Color(0xFF7A8699)),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (selected)
-                          const Icon(Icons.check_circle, size: 18, color: _brandBlue),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
 }
 
 // Design tokens for this screen (design_handoff_login)

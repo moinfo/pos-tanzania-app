@@ -1,6 +1,5 @@
 /// Feature flags for each client
 class ClientFeatures {
-  final bool hasContracts;
   final bool hasZReports;
   final bool hasCashSubmit;
   final bool hasBanking;
@@ -41,17 +40,8 @@ class ClientFeatures {
   // Financial Banking Dashboard (Leruma only)
   final bool hasFinancialBanking; // Enable EFD/beneficiary financial analysis dashboard
 
-  // Shop Registration with GPS (SADA only)
-  final bool hasShops; // Enable shop registration with GPS coordinates
-
   // Customer Discount Requests (SADA only)
   final bool hasDiscountRequests; // Enable customer discount request workflow
-
-  // Branch selection on banking (SADA only)
-  final bool hasBranchSelection; // Show branch dropdown (KIWANGWA / LOLIONDO) on banking form
-
-  // Borrowed Money tracking (SADA only)
-  final bool hasBorrowedMoney; // Enable borrowed money CRUD screen
 
   // Sales screen behaviour (Leruma only)
   final bool hasOutOfStockSelling; // Allow adding items with zero/negative stock to cart
@@ -62,7 +52,6 @@ class ClientFeatures {
   final bool hasSuspendRequiresPayment;
 
   const ClientFeatures({
-    this.hasContracts = true,
     this.hasZReports = true,
     this.hasCashSubmit = true,
     this.hasBanking = true,
@@ -88,10 +77,7 @@ class ClientFeatures {
     this.hasLocationBasedPricing = false, // Default: disabled - only Come & Save uses this
     this.hasLandingStockDisplay = false, // Default: disabled - only Come & Save uses this
     this.hasFinancialBanking = false, // Default: disabled - only Leruma uses this
-    this.hasShops = false, // Default: disabled - only SADA uses this
     this.hasDiscountRequests = false, // Default: disabled - only SADA uses this
-    this.hasBranchSelection = false, // Default: disabled - only SADA uses this
-    this.hasBorrowedMoney = false, // Default: disabled - only SADA uses this
     this.hasOutOfStockSelling = false, // Default: disabled - only Leruma uses this
     this.hasSaleSheetButton = false, // Default: disabled - only Leruma uses this
     this.hasInlineCartPreview = false, // Default: disabled - only Leruma uses this

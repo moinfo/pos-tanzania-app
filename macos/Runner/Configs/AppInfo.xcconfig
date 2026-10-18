@@ -8,7 +8,7 @@
 PRODUCT_NAME = pos_tanzania_mobile
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = co.tz.sada.posTanzaniaMobile
+PRODUCT_BUNDLE_IDENTIFIER = co.tz.leruma.posTanzaniaMobile
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 co.tz.sada. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2025 co.tz.leruma. All rights reserved.
