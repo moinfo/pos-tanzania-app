@@ -196,6 +196,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   /// push rather than doing nothing matters: without it, resuming a sale on
   /// Leruma would silently leave the seller on the suspended list with a cart
   /// they cannot see.
+  /// Bumped when Sales is closed, to force the Suspended tab to reload.
+  int _suspendedRefresh = 0;
+
   void _openSales() {
     if (!mounted) return;
 
@@ -210,7 +213,12 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => SalesScreen(key: UniqueKey())),
-    );
+    ).then((_) {
+      // The resumed basket may have been completed or held again over there;
+      // a new key rebuilds the Suspended tab so it reloads instead of showing
+      // the list as it was before the resume.
+      if (mounted) setState(() => _suspendedRefresh++);
+    });
   }
 
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
@@ -305,7 +313,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     if (isLeruma) {
       configs.add({
         'screen': SuspendedSalesScreen(
-          key: ValueKey('suspended_$userId'),
+          key: ValueKey('suspended_${userId}_$_suspendedRefresh'),
           onResumed: _openSales,
           embedded: true,
         ),

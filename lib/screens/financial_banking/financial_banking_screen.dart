@@ -14,7 +14,6 @@ import '../../services/offline_actions.dart';
 import '../../services/offline_submit.dart';
 import '../../widgets/offline_submit_feedback.dart';
 import '../../utils/constants.dart';
-import '../../widgets/curved_bottom_navigation.dart';
 import '../../widgets/skeleton_loader.dart';
 
 class FinancialBankingScreen extends StatefulWidget {
@@ -241,19 +240,63 @@ class _FinancialBankingScreenState extends State<FinancialBankingScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: CurvedBottomNavigation(
-        currentIndex: _currentIndex.clamp(0, navItems.length - 1),
-        onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: isDark ? Colors.white54 : AppColors.textLight,
-        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
-        items: navItems.map((item) => CurvedNavItem(
-          icon: item.icon,
-          label: item.label,
-        )).toList(),
+      bottomNavigationBar: _buildFlatBottomNav(navItems, isDark),
+    );
+  }
+
+  /// Flat bar matching the Leruma main shell: no notch, no animation, so the
+  /// tabs keep one shape across screens.
+  Widget _buildFlatBottomNav(List<_NavItem> items, bool dark) {
+    final selected = _currentIndex.clamp(0, items.length - 1);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: dark ? AppColors.darkCard : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: dark ? Colors.white.withValues(alpha: 0.10) : const Color(0xFFEEF1F5),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 7, bottom: 6),
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => _currentIndex = i),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(items[i].icon, size: 20, color: _navColor(i == selected, dark)),
+                        const SizedBox(height: 4),
+                        Text(
+                          items[i].label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: i == selected ? FontWeight.w800 : FontWeight.w700,
+                            color: _navColor(i == selected, dark),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
+
+  Color _navColor(bool active, bool dark) => active
+      ? (dark ? const Color(0xFF6FA8DC) : const Color(0xFF1668A6))
+      : (dark ? AppColors.darkTextLight : const Color(0xFF64748B));
 
   String _getAppBarTitle() {
     switch (_currentIndex) {
