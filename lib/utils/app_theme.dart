@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/api_service.dart';
 import 'constants.dart';
 
 /// The app's two themes, in one place.
@@ -45,7 +46,10 @@ class AppTheme {
         ink: AppColors.darkText,
         muted: AppColors.darkTextLight,
         divider: AppColors.darkDivider,
-        appBar: AppColors.darkSurface,
+        // Kariakoo Shops keeps its brand-green top bar in dark mode.
+        appBar: ApiService.currentClient?.id == 'kariakoo_shops'
+            ? AppColors.brandPrimary
+            : AppColors.darkSurface,
         fieldFill: AppColors.darkCard,
         fieldBorder: AppColors.darkDivider,
         sheet: AppColors.darkSurface,

@@ -388,7 +388,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   /// Build flat AppBar
   Widget _buildCurvedAppBar(bool isDark, ThemeProvider themeProvider) {
-    final appBarColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
+    // Kariakoo Shops keeps its brand-green top bar in dark mode, like its
+    // bottom bar does; the other clients still darken it.
+    final appBarColor =
+        (isDark && !_kariakooNav) ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Container(
       decoration: BoxDecoration(
@@ -1070,12 +1073,18 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                             )
                           : const SizedBox.shrink(),
                 ),
-                onTap: () {
+                onTap: () async {
+                  // Taken before the drawer closes, while this context is
+                  // still mounted.
+                  final notifications = context.read<NotificationProvider>();
                   Navigator.pop(context);
-                  Navigator.push(
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const OnlineOrdersScreen()),
                   );
+                  // Orders may have been confirmed, delivered or deleted in
+                  // there; show the real pending count now, not at next poll.
+                  notifications.refreshCounts();
                 },
               ),
             ),
