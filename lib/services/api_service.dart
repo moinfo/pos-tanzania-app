@@ -18,6 +18,7 @@ import '../models/discount_request.dart';
 import '../models/approval.dart';
 import '../models/app_notification.dart';
 import '../models/expense.dart';
+import '../models/online_order.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
 import '../models/credit.dart' hide SaleItem; // Hide SaleItem from credit to avoid conflict
@@ -1286,6 +1287,108 @@ class ApiService {
         maxAge: CacheAge.today,
         errorFallback: 'Failed to fetch expenses',
       );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Online orders (placed by customers on the public shop). Same rules as the
+  // web module at /online_orders; see api/Orders.php on the server.
+  // ---------------------------------------------------------------------
+
+  /// Orders for a date range (the server defaults to today), newest first.
+  /// [status] null means every status.
+  Future<ApiResponse<OnlineOrdersPage>> getOnlineOrders({
+    String? status,
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/orders').replace(queryParameters: {
+        if (status != null && status.isNotEmpty) 'status': status,
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+      });
+      final response = await _http.get(uri, headers: await _getHeaders());
+      return _handleResponse<OnlineOrdersPage>(
+        response,
+        (data) => OnlineOrdersPage.fromJson(data),
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  /// Pending online orders (any date), for the app bar badge. Separate from the
+  /// list so the poll stays cheap; 403 when the user cannot view online orders.
+  Future<ApiResponse<int>> getPendingOnlineOrdersCount() async {
+    try {
+      final response = await _http.get(
+        Uri.parse('$baseUrlSync/orders/pending_count'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<int>(
+        response,
+        (data) => (data['pending_count'] as num?)?.toInt() ??
+            int.tryParse(data['pending_count']?.toString() ?? '') ??
+            0,
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  /// One order, re-read from the server.
+  Future<ApiResponse<OnlineOrder>> getOnlineOrder(int orderId) async {
+    try {
+      final response = await _http.get(
+        Uri.parse('$baseUrlSync/orders/$orderId'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<OnlineOrder>(
+        response,
+        (data) => OnlineOrder.fromJson(data),
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  /// Change an order's status. "delivered" records a POS sale, deducts stock
+  /// and locks the order, so the server only does it once.
+  Future<ApiResponse<OnlineOrder>> updateOnlineOrderStatus(
+      int orderId, String status) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/orders/status/$orderId'),
+        headers: await _getHeaders(),
+        body: json.encode({'status': status}),
+      );
+      return _handleResponse<OnlineOrder>(
+        response,
+        (data) => OnlineOrder.fromJson(data),
+      );
+    } catch (e) {
+      _reportFailure(e);
+      return ApiResponse.error(message: _failureMessage(e));
+    }
+  }
+
+  /// Delete orders. A delivered order has its sale cancelled and its stock
+  /// returned by the server.
+  Future<ApiResponse<dynamic>> deleteOnlineOrders(List<int> orderIds) async {
+    try {
+      final response = await _http.post(
+        Uri.parse('$baseUrlSync/orders/delete'),
+        headers: await _getHeaders(),
+        body: json.encode({'order_ids': orderIds}),
+      );
+      return _handleResponse<dynamic>(response, null);
     } catch (e) {
       _reportFailure(e);
       return ApiResponse.error(message: _failureMessage(e));

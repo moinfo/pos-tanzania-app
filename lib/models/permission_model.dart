@@ -493,6 +493,12 @@ class PermissionIds {
   static const String customersShopsEdit = 'customers_shops_edit';
   static const String customersShopsDelete = 'customers_shops_delete';
 
+  // Online orders (placed on the public shop) -- module plus View / Edit / Delete
+  static const String onlineOrders = 'online_orders';
+  static const String onlineOrdersView = 'online_orders_view';
+  static const String onlineOrdersEdit = 'online_orders_edit';
+  static const String onlineOrdersDelete = 'online_orders_delete';
+
   // Borrowed Money permissions (SADA only)
   static const String borrowedMoney = 'borrowed_money';
   static const String borrowedMoneyAdd = 'borrowed_money_add';

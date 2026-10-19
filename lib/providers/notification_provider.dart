@@ -42,6 +42,10 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// firing a guaranteed refusal all day. One is enough to learn from.
   bool _approvalsForbidden = false;
 
+  /// Same idea for online orders: most users hold no online_orders grant, so
+  /// once the server says so there is no point asking again this session.
+  bool _onlineOrdersForbidden = false;
+
   /// created_at of the newest notification the server reported.
   ///
   /// The trigger for pulling arrivals, in place of the unread count: one
@@ -79,6 +83,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<AppNotification> _notifications = [];
   int _unreadCount = 0;
   int _pendingApprovals = 0;
+  int _pendingOnlineOrders = 0;
   bool _isLoading = false;
   String? _error;
 
@@ -94,10 +99,11 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   int get unreadCount => _unreadCount;
   int get pendingApprovals => _pendingApprovals;
+  int get pendingOnlineOrders => _pendingOnlineOrders;
 
   /// What the nav badge should show: unread notifications plus anything
   /// actually waiting on this user to act.
-  int get badgeCount => _unreadCount + _pendingApprovals;
+  int get badgeCount => _unreadCount + _pendingApprovals + _pendingOnlineOrders;
 
   /// Notifications that arrived while the app was open, newest first.
   ///
@@ -179,12 +185,14 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _pullOwed = false;
     _latestSeenAt = null;
     _approvalsForbidden = false;
+    _onlineOrdersForbidden = false;
     WidgetsBinding.instance.removeObserver(this);
     _announced.clear();
 
     _notifications = [];
     _unreadCount = 0;
     _pendingApprovals = 0;
+    _pendingOnlineOrders = 0;
     _cursor = null;
 
     final prefs = await SharedPreferences.getInstance();
@@ -226,8 +234,13 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
           ? Future.value(ApiResponse<int>.success(data: 0))
           : _api.getPendingApprovalsCount();
 
+      final ordersFuture = _onlineOrdersForbidden
+          ? Future.value(ApiResponse<int>.success(data: 0))
+          : _api.getPendingOnlineOrdersCount();
+
       final unread = await unreadFuture;
       final pending = await pendingFuture;
+      final orders = await ordersFuture;
 
       // Signed out while these were in flight: drop everything.
       if (epoch != _epoch) return;
@@ -282,6 +295,23 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
         if (_pendingApprovals != 0) {
           _pendingApprovals = 0;
+          changed = true;
+        }
+      }
+
+      // New (pending) online orders. A 403 just means this user has no
+      // online_orders grant; latch on the server's own wording, as above.
+      if (orders.isSuccess && orders.data != null) {
+        if (orders.data != _pendingOnlineOrders) {
+          _pendingOnlineOrders = orders.data!;
+          changed = true;
+        }
+      } else if (!orders.isSuccess && orders.statusCode == 403) {
+        if (orders.message.contains('do not have permission')) {
+          _onlineOrdersForbidden = true;
+        }
+        if (_pendingOnlineOrders != 0) {
+          _pendingOnlineOrders = 0;
           changed = true;
         }
       }

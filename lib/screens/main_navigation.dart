@@ -1,5 +1,6 @@
 import '../widgets/saichi_logo_tile.dart';
 import 'package:flutter/material.dart' hide Text;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -47,6 +48,7 @@ import 'credits_screen.dart';
 import 'suppliers_credits_screen.dart';
 import 'tra/tra_main_screen.dart';
 import 'shops_screen.dart';
+import 'online_orders_screen.dart';
 import 'discount_requests_screen.dart';
 import 'borrowed_money/borrowed_money_list_screen.dart';
 import 'app_update_screen.dart';
@@ -430,7 +432,15 @@ class _MainNavigationState extends State<MainNavigation>
               // still standing in the shop.
               Consumer<NotificationProvider>(
                 builder: (context, notifications, _) {
-                  final count = notifications.badgeCount;
+                  // Users who work online orders: the bell counts ONLY pending
+                  // online orders and opens that list. Everyone else keeps the
+                  // notification feed and its badge.
+                  final ordersBell = context
+                      .watch<PermissionProvider>()
+                      .hasPermission(PermissionIds.onlineOrders);
+                  final count = ordersBell
+                      ? notifications.pendingOnlineOrders
+                      : notifications.badgeCount;
                   return Stack(
                     alignment: Alignment.center,
                     children: [
@@ -438,11 +448,20 @@ class _MainNavigationState extends State<MainNavigation>
                         icon: const Icon(Icons.notifications_none,
                             color: Colors.white, size: 26),
                         tooltip: 'Notifications'.tr,
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const NotificationsScreen()),
-                        ),
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => ordersBell
+                                    ? const OnlineOrdersScreen(pendingOnly: true)
+                                    : const NotificationsScreen()),
+                          );
+                          // Orders may have been handled in there; refresh the
+                          // count now rather than at the next poll.
+                          if (context.mounted) {
+                            context.read<NotificationProvider>().refreshCounts();
+                          }
+                        },
                       ),
                       if (count > 0)
                         Positioned(
@@ -1002,6 +1021,47 @@ class _MainNavigationState extends State<MainNavigation>
                     context,
                     MaterialPageRoute(
                         builder: (_) => const CreditLimitsScreen()),
+                  );
+                },
+              ),
+            ),
+            // Orders customers placed on the public shop. Needs the
+            // online_orders module grant, like the web module.
+            PermissionWrapper(
+              permissionId: PermissionIds.onlineOrders,
+              child: _DrawerTile(
+                // The web module's delivery motorcycle, with no background. A
+                // plain Icon, so the bottom bar can show it in its centre notch
+                // while this screen is open (see _DrawerTile / NavActive).
+                leading: Icon(FontAwesomeIcons.motorcycle,
+                    size: 20, color: AppColors.brandPrimary),
+                title: const Text('Online Orders'),
+                trailing: Consumer<NotificationProvider>(
+                  builder: (context, notifications, _) =>
+                      notifications.pendingOnlineOrders > 0
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${notifications.pendingOnlineOrders}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OnlineOrdersScreen()),
                   );
                 },
               ),

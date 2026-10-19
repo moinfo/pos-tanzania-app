@@ -447,14 +447,17 @@ class _Breathe extends StatefulWidget {
 
 class _BreatheState extends State<_Breathe>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1700),
-  );
+  // Created eagerly: a lazy `late` initialiser would first run inside
+  // dispose() when the pulse is disabled, and creating a ticker there throws.
+  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1700),
+    );
     if (widget.enabled) _controller.repeat(reverse: true);
   }
 

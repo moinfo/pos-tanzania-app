@@ -72,12 +72,27 @@ class _LandingScreenState extends State<LandingScreen> {
     super.initState();
     // Screenshots are allowed; protection is no longer enabled here.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LandingProvider>().initialize();
+      final provider = context.read<LandingProvider>();
+      provider.tabRequest.addListener(_onTabRequest);
+      provider.initialize();
     });
+  }
+
+  /// Another screen (e.g. product detail's "View Cart") asked for a tab.
+  void _onTabRequest() {
+    final provider = context.read<LandingProvider>();
+    final index = provider.tabRequest.value;
+    if (index == null) return;
+    provider.tabRequest.value = null;
+    if (_pageController.hasClients) _pageController.jumpToPage(index);
+    setState(() => _currentIndex = index);
   }
 
   @override
   void dispose() {
+    try {
+      context.read<LandingProvider>().tabRequest.removeListener(_onTabRequest);
+    } catch (_) {}
     _pageController.dispose();
     super.dispose();
   }
@@ -234,7 +249,8 @@ class _LandingScreenState extends State<LandingScreen> {
   Widget _buildBottomNav() {
     return Consumer<LandingProvider>(
       builder: (context, provider, _) {
-        final cartCount = provider.cart.length;
+        // Distinct products, matching the product page's checkout count.
+        final cartCount = provider.cart.map((c) => c.itemId).toSet().length;
 
         return Container(
           color: _isDarkMode ? const Color(0xFF121212) : LandingColors.pageLight,
@@ -932,17 +948,8 @@ class _HomeTabState extends State<_HomeTab>
           duration: const Duration(seconds: 2),
         ),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${product.name} added to cart'),
-          backgroundColor: Colors.green[600],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 2),
-        ),
-      );
     }
+    // No toast on success: it stayed on screen over the product page that the
+    // card opens. The Cart tab's badge shows the new count instead.
   }
 }
