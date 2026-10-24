@@ -31,6 +31,7 @@ import 'widgets/force_update_gate.dart';
 import 'widgets/session_expired_gate.dart';
 import 'widgets/rejection_alert.dart';
 import 'widgets/inactivity_gate.dart';
+import 'widgets/credit_gate.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 /// Lets a tapped push notification navigate without a widget's BuildContext.
@@ -196,7 +197,10 @@ class MyApp extends StatelessWidget {
                 // the user out after 5 idle minutes, with a 30 second warning.
                 child: InactivityGate(
                   navigatorKey: navigatorKey,
-                  child: child ?? const SizedBox.shrink(),
+                  child: CreditGate(
+                    navigatorKey: navigatorKey,
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),

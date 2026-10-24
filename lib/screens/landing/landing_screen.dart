@@ -159,7 +159,11 @@ class _LandingScreenState extends State<LandingScreen> {
 
     final client = ApiService.currentClient;
     final logoPath = client?.logoUrl ?? 'assets/images/come_and_save_logo.png';
-    final title = client?.branding.appTitle ?? 'COME N\' SAVE';
+    // Saichi spells its name out on the bar; appTitle stays "SCL" for the
+    // login screen and the welcome banner.
+    final title = client?.id == 'saichi'
+        ? 'Saichi Company Limited'
+        : client?.branding.appTitle ?? 'COME N\' SAVE';
 
     return AppBar(
       backgroundColor: brand,
@@ -190,15 +194,20 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              title.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-                letterSpacing: 0.4,
+            // Shrinks a long name to fit between the logo and the action icons
+            // instead of cutting it off.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title.toUpperCase(),
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  letterSpacing: 0.4,
+                ),
               ),
             ),
           ),
