@@ -6,25 +6,18 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 
-/// Ledger palette -- the same semantic system the web Item Hierarchy page
-/// uses (ochre = bulk/wholesale, teal = retail/verified, rust = low-stock),
-/// so staff moving between web and app read the same colors the same way.
-/// This screen is a manifest of a shop's bulk-to-retail breakdowns, not a
-/// lifestyle screen -- the palette reads as ink on a ledger page, not a
-/// dashboard card.
-class _Ledger {
-  static const ink = Color(0xFF17241C);
-  static const inkText = Color(0xFFEDEFE3);
-  static const inkTextDim = Color(0xFFAEBAA9);
-  static const ochre = Color(0xFF9C6F1E);
-  static const ochreBgLight = Color(0xFFF2E6CC);
-  static const ochreBgDark = Color(0x3DA8781F);
-  static const teal = Color(0xFF2B6358);
-  static const tealBgLight = Color(0xFFDCEAE5);
-  static const tealBgDark = Color(0x332F6B5E);
-  static const rust = Color(0xFFA14E35);
-  static const railLight = Color(0xFFD4CFBB);
-  static const railDark = Color(0xFF3B3B30);
+/// Hierarchy accent tints -- built from this app's own brand/status colors
+/// (AppColors.brandPrimary/warning/success/error), not a new palette.
+/// Wholesale = warning amber, retail/verified = success green, low stock =
+/// error red -- the same status colors already used everywhere else in the
+/// app, just tinted for a chip background.
+class _Hier {
+  static Color ochreBg(bool isDark) =>
+      AppColors.warning.withOpacity(isDark ? 0.28 : 0.14);
+  static Color tealBg(bool isDark) =>
+      AppColors.success.withOpacity(isDark ? 0.28 : 0.14);
+  static Color rail(bool isDark) =>
+      isDark ? AppColors.darkDivider : AppColors.divider;
 }
 
 /// One rail segment drawn to the left of a row, one per ancestor depth.
@@ -130,7 +123,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
         content: Text(message),
         backgroundColor: isError
             ? AppColors.error
-            : (isPending ? AppColors.warning : _Ledger.teal),
+            : (isPending ? AppColors.warning : AppColors.success),
       ),
     );
   }
@@ -343,15 +336,16 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     );
   }
 
-  /// The ledger header: one deliberate dark band (distinct from the plain
-  /// list below it) carrying the stats and search -- the single bold move
-  /// this screen spends its boldness on, everything else stays quiet.
+  /// Header band matches the AppBar exactly (brand blue in light mode, dark
+  /// surface in dark mode) so the two read as one continuous bar, not a
+  /// second, unrelated color dropped in underneath it.
   Widget _buildBody(bool isDark) {
     final tree = _tree ?? [];
+    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
     return Column(
       children: [
         Container(
-          color: _Ledger.ink,
+          color: headerColor,
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,29 +361,30 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
-                style: const TextStyle(color: _Ledger.inkText, fontSize: 14),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
                   isDense: true,
                   hintText: 'Search items',
-                  hintStyle: const TextStyle(color: _Ledger.inkTextDim),
-                  prefixIcon: const Icon(Icons.search,
-                      size: 18, color: _Ledger.inkTextDim),
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.65)),
+                  prefixIcon: Icon(Icons.search,
+                      size: 18, color: Colors.white.withOpacity(0.65)),
                   suffixIcon: _query.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear,
-                              size: 16, color: _Ledger.inkTextDim),
+                          icon: Icon(Icons.clear,
+                              size: 16, color: Colors.white.withOpacity(0.65)),
                           onPressed: () => _searchController.clear(),
                         )
                       : null,
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.06),
+                  fillColor: Colors.white.withOpacity(0.12),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: Color(0xFF3D4A3F)),
+                    borderSide:
+                        BorderSide(color: Colors.white.withOpacity(0.25)),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: _Ledger.ochre),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(6)),
+                    borderSide: BorderSide(color: Colors.white),
                   ),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
@@ -399,9 +394,9 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    _legendDot(_Ledger.ochre, 'Wholesale unit'),
+                    _legendDot(AppColors.warning, 'Wholesale unit'),
                     const SizedBox(width: 16),
-                    _legendDot(_Ledger.teal, 'Retail unit'),
+                    _legendDot(AppColors.success, 'Retail unit'),
                   ],
                 ),
               ],
@@ -428,12 +423,13 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
             style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: _Ledger.inkText,
+                color: Colors.white,
                 fontFeatures: [FontFeature.tabularFigures()],
                 height: 1.0)),
         const SizedBox(height: 2),
         Text(label,
-            style: const TextStyle(fontSize: 11, color: _Ledger.inkTextDim)),
+            style:
+                TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.72))),
       ],
     );
   }
@@ -449,7 +445,8 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
         ),
         const SizedBox(width: 6),
         Text(label,
-            style: const TextStyle(fontSize: 11, color: _Ledger.inkTextDim)),
+            style:
+                TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.72))),
       ],
     );
   }
@@ -520,11 +517,9 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     final collapsed = _collapsed.contains(node.itemId);
     final isWholesale =
         node.category.toUpperCase().contains('WHOLE') || node.depth == 0;
-    final accent = isWholesale ? _Ledger.ochre : _Ledger.teal;
-    final accentBg = isDark
-        ? (isWholesale ? _Ledger.ochreBgDark : _Ledger.tealBgDark)
-        : (isWholesale ? _Ledger.ochreBgLight : _Ledger.tealBgLight);
-    final railColor = isDark ? _Ledger.railDark : _Ledger.railLight;
+    final accent = isWholesale ? AppColors.warning : AppColors.success;
+    final accentBg = isWholesale ? _Hier.ochreBg(isDark) : _Hier.tealBg(isDark);
+    final railColor = _Hier.rail(isDark);
 
     return Container(
       decoration: BoxDecoration(
@@ -586,7 +581,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                     children: [
                       if (node.isVerified) ...[
                         const Icon(Icons.verified,
-                            size: 13, color: _Ledger.teal),
+                            size: 13, color: AppColors.success),
                         const SizedBox(width: 4),
                       ],
                       Expanded(
@@ -608,7 +603,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
-                            color: _Ledger.ink,
+                            color: AppColors.secondary,
                             borderRadius: BorderRadius.circular(2),
                           ),
                           child: Text(
@@ -617,7 +612,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 fontFeatures: [FontFeature.tabularFigures()],
-                                color: _Ledger.inkText),
+                                color: Colors.white),
                           ),
                         ),
                       ],
@@ -669,11 +664,12 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                               horizontal: 7, vertical: 3),
                           decoration: BoxDecoration(
                             color: node.isVerified
-                                ? _Ledger.teal.withOpacity(isDark ? 0.28 : 0.12)
+                                ? AppColors.success
+                                    .withOpacity(isDark ? 0.28 : 0.12)
                                 : Colors.transparent,
                             border: Border.all(
                                 color: node.isVerified
-                                    ? _Ledger.teal
+                                    ? AppColors.success
                                     : (isDark
                                         ? AppColors.darkDivider
                                         : AppColors.divider)),
@@ -688,7 +684,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                                     : Icons.radio_button_unchecked,
                                 size: 11,
                                 color: node.isVerified
-                                    ? _Ledger.teal
+                                    ? AppColors.success
                                     : (isDark
                                         ? AppColors.darkTextLight
                                         : AppColors.textLight),
@@ -700,7 +696,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w600,
                                   color: node.isVerified
-                                      ? _Ledger.teal
+                                      ? AppColors.success
                                       : (isDark
                                           ? AppColors.darkTextLight
                                           : AppColors.textLight),
@@ -722,7 +718,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                           fontWeight: FontWeight.w700,
                           fontFeatures: const [FontFeature.tabularFigures()],
                           color: node.isLowStock
-                              ? _Ledger.rust
+                              ? AppColors.error
                               : (isDark ? AppColors.darkText : AppColors.text),
                         ),
                       ),
@@ -736,7 +732,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                       if (node.isLowStock) ...[
                         const SizedBox(width: 6),
                         const Icon(Icons.warning_amber_rounded,
-                            size: 12, color: _Ledger.rust),
+                            size: 12, color: AppColors.error),
                       ],
                       const Spacer(),
                       Text(
