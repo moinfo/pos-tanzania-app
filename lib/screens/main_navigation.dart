@@ -1030,6 +1030,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               anyPermissions: const [
                 PermissionIds.sales,
                 PermissionIds.salesSuspended,
+                PermissionIds.salesView,
               ],
               child: ExpansionTile(
               leading: Icon(Icons.point_of_sale, color: AppColors.brandPrimary),
@@ -1056,7 +1057,10 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ),
                 // Sales History
                 PermissionWrapper(
-                  permissionId: PermissionIds.sales,
+                  anyPermissions: const [
+                    PermissionIds.sales,
+                    PermissionIds.salesView,
+                  ],
                   child: ListTile(
                     leading: Icon(Icons.history, color: AppColors.brandPrimary),
                     title: const Text('Sales History'),
