@@ -18,6 +18,12 @@ class ItemHierarchyNode {
   final int depth;
   final List<ItemHierarchyNode> children;
 
+  /// True when this item has an outstanding item_change_requests row (full
+  /// edit or this page's own simple-field edit) -- server-sourced, so it
+  /// survives leaving and reopening the screen, not just a local flag set
+  /// right after submitting that a reload would forget.
+  final bool isPendingApproval;
+
   const ItemHierarchyNode({
     required this.itemId,
     required this.name,
@@ -30,6 +36,7 @@ class ItemHierarchyNode {
     required this.stockQty,
     required this.depth,
     required this.children,
+    this.isPendingApproval = false,
   });
 
   bool get isLowStock => reorderLevel > 0 && stockQty <= reorderLevel;
@@ -37,11 +44,14 @@ class ItemHierarchyNode {
   /// Local, in-place update after a successful inline edit (category /
   /// reorder level / verified) -- mirrors the web page's applyDisplay()
   /// updating the cell directly rather than reloading the whole table.
+  /// Also used to optimistically flag isPendingApproval the moment a save
+  /// comes back staged, without waiting for the next full reload.
   ItemHierarchyNode copyWith({
     String? category,
     double? reorderLevel,
     bool? isVerified,
     List<ItemHierarchyNode>? children,
+    bool? isPendingApproval,
   }) {
     return ItemHierarchyNode(
       itemId: itemId,
@@ -55,6 +65,7 @@ class ItemHierarchyNode {
       stockQty: stockQty,
       depth: depth,
       children: children ?? this.children,
+      isPendingApproval: isPendingApproval ?? this.isPendingApproval,
     );
   }
 
@@ -74,6 +85,7 @@ class ItemHierarchyNode {
       children: (json['children'] as List<dynamic>? ?? [])
           .map((c) => ItemHierarchyNode.fromJson(c as Map<String, dynamic>))
           .toList(),
+      isPendingApproval: item['is_pending_approval'] as bool? ?? false,
     );
   }
 }

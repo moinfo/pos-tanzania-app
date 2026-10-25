@@ -162,6 +162,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     final response =
         await _apiService.updateItemFields(node.itemId, category: selected);
     if (response.isPending) {
+      _updateNode(node.itemId, (n) => n.copyWith(isPendingApproval: true));
       _showToast(response.message, isPending: true);
     } else if (response.isSuccess) {
       _updateNode(node.itemId, (n) => n.copyWith(category: selected));
@@ -203,6 +204,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     final response =
         await _apiService.updateItemFields(node.itemId, reorderLevel: value);
     if (response.isPending) {
+      _updateNode(node.itemId, (n) => n.copyWith(isPendingApproval: true));
       _showToast(response.message, isPending: true);
     } else if (response.isSuccess) {
       _updateNode(node.itemId, (n) => n.copyWith(reorderLevel: value));
@@ -217,6 +219,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     final response =
         await _apiService.updateItemFields(node.itemId, isVerified: next);
     if (response.isPending) {
+      _updateNode(node.itemId, (n) => n.copyWith(isPendingApproval: true));
       _showToast(response.message, isPending: true);
     } else if (response.isSuccess) {
       _updateNode(node.itemId, (n) => n.copyWith(isVerified: next));
@@ -618,6 +621,34 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                       ],
                     ],
                   ),
+                  if (node.isPendingApproval) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color:
+                            AppColors.warning.withOpacity(isDark ? 0.22 : 0.12),
+                        border: Border.all(color: AppColors.warning, width: 1),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.hourglass_top,
+                              size: 11, color: AppColors.warning),
+                          const SizedBox(width: 4),
+                          Text('Waiting approval',
+                              style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? AppColors.warning
+                                      : const Color(0xFF8A5A00))),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
