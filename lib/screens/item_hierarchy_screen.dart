@@ -214,10 +214,13 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     }
   }
 
-  /// A category is just a free-text string on the item (not a row in a
-  /// fixed master table), so "adding" one is simply typing a name that
-  /// isn't in the existing list yet and saving it like any other category
-  /// value -- no separate create step or table needed.
+  /// Registers a genuinely new name in the item_categories master table
+  /// (the same one Items -> Categories manages) so it's a real, permanent
+  /// category -- not just a string that happens to sit on one item's
+  /// pending request and would otherwise vanish the moment that request
+  /// is rejected or this screen is closed. Reuses an existing entry's
+  /// exact casing on a case-insensitive match instead of creating one,
+  /// so "Dukani" typed again doesn't register a second "dukani" row.
   Future<String?> _promptNewCategoryName(List<String> existing) async {
     final controller = TextEditingController();
     final name = await showDialog<String>(
@@ -243,11 +246,14 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     );
     if (name == null || name.isEmpty) return null;
 
-    // Reuse the existing entry's exact casing if this is really the same
-    // category someone just typed slightly differently, rather than
-    // creating "Dukani" and "DUKANI" as two separate categories.
     for (final c in existing) {
       if (c.toLowerCase() == name.toLowerCase()) return c;
+    }
+
+    final response = await _apiService.createItemCategory(name);
+    if (!response.isSuccess) {
+      _showToast(response.message, isError: true);
+      return null;
     }
     return name;
   }
