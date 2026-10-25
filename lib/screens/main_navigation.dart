@@ -17,6 +17,7 @@ import 'expenses_screen.dart';
 import 'customers_screen.dart';
 import 'suppliers_screen.dart';
 import 'items_screen.dart';
+import 'item_hierarchy_screen.dart';
 import 'sales_screen.dart';
 import 'sales_history_screen.dart';
 import 'suspended_sales_screen.dart';
@@ -897,6 +898,26 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const ItemsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  // Item Hierarchy -- how bulk sacks/cartons break down into
+                  // retail packets. Same grant as Items List (the API's
+                  // hierarchy endpoint intentionally skips a stricter check,
+                  // same reasoning as items/index()).
+                  PermissionWrapper(
+                    permissionId: PermissionIds.items,
+                    child: ListTile(
+                      leading: Icon(Icons.account_tree_outlined,
+                          color: AppColors.brandPrimary),
+                      title: const Text('Item Hierarchy'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ItemHierarchyScreen()),
                         );
                       },
                     ),

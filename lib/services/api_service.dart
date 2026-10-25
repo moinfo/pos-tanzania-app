@@ -25,6 +25,7 @@ import '../models/production.dart';
 import '../models/expense.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
+import '../models/item_hierarchy_node.dart';
 import '../models/credit.dart'
     hide SaleItem; // Hide SaleItem from credit to avoid conflict
 import '../models/supplier_credit.dart';
@@ -2231,6 +2232,34 @@ class ApiService {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
           message: jsonResponse['message'] ?? 'Failed to fetch categories',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Parent -> child item breakdown (bulk sack/carton -> retail packets),
+  /// as a nested tree -- mirrors the web Items -> Item Hierarchy page.
+  Future<ApiResponse<List<ItemHierarchyNode>>> getItemHierarchy() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/items/hierarchy'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final jsonResponse = json.decode(response.body);
+        final tree = (jsonResponse['data']['tree'] as List<dynamic>? ?? [])
+            .map((n) => ItemHierarchyNode.fromJson(n as Map<String, dynamic>))
+            .toList();
+        return ApiResponse.success(
+            data: tree, message: jsonResponse['message']);
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return ApiResponse.error(
+          message: jsonResponse['message'] ?? 'Failed to fetch item hierarchy',
           statusCode: response.statusCode,
         );
       }
