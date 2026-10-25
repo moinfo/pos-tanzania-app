@@ -63,9 +63,15 @@ class ItemLocationPrice {
 
   factory ItemLocationPrice.fromJson(Map<String, dynamic> json) {
     return ItemLocationPrice(
-      costPrice: json['cost_price'] != null ? double.tryParse(json['cost_price'].toString()) : null,
-      unitPrice: json['unit_price'] != null ? double.tryParse(json['unit_price'].toString()) : null,
-      discountLimit: json['discount_limit'] != null ? int.tryParse(json['discount_limit'].toString()) : null,
+      costPrice: json['cost_price'] != null
+          ? double.tryParse(json['cost_price'].toString())
+          : null,
+      unitPrice: json['unit_price'] != null
+          ? double.tryParse(json['unit_price'].toString())
+          : null,
+      discountLimit: json['discount_limit'] != null
+          ? int.tryParse(json['discount_limit'].toString())
+          : null,
     );
   }
 }
@@ -111,6 +117,10 @@ class Item {
   final String dormant;
   final String? child;
 
+  /// Staff-reviewed flag, set from the Item Hierarchy page (or the item
+  /// change-approval flow) -- not editable from the regular item form.
+  final bool isVerified;
+
   // Parent/child links (CTN wholesale parent -> PC retail children), resolved
   // by the API from the item_children junction + legacy `child` column.
   final List<ItemRef> children; // items this item is a parent of
@@ -130,10 +140,14 @@ class Item {
   final bool showOnLanding;
 
   // Location-specific pricing fields (Come & Save feature)
-  final double? defaultCostPrice; // Item's default cost price (before location override)
-  final double? defaultUnitPrice; // Item's default unit price (before location override)
-  final int? defaultDiscountLimit; // Item's default discount limit (before location override)
-  final Map<int, ItemLocationPrice>? locationPrices; // Map of location_id to pricing
+  final double?
+      defaultCostPrice; // Item's default cost price (before location override)
+  final double?
+      defaultUnitPrice; // Item's default unit price (before location override)
+  final int?
+      defaultDiscountLimit; // Item's default discount limit (before location override)
+  final Map<int, ItemLocationPrice>?
+      locationPrices; // Map of location_id to pricing
 
   // Gallery and portfolio images
   final List<ItemGalleryImage> galleryImages;
@@ -164,6 +178,7 @@ class Item {
     required this.discountLimit,
     required this.dormant,
     this.child,
+    this.isVerified = false,
     this.children = const [],
     this.parents = const [],
     required this.variation,
@@ -241,7 +256,8 @@ class Item {
         locPrices.forEach((key, value) {
           final locationId = int.tryParse(key.toString()) ?? 0;
           if (locationId > 0 && value is Map) {
-            locationPrices![locationId] = ItemLocationPrice.fromJson(value as Map<String, dynamic>);
+            locationPrices![locationId] =
+                ItemLocationPrice.fromJson(value as Map<String, dynamic>);
           }
         });
       }
@@ -254,6 +270,7 @@ class Item {
       if (value is String) return int.tryParse(value);
       return null;
     }
+
     int parseIntOrZero(dynamic value) => parseIntOrNull(value) ?? 0;
 
     // Parse gallery images
@@ -268,7 +285,8 @@ class Item {
     List<ItemPortfolioImage> portfolioImages = [];
     if (json['portfolio_images'] != null && json['portfolio_images'] is List) {
       portfolioImages = (json['portfolio_images'] as List)
-          .map((img) => ItemPortfolioImage.fromJson(img as Map<String, dynamic>))
+          .map(
+              (img) => ItemPortfolioImage.fromJson(img as Map<String, dynamic>))
           .toList();
     }
 
@@ -285,8 +303,12 @@ class Item {
       reorderLevel: (json['reorder_level'] ?? 0).toDouble(),
       receivingQuantity: (json['receiving_quantity'] ?? 1).toDouble(),
       picFilename: json['pic_filename'],
-      allowAltDescription: json['allow_alt_description'] == 1 || json['allow_alt_description'] == true || json['allow_alt_description'] == '1',
-      isSerialized: json['is_serialized'] == 1 || json['is_serialized'] == true || json['is_serialized'] == '1',
+      allowAltDescription: json['allow_alt_description'] == 1 ||
+          json['allow_alt_description'] == true ||
+          json['allow_alt_description'] == '1',
+      isSerialized: json['is_serialized'] == 1 ||
+          json['is_serialized'] == true ||
+          json['is_serialized'] == '1',
       stockType: parseIntOrZero(json['stock_type']),
       itemType: parseIntOrZero(json['item_type']),
       taxCategoryId: parseIntOrNull(json['tax_category_id']),
@@ -297,6 +319,9 @@ class Item {
       discountLimit: parseIntOrZero(json['discount_limit']),
       dormant: json['dormant'] ?? 'ACTIVE',
       child: json['child']?.toString(),
+      isVerified: json['is_verified'] == true ||
+          json['is_verified'] == 1 ||
+          json['is_verified'] == '1',
       children: json['children'] is List
           ? (json['children'] as List)
               .whereType<Map<String, dynamic>>()
@@ -311,19 +336,31 @@ class Item {
           : const [],
       variation: json['variation'] ?? 'CTN',
       days: parseIntOrNull(json['days']),
-      mainstore: json['mainstore'] != null ? double.tryParse(json['mainstore'].toString()) : null,
+      mainstore: json['mainstore'] != null
+          ? double.tryParse(json['mainstore'].toString())
+          : null,
       quantity: double.tryParse((json['quantity'] ?? 0).toString()) ?? 0,
       quantityByLocation: quantityByLocation,
       deleted: parseIntOrZero(json['deleted']),
       tax1Name: json['tax_1_name'],
-      tax1Percent: json['tax_1_percent'] != null ? double.tryParse(json['tax_1_percent'].toString()) : null,
+      tax1Percent: json['tax_1_percent'] != null
+          ? double.tryParse(json['tax_1_percent'].toString())
+          : null,
       tax2Name: json['tax_2_name'],
-      tax2Percent: json['tax_2_percent'] != null ? double.tryParse(json['tax_2_percent'].toString()) : null,
+      tax2Percent: json['tax_2_percent'] != null
+          ? double.tryParse(json['tax_2_percent'].toString())
+          : null,
       wholesalePrice: (json['wholesale_price'] ?? 0).toDouble(),
-      showOnLanding: json['show_on_landing'] == 1 || json['show_on_landing'] == true || json['show_on_landing'] == '1',
+      showOnLanding: json['show_on_landing'] == 1 ||
+          json['show_on_landing'] == true ||
+          json['show_on_landing'] == '1',
       // Location-specific pricing fields (Come & Save feature)
-      defaultCostPrice: json['default_cost_price'] != null ? double.tryParse(json['default_cost_price'].toString()) : null,
-      defaultUnitPrice: json['default_unit_price'] != null ? double.tryParse(json['default_unit_price'].toString()) : null,
+      defaultCostPrice: json['default_cost_price'] != null
+          ? double.tryParse(json['default_cost_price'].toString())
+          : null,
+      defaultUnitPrice: json['default_unit_price'] != null
+          ? double.tryParse(json['default_unit_price'].toString())
+          : null,
       defaultDiscountLimit: parseIntOrNull(json['default_discount_limit']),
       locationPrices: locationPrices,
       galleryImages: galleryImages,
@@ -359,6 +396,7 @@ class Item {
       'discount_limit': discountLimit,
       'dormant': dormant,
       'child': child,
+      'is_verified': isVerified,
       'variation': variation,
       'days': days,
       'mainstore': mainstore,
@@ -420,7 +458,8 @@ class ItemFormData {
   final int deleted;
 
   // Location-specific pricing (Come & Save feature)
-  final Map<int, ItemLocationPriceFormData>? locationPrices; // Location ID -> Pricing
+  final Map<int, ItemLocationPriceFormData>?
+      locationPrices; // Location ID -> Pricing
 
   ItemFormData({
     required this.name,

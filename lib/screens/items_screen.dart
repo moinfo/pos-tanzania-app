@@ -158,7 +158,8 @@ class _ItemsScreenState extends State<ItemsScreen> {
           if (ApiService.currentClient?.features.hasItemCategories ?? false)
             Consumer<PermissionProvider>(
               builder: (context, permissionProvider, _) {
-                if (!permissionProvider.hasPermission(PermissionIds.itemsCategories)) {
+                if (!permissionProvider
+                    .hasPermission(PermissionIds.itemsCategories)) {
                   return const SizedBox.shrink();
                 }
                 return PopupMenuButton<String>(
@@ -187,11 +188,13 @@ class _ItemsScreenState extends State<ItemsScreen> {
               },
             ),
           // Location selector - show if user has locations
-          if (locationProvider.allowedLocations.isNotEmpty && locationProvider.selectedLocation != null)
+          if (locationProvider.allowedLocations.isNotEmpty &&
+              locationProvider.selectedLocation != null)
             Center(
               child: Container(
                 margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
@@ -202,14 +205,19 @@ class _ItemsScreenState extends State<ItemsScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on, size: 18, color: Colors.white),
+                      const Icon(Icons.location_on,
+                          size: 18, color: Colors.white),
                       const SizedBox(width: 6),
                       Text(
                         locationProvider.selectedLocation!.locationName,
-                        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
+                      const Icon(Icons.arrow_drop_down,
+                          size: 20, color: Colors.white),
                     ],
                   ),
                   onSelected: (location) async {
@@ -222,11 +230,15 @@ class _ItemsScreenState extends State<ItemsScreen> {
                             child: Row(
                               children: [
                                 Icon(
-                                  location.locationId == locationProvider.selectedLocation?.locationId
+                                  location.locationId ==
+                                          locationProvider
+                                              .selectedLocation?.locationId
                                       ? Icons.check_circle
                                       : Icons.radio_button_unchecked,
                                   size: 20,
-                                  color: location.locationId == locationProvider.selectedLocation?.locationId
+                                  color: location.locationId ==
+                                          locationProvider
+                                              .selectedLocation?.locationId
                                       ? AppColors.primary
                                       : Colors.grey,
                                 ),
@@ -236,10 +248,14 @@ class _ItemsScreenState extends State<ItemsScreen> {
                                     location.locationName,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: location.locationId == locationProvider.selectedLocation?.locationId
+                                      color: location.locationId ==
+                                              locationProvider
+                                                  .selectedLocation?.locationId
                                           ? AppColors.primary
                                           : Colors.black87,
-                                      fontWeight: location.locationId == locationProvider.selectedLocation?.locationId
+                                      fontWeight: location.locationId ==
+                                              locationProvider
+                                                  .selectedLocation?.locationId
                                           ? FontWeight.bold
                                           : FontWeight.normal,
                                     ),
@@ -286,7 +302,10 @@ class _ItemsScreenState extends State<ItemsScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(_errorMessage!,
-                                style: TextStyle(color: isDark ? AppColors.darkText : AppColors.error)),
+                                style: TextStyle(
+                                    color: isDark
+                                        ? AppColors.darkText
+                                        : AppColors.error)),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: _loadItems,
@@ -296,7 +315,12 @@ class _ItemsScreenState extends State<ItemsScreen> {
                         ),
                       )
                     : _items.isEmpty
-                        ? Center(child: Text('No items found', style: TextStyle(color: isDark ? AppColors.darkText : AppColors.text)))
+                        ? Center(
+                            child: Text('No items found',
+                                style: TextStyle(
+                                    color: isDark
+                                        ? AppColors.darkText
+                                        : AppColors.text)))
                         : RefreshIndicator(
                             onRefresh: _loadItems,
                             child: ListView.builder(
@@ -470,13 +494,27 @@ class _ItemsScreenState extends State<ItemsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(
-                item.name,
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? AppColors.darkText : AppColors.text,
-                ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (item.isVerified) ...[
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2, right: 4),
+                      child: Icon(Icons.verified,
+                          size: 15, color: AppColors.success),
+                    ),
+                  ],
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? AppColors.darkText : AppColors.text,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 8),
@@ -573,8 +611,10 @@ class _ItemsScreenState extends State<ItemsScreen> {
         ),
         trailing: Consumer<PermissionProvider>(
           builder: (context, permissionProvider, child) {
-            final hasEdit = permissionProvider.hasPermission(PermissionIds.itemsEdit);
-            final hasDelete = permissionProvider.hasPermission(PermissionIds.itemsDelete);
+            final hasEdit =
+                permissionProvider.hasPermission(PermissionIds.itemsEdit);
+            final hasDelete =
+                permissionProvider.hasPermission(PermissionIds.itemsDelete);
 
             if (!hasEdit && !hasDelete) return const SizedBox.shrink();
 
@@ -598,7 +638,8 @@ class _ItemsScreenState extends State<ItemsScreen> {
                       children: [
                         Icon(Icons.delete, size: 20, color: AppColors.error),
                         SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: AppColors.error)),
+                        Text('Delete',
+                            style: TextStyle(color: AppColors.error)),
                       ],
                     ),
                   ),
@@ -621,7 +662,8 @@ class _ItemsScreenState extends State<ItemsScreen> {
 class ItemFormDialog extends StatefulWidget {
   final Item? item;
   final VoidCallback onSaved;
-  final int? currentLocationId; // Current location for location-specific pricing
+  final int?
+      currentLocationId; // Current location for location-specific pricing
 
   const ItemFormDialog({
     super.key,
@@ -634,7 +676,8 @@ class ItemFormDialog extends StatefulWidget {
   State<ItemFormDialog> createState() => _ItemFormDialogState();
 }
 
-class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProviderStateMixin {
+class _ItemFormDialogState extends State<ItemFormDialog>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
 
@@ -665,8 +708,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   String? _selectedCategoryName;
 
   // Child item picker state
-  String? _childId;          // item_id of selected child (retail PC)
-  String _childName = '';    // display name
+  String? _childId; // item_id of selected child (retail PC)
+  String _childName = ''; // display name
   List<Item> _childItems = [];
 
   // Image picker state (landing clients only)
@@ -689,8 +732,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
 
     _nameController = TextEditingController(text: widget.item?.name);
     _categoryController = TextEditingController(text: widget.item?.category);
-    _descriptionController = TextEditingController(text: widget.item?.description);
-    _itemNumberController = TextEditingController(text: widget.item?.itemNumber);
+    _descriptionController =
+        TextEditingController(text: widget.item?.description);
+    _itemNumberController =
+        TextEditingController(text: widget.item?.itemNumber);
     _costPriceController = TextEditingController(
       text: widget.item?.costPrice.toString() ?? '0',
     );
@@ -732,7 +777,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     _taxCategoryId = widget.item?.taxCategoryId;
     _supplierId = widget.item?.supplierId;
     _dormant = widget.item?.dormant ?? 'ACTIVE';
-    _selectedCategoryName = widget.item?.category.isNotEmpty == true ? widget.item?.category : null;
+    _selectedCategoryName =
+        widget.item?.category.isNotEmpty == true ? widget.item?.category : null;
 
     _loadStockLocations();
   }
@@ -774,7 +820,7 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
 
     if (!mounted) return;
 
-    final locResponse  = results[0] as ApiResponse<List<StockLocation>>;
+    final locResponse = results[0] as ApiResponse<List<StockLocation>>;
     final itemResponse = results[1] as ApiResponse<List<Item>>;
 
     setState(() {
@@ -783,7 +829,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
         for (var location in _stockLocations) {
           double quantity = 0;
           if (widget.item?.quantityByLocation != null) {
-            quantity = widget.item!.quantityByLocation![location.locationId] ?? 0;
+            quantity =
+                widget.item!.quantityByLocation![location.locationId] ?? 0;
           }
           _quantityControllers[location.locationId] = TextEditingController(
             text: quantity.toString(),
@@ -795,8 +842,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
         _childItems = itemResponse.data ?? [];
         // Resolve display name for pre-existing child
         if (_childId != null) {
-          final match = _childItems.where(
-              (i) => i.itemId.toString() == _childId).firstOrNull;
+          final match = _childItems
+              .where((i) => i.itemId.toString() == _childId)
+              .firstOrNull;
           if (match != null) _childName = match.name;
         }
       }
@@ -834,7 +882,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       imageQuality: 85,
     );
     if (images.isNotEmpty) {
-      setState(() => _galleryImages.addAll(images.map((img) => File(img.path))));
+      setState(
+          () => _galleryImages.addAll(images.map((img) => File(img.path))));
     }
   }
 
@@ -845,7 +894,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       imageQuality: 85,
     );
     if (images.isNotEmpty) {
-      setState(() => _portfolioImages.addAll(images.map((img) => File(img.path))));
+      setState(
+          () => _portfolioImages.addAll(images.map((img) => File(img.path))));
     }
   }
 
@@ -859,18 +909,23 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
         selectedId: _childId,
         onSelected: (item) {
           setState(() {
-            _childId   = item.itemId.toString();
+            _childId = item.itemId.toString();
             _childName = item.name;
           });
         },
-        onClear: () => setState(() { _childId = null; _childName = ''; }),
+        onClear: () => setState(() {
+          _childId = null;
+          _childName = '';
+        }),
       ),
     );
   }
 
-  void _removeMainImage()              => setState(() => _mainImage = null);
-  void _removeGalleryImage(int index)  => setState(() => _galleryImages.removeAt(index));
-  void _removePortfolioImage(int index)=> setState(() => _portfolioImages.removeAt(index));
+  void _removeMainImage() => setState(() => _mainImage = null);
+  void _removeGalleryImage(int index) =>
+      setState(() => _galleryImages.removeAt(index));
+  void _removePortfolioImage(int index) =>
+      setState(() => _portfolioImages.removeAt(index));
 
   /// Validate profit margin to ensure no loss
   /// Returns error message if validation fails, null if valid
@@ -970,9 +1025,12 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       };
 
       // Use original default prices (not the edited location-specific values)
-      defaultCostPrice = widget.item!.defaultCostPrice ?? widget.item!.costPrice;
-      defaultUnitPrice = widget.item!.defaultUnitPrice ?? widget.item!.unitPrice;
-      defaultDiscountLimit = widget.item!.defaultDiscountLimit ?? widget.item!.discountLimit;
+      defaultCostPrice =
+          widget.item!.defaultCostPrice ?? widget.item!.costPrice;
+      defaultUnitPrice =
+          widget.item!.defaultUnitPrice ?? widget.item!.unitPrice;
+      defaultDiscountLimit =
+          widget.item!.defaultDiscountLimit ?? widget.item!.discountLimit;
     }
 
     final hasItemCategories =
@@ -991,7 +1049,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
       unitPrice: defaultUnitPrice,
       wholesalePrice: double.tryParse(_wholesalePriceController.text) ?? 0,
       reorderLevel: double.tryParse(_reorderLevelController.text) ?? 0,
-      receivingQuantity: double.tryParse(_receivingQuantityController.text) ?? 1,
+      receivingQuantity:
+          double.tryParse(_receivingQuantityController.text) ?? 1,
       allowAltDescription: _allowAltDescription,
       isSerialized: _isSerialized,
       showOnLanding: _showOnLanding,
@@ -1010,9 +1069,12 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
     );
 
     // Use multipart image upload only for clients with landing page
-    final hasLanding = ApiService.currentClient?.features.hasLandingPage ?? false;
+    final hasLanding =
+        ApiService.currentClient?.features.hasLandingPage ?? false;
     final hasImages = hasLanding &&
-        (_mainImage != null || _galleryImages.isNotEmpty || _portfolioImages.isNotEmpty);
+        (_mainImage != null ||
+            _galleryImages.isNotEmpty ||
+            _portfolioImages.isNotEmpty);
 
     final response = hasImages
         ? (widget.item == null
@@ -1020,14 +1082,16 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                 formData,
                 mainImagePath: _mainImage?.path,
                 galleryImagePaths: _galleryImages.map((f) => f.path).toList(),
-                portfolioImagePaths: _portfolioImages.map((f) => f.path).toList(),
+                portfolioImagePaths:
+                    _portfolioImages.map((f) => f.path).toList(),
               )
             : await _apiService.updateItemWithImages(
                 widget.item!.itemId,
                 formData,
                 mainImagePath: _mainImage?.path,
                 galleryImagePaths: _galleryImages.map((f) => f.path).toList(),
-                portfolioImagePaths: _portfolioImages.map((f) => f.path).toList(),
+                portfolioImagePaths:
+                    _portfolioImages.map((f) => f.path).toList(),
               ))
         : (widget.item == null
             ? await _apiService.createItem(formData)
@@ -1070,9 +1134,12 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final permissionProvider = context.watch<PermissionProvider>();
-    final canSeeCostPrice = permissionProvider.hasPermission(PermissionIds.itemsCostPrice);
-    final canSeeQuantity = permissionProvider.hasPermission(PermissionIds.itemsQuantity);
-    final hasLanding = ApiService.currentClient?.features.hasLandingPage ?? false;
+    final canSeeCostPrice =
+        permissionProvider.hasPermission(PermissionIds.itemsCostPrice);
+    final canSeeQuantity =
+        permissionProvider.hasPermission(PermissionIds.itemsQuantity);
+    final hasLanding =
+        ApiService.currentClient?.features.hasLandingPage ?? false;
 
     // Rebuild tab controller if tab count changes (shouldn't happen at runtime, but safe)
     if (_tabController.length != (hasLanding ? 3 : 2)) {
@@ -1091,7 +1158,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 widget.item == null ? 'Add Item' : 'Edit Item',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
             // Tab Bar
@@ -1125,7 +1193,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                    onPressed:
+                        _isSubmitting ? null : () => Navigator.pop(context),
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 8),
@@ -1141,7 +1210,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Text('Save'),
@@ -1277,7 +1347,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             const SizedBox(height: 8),
             SwitchListTile(
               title: const Text('Show on Landing Page'),
-              subtitle: const Text('Display this item on the public landing page'),
+              subtitle:
+                  const Text('Display this item on the public landing page'),
               value: _showOnLanding,
               onChanged: (value) => setState(() => _showOnLanding = value),
             ),
@@ -1353,8 +1424,12 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () => setState(() { _childId = null; _childName = ''; }),
-                child: const Text('Clear child', style: TextStyle(color: Colors.red, fontSize: 12)),
+                onPressed: () => setState(() {
+                  _childId = null;
+                  _childName = '';
+                }),
+                child: const Text('Clear child',
+                    style: TextStyle(color: Colors.red, fontSize: 12)),
               ),
             ),
           ],
@@ -1436,8 +1511,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             ..._stockLocations.map((location) {
               final controller = _quantityControllers[location.locationId];
               final permissionProvider = context.watch<PermissionProvider>();
-              final locationPermission = 'items_${location.locationName.toUpperCase()}';
-              final hasLocationPermission = permissionProvider.hasPermission(locationPermission);
+              final locationPermission =
+                  'items_${location.locationName.toUpperCase()}';
+              final hasLocationPermission =
+                  permissionProvider.hasPermission(locationPermission);
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
@@ -1497,7 +1574,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                             shape: BoxShape.circle,
                           ),
                           padding: const EdgeInsets.all(4),
-                          child: const Icon(Icons.close, color: Colors.white, size: 16),
+                          child: const Icon(Icons.close,
+                              color: Colors.white, size: 16),
                         ),
                       ),
                     ),
@@ -1509,7 +1587,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: CachedNetworkImage(
-                            imageUrl: '${ApiService.baseUrlSync}/uploads/item_pics/$existingMainImage.png',
+                            imageUrl:
+                                '${ApiService.baseUrlSync}/uploads/item_pics/$existingMainImage.png',
                             height: 150,
                             width: 150,
                             fit: BoxFit.cover,
@@ -1517,7 +1596,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                               height: 150,
                               width: 150,
                               color: Colors.grey[200],
-                              child: const Center(child: CircularProgressIndicator()),
+                              child: const Center(
+                                  child: CircularProgressIndicator()),
                             ),
                             errorWidget: (context, url, error) => Container(
                               height: 150,
@@ -1538,7 +1618,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                                 shape: BoxShape.circle,
                               ),
                               padding: const EdgeInsets.all(4),
-                              child: const Icon(Icons.edit, color: Colors.white, size: 16),
+                              child: const Icon(Icons.edit,
+                                  color: Colors.white, size: 16),
                             ),
                           ),
                         ),
@@ -1562,7 +1643,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 8),
-          if (existingGalleryImages.isNotEmpty || _galleryImages.isNotEmpty) ...[
+          if (existingGalleryImages.isNotEmpty ||
+              _galleryImages.isNotEmpty) ...[
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1582,7 +1664,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                             height: 80,
                             width: 80,
                             color: Colors.grey[200],
-                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            child: const Center(
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2)),
                           ),
                           errorWidget: (context, url, error) => Container(
                             height: 80,
@@ -1597,12 +1681,15 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                           bottom: 2,
                           left: 2,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
                               color: Colors.green,
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text('Primary', style: TextStyle(color: Colors.white, fontSize: 8)),
+                            child: const Text('Primary',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 8)),
                           ),
                         ),
                     ],
@@ -1634,7 +1721,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                               shape: BoxShape.circle,
                             ),
                             padding: const EdgeInsets.all(2),
-                            child: const Icon(Icons.close, color: Colors.white, size: 12),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 12),
                           ),
                         ),
                       ),
@@ -1642,12 +1730,15 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                         bottom: 2,
                         left: 2,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
                             color: Colors.blue,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('New', style: TextStyle(color: Colors.white, fontSize: 8)),
+                          child: const Text('New',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 8)),
                         ),
                       ),
                     ],
@@ -1660,7 +1751,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           OutlinedButton.icon(
             onPressed: _pickGalleryImages,
             icon: const Icon(Icons.add_photo_alternate),
-            label: Text(existingGalleryImages.isEmpty && _galleryImages.isEmpty ? 'Select Gallery Images' : 'Add More'),
+            label: Text(existingGalleryImages.isEmpty && _galleryImages.isEmpty
+                ? 'Select Gallery Images'
+                : 'Add More'),
           ),
           const SizedBox(height: 24),
 
@@ -1675,7 +1768,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 8),
-          if (existingPortfolioImages.isNotEmpty || _portfolioImages.isNotEmpty) ...[
+          if (existingPortfolioImages.isNotEmpty ||
+              _portfolioImages.isNotEmpty) ...[
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1695,7 +1789,9 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                             height: 80,
                             width: 80,
                             color: Colors.grey[200],
-                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            child: const Center(
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2)),
                           ),
                           errorWidget: (context, url, error) => Container(
                             height: 80,
@@ -1734,7 +1830,8 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                               shape: BoxShape.circle,
                             ),
                             padding: const EdgeInsets.all(2),
-                            child: const Icon(Icons.close, color: Colors.white, size: 12),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 12),
                           ),
                         ),
                       ),
@@ -1742,12 +1839,15 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
                         bottom: 2,
                         left: 2,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
                             color: Colors.blue,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('New', style: TextStyle(color: Colors.white, fontSize: 8)),
+                          child: const Text('New',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 8)),
                         ),
                       ),
                     ],
@@ -1760,7 +1860,10 @@ class _ItemFormDialogState extends State<ItemFormDialog> with SingleTickerProvid
           OutlinedButton.icon(
             onPressed: _pickPortfolioImages,
             icon: const Icon(Icons.add_photo_alternate),
-            label: Text(existingPortfolioImages.isEmpty && _portfolioImages.isEmpty ? 'Select Portfolio Images' : 'Add More'),
+            label: Text(
+                existingPortfolioImages.isEmpty && _portfolioImages.isEmpty
+                    ? 'Select Portfolio Images'
+                    : 'Add More'),
           ),
         ],
       ),
@@ -1829,7 +1932,8 @@ class _ChildItemSearchSheetState extends State<_ChildItemSearchSheet> {
           children: [
             Container(
               margin: const EdgeInsets.only(top: 10, bottom: 8),
-              width: 36, height: 4,
+              width: 36,
+              height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(2),
@@ -1841,7 +1945,8 @@ class _ChildItemSearchSheetState extends State<_ChildItemSearchSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Select Child Item',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _searchController,
@@ -1881,8 +1986,9 @@ class _ChildItemSearchSheetState extends State<_ChildItemSearchSheet> {
             const Divider(height: 1),
             _filtered.isEmpty
                 ? const Expanded(
-                    child: Center(child: Text('No items found',
-                        style: TextStyle(color: Colors.grey))))
+                    child: Center(
+                        child: Text('No items found',
+                            style: TextStyle(color: Colors.grey))))
                 : Expanded(
                     child: ListView.separated(
                       controller: scrollController,
@@ -1894,17 +2000,28 @@ class _ChildItemSearchSheetState extends State<_ChildItemSearchSheet> {
                         final isSelected =
                             item.itemId.toString() == widget.selectedId;
                         return ListTile(
-                          title: Text(
-                            item.name,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              color: isSelected
-                                  ? AppColors.brandPrimary
-                                  : null,
-                            ),
+                          title: Row(
+                            children: [
+                              if (item.isVerified) ...[
+                                const Icon(Icons.verified,
+                                    size: 14, color: AppColors.success),
+                                const SizedBox(width: 4),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  item.name,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? AppColors.brandPrimary
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           subtitle: item.category.isNotEmpty
                               ? Text(item.category,
