@@ -366,6 +366,19 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     return count;
   }
 
+  int get _verifiedCount {
+    int count = 0;
+    void walk(List<ItemHierarchyNode> nodes) {
+      for (final n in nodes) {
+        if (n.isVerified) count++;
+        walk(n.children);
+      }
+    }
+
+    if (_tree != null) walk(_tree!);
+    return count;
+  }
+
   /// Flattens the tree into visible rows -- respecting collapse state, and
   /// while a search term or filter is active, showing only nodes that
   /// match (by name/id, category, verified state, and/or reorder level)
@@ -491,12 +504,14 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Wrap(
+                spacing: 28,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.end,
                 children: [
                   _statFigure('${tree.length}', 'breakdown chains'),
-                  const SizedBox(width: 28),
                   _statFigure('$_totalCount', 'active items'),
+                  _statFigure('$_verifiedCount', 'verified'),
                 ],
               ),
               const SizedBox(height: 16),
