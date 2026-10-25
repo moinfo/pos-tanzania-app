@@ -6,11 +6,51 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 
-/// Mirrors the web Items -> Item Hierarchy page: table + expand/collapse +
-/// search, and the same three inline edits the web page offers --
-/// category, reorder level, verified -- each tapped and saved individually
-/// through the same api/items/update_fields endpoint (staged for approval
-/// when the employee lacks that grant, exactly as on web).
+/// Ledger palette -- the same semantic system the web Item Hierarchy page
+/// uses (ochre = bulk/wholesale, teal = retail/verified, rust = low-stock),
+/// so staff moving between web and app read the same colors the same way.
+/// This screen is a manifest of a shop's bulk-to-retail breakdowns, not a
+/// lifestyle screen -- the palette reads as ink on a ledger page, not a
+/// dashboard card.
+class _Ledger {
+  static const ink = Color(0xFF17241C);
+  static const inkText = Color(0xFFEDEFE3);
+  static const inkTextDim = Color(0xFFAEBAA9);
+  static const ochre = Color(0xFF9C6F1E);
+  static const ochreBgLight = Color(0xFFF2E6CC);
+  static const ochreBgDark = Color(0x3DA8781F);
+  static const teal = Color(0xFF2B6358);
+  static const tealBgLight = Color(0xFFDCEAE5);
+  static const tealBgDark = Color(0x332F6B5E);
+  static const rust = Color(0xFFA14E35);
+  static const railLight = Color(0xFFD4CFBB);
+  static const railDark = Color(0xFF3B3B30);
+}
+
+/// One rail segment drawn to the left of a row, one per ancestor depth.
+enum _RailSeg {
+  blank, // ancestor at this level had no further siblings -- nothing to draw
+  pass, // ancestor at this level has more siblings below -- trunk continues
+  branchLast, // this row's own connector, and it's the last child here
+  branchMore, // this row's own connector, with siblings still below it
+}
+
+/// A flattened tree row plus the rail segments needed to draw its branch
+/// lines -- rail[i] is true when the ancestor at depth i+1 was the LAST
+/// child among its siblings (so the trunk stops there rather than passing
+/// through). Mirrors the web page's render_hier_nodes() $rail array.
+class _HierRow {
+  final ItemHierarchyNode node;
+  final List<bool> rail;
+  const _HierRow(this.node, this.rail);
+}
+
+/// Mirrors the web Items -> Item Hierarchy page: a manifest of how bulk
+/// sacks/cartons break down into retail packets, with the branch structure
+/// drawn as literal connecting lines (not just indentation), and the same
+/// three inline edits the web page offers -- category, reorder level,
+/// verified -- each saved individually through api/items/update_fields
+/// (staged for approval when the employee lacks that grant, as on web).
 class ItemHierarchyScreen extends StatefulWidget {
   const ItemHierarchyScreen({super.key});
 
@@ -68,7 +108,8 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
   /// Replaces one node (by item_id) in place, wherever it sits in the tree,
   /// after a successful inline edit -- mirrors the web page's applyDisplay()
   /// updating the cell directly rather than reloading the whole table.
-  void _updateNode(int itemId, ItemHierarchyNode Function(ItemHierarchyNode) update) {
+  void _updateNode(
+      int itemId, ItemHierarchyNode Function(ItemHierarchyNode) update) {
     List<ItemHierarchyNode> walk(List<ItemHierarchyNode> nodes) {
       return nodes.map((n) {
         if (n.itemId == itemId) return update(n);
@@ -81,14 +122,15 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     setState(() => _tree = walk(_tree!));
   }
 
-  void _showToast(String message, {bool isError = false, bool isPending = false}) {
+  void _showToast(String message,
+      {bool isError = false, bool isPending = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: isError
             ? AppColors.error
-            : (isPending ? AppColors.warning : AppColors.success),
+            : (isPending ? AppColors.warning : _Ledger.teal),
       ),
     );
   }
@@ -110,7 +152,8 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                   child: Row(
                     children: [
                       if (c == node.category)
-                        const Icon(Icons.check, size: 18, color: AppColors.primary)
+                        const Icon(Icons.check,
+                            size: 18, color: AppColors.primary)
                       else
                         const SizedBox(width: 18),
                       const SizedBox(width: 8),
@@ -150,8 +193,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               final parsed =
@@ -204,42 +246,36 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     return count;
   }
 
-  /// Flattens the tree into visible rows: respects collapse state, and --
-  /// while a search term is active -- shows only nodes that match (by name
-  /// or id) plus every ancestor leading down to a match, ignoring collapse.
-  List<ItemHierarchyNode> _visibleRows() {
-    if (_tree == null) return [];
-    final rows = <ItemHierarchyNode>[];
-
-    if (_query.isEmpty) {
-      void walk(List<ItemHierarchyNode> nodes) {
-        for (final n in nodes) {
-          rows.add(n);
-          if (!_collapsed.contains(n.itemId)) walk(n.children);
-        }
-      }
-
-      walk(_tree!);
-      return rows;
-    }
+  /// Flattens the tree into visible rows -- respecting collapse state, and
+  /// while a search term is active, showing only nodes that match (by name
+  /// or id) plus every ancestor leading down to a match -- while computing
+  /// each row's rail (branch-line) segments. "Last sibling" is judged
+  /// against the currently VISIBLE sibling set, so a search filter never
+  /// draws a trunk line continuing toward a hidden sibling.
+  List<_HierRow> _visibleRows() {
+    final out = <_HierRow>[];
+    if (_tree == null) return out;
+    final searching = _query.isNotEmpty;
 
     bool matches(ItemHierarchyNode n) =>
         n.name.toLowerCase().contains(_query) ||
         n.itemId.toString().contains(_query);
-
     bool subtreeMatches(ItemHierarchyNode n) =>
         matches(n) || n.children.any(subtreeMatches);
 
-    void walk(List<ItemHierarchyNode> nodes) {
-      for (final n in nodes) {
-        if (!subtreeMatches(n)) continue;
-        rows.add(n);
-        walk(n.children);
+    void walk(List<ItemHierarchyNode> nodes, List<bool> parentRail) {
+      final visible = searching ? nodes.where(subtreeMatches).toList() : nodes;
+      for (var i = 0; i < visible.length; i++) {
+        final n = visible[i];
+        final rail = [...parentRail, i == visible.length - 1];
+        out.add(_HierRow(n, rail));
+        final expanded = searching || !_collapsed.contains(n.itemId);
+        if (expanded && n.children.isNotEmpty) walk(n.children, rail);
       }
     }
 
-    walk(_tree!);
-    return rows;
+    walk(_tree!, []);
+    return out;
   }
 
   @override
@@ -307,42 +343,68 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     );
   }
 
+  /// The ledger header: one deliberate dark band (distinct from the plain
+  /// list below it) carrying the stats and search -- the single bold move
+  /// this screen spends its boldness on, everything else stays quiet.
   Widget _buildBody(bool isDark) {
     final tree = _tree ?? [];
     return Column(
       children: [
         Container(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          color: _Ledger.ink,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _statChip('${tree.length}', 'breakdown chains', isDark),
-                  const SizedBox(width: 16),
-                  _statChip('$_totalCount', 'active items', isDark),
+                  _statFigure('${tree.length}', 'breakdown chains'),
+                  const SizedBox(width: 28),
+                  _statFigure('$_totalCount', 'active items'),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
+                style: const TextStyle(color: _Ledger.inkText, fontSize: 14),
                 decoration: InputDecoration(
                   isDense: true,
-                  hintText: 'Search items…',
-                  prefixIcon: const Icon(Icons.search, size: 20),
+                  hintText: 'Search items',
+                  hintStyle: const TextStyle(color: _Ledger.inkTextDim),
+                  prefixIcon: const Icon(Icons.search,
+                      size: 18, color: _Ledger.inkTextDim),
                   suffixIcon: _query.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
+                          icon: const Icon(Icons.clear,
+                              size: 16, color: _Ledger.inkTextDim),
                           onPressed: () => _searchController.clear(),
                         )
                       : null,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.06),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xFF3D4A3F)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: _Ledger.ochre),
+                  ),
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                 ),
               ),
+              if (tree.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    _legendDot(_Ledger.ochre, 'Wholesale unit'),
+                    const SizedBox(width: 16),
+                    _legendDot(_Ledger.teal, 'Retail unit'),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -358,6 +420,40 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     );
   }
 
+  Widget _statFigure(String value, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value,
+            style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: _Ledger.inkText,
+                fontFeatures: [FontFeature.tabularFigures()],
+                height: 1.0)),
+        const SizedBox(height: 2),
+        Text(label,
+            style: const TextStyle(fontSize: 11, color: _Ledger.inkTextDim)),
+      ],
+    );
+  }
+
+  Widget _legendDot(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(label,
+            style: const TextStyle(fontSize: 11, color: _Ledger.inkTextDim)),
+      ],
+    );
+  }
+
   Widget _buildEmpty(bool isDark) {
     return ListView(
       children: [
@@ -366,13 +462,22 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
           child: Column(
             children: [
               Icon(Icons.account_tree_outlined,
-                  size: 48,
+                  size: 44,
                   color:
                       isDark ? AppColors.darkTextLight : AppColors.textLight),
               const SizedBox(height: 12),
               Text(
                 'No sack-to-packet chains yet.',
                 style: TextStyle(
+                    color:
+                        isDark ? AppColors.darkTextLight : AppColors.textLight),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Link a bulk item to its retail breakdown from the item\'s edit page.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 12,
                     color:
                         isDark ? AppColors.darkTextLight : AppColors.textLight),
               ),
@@ -402,237 +507,291 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    return ListView.builder(
+      padding: EdgeInsets.zero,
       itemCount: rows.length,
-      separatorBuilder: (_, __) => Divider(
-          height: 1, color: isDark ? AppColors.darkDivider : AppColors.divider),
       itemBuilder: (context, i) => _buildRow(rows[i], isDark),
     );
   }
 
-  Widget _buildRow(ItemHierarchyNode node, bool isDark) {
+  Widget _buildRow(_HierRow row, bool isDark) {
+    final node = row.node;
     final hasChildren = node.children.isNotEmpty;
     final collapsed = _collapsed.contains(node.itemId);
     final isWholesale =
         node.category.toUpperCase().contains('WHOLE') || node.depth == 0;
+    final accent = isWholesale ? _Ledger.ochre : _Ledger.teal;
+    final accentBg = isDark
+        ? (isWholesale ? _Ledger.ochreBgDark : _Ledger.tealBgDark)
+        : (isWholesale ? _Ledger.ochreBgLight : _Ledger.tealBgLight);
+    final railColor = isDark ? _Ledger.railDark : _Ledger.railLight;
 
-    // Only the chevron toggles expand/collapse, same as the web page --
-    // there the toggle-btn arrow is the one clickable thing on the row
-    // that isn't an editable field; clicking the name itself does nothing.
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16 + node.depth * 18, 10, 16, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 24,
-            child: hasChildren
-                ? InkWell(
-                    onTap: () => setState(() {
-                      if (collapsed) {
-                        _collapsed.remove(node.itemId);
-                      } else {
-                        _collapsed.add(node.itemId);
-                      }
-                    }),
-                    child: Icon(
-                      collapsed
-                          ? Icons.keyboard_arrow_right
-                          : Icons.keyboard_arrow_down,
-                      size: 20,
-                      color: isDark
-                          ? AppColors.darkTextLight
-                          : AppColors.textLight,
-                    ),
-                  )
-                : null,
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    if (node.isVerified) ...[
-                      const Icon(Icons.verified, size: 13, color: AppColors.info),
-                      const SizedBox(width: 4),
-                    ],
-                    Expanded(
-                      child: Text(
-                        node.name,
-                        style: TextStyle(
-                          fontWeight: node.depth == 0
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                          fontSize: node.depth == 0 ? 14.5 : 13.5,
-                          color: isDark ? AppColors.darkText : AppColors.text,
-                        ),
-                      ),
-                    ),
-                    if (node.depth > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkAccent
-                              : AppColors.secondary.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '×${_trimYield(node.receivingQuantity)}',
-                          style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.darkText
-                                  : AppColors.secondary),
-                        ),
-                      ),
-                  ],
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        border: Border(
+          bottom: BorderSide(
+              color: isDark ? AppColors.darkDivider : AppColors.divider,
+              width: 1),
+          left: BorderSide(
+              color: node.depth == 0 ? accent : Colors.transparent, width: 3),
+        ),
+      ),
+      padding: const EdgeInsets.only(right: 14, top: 10, bottom: 10),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(width: 11),
+            for (var i = 1; i < row.rail.length; i++)
+              SizedBox(
+                width: 16,
+                child: CustomPaint(
+                  painter: _RailPainter(
+                    seg: i == row.rail.length - 1
+                        ? (row.rail[i]
+                            ? _RailSeg.branchLast
+                            : _RailSeg.branchMore)
+                        : (row.rail[i] ? _RailSeg.blank : _RailSeg.pass),
+                    color: railColor,
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    InkWell(
-                      onTap: () => _editCategory(node),
-                      child: _tag(
-                          node.category,
-                          isWholesale ? AppColors.warning : AppColors.success,
-                          isDark,
-                          editable: true),
-                    ),
-                    InkWell(
-                      onTap: () => _editReorderLevel(node),
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            const TextSpan(text: 'Reorder at: '),
-                            TextSpan(
-                              text: Formatters.formatCurrency(node.reorderLevel),
-                              style: const TextStyle(
-                                  decoration: TextDecoration.underline,
-                                  decorationStyle: TextDecorationStyle.dashed),
-                            ),
-                          ],
-                        ),
-                        style: TextStyle(
-                            fontSize: 11.5,
-                            color: isDark
-                                ? AppColors.darkTextLight
-                                : AppColors.textLight),
+              ),
+            SizedBox(
+              width: 22,
+              child: hasChildren
+                  ? InkWell(
+                      onTap: () => setState(() {
+                        if (collapsed) {
+                          _collapsed.remove(node.itemId);
+                        } else {
+                          _collapsed.add(node.itemId);
+                        }
+                      }),
+                      child: Icon(
+                        collapsed ? Icons.add : Icons.remove,
+                        size: 15,
+                        color: isDark
+                            ? AppColors.darkTextLight
+                            : AppColors.textLight,
                       ),
-                    ),
-                    InkWell(
-                      onTap: () => _toggleVerified(node),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: node.isVerified
-                              ? AppColors.info.withOpacity(isDark ? 0.25 : 0.12)
-                              : Colors.transparent,
-                          border: Border.all(
-                              color: node.isVerified
-                                  ? AppColors.info
-                                  : (isDark
-                                      ? AppColors.darkDivider
-                                      : AppColors.divider)),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                    )
+                  : null,
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (node.isVerified) ...[
+                        const Icon(Icons.verified,
+                            size: 13, color: _Ledger.teal),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
                         child: Text(
-                          node.isVerified ? '✓ Verified' : 'Mark verified',
+                          node.name,
                           style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                            color: node.isVerified
-                                ? AppColors.info
-                                : (isDark
-                                    ? AppColors.darkTextLight
-                                    : AppColors.textLight),
+                            fontWeight: node.depth == 0
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            fontSize: node.depth == 0 ? 14.5 : 13.5,
+                            letterSpacing: -0.1,
+                            color: isDark ? AppColors.darkText : AppColors.text,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 2,
-                  children: [
-                    Text(
-                      'Stock: ${Formatters.formatCurrency(node.stockQty)}'
-                      '${node.isLowStock ? ' (low)' : ''}',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: node.isLowStock ? FontWeight.bold : null,
-                        color: node.isLowStock
-                            ? AppColors.error
-                            : (isDark
-                                ? AppColors.darkTextLight
-                                : AppColors.textLight),
+                      if (node.depth > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: _Ledger.ink,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Text(
+                            '×${_trimYield(node.receivingQuantity)}',
+                            style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                                color: _Ledger.inkText),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(3),
+                        onTap: () => _editCategory(node),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: accentBg,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(node.category,
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.1,
+                                      color: accent)),
+                              const SizedBox(width: 3),
+                              Icon(Icons.expand_more,
+                                  size: 12, color: accent.withOpacity(0.8)),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Cost ${Formatters.formatCurrency(node.costPrice)} · '
-                      'Sell ${Formatters.formatCurrency(node.unitPrice)}',
-                      style: TextStyle(
-                          fontSize: 11.5,
+                      _editField(
+                        label: 'Reorder',
+                        value: Formatters.formatCurrency(node.reorderLevel),
+                        isDark: isDark,
+                        onTap: () => _editReorderLevel(node),
+                      ),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(3),
+                        onTap: () => _toggleVerified(node),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: node.isVerified
+                                ? _Ledger.teal.withOpacity(isDark ? 0.28 : 0.12)
+                                : Colors.transparent,
+                            border: Border.all(
+                                color: node.isVerified
+                                    ? _Ledger.teal
+                                    : (isDark
+                                        ? AppColors.darkDivider
+                                        : AppColors.divider)),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                node.isVerified
+                                    ? Icons.check_circle
+                                    : Icons.radio_button_unchecked,
+                                size: 11,
+                                color: node.isVerified
+                                    ? _Ledger.teal
+                                    : (isDark
+                                        ? AppColors.darkTextLight
+                                        : AppColors.textLight),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                node.isVerified ? 'Verified' : 'Verify',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: node.isVerified
+                                      ? _Ledger.teal
+                                      : (isDark
+                                          ? AppColors.darkTextLight
+                                          : AppColors.textLight),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Text(
+                        Formatters.formatCurrency(node.stockQty),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          color: node.isLowStock
+                              ? _Ledger.rust
+                              : (isDark ? AppColors.darkText : AppColors.text),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text('in stock',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: isDark
+                                  ? AppColors.darkTextLight
+                                  : AppColors.textLight)),
+                      if (node.isLowStock) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.warning_amber_rounded,
+                            size: 12, color: _Ledger.rust),
+                      ],
+                      const Spacer(),
+                      Text(
+                        '${Formatters.formatCurrency(node.costPrice)} → ${Formatters.formatCurrency(node.unitPrice)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                           color: isDark
                               ? AppColors.darkTextLight
-                              : AppColors.textLight),
-                    ),
-                  ],
-                ),
-              ],
+                              : AppColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _tag(String label, Color color, bool isDark, {bool editable = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.22 : 0.12),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10.5, fontWeight: FontWeight.w600, color: color)),
-          if (editable) ...[
-            const SizedBox(width: 3),
-            Icon(Icons.edit, size: 9, color: color.withOpacity(0.7)),
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _statChip(String value, String label, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(value,
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkText : AppColors.text)),
-        Text(label,
-            style: TextStyle(
-                fontSize: 10.5,
-                color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
-      ],
+  /// A small tappable "field" chip -- label above, value below with a
+  /// dashed underline -- reads as a form field you can edit, not plain
+  /// text with an icon bolted on.
+  Widget _editField({
+    required String label,
+    required String value,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    final dim = isDark ? AppColors.darkTextLight : AppColors.textLight;
+    final text = isDark ? AppColors.darkText : AppColors.text;
+    return InkWell(
+      borderRadius: BorderRadius.circular(3),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: dim, width: 1)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$label ', style: TextStyle(fontSize: 10.5, color: dim)),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: text)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -643,4 +802,47 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
         .replaceFirst(RegExp(r'0+$'), '')
         .replaceFirst(RegExp(r'\.$'), '');
   }
+}
+
+/// Draws one column's branch-line segment for a hierarchy row -- a vertical
+/// trunk passing through, an elbow where a branch meets the trunk, or
+/// nothing at all. Mirrors the web page's CSS .rail/.stem/::after lines as
+/// literal canvas strokes, since Flutter has no CSS-pseudo-element
+/// equivalent to lean on.
+class _RailPainter extends CustomPainter {
+  final _RailSeg seg;
+  final Color color;
+
+  const _RailPainter({required this.seg, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (seg == _RailSeg.blank) return;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke;
+    final midX = size.width / 2;
+    final midY = size.height / 2;
+
+    switch (seg) {
+      case _RailSeg.pass:
+        canvas.drawLine(Offset(midX, 0), Offset(midX, size.height), paint);
+        break;
+      case _RailSeg.branchMore:
+        canvas.drawLine(Offset(midX, 0), Offset(midX, size.height), paint);
+        canvas.drawLine(Offset(midX, midY), Offset(size.width, midY), paint);
+        break;
+      case _RailSeg.branchLast:
+        canvas.drawLine(Offset(midX, 0), Offset(midX, midY), paint);
+        canvas.drawLine(Offset(midX, midY), Offset(size.width, midY), paint);
+        break;
+      case _RailSeg.blank:
+        break;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RailPainter oldDelegate) =>
+      oldDelegate.seg != seg || oldDelegate.color != color;
 }
