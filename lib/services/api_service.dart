@@ -2240,9 +2240,10 @@ class ApiService {
     }
   }
 
-  /// Parent -> child item breakdown (bulk sack/carton -> retail packets),
-  /// as a nested tree -- mirrors the web Items -> Item Hierarchy page.
-  Future<ApiResponse<List<ItemHierarchyNode>>> getItemHierarchy() async {
+  /// Parent -> child item breakdown (bulk sack/carton -> retail packets)
+  /// plus the same category list the web page's inline editor offers --
+  /// mirrors the web Items -> Item Hierarchy page's data exactly.
+  Future<ApiResponse<ItemHierarchyResult>> getItemHierarchy() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrlSync/items/hierarchy'),
@@ -2251,11 +2252,10 @@ class ApiService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonResponse = json.decode(response.body);
-        final tree = (jsonResponse['data']['tree'] as List<dynamic>? ?? [])
-            .map((n) => ItemHierarchyNode.fromJson(n as Map<String, dynamic>))
-            .toList();
+        final result = ItemHierarchyResult.fromJson(
+            Map<String, dynamic>.from(jsonResponse['data']));
         return ApiResponse.success(
-            data: tree, message: jsonResponse['message']);
+            data: result, message: jsonResponse['message']);
       } else {
         final jsonResponse = json.decode(response.body);
         return ApiResponse.error(
@@ -2377,6 +2377,38 @@ class ApiService {
       return _handleResponse<Item>(
         response,
         (data) => Item.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Lightweight field-level edit -- category / reorder level / verified
+  /// only, used by the Item Hierarchy screen's inline edit actions. Pass
+  /// only the field(s) being changed; stages for approval the same way a
+  /// full item edit does when the employee lacks that grant (handled
+  /// generically by _handleResponse's pending check).
+  Future<ApiResponse<Map<String, dynamic>>> updateItemFields(
+    int itemId, {
+    String? category,
+    double? reorderLevel,
+    bool? isVerified,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (category != null) body['category'] = category;
+      if (reorderLevel != null) body['reorder_level'] = reorderLevel;
+      if (isVerified != null) body['is_verified'] = isVerified ? 1 : 0;
+
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/items/update_fields/$itemId'),
+        headers: await _getHeaders(),
+        body: json.encode(body),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => Map<String, dynamic>.from(data),
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');

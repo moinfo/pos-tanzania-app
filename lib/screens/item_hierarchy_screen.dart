@@ -6,10 +6,11 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 
-/// Read-only view of how bulk sacks/cartons break down into retail packets
-/// -- mirrors the web Items -> Item Hierarchy page (table + expand/collapse
-/// + search), minus its inline editing (category/reorder/verify stay
-/// web-only for now, same as other reports added this session).
+/// Mirrors the web Items -> Item Hierarchy page: table + expand/collapse +
+/// search, and the same three inline edits the web page offers --
+/// category, reorder level, verified -- each tapped and saved individually
+/// through the same api/items/update_fields endpoint (staged for approval
+/// when the employee lacks that grant, exactly as on web).
 class ItemHierarchyScreen extends StatefulWidget {
   const ItemHierarchyScreen({super.key});
 
@@ -22,6 +23,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   List<ItemHierarchyNode>? _tree;
+  List<String> _categories = [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -55,11 +57,138 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     setState(() {
       _isLoading = false;
       if (result.isSuccess && result.data != null) {
-        _tree = result.data;
+        _tree = result.data!.tree;
+        _categories = result.data!.categories;
       } else {
         _errorMessage = result.message;
       }
     });
+  }
+
+  /// Replaces one node (by item_id) in place, wherever it sits in the tree,
+  /// after a successful inline edit -- mirrors the web page's applyDisplay()
+  /// updating the cell directly rather than reloading the whole table.
+  void _updateNode(int itemId, ItemHierarchyNode Function(ItemHierarchyNode) update) {
+    List<ItemHierarchyNode> walk(List<ItemHierarchyNode> nodes) {
+      return nodes.map((n) {
+        if (n.itemId == itemId) return update(n);
+        if (n.children.isEmpty) return n;
+        return n.copyWith(children: walk(n.children));
+      }).toList();
+    }
+
+    if (_tree == null) return;
+    setState(() => _tree = walk(_tree!));
+  }
+
+  void _showToast(String message, {bool isError = false, bool isPending = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError
+            ? AppColors.error
+            : (isPending ? AppColors.warning : AppColors.success),
+      ),
+    );
+  }
+
+  Future<void> _editCategory(ItemHierarchyNode node) async {
+    // Same list the web page's <select> offers: every active item's
+    // distinct category, plus this item's own category even if it's the
+    // only one with it (so it's never missing from its own picker).
+    final options = [..._categories];
+    if (!options.contains(node.category)) options.insert(0, node.category);
+
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Category'),
+        children: options
+            .map((c) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, c),
+                  child: Row(
+                    children: [
+                      if (c == node.category)
+                        const Icon(Icons.check, size: 18, color: AppColors.primary)
+                      else
+                        const SizedBox(width: 18),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(c)),
+                    ],
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+    if (selected == null || selected == node.category) return;
+
+    final response =
+        await _apiService.updateItemFields(node.itemId, category: selected);
+    if (response.isPending) {
+      _showToast(response.message, isPending: true);
+    } else if (response.isSuccess) {
+      _updateNode(node.itemId, (n) => n.copyWith(category: selected));
+      _showToast('Saved');
+    } else {
+      _showToast(response.message, isError: true);
+    }
+  }
+
+  Future<void> _editReorderLevel(ItemHierarchyNode node) async {
+    final controller = TextEditingController(
+        text: Formatters.formatCurrency(node.reorderLevel));
+    final value = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reorder at'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final parsed =
+                  double.tryParse(controller.text.replaceAll(',', '').trim());
+              Navigator.pop(ctx, parsed);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (value == null || value < 0 || value == node.reorderLevel) return;
+
+    final response =
+        await _apiService.updateItemFields(node.itemId, reorderLevel: value);
+    if (response.isPending) {
+      _showToast(response.message, isPending: true);
+    } else if (response.isSuccess) {
+      _updateNode(node.itemId, (n) => n.copyWith(reorderLevel: value));
+      _showToast('Saved');
+    } else {
+      _showToast(response.message, isError: true);
+    }
+  }
+
+  Future<void> _toggleVerified(ItemHierarchyNode node) async {
+    final next = !node.isVerified;
+    final response =
+        await _apiService.updateItemFields(node.itemId, isVerified: next);
+    if (response.isPending) {
+      _showToast(response.message, isPending: true);
+    } else if (response.isSuccess) {
+      _updateNode(node.itemId, (n) => n.copyWith(isVerified: next));
+      _showToast('Saved');
+    } else {
+      _showToast(response.message, isError: true);
+    }
   }
 
   int get _totalCount {
@@ -288,25 +417,26 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     final isWholesale =
         node.category.toUpperCase().contains('WHOLE') || node.depth == 0;
 
-    return InkWell(
-      onTap: hasChildren
-          ? () => setState(() {
-                if (collapsed) {
-                  _collapsed.remove(node.itemId);
-                } else {
-                  _collapsed.add(node.itemId);
-                }
-              })
-          : null,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16 + node.depth * 18, 10, 16, 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 20,
-              child: hasChildren
-                  ? Icon(
+    // Only the chevron toggles expand/collapse, same as the web page --
+    // there the toggle-btn arrow is the one clickable thing on the row
+    // that isn't an editable field; clicking the name itself does nothing.
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16 + node.depth * 18, 10, 16, 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 24,
+            child: hasChildren
+                ? InkWell(
+                    onTap: () => setState(() {
+                      if (collapsed) {
+                        _collapsed.remove(node.itemId);
+                      } else {
+                        _collapsed.add(node.itemId);
+                      }
+                    }),
+                    child: Icon(
                       collapsed
                           ? Icons.keyboard_arrow_right
                           : Icons.keyboard_arrow_down,
@@ -314,106 +444,178 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                       color: isDark
                           ? AppColors.darkTextLight
                           : AppColors.textLight,
-                    )
-                  : null,
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (node.isVerified) ...[
-                        const Icon(Icons.verified,
-                            size: 14, color: AppColors.info),
-                        const SizedBox(width: 4),
-                      ],
-                      Expanded(
-                        child: Text(
-                          node.name,
-                          style: TextStyle(
-                            fontWeight: node.depth == 0
-                                ? FontWeight.bold
-                                : FontWeight.w500,
-                            fontSize: node.depth == 0 ? 14.5 : 13.5,
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          ),
+                    ),
+                  )
+                : null,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (node.isVerified) ...[
+                      const Icon(Icons.verified, size: 13, color: AppColors.info),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Text(
+                        node.name,
+                        style: TextStyle(
+                          fontWeight: node.depth == 0
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          fontSize: node.depth == 0 ? 14.5 : 13.5,
+                          color: isDark ? AppColors.darkText : AppColors.text,
                         ),
                       ),
-                      if (node.depth > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.darkAccent
-                                : AppColors.secondary.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '×${_trimYield(node.receivingQuantity)}',
-                            style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? AppColors.darkText
-                                    : AppColors.secondary),
-                          ),
+                    ),
+                    if (node.depth > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.darkAccent
+                              : AppColors.secondary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 2,
-                    children: [
-                      _tag(
+                        child: Text(
+                          '×${_trimYield(node.receivingQuantity)}',
+                          style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.darkText
+                                  : AppColors.secondary),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    InkWell(
+                      onTap: () => _editCategory(node),
+                      child: _tag(
                           node.category,
                           isWholesale ? AppColors.warning : AppColors.success,
-                          isDark),
-                      Text(
-                        'Stock: ${Formatters.formatCurrency(node.stockQty)}'
-                        '${node.isLowStock ? ' (low)' : ''}',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: node.isLowStock ? FontWeight.bold : null,
-                          color: node.isLowStock
-                              ? AppColors.error
-                              : (isDark
-                                  ? AppColors.darkTextLight
-                                  : AppColors.textLight),
+                          isDark,
+                          editable: true),
+                    ),
+                    InkWell(
+                      onTap: () => _editReorderLevel(node),
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(text: 'Reorder at: '),
+                            TextSpan(
+                              text: Formatters.formatCurrency(node.reorderLevel),
+                              style: const TextStyle(
+                                  decoration: TextDecoration.underline,
+                                  decorationStyle: TextDecorationStyle.dashed),
+                            ),
+                          ],
                         ),
-                      ),
-                      Text(
-                        'Cost ${Formatters.formatCurrency(node.costPrice)} · '
-                        'Sell ${Formatters.formatCurrency(node.unitPrice)}',
                         style: TextStyle(
                             fontSize: 11.5,
                             color: isDark
                                 ? AppColors.darkTextLight
                                 : AppColors.textLight),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    InkWell(
+                      onTap: () => _toggleVerified(node),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: node.isVerified
+                              ? AppColors.info.withOpacity(isDark ? 0.25 : 0.12)
+                              : Colors.transparent,
+                          border: Border.all(
+                              color: node.isVerified
+                                  ? AppColors.info
+                                  : (isDark
+                                      ? AppColors.darkDivider
+                                      : AppColors.divider)),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          node.isVerified ? '✓ Verified' : 'Mark verified',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: node.isVerified
+                                ? AppColors.info
+                                : (isDark
+                                    ? AppColors.darkTextLight
+                                    : AppColors.textLight),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 2,
+                  children: [
+                    Text(
+                      'Stock: ${Formatters.formatCurrency(node.stockQty)}'
+                      '${node.isLowStock ? ' (low)' : ''}',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: node.isLowStock ? FontWeight.bold : null,
+                        color: node.isLowStock
+                            ? AppColors.error
+                            : (isDark
+                                ? AppColors.darkTextLight
+                                : AppColors.textLight),
+                      ),
+                    ),
+                    Text(
+                      'Cost ${Formatters.formatCurrency(node.costPrice)} · '
+                      'Sell ${Formatters.formatCurrency(node.unitPrice)}',
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark
+                              ? AppColors.darkTextLight
+                              : AppColors.textLight),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _tag(String label, Color color, bool isDark) {
+  Widget _tag(String label, Color color, bool isDark, {bool editable = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withOpacity(isDark ? 0.22 : 0.12),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 10.5, fontWeight: FontWeight.w600, color: color)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10.5, fontWeight: FontWeight.w600, color: color)),
+          if (editable) ...[
+            const SizedBox(width: 3),
+            Icon(Icons.edit, size: 9, color: color.withOpacity(0.7)),
+          ],
+        ],
+      ),
     );
   }
 
