@@ -128,7 +128,19 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     );
   }
 
+  /// True (and shows why) when this item already has a change waiting for
+  /// approval -- matches the backend's own guard (Item_change_request::
+  /// has_pending_request()), so tapping doesn't even reach the network call
+  /// that would be refused anyway.
+  bool _blockedByPendingApproval(ItemHierarchyNode node) {
+    if (!node.isPendingApproval) return false;
+    _showToast('This item already has a change waiting for approval',
+        isPending: true);
+    return true;
+  }
+
   Future<void> _editCategory(ItemHierarchyNode node) async {
+    if (_blockedByPendingApproval(node)) return;
     // Same list the web page's <select> offers: every active item's
     // distinct category, plus this item's own category even if it's the
     // only one with it (so it's never missing from its own picker).
@@ -173,6 +185,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
   }
 
   Future<void> _editReorderLevel(ItemHierarchyNode node) async {
+    if (_blockedByPendingApproval(node)) return;
     final controller = TextEditingController(
         text: Formatters.formatCurrency(node.reorderLevel));
     final value = await showDialog<double>(
@@ -215,6 +228,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
   }
 
   Future<void> _toggleVerified(ItemHierarchyNode node) async {
+    if (_blockedByPendingApproval(node)) return;
     final next = !node.isVerified;
     final response =
         await _apiService.updateItemFields(node.itemId, isVerified: next);
@@ -650,94 +664,97 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                     ),
                   ],
                   const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      InkWell(
-                        borderRadius: BorderRadius.circular(3),
-                        onTap: () => _editCategory(node),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: accentBg,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(node.category,
-                                  style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.1,
-                                      color: accent)),
-                              const SizedBox(width: 3),
-                              Icon(Icons.expand_more,
-                                  size: 12, color: accent.withOpacity(0.8)),
-                            ],
+                  Opacity(
+                    opacity: node.isPendingApproval ? 0.45 : 1,
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        InkWell(
+                          borderRadius: BorderRadius.circular(3),
+                          onTap: () => _editCategory(node),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: accentBg,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(node.category,
+                                    style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.1,
+                                        color: accent)),
+                                const SizedBox(width: 3),
+                                Icon(Icons.expand_more,
+                                    size: 12, color: accent.withOpacity(0.8)),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      _editField(
-                        label: 'Reorder',
-                        value: Formatters.formatCurrency(node.reorderLevel),
-                        isDark: isDark,
-                        onTap: () => _editReorderLevel(node),
-                      ),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(3),
-                        onTap: () => _toggleVerified(node),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: node.isVerified
-                                ? AppColors.success
-                                    .withOpacity(isDark ? 0.28 : 0.12)
-                                : Colors.transparent,
-                            border: Border.all(
-                                color: node.isVerified
-                                    ? AppColors.success
-                                    : (isDark
-                                        ? AppColors.darkDivider
-                                        : AppColors.divider)),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                node.isVerified
-                                    ? Icons.check_circle
-                                    : Icons.radio_button_unchecked,
-                                size: 11,
-                                color: node.isVerified
-                                    ? AppColors.success
-                                    : (isDark
-                                        ? AppColors.darkTextLight
-                                        : AppColors.textLight),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                node.isVerified ? 'Verified' : 'Verify',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
+                        _editField(
+                          label: 'Reorder',
+                          value: Formatters.formatCurrency(node.reorderLevel),
+                          isDark: isDark,
+                          onTap: () => _editReorderLevel(node),
+                        ),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(3),
+                          onTap: () => _toggleVerified(node),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: node.isVerified
+                                  ? AppColors.success
+                                      .withOpacity(isDark ? 0.28 : 0.12)
+                                  : Colors.transparent,
+                              border: Border.all(
+                                  color: node.isVerified
+                                      ? AppColors.success
+                                      : (isDark
+                                          ? AppColors.darkDivider
+                                          : AppColors.divider)),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  node.isVerified
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  size: 11,
                                   color: node.isVerified
                                       ? AppColors.success
                                       : (isDark
                                           ? AppColors.darkTextLight
                                           : AppColors.textLight),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  node.isVerified ? 'Verified' : 'Verify',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: node.isVerified
+                                        ? AppColors.success
+                                        : (isDark
+                                            ? AppColors.darkTextLight
+                                            : AppColors.textLight),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
