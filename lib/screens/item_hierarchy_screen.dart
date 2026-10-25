@@ -190,6 +190,13 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
 
     if (selected == _newCategorySentinel) {
       selected = await _promptNewCategoryName(options);
+      // Available for every other item's picker right away, whether this
+      // edit applies immediately or is still waiting for approval -- the
+      // name itself isn't what needs approving, only its assignment to
+      // this particular item is.
+      if (selected != null && !_categories.contains(selected)) {
+        setState(() => _categories = [..._categories, selected!]);
+      }
     }
     if (selected == null || selected == node.category) return;
 
