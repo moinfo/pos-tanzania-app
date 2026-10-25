@@ -65,6 +65,23 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
   final Set<int> _collapsed = {};
   String _query = '';
 
+  /// null = every category. Set from the filter bar, e.g. to show only
+  /// "Pipi" and its breakdown chain.
+  String? _categoryFilter;
+
+  /// null = both; true = verified only; false = not verified only.
+  bool? _verifiedFilter;
+
+  /// When true, only items whose reorder level is set above the default
+  /// of 1 -- i.e. someone has actually configured a real reorder
+  /// threshold for them, not just left it at the untouched default.
+  bool _reorderAboveOneFilter = false;
+
+  bool get _hasActiveFilters =>
+      _categoryFilter != null ||
+      _verifiedFilter != null ||
+      _reorderAboveOneFilter;
+
   @override
   void initState() {
     super.initState();
@@ -350,19 +367,33 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
   }
 
   /// Flattens the tree into visible rows -- respecting collapse state, and
-  /// while a search term is active, showing only nodes that match (by name
-  /// or id) plus every ancestor leading down to a match -- while computing
-  /// each row's rail (branch-line) segments. "Last sibling" is judged
-  /// against the currently VISIBLE sibling set, so a search filter never
-  /// draws a trunk line continuing toward a hidden sibling.
+  /// while a search term or filter is active, showing only nodes that
+  /// match (by name/id, category, verified state, and/or reorder level)
+  /// plus every ancestor leading down to a match -- while computing each
+  /// row's rail (branch-line) segments. "Last sibling" is judged against
+  /// the currently VISIBLE sibling set, so a search/filter never draws a
+  /// trunk line continuing toward a hidden sibling.
   List<_HierRow> _visibleRows() {
     final out = <_HierRow>[];
     if (_tree == null) return out;
-    final searching = _query.isNotEmpty;
+    final searching = _query.isNotEmpty || _hasActiveFilters;
 
-    bool matches(ItemHierarchyNode n) =>
-        n.name.toLowerCase().contains(_query) ||
-        n.itemId.toString().contains(_query);
+    bool matches(ItemHierarchyNode n) {
+      if (_query.isNotEmpty &&
+          !n.name.toLowerCase().contains(_query) &&
+          !n.itemId.toString().contains(_query)) {
+        return false;
+      }
+      if (_categoryFilter != null && n.category != _categoryFilter) {
+        return false;
+      }
+      if (_verifiedFilter != null && n.isVerified != _verifiedFilter) {
+        return false;
+      }
+      if (_reorderAboveOneFilter && n.reorderLevel <= 1) return false;
+      return true;
+    }
+
     bool subtreeMatches(ItemHierarchyNode n) =>
         matches(n) || n.children.any(subtreeMatches);
 
@@ -501,7 +532,52 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                 ),
               ),
               if (tree.isNotEmpty) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _filterChip(
+                      icon: Icons.category_outlined,
+                      label: _categoryFilter ?? 'Category',
+                      active: _categoryFilter != null,
+                      onTap: _pickCategoryFilter,
+                    ),
+                    _filterChip(
+                      icon: _verifiedFilter == true
+                          ? Icons.check_circle_outline
+                          : _verifiedFilter == false
+                              ? Icons.radio_button_unchecked
+                              : Icons.verified_outlined,
+                      label: _verifiedFilter == true
+                          ? 'Verified'
+                          : _verifiedFilter == false
+                              ? 'Not verified'
+                              : 'Verified?',
+                      active: _verifiedFilter != null,
+                      onTap: _pickVerifiedFilter,
+                    ),
+                    _filterChip(
+                      icon: Icons.trending_up,
+                      label: 'Reorder > 1',
+                      active: _reorderAboveOneFilter,
+                      onTap: () => setState(() =>
+                          _reorderAboveOneFilter = !_reorderAboveOneFilter),
+                    ),
+                    if (_hasActiveFilters)
+                      _filterChip(
+                        icon: Icons.close,
+                        label: 'Clear',
+                        active: false,
+                        onTap: () => setState(() {
+                          _categoryFilter = null;
+                          _verifiedFilter = null;
+                          _reorderAboveOneFilter = false;
+                        }),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     _legendDot(AppColors.warning, 'Wholesale unit'),
@@ -561,6 +637,113 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     );
   }
 
+  Widget _filterChip({
+    required IconData icon,
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? Colors.white : Colors.white.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(active ? 0 : 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 14,
+                color: active ? AppColors.brandPrimary : Colors.white),
+            const SizedBox(width: 5),
+            Text(label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: active ? AppColors.brandPrimary : Colors.white,
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickCategoryFilter() async {
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Filter by category'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: Row(
+              children: [
+                if (_categoryFilter == null)
+                  const Icon(Icons.check, size: 18, color: AppColors.primary)
+                else
+                  const SizedBox(width: 18),
+                const SizedBox(width: 8),
+                const Text('All categories'),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          ..._categories.map((c) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, c),
+                child: Row(
+                  children: [
+                    if (c == _categoryFilter)
+                      const Icon(Icons.check,
+                          size: 18, color: AppColors.primary)
+                    else
+                      const SizedBox(width: 18),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(c)),
+                  ],
+                ),
+              )),
+        ],
+      ),
+    );
+    if (picked == null) return;
+    setState(() => _categoryFilter = picked.isEmpty ? null : picked);
+  }
+
+  // Distinct from `null`, which showDialog also returns on a barrier-tap
+  // dismiss -- without this, dismissing without choosing anything would
+  // silently clear an existing filter instead of leaving it alone.
+  static const _allVerifiedSentinel = Object();
+
+  Future<void> _pickVerifiedFilter() async {
+    final picked = await showDialog<Object?>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Filter by verified'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, _allVerifiedSentinel),
+            child: const Text('All'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Verified only'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Not verified only'),
+          ),
+        ],
+      ),
+    );
+    if (picked == null) return; // dismissed -- leave the filter as it was
+    setState(() => _verifiedFilter =
+        picked == _allVerifiedSentinel ? null : picked as bool);
+  }
+
   Widget _buildEmpty(bool isDark) {
     return ListView(
       children: [
@@ -603,7 +786,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 80),
             child: Center(
-              child: Text('No items match that search.',
+              child: Text('No items match the search/filters.',
                   style: TextStyle(
                       color: isDark
                           ? AppColors.darkTextLight
