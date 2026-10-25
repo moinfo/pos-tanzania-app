@@ -146,13 +146,36 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
 
   Future<void> _editCategory(ItemHierarchyNode node) async {
     if (_blockedByPendingApproval(node, 'category')) return;
+    final selected = await _showCategoryPicker(node);
+    if (selected == null || selected == node.category) return;
+
+    final response =
+        await _apiService.updateItemFields(node.itemId, category: selected);
+    if (response.isPending) {
+      _updateNode(node.itemId,
+          (n) => n.copyWith(pendingFields: [...n.pendingFields, 'category']));
+      _showToast(response.message, isPending: true);
+    } else if (response.isSuccess) {
+      _updateNode(node.itemId, (n) => n.copyWith(category: selected));
+      _showToast('Saved');
+    } else {
+      _showToast(response.message, isError: true);
+    }
+  }
+
+  /// Shows the category list and returns what the user picked -- or, if
+  /// they pick "Add new category", registers it and shows the list again
+  /// (now including it) so picking it to actually apply to this item is
+  /// its own explicit, separate tap. Adding a category must never, by
+  /// itself, also assign and submit it.
+  Future<String?> _showCategoryPicker(ItemHierarchyNode node) async {
     // Same list the web page's <select> offers: every active item's
     // distinct category, plus this item's own category even if it's the
     // only one with it (so it's never missing from its own picker).
     final options = [..._categories];
     if (!options.contains(node.category)) options.insert(0, node.category);
 
-    var selected = await showDialog<String>(
+    final selected = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('Category'),
@@ -188,30 +211,20 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
       ),
     );
 
-    if (selected == _newCategorySentinel) {
-      selected = await _promptNewCategoryName(options);
-      // Available for every other item's picker right away, whether this
-      // edit applies immediately or is still waiting for approval -- the
-      // name itself isn't what needs approving, only its assignment to
-      // this particular item is.
-      if (selected != null && !_categories.contains(selected)) {
-        setState(() => _categories = [..._categories, selected!]);
-      }
-    }
-    if (selected == null || selected == node.category) return;
+    if (selected != _newCategorySentinel) return selected;
 
-    final response =
-        await _apiService.updateItemFields(node.itemId, category: selected);
-    if (response.isPending) {
-      _updateNode(node.itemId,
-          (n) => n.copyWith(pendingFields: [...n.pendingFields, 'category']));
-      _showToast(response.message, isPending: true);
-    } else if (response.isSuccess) {
-      _updateNode(node.itemId, (n) => n.copyWith(category: selected));
-      _showToast('Saved');
-    } else {
-      _showToast(response.message, isError: true);
+    final newName = await _promptNewCategoryName(options);
+    if (newName == null) return null; // cancelled -- nothing picked
+
+    // Available for every other item's picker right away, whether this
+    // item ends up using it or not -- the name itself isn't what needs
+    // approving, only its assignment to a particular item is.
+    if (!_categories.contains(newName)) {
+      setState(() => _categories = [..._categories, newName]);
     }
+    // Back to the list (now including it) -- selecting it to actually
+    // apply to this item is a separate, explicit tap.
+    return _showCategoryPicker(node);
   }
 
   /// Registers a genuinely new name in the item_categories master table
