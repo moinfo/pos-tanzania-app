@@ -307,9 +307,19 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(item.name,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                if (item.isVerified) ...[
+                  const Icon(Icons.verified, size: 15, color: AppColors.success),
+                  const SizedBox(width: 4),
+                ],
+                Expanded(
+                  child: Text(item.name,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(_rowStatusLabel(count),
                 style: TextStyle(
@@ -1012,6 +1022,11 @@ class _PhysicalStockScreenState extends State<PhysicalStockScreen> {
                                       ),
                                     ),
                                   ),
+                                  if (item.isVerified) ...[
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.verified,
+                                        size: 14, color: AppColors.success),
+                                  ],
                                 ],
                               ),
                               const SizedBox(height: 5),

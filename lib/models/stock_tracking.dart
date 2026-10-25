@@ -4,6 +4,7 @@
 class StockTrackingItem {
   final int itemId;
   final String name;
+  final bool isVerified;
   final double opening;
   final double purchased;
   final double total;
@@ -21,6 +22,7 @@ class StockTrackingItem {
   StockTrackingItem({
     required this.itemId,
     required this.name,
+    this.isVerified = false,
     required this.opening,
     required this.purchased,
     required this.total,
@@ -40,6 +42,7 @@ class StockTrackingItem {
     return StockTrackingItem(
       itemId: json['item_id'] ?? 0,
       name: json['name'] ?? '',
+      isVerified: json['is_verified'] == true || json['is_verified'] == 1 || json['is_verified'] == '1',
       opening: _parseDouble(json['opening']),
       purchased: _parseDouble(json['purchased']),
       total: _parseDouble(json['total']),
@@ -316,6 +319,7 @@ class ItemTrackingDetails {
   final String? category;
   final double costPrice;
   final double unitPrice;
+  final bool isVerified;
 
   ItemTrackingDetails({
     required this.id,
@@ -324,6 +328,7 @@ class ItemTrackingDetails {
     this.category,
     required this.costPrice,
     required this.unitPrice,
+    this.isVerified = false,
   });
 
   factory ItemTrackingDetails.fromJson(Map<String, dynamic> json) {
@@ -334,6 +339,7 @@ class ItemTrackingDetails {
       category: json['category'],
       costPrice: _parseDouble(json['cost_price']),
       unitPrice: _parseDouble(json['unit_price']),
+      isVerified: json['is_verified'] == true || json['is_verified'] == 1 || json['is_verified'] == '1',
     );
   }
 
@@ -463,12 +469,14 @@ class SimpleItem {
   final String name;
   final String? itemNumber;
   final String? category;
+  final bool isVerified;
 
   SimpleItem({
     required this.itemId,
     required this.name,
     this.itemNumber,
     this.category,
+    this.isVerified = false,
   });
 
   factory SimpleItem.fromJson(Map<String, dynamic> json) {
@@ -477,6 +485,7 @@ class SimpleItem {
       name: json['name'] ?? '',
       itemNumber: json['item_number'],
       category: json['category'],
+      isVerified: json['is_verified'] == true || json['is_verified'] == 1 || json['is_verified'] == '1',
     );
   }
 

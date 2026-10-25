@@ -31,6 +31,7 @@ class PhysicalStockItem {
   final String? itemNumber;
   final String category;
   final double systemQty;
+  final bool isVerified;
 
   /// Hierarchy depth from the parent->child ordering (0 = root/parent,
   /// 1+ = child levels). Used to indent child rows like the web screen.
@@ -42,6 +43,7 @@ class PhysicalStockItem {
     this.itemNumber,
     required this.category,
     required this.systemQty,
+    this.isVerified = false,
     this.hierDepth = 0,
   });
 
@@ -52,6 +54,7 @@ class PhysicalStockItem {
       itemNumber: json['item_number']?.toString(),
       category: json['category']?.toString() ?? '',
       systemQty: _toDouble(json['system_qty']),
+      isVerified: json['is_verified'] == true || json['is_verified'] == 1 || json['is_verified'] == '1',
       hierDepth: _toInt(json['hier_depth']),
     );
   }

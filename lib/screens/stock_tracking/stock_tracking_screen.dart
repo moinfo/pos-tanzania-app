@@ -550,9 +550,19 @@ class _StockTrackingScreenState extends State<StockTrackingScreen> {
                     DataCell(
                       SizedBox(
                         width: 120,
-                        child: Text(
-                          item.name,
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (item.isVerified) ...[
+                              const SizedBox(width: 3),
+                              const Icon(Icons.verified, size: 12, color: AppColors.success),
+                            ],
+                          ],
                         ),
                       ),
                     ),

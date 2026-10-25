@@ -563,11 +563,24 @@ class _NewReceivingScreenState extends State<NewReceivingScreen> {
                               Icons.inventory_2_outlined,
                               color: isDark ? AppColors.success : AppColors.primary,
                             ),
-                            title: Text(
-                              item.name,
-                              style: TextStyle(
-                                color: isDark ? AppColors.darkText : Colors.black87,
-                              ),
+                            title: Row(
+                              children: [
+                                if (item.isVerified) ...[
+                                  const Icon(Icons.verified,
+                                      size: 15, color: AppColors.success),
+                                  const SizedBox(width: 4),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    item.name,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? AppColors.darkText
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             subtitle: Text(
                               'Stock: ${stockQty.toStringAsFixed(0)} ($locationName)',

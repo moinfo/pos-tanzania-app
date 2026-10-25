@@ -1623,12 +1623,25 @@ class _SalesScreenState extends State<SalesScreen> {
                             color: isDark ? AppColors.darkCard : Colors.white,
                             elevation: isDark ? 2 : 1,
                             child: ListTile(
-                              title: Text(
-                                item.name,
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : Colors.black87,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              title: Row(
+                                children: [
+                                  if (item.isVerified) ...[
+                                    const Icon(Icons.verified,
+                                        size: 15, color: AppColors.success),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Expanded(
+                                    child: Text(
+                                      item.name,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               subtitle: Text(
                                 'Stock: ${stockQty.toStringAsFixed(0)} ($locationName) | Price: ${_currencyFormat.format(item.unitPrice)} TSh',

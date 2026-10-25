@@ -482,13 +482,23 @@ class _ItemTrackingScreenState extends State<ItemTrackingScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        item.name,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.darkText : AppColors.text,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkText : AppColors.text,
+                              ),
+                            ),
+                          ),
+                          if (item.isVerified) ...[
+                            const SizedBox(width: 4),
+                            const Icon(Icons.verified, size: 15, color: AppColors.success),
+                          ],
+                        ],
                       ),
                       if (item.itemNumber != null && item.itemNumber!.isNotEmpty)
                         Text(
@@ -976,12 +986,22 @@ class _ItemSelectorSheetState extends State<_ItemSelectorSheet> {
                                 size: 20,
                               ),
                             ),
-                            title: Text(
-                              item.name,
-                              style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isDark ? AppColors.darkText : AppColors.text,
-                              ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.name,
+                                    style: TextStyle(
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      color: isDark ? AppColors.darkText : AppColors.text,
+                                    ),
+                                  ),
+                                ),
+                                if (item.isVerified) ...[
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.verified, size: 14, color: AppColors.success),
+                                ],
+                              ],
                             ),
                             subtitle: Text(
                               item.itemNumber != null ? '#${item.itemNumber}' : (item.category ?? ''),

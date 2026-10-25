@@ -374,6 +374,7 @@ class _CreateTransferScreenState extends State<CreateTransferScreen> {
 
   Widget _buildItemPicker(bool isDark) {
     final selectedName = _selectedItem?['name'] as String? ?? '';
+    final selectedIsVerified = _selectedItem?['is_verified'] == true;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -387,6 +388,11 @@ class _CreateTransferScreenState extends State<CreateTransferScreen> {
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             child: Row(
               children: [
+                if (selectedIsVerified) ...[
+                  const Icon(Icons.verified,
+                      size: 15, color: AppColors.success),
+                  const SizedBox(width: 6),
+                ],
                 Expanded(
                   child: Text(
                     selectedName.isNotEmpty ? selectedName : 'Select item',
@@ -920,23 +926,35 @@ class _ItemSearchSheetState extends State<_ItemSearchSheet> {
                   itemBuilder: (_, i) {
                     final item = _filtered[i];
                     final name = item['name'] as String? ?? '';
+                    final isVerified = item['is_verified'] == true;
                     final isSelected = item['item_id'] ==
                         widget.selectedItem?['item_id'];
 
                     return ListTile(
-                      title: Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          color: isSelected
-                              ? AppColors.brandPrimary
-                              : (widget.isDark
-                                  ? AppColors.darkText
-                                  : AppColors.text),
-                        ),
+                      title: Row(
+                        children: [
+                          if (isVerified) ...[
+                            const Icon(Icons.verified,
+                                size: 14, color: AppColors.success),
+                            const SizedBox(width: 4),
+                          ],
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.brandPrimary
+                                    : (widget.isDark
+                                        ? AppColors.darkText
+                                        : AppColors.text),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       trailing: isSelected
                           ? Icon(Icons.check_rounded,
