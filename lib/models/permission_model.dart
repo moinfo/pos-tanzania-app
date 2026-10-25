@@ -206,6 +206,10 @@ class PermissionIds {
   static const String salesStock = 'sales_stock';
   static const String salesChangeModeReturn = 'sales_change_mode_return';
   static const String salesSuspended = 'sales_suspended';
+  // Dedicated permission for the Sales History screen, separate from the
+  // bare `sales` grant (New Sales/checkout) -- see
+  // migrations/sqlscripts/sales_history_permission.sql on the backend.
+  static const String salesHistory = 'sales_history';
   static const String salesUnsuspended = 'sales_unsuspended';
   static const String salesUnsuspendPrint = 'sales_unsuspend_print';
   static const String salesPrintedLogs = 'sales_printed_logs';
