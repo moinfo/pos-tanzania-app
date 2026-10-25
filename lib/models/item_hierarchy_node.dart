@@ -18,11 +18,18 @@ class ItemHierarchyNode {
   final int depth;
   final List<ItemHierarchyNode> children;
 
-  /// True when this item has an outstanding item_change_requests row (full
-  /// edit or this page's own simple-field edit) -- server-sourced, so it
-  /// survives leaving and reopening the screen, not just a local flag set
-  /// right after submitting that a reload would forget.
-  final bool isPendingApproval;
+  /// Field names (category / reorder_level / is_verified) with an
+  /// outstanding item_change_requests row -- field-scoped on purpose: a
+  /// pending "verify" request must not block an unrelated category or
+  /// reorder_level edit on the same item. Server-sourced, so it survives
+  /// leaving and reopening the screen, not just a local flag that a reload
+  /// would forget.
+  final List<String> pendingFields;
+
+  /// True when a FULL item edit (the Add/Edit Item form, not this page's
+  /// own per-field edit) is pending -- that resubmits every field at once,
+  /// so it conflicts with any field here, regardless of pendingFields.
+  final bool pendingFullEdit;
 
   const ItemHierarchyNode({
     required this.itemId,
@@ -36,22 +43,33 @@ class ItemHierarchyNode {
     required this.stockQty,
     required this.depth,
     required this.children,
-    this.isPendingApproval = false,
+    this.pendingFields = const [],
+    this.pendingFullEdit = false,
   });
 
   bool get isLowStock => reorderLevel > 0 && stockQty <= reorderLevel;
 
+  /// Whether this item has ANY pending change at all -- drives the row's
+  /// "Waiting approval" badge (informational; doesn't by itself say which
+  /// field is blocked, see [isFieldPending]).
+  bool get isPendingApproval => pendingFullEdit || pendingFields.isNotEmpty;
+
+  /// Whether submitting $field now would be refused -- matches the
+  /// backend's Item_change_request::has_conflicting_pending_request().
+  bool isFieldPending(String field) =>
+      pendingFullEdit || pendingFields.contains(field);
+
   /// Local, in-place update after a successful inline edit (category /
   /// reorder level / verified) -- mirrors the web page's applyDisplay()
   /// updating the cell directly rather than reloading the whole table.
-  /// Also used to optimistically flag isPendingApproval the moment a save
+  /// Also used to optimistically add to pendingFields the moment a save
   /// comes back staged, without waiting for the next full reload.
   ItemHierarchyNode copyWith({
     String? category,
     double? reorderLevel,
     bool? isVerified,
     List<ItemHierarchyNode>? children,
-    bool? isPendingApproval,
+    List<String>? pendingFields,
   }) {
     return ItemHierarchyNode(
       itemId: itemId,
@@ -65,7 +83,8 @@ class ItemHierarchyNode {
       stockQty: stockQty,
       depth: depth,
       children: children ?? this.children,
-      isPendingApproval: isPendingApproval ?? this.isPendingApproval,
+      pendingFields: pendingFields ?? this.pendingFields,
+      pendingFullEdit: pendingFullEdit,
     );
   }
 
@@ -85,7 +104,10 @@ class ItemHierarchyNode {
       children: (json['children'] as List<dynamic>? ?? [])
           .map((c) => ItemHierarchyNode.fromJson(c as Map<String, dynamic>))
           .toList(),
-      isPendingApproval: item['is_pending_approval'] as bool? ?? false,
+      pendingFields: (item['pending_fields'] as List<dynamic>? ?? [])
+          .map((f) => f.toString())
+          .toList(),
+      pendingFullEdit: item['pending_full_edit'] as bool? ?? false,
     );
   }
 }

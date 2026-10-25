@@ -128,19 +128,22 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     );
   }
 
-  /// True (and shows why) when this item already has a change waiting for
-  /// approval -- matches the backend's own guard (Item_change_request::
-  /// has_pending_request()), so tapping doesn't even reach the network call
-  /// that would be refused anyway.
-  bool _blockedByPendingApproval(ItemHierarchyNode node) {
-    if (!node.isPendingApproval) return false;
-    _showToast('This item already has a change waiting for approval',
+  /// True (and shows why) when submitting $field now would land on top of
+  /// a still-unresolved request touching that SAME field -- matches the
+  /// backend's own guard (Item_change_request::
+  /// has_conflicting_pending_request()), field-scoped on purpose: a
+  /// pending "verify" request must not block an unrelated category or
+  /// reorder_level edit on the same item, so tapping doesn't even reach
+  /// the network call that would be refused anyway.
+  bool _blockedByPendingApproval(ItemHierarchyNode node, String field) {
+    if (!node.isFieldPending(field)) return false;
+    _showToast('This field already has a change waiting for approval',
         isPending: true);
     return true;
   }
 
   Future<void> _editCategory(ItemHierarchyNode node) async {
-    if (_blockedByPendingApproval(node)) return;
+    if (_blockedByPendingApproval(node, 'category')) return;
     // Same list the web page's <select> offers: every active item's
     // distinct category, plus this item's own category even if it's the
     // only one with it (so it's never missing from its own picker).
@@ -174,7 +177,8 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     final response =
         await _apiService.updateItemFields(node.itemId, category: selected);
     if (response.isPending) {
-      _updateNode(node.itemId, (n) => n.copyWith(isPendingApproval: true));
+      _updateNode(node.itemId,
+          (n) => n.copyWith(pendingFields: [...n.pendingFields, 'category']));
       _showToast(response.message, isPending: true);
     } else if (response.isSuccess) {
       _updateNode(node.itemId, (n) => n.copyWith(category: selected));
@@ -185,7 +189,7 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
   }
 
   Future<void> _editReorderLevel(ItemHierarchyNode node) async {
-    if (_blockedByPendingApproval(node)) return;
+    if (_blockedByPendingApproval(node, 'reorder_level')) return;
     final controller = TextEditingController(
         text: Formatters.formatCurrency(node.reorderLevel));
     final value = await showDialog<double>(
@@ -217,7 +221,10 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     final response =
         await _apiService.updateItemFields(node.itemId, reorderLevel: value);
     if (response.isPending) {
-      _updateNode(node.itemId, (n) => n.copyWith(isPendingApproval: true));
+      _updateNode(
+          node.itemId,
+          (n) =>
+              n.copyWith(pendingFields: [...n.pendingFields, 'reorder_level']));
       _showToast(response.message, isPending: true);
     } else if (response.isSuccess) {
       _updateNode(node.itemId, (n) => n.copyWith(reorderLevel: value));
@@ -228,12 +235,15 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
   }
 
   Future<void> _toggleVerified(ItemHierarchyNode node) async {
-    if (_blockedByPendingApproval(node)) return;
+    if (_blockedByPendingApproval(node, 'is_verified')) return;
     final next = !node.isVerified;
     final response =
         await _apiService.updateItemFields(node.itemId, isVerified: next);
     if (response.isPending) {
-      _updateNode(node.itemId, (n) => n.copyWith(isPendingApproval: true));
+      _updateNode(
+          node.itemId,
+          (n) =>
+              n.copyWith(pendingFields: [...n.pendingFields, 'is_verified']));
       _showToast(response.message, isPending: true);
     } else if (response.isSuccess) {
       _updateNode(node.itemId, (n) => n.copyWith(isVerified: next));
@@ -664,14 +674,14 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                     ),
                   ],
                   const SizedBox(height: 6),
-                  Opacity(
-                    opacity: node.isPendingApproval ? 0.45 : 1,
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        InkWell(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Opacity(
+                        opacity: node.isFieldPending('category') ? 0.45 : 1,
+                        child: InkWell(
                           borderRadius: BorderRadius.circular(3),
                           onTap: () => _editCategory(node),
                           child: Container(
@@ -697,13 +707,20 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                             ),
                           ),
                         ),
-                        _editField(
+                      ),
+                      Opacity(
+                        opacity:
+                            node.isFieldPending('reorder_level') ? 0.45 : 1,
+                        child: _editField(
                           label: 'Reorder',
                           value: Formatters.formatCurrency(node.reorderLevel),
                           isDark: isDark,
                           onTap: () => _editReorderLevel(node),
                         ),
-                        InkWell(
+                      ),
+                      Opacity(
+                        opacity: node.isFieldPending('is_verified') ? 0.45 : 1,
+                        child: InkWell(
                           borderRadius: BorderRadius.circular(3),
                           onTap: () => _toggleVerified(node),
                           child: Container(
@@ -753,8 +770,8 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Row(
