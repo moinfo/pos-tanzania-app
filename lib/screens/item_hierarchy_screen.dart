@@ -142,6 +142,8 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     return true;
   }
 
+  static const _newCategorySentinel = '\u0000new_category';
+
   Future<void> _editCategory(ItemHierarchyNode node) async {
     if (_blockedByPendingApproval(node, 'category')) return;
     // Same list the web page's <select> offers: every active item's
@@ -150,28 +152,45 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     final options = [..._categories];
     if (!options.contains(node.category)) options.insert(0, node.category);
 
-    final selected = await showDialog<String>(
+    var selected = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('Category'),
-        children: options
-            .map((c) => SimpleDialogOption(
-                  onPressed: () => Navigator.pop(ctx, c),
-                  child: Row(
-                    children: [
-                      if (c == node.category)
-                        const Icon(Icons.check,
-                            size: 18, color: AppColors.primary)
-                      else
-                        const SizedBox(width: 18),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(c)),
-                    ],
-                  ),
-                ))
-            .toList(),
+        children: [
+          ...options.map((c) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, c),
+                child: Row(
+                  children: [
+                    if (c == node.category)
+                      const Icon(Icons.check,
+                          size: 18, color: AppColors.primary)
+                    else
+                      const SizedBox(width: 18),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(c)),
+                  ],
+                ),
+              )),
+          const Divider(height: 1),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, _newCategorySentinel),
+            child: const Row(
+              children: [
+                Icon(Icons.add, size: 18, color: AppColors.primary),
+                SizedBox(width: 8),
+                Text('Add new category',
+                    style: TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+
+    if (selected == _newCategorySentinel) {
+      selected = await _promptNewCategoryName(options);
+    }
     if (selected == null || selected == node.category) return;
 
     final response =
@@ -186,6 +205,44 @@ class _ItemHierarchyScreenState extends State<ItemHierarchyScreen> {
     } else {
       _showToast(response.message, isError: true);
     }
+  }
+
+  /// A category is just a free-text string on the item (not a row in a
+  /// fixed master table), so "adding" one is simply typing a name that
+  /// isn't in the existing list yet and saving it like any other category
+  /// value -- no separate create step or table needed.
+  Future<String?> _promptNewCategoryName(List<String> existing) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New category'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+              hintText: 'e.g. Wholesale', border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return null;
+
+    // Reuse the existing entry's exact casing if this is really the same
+    // category someone just typed slightly differently, rather than
+    // creating "Dukani" and "DUKANI" as two separate categories.
+    for (final c in existing) {
+      if (c.toLowerCase() == name.toLowerCase()) return c;
+    }
+    return name;
   }
 
   Future<void> _editReorderLevel(ItemHierarchyNode node) async {
