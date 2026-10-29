@@ -8,16 +8,17 @@ import 'lodge_theme.dart';
 import 'lodge_board_screen.dart';
 import 'lodge_bookings_list_screen.dart';
 import 'lodge_calendar_screen.dart';
-import 'lodge_rooms_screen.dart';
+import 'lodge_expenses_screen.dart';
 import 'lodge_day_close_screen.dart';
 
 /// Holds the Lodge module's own bottom navigation -- same pattern as
 /// ProductionShell, capped at the five destinations used every day (Board,
-/// Bookings, Calendar, Rooms, Day close -- the last one added back on
+/// Bookings, Calendar, Expenses, Day close -- the last one added back on
 /// request: closing out cash happens daily, so it earns a tab rather than
-/// living a level deeper in the drawer). Everything else (Payments, Guests,
-/// Expenses, Report, Forecast, Messages) lives in the drawer's Lodge section
-/// only (lodge_menu_items.dart).
+/// living a level deeper in the drawer; Rooms swapped out for Expenses on
+/// request too). Everything else (Payments, Guests, Rooms, Report,
+/// Forecast, Messages) lives in the drawer's Lodge section only
+/// (lodge_menu_items.dart).
 ///
 /// The nav bar itself is a floating dark pill (per the redesign), not the
 /// stock Material bottom bar -- Scaffold's bottomNavigationBar slot still
@@ -52,8 +53,8 @@ class _LodgeShellState extends State<LodgeShell> {
         const _Destination('Bookings', Icons.event_note_outlined, LodgeBookingsListScreen()),
       if (permissions.hasPermission(PermissionIds.lodgeCalendar))
         const _Destination('Calendar', Icons.calendar_month_outlined, LodgeCalendarScreen()),
-      if (permissions.hasPermission(PermissionIds.lodgeRooms))
-        const _Destination('Rooms', Icons.meeting_room_outlined, LodgeRoomsScreen()),
+      if (permissions.hasPermission(PermissionIds.lodgeExpenses))
+        const _Destination('Expenses', Icons.receipt_long_outlined, LodgeExpensesScreen()),
       if (permissions.hasPermission(PermissionIds.lodgeDayClose))
         const _Destination('Day close', Icons.lock_clock_outlined, LodgeDayCloseScreen()),
     ];
