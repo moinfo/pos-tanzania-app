@@ -6,7 +6,7 @@ import '../../providers/theme_provider.dart';
 import '../../utils/constants.dart';
 import 'bank_basis_screen.dart';
 import 'cash_basis_screen.dart';
-import 'lipa_namba_transactions_screen.dart';
+import 'lipa_namba_screen.dart';
 import 'wakala_dashboard_screen.dart';
 import 'wakala_screen.dart';
 import 'wakala_theme.dart';
@@ -14,9 +14,9 @@ import 'wakala_theme.dart';
 /// Holds the Transactions/e-Wakala module's own bottom navigation, same
 /// pattern as ProductionShell/LodgeShell/ContractsShell -- capped at the
 /// five destinations used every day (Dashboard, Cash basis, Bank basis,
-/// SIMs, Lipa Namba transactions). Deposits & Withdrawals, Customer
-/// Balances, Wakala Expenses/Report, Commission, Capital, Lipa Namba
-/// Tills/Fee tiers stay reachable from the drawer only -- the same
+/// SIMs, Lipa Namba tills). Deposits & Withdrawals, Customer Balances,
+/// Wakala Expenses/Report, Commission, Capital, Lipa Namba
+/// Transactions/Fee tiers stay reachable from the drawer only -- the same
 /// "cap at 5 + drawer for the rest" convention those shells use.
 ///
 /// "Ledger chip" nav style from the mopos-design 3 handover: flat white
@@ -58,7 +58,7 @@ class _TransactionsShellState extends State<TransactionsShell> {
       if (permissions.hasPermission(PermissionIds.transactionsWakala))
         const _Destination('SIMs', Icons.sim_card_outlined, WakalaScreen()),
       if (permissions.hasPermission(PermissionIds.lipaNamba))
-        const _Destination('Lipa Namba', Icons.receipt_long_outlined, LipaNambaTransactionsScreen()),
+        const _Destination('Lipa Namba', Icons.receipt_long_outlined, LipaNambaScreen()),
     ];
 
     // A revoked grant can shrink the list while a later tab is selected.
