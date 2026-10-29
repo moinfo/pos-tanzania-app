@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/lodge.dart';
 import '../../models/permission_model.dart';
@@ -20,9 +21,10 @@ class LodgeCalendarScreen extends StatefulWidget {
 }
 
 class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
-  static const double _dayWidth = 34;
-  static const double _rowHeight = 44;
-  static const double _labelWidth = 76;
+  static const double _dayWidth = 40;
+  static const double _rowHeight = 52;
+  static const double _labelWidth = 92;
+  static const double _dayHeaderHeight = 34;
 
   final ApiService _apiService = ApiService();
   final ScrollController _hController = ScrollController();
@@ -48,6 +50,11 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
       '${_month.year}-${_month.month.toString().padLeft(2, '0')}';
 
   int get _daysInMonth => DateTime(_month.year, _month.month + 1, 0).day;
+
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _month.year == now.year && _month.month == now.month;
+  }
 
   Future<void> _load() async {
     setState(() {
@@ -76,10 +83,19 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
       case 'checked_in':
         return AppColors.error;
       case 'checked_out':
-        return Colors.grey;
+        return AppColors.secondary;
       default:
         return AppColors.info; // reserved
     }
+  }
+
+  /// First letter of each word in the guest's name, max two -- "Amina
+  /// Hassan" -> "AH", "mohamed" -> "M". Keeps the cell readable without the
+  /// full name, which rarely fits a day-wide column.
+  String _initials(String guestName) {
+    final parts = guestName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
+    final letters = parts.take(2).map((p) => p[0].toUpperCase()).join();
+    return letters.isEmpty ? '?' : letters;
   }
 
   /// The calendar booking covering [room] on day [day], if any.
@@ -97,6 +113,16 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
     return null;
   }
 
+  /// True for the first day a booking appears in this room's row -- that
+  /// cell carries the guest's initials; the rest of the stay reads as a
+  /// continuous bar of color, the way a calendar bar normally communicates
+  /// a span rather than repeating a label on every day.
+  bool _isBookingStart(LodgeRoom room, int day, LodgeCalendarBooking booking) {
+    if (day == 1) return true;
+    final previous = _bookingOn(room, day - 1);
+    return previous?.bookingId != booking.bookingId;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
@@ -109,6 +135,30 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
         backgroundColor: headerColor,
         foregroundColor: Colors.white,
         title: const Text('Calendar'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(44),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left, color: Colors.white),
+                  onPressed: () => _changeMonth(-1),
+                ),
+                Text(
+                  DateFormat('MMMM yyyy').format(_month),
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right, color: Colors.white),
+                  onPressed: () => _changeMonth(1),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
           ? FloatingActionButton.extended(
@@ -127,31 +177,36 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
           : null,
       body: Column(
         children: [
-          Container(
-            color: isDark ? AppColors.darkCard : Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 6),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => _changeMonth(-1)),
-                Text('${_month.year}-${_month.month.toString().padLeft(2, '0')}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                IconButton(icon: const Icon(Icons.chevron_right), onPressed: () => _changeMonth(1)),
+                Expanded(
+                  child: Wrap(
+                    spacing: 14,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _legendDot('Reserved', AppColors.info, isDark),
+                      _legendDot('Checked in', AppColors.error, isDark),
+                      _legendDot('Checked out', AppColors.secondary, isDark),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          Container(
-            color: isDark ? AppColors.darkCard : Colors.white,
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 12,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+            child: Row(
               children: [
-                _legendDot('Reserved', AppColors.info, isDark),
-                _legendDot('Checked in', AppColors.error, isDark),
-                _legendDot('Checked out', Colors.grey, isDark),
-                Text('Tap a free day to book it',
-                    style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                Icon(Icons.touch_app_outlined,
+                    size: 14, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
+                const SizedBox(width: 5),
+                Text('Tap a free day to start a booking',
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
               ],
             ),
           ),
@@ -165,9 +220,13 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 5),
+        Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.darkText : AppColors.lightText)),
       ],
     );
   }
@@ -195,109 +254,177 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
     }
 
     final days = List<int>.generate(_daysInMonth, (i) => i + 1);
+    final today = DateTime.now().day;
     final borderColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final cardColor = isDark ? AppColors.darkCard : Colors.white;
 
     // A single horizontal scroller holds the date header AND every room's
     // day cells stacked in one Column, so there is exactly one ScrollController
     // to keep in sync -- not one per row. The label column sits outside it,
     // and the whole thing (labels + grid) shares one outer vertical scroll so
     // both stay lined up without a second controller to coordinate.
-    return SingleChildScrollView(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              const SizedBox(width: _labelWidth, height: 28),
-              Divider(height: 1, color: borderColor),
-              ...cal.rooms.map((room) => Container(
-                    width: _labelWidth,
-                    height: _rowHeight,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    alignment: Alignment.centerLeft,
-                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: borderColor))),
-                    child: Text(room.roomNumber,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12.5,
-                            color: isDark ? AppColors.darkText : AppColors.lightText)),
-                  )),
-            ],
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              controller: _hController,
-              scrollDirection: Axis.horizontal,
-              child: Column(
-                children: [
-                  Row(
-                    children: days
-                        .map((d) => Container(
-                              width: _dayWidth,
-                              height: 28,
-                              alignment: Alignment.center,
-                              child: Text('$d',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
-                            ))
-                        .toList(),
-                  ),
-                  Divider(height: 1, color: borderColor),
-                  ...cal.rooms.map((room) => Container(
-                        height: _rowHeight,
-                        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: borderColor))),
-                        child: Row(
-                          children: days.map((d) {
-                            final booking = _bookingOn(room, d);
-                            final color = booking != null ? _statusColor(booking.status) : null;
-                            final canBookEmptyDay = booking == null &&
-                                context.read<PermissionProvider>().hasPermission(PermissionIds.lodgeBookingsAdd);
-                            return GestureDetector(
-                              onTap: booking != null
-                                  ? () async {
-                                      await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) =>
-                                                LodgeBookingDetailScreen(bookingId: booking.bookingId)),
-                                      );
-                                      _load();
-                                    }
-                                  : (canBookEmptyDay
-                                      ? () async {
-                                          final created = await Navigator.push<bool>(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => LodgeNewBookingScreen(
-                                                initialRoomId: room.roomId,
-                                                initialCheckInDate:
-                                                    '${_month.year}-${_month.month.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}',
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                SizedBox(width: _labelWidth, height: _dayHeaderHeight),
+                Divider(height: 1, thickness: 1, color: borderColor),
+                ...cal.rooms.map((room) => Container(
+                      width: _labelWidth,
+                      height: _rowHeight,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      alignment: Alignment.centerLeft,
+                      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: borderColor))),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(room.roomNumber,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13.5,
+                                  color: isDark ? AppColors.darkText : AppColors.lightText)),
+                          if (room.roomType != null && room.roomType!.isNotEmpty)
+                            Text(room.roomType!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 10.5,
+                                    color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                        ],
+                      ),
+                    )),
+              ],
+            ),
+            VerticalDivider(width: 1, thickness: 1, color: borderColor),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _hController,
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  children: [
+                    Row(
+                      children: days.map((d) {
+                        final isToday = _isCurrentMonth && d == today;
+                        return Container(
+                          width: _dayWidth,
+                          height: _dayHeaderHeight,
+                          alignment: Alignment.center,
+                          color: isToday ? AppColors.warning.withOpacity(isDark ? 0.18 : 0.12) : null,
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            alignment: Alignment.center,
+                            decoration: isToday
+                                ? const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle)
+                                : null,
+                            child: Text('$d',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                                    color: isToday
+                                        ? Colors.white
+                                        : (isDark ? AppColors.darkTextLight : AppColors.lightTextLight))),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    Divider(height: 1, thickness: 1, color: borderColor),
+                    ...cal.rooms.map((room) => Container(
+                          height: _rowHeight,
+                          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: borderColor))),
+                          child: Row(
+                            children: days.map((d) {
+                              final booking = _bookingOn(room, d);
+                              final isToday = _isCurrentMonth && d == today;
+                              final color = booking != null ? _statusColor(booking.status) : null;
+                              final canBookEmptyDay = booking == null &&
+                                  context.read<PermissionProvider>().hasPermission(PermissionIds.lodgeBookingsAdd);
+
+                              return GestureDetector(
+                                onTap: booking != null
+                                    ? () async {
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  LodgeBookingDetailScreen(bookingId: booking.bookingId)),
+                                        );
+                                        _load();
+                                      }
+                                    : (canBookEmptyDay
+                                        ? () async {
+                                            final created = await Navigator.push<bool>(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => LodgeNewBookingScreen(
+                                                  initialRoomId: room.roomId,
+                                                  initialCheckInDate:
+                                                      '${_month.year}-${_month.month.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}',
+                                                ),
                                               ),
+                                            );
+                                            if (created == true) _load();
+                                          }
+                                        : null),
+                                child: Container(
+                                  width: _dayWidth,
+                                  color: isToday && booking == null
+                                      ? AppColors.warning.withOpacity(isDark ? 0.1 : 0.06)
+                                      : null,
+                                  padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
+                                  child: booking == null
+                                      ? null
+                                      : Container(
+                                          decoration: BoxDecoration(
+                                            color: color,
+                                            borderRadius: BorderRadius.horizontal(
+                                              left: _isBookingStart(room, d, booking)
+                                                  ? const Radius.circular(6)
+                                                  : Radius.zero,
+                                              right: Radius.circular(
+                                                  _bookingOn(room, d + 1)?.bookingId == booking.bookingId
+                                                      ? 0
+                                                      : 6),
                                             ),
-                                          );
-                                          if (created == true) _load();
-                                        }
-                                      : null),
-                              child: Container(
-                                width: _dayWidth,
-                                height: _rowHeight - 1,
-                                margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 0.5),
-                                decoration: BoxDecoration(
-                                  color: color?.withOpacity(isDark ? 0.45 : 0.25),
-                                  borderRadius: BorderRadius.circular(3),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: _isBookingStart(room, d, booking)
+                                              ? FittedBox(
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                                                    child: Text(
+                                                      _initials(booking.guestName),
+                                                      style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w700),
+                                                    ),
+                                                  ),
+                                                )
+                                              : null,
+                                        ),
                                 ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      )),
-                ],
+                              );
+                            }).toList(),
+                          ),
+                        )),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
