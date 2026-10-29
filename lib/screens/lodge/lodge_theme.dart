@@ -121,7 +121,17 @@ class _LodgeHeader extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final headerColor = isDark ? AppColors.darkSurface : AppColors.primaryDark;
-    final canPop = leading == null && Navigator.canPop(context);
+    // A pushed route (every Lodge screen reached from the drawer) sits
+    // right at the physical top of the screen and needs the real status-bar
+    // inset. A LodgeShell tab embedded as a lodge-only tenant's Home tab
+    // sits *inside* MainNavigation's own Scaffold, below its 56px bar --
+    // that bar already consumes the status bar, but MediaQuery's top
+    // padding is unchanged for this subtree, so blindly adding SafeArea's
+    // inset here double-counts it as a chunk of empty blue space. Since
+    // there's nothing to pop back to in the embedded case, canPop doubles
+    // as "am I actually at the top of the screen".
+    final isStandaloneRoute = Navigator.canPop(context);
+    final canPop = leading == null && isStandaloneRoute;
 
     return Material(
       color: headerColor,
@@ -131,6 +141,7 @@ class _LodgeHeader extends StatelessWidget implements PreferredSizeWidget {
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
       child: SafeArea(
+        top: isStandaloneRoute,
         bottom: false,
         child: Stack(
           children: [
