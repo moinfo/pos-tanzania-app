@@ -10,6 +10,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import 'wakala_theme.dart';
 
 class CashBasisScreen extends StatefulWidget {
   const CashBasisScreen({super.key});
@@ -296,19 +297,11 @@ class _CashBasisScreenState extends State<CashBasisScreen>
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cash Basis'),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'Categories'),
-            Tab(text: 'Transactions'),
-          ],
-        ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Cash book',
+        title: 'Cash Basis',
         actions: [
           // Filtering the transaction list by an arbitrary range is a separate
           // grant from viewing it, mirroring web's $can_search_* gate.
@@ -334,28 +327,31 @@ class _CashBasisScreenState extends State<CashBasisScreen>
             ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
-          ),
-        ),
-        child: _isLoading
-            ? _buildSkeletonList(isDark)
-            : _error != null
-                ? Center(child: Text(_error!))
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildCategoriesList(permissionProvider, isDark),
-                      _buildTransactionsList(permissionProvider, isDark),
-                    ],
-                  ),
-      ),
+      body: _isLoading
+          ? _buildSkeletonList(isDark)
+          : _error != null
+              ? Center(child: Text(_error!))
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: WakalaSegmentedControl(
+                        labels: const ['Categories', 'Transactions'],
+                        selectedIndex: _tabController.index,
+                        onChanged: (i) => _tabController.animateTo(i),
+                      ),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildCategoriesList(permissionProvider, isDark),
+                          _buildTransactionsList(permissionProvider, isDark),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
       floatingActionButton: _buildFloatingActionButton(permissionProvider),
     );
   }
@@ -364,27 +360,30 @@ class _CashBasisScreenState extends State<CashBasisScreen>
     // Check permissions based on current tab
     final isOnCategoriesTab = _tabController.index == 0;
 
+    final VoidCallback? onPressed;
+    final String label;
     if (isOnCategoriesTab) {
       // Categories tab - check setting_add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsCashBasisSettingAdd)) {
         return null; // Hide FAB if no permission
       }
-      return FloatingActionButton.extended(
-        onPressed: _showAddCategoryDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Category'),
-      );
+      onPressed = _showAddCategoryDialog;
+      label = 'Add Category';
     } else {
       // Transactions tab - check add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsCashBasisAdd)) {
         return null; // Hide FAB if no permission
       }
-      return FloatingActionButton.extended(
-        onPressed: _showAddTransactionDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Transaction'),
-      );
+      onPressed = _showAddTransactionDialog;
+      label = 'Add Transaction';
     }
+    return FloatingActionButton.extended(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add),
+      label: Text(label),
+      backgroundColor: AppColors.primary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
   }
 
   Future<void> _showEditCategoryDialog(CashBasisCategory category) async {
@@ -510,58 +509,57 @@ class _CashBasisScreenState extends State<CashBasisScreen>
     // Check if user has edit or delete permissions
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsCashBasisSettingEdit);
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsCashBasisSettingDelete);
-    final hasAnyAction = canEdit || canDelete;
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
       itemCount: _categories.length,
       itemBuilder: (context, index) {
         final category = _categories[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: GlassmorphicCard(
-            isDark: isDark,
-            child: ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppColors.primary,
-                child: Icon(Icons.category, color: Colors.white),
-              ),
-              title: Text(
-                category.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+          padding: const EdgeInsets.only(bottom: 10),
+          child: WakalaCard(
+            railColor: AppColors.warning,
+            child: Row(
+              children: [
+                const WakalaIconTile(icon: Icons.account_balance_wallet_outlined, tint: WakalaTint.amber),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(category.name,
+                          style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                      if (category.description.isNotEmpty)
+                        Text(category.description, style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                    ],
+                  ),
                 ),
-              ),
-              subtitle: category.description.isNotEmpty
-                  ? Text(
-                      category.description,
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                      ),
-                    )
-                  : null,
-              trailing: hasAnyAction ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (canEdit)
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: AppColors.primary),
-                      onPressed: () => _showEditCategoryDialog(category),
-                      tooltip: 'Edit',
-                    ),
-                  if (canDelete)
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: AppColors.error),
-                      onPressed: () => _deleteCashBasisCategory(category),
-                      tooltip: 'Delete',
-                    ),
-                ],
-              ) : null,
+                if (canEdit)
+                  _setupActionButton(Icons.edit_outlined, isEdit: true, onTap: () => _showEditCategoryDialog(category)),
+                if (canEdit && canDelete) const SizedBox(width: 8),
+                if (canDelete)
+                  _setupActionButton(Icons.delete_outline, isEdit: false, onTap: () => _deleteCashBasisCategory(category)),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _setupActionButton(IconData icon, {required bool isEdit, required VoidCallback onTap}) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isEdit ? const Color(0xFFE9ECEF) : const Color(0xFFFEE2E2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 18, color: isEdit ? AppColors.primary : const Color(0xFFB91C1C)),
+      ),
     );
   }
 
@@ -737,197 +735,145 @@ class _CashBasisScreenState extends State<CashBasisScreen>
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsCashBasisDelete);
     final hasAnyAction = canEdit || canDelete;
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
       children: [
-        // Category Totals Cards (show separate card for each category)
-        if (_categoryTotals.isNotEmpty)
+        if (_categoryTotals.isNotEmpty) _buildBalanceCard(isDark),
+        if (_categoryTotals.isNotEmpty) const SizedBox(height: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Transactions',
+                style: WakalaTheme.display(size: 13, weight: FontWeight.w700, letterSpacing: 0.9, color: const Color(0xFF6C757D))),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (_transactions.isEmpty)
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: _categories.where((cat) => _categoryTotals.containsKey(cat.id)).map((category) {
-                final categoryTotal = _categoryTotals[category.id] ?? 0;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: GlassmorphicCard(
-                    isDark: isDark,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text('No transactions found',
+                  style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
+            ),
+          )
+        else
+          ..._transactions.map((transaction) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: WakalaCard(
+                railColor: AppColors.warning,
+                child: Row(
+                  children: [
+                    const WakalaIconTile(icon: Icons.account_balance_wallet_outlined, tint: WakalaTint.amber),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  category.name,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (category.description.isNotEmpty)
-                                  Text(
-                                    category.description,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            Formatters.formatCurrency(categoryTotal),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.success,
-                            ),
-                          ),
+                          Text(transaction.cashBasisName,
+                              style: WakalaTheme.display(size: 17, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                          Text(transaction.date, style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
                         ],
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-
-        // Overall Total Card (if more than one category)
-        if (_categoryTotals.length > 1)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: GlassmorphicCard(
-              isDark: isDark,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Grand Total:',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                      ),
-                    ),
-                    Text(
-                      Formatters.formatCurrency(_total),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                    Text(Formatters.formatCurrency(transaction.amount),
+                        style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: const Color(0xFF047857))),
+                    if (hasAnyAction)
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextLight : AppColors.text),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _showEditTransactionDialog(transaction);
+                          } else if (value == 'delete') {
+                            _deleteCashBasisTransaction(transaction);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          if (canDelete) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        ],
+                      )
+                    else
+                      const SizedBox(width: 4),
                   ],
                 ),
               ),
+            );
+          }),
+      ],
+    );
+  }
+
+  /// The "balance card" pattern -- one kv row per category, then a
+  /// charcoal footer band with the grand total. Mirrors the WCashTx
+  /// handover's card exactly (single category collapses to one row with
+  /// the same figure repeated in the footer, matching the mockup).
+  Widget _buildBalanceCard(bool isDark) {
+    final rows = _categories.where((cat) => _categoryTotals.containsKey(cat.id)).toList();
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(4),
+          topRight: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+          bottomLeft: Radius.circular(4),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(width: 4, color: AppColors.warning),
+          Expanded(
+            child: Column(
+              children: [
+                ...rows.map((category) {
+                  final total = _categoryTotals[category.id] ?? 0;
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkText : AppColors.text),
+                              children: [
+                                TextSpan(text: category.name),
+                                if (category.description.isNotEmpty)
+                                  TextSpan(
+                                      text: '  · ${category.description}',
+                                      style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                              ],
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(Formatters.formatCurrency(total),
+                            style: WakalaTheme.display(size: 15, weight: FontWeight.w600, color: const Color(0xFF047857))),
+                      ],
+                    ),
+                  );
+                }),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+                  color: AppColors.secondary,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('TOTAL',
+                          style: WakalaTheme.body(size: 13, weight: FontWeight.w600, color: const Color(0xFFE9ECEF)).copyWith(letterSpacing: 1.2)),
+                      Text(Formatters.formatCurrency(_total),
+                          style: WakalaTheme.display(size: 24, weight: FontWeight.w700, color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-
-        const SizedBox(height: 16),
-
-        // Transactions List
-        Expanded(
-          child: _transactions.isEmpty
-              ? Center(
-                  child: Text(
-                    'No transactions found',
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                    ),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _transactions.length,
-                  itemBuilder: (context, index) {
-                    final transaction = _transactions[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GlassmorphicCard(
-                        isDark: isDark,
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppColors.success,
-                            child: Icon(Icons.money, color: Colors.white),
-                          ),
-                          title: Text(
-                            transaction.cashBasisName,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                            ),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                transaction.date,
-                                style: TextStyle(
-                                  color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                                ),
-                              ),
-                              Text(
-                                Formatters.formatCurrency(transaction.amount),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: AppColors.success,
-                                ),
-                              ),
-                            ],
-                          ),
-                          trailing: hasAnyAction ? PopupMenuButton<String>(
-                            icon: Icon(
-                              Icons.more_vert,
-                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                            ),
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                _showEditTransactionDialog(transaction);
-                              } else if (value == 'delete') {
-                                _deleteCashBasisTransaction(transaction);
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              if (canEdit)
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, color: AppColors.primary),
-                                      SizedBox(width: 8),
-                                      Text('Edit'),
-                                    ],
-                                  ),
-                                ),
-                              if (canDelete)
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.delete, color: AppColors.error),
-                                      SizedBox(width: 8),
-                                      Text('Delete'),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ) : null,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
