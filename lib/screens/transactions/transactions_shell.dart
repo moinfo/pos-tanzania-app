@@ -9,6 +9,7 @@ import 'cash_basis_screen.dart';
 import 'lipa_namba_transactions_screen.dart';
 import 'wakala_dashboard_screen.dart';
 import 'wakala_screen.dart';
+import 'wakala_theme.dart';
 
 /// Holds the Transactions/e-Wakala module's own bottom navigation, same
 /// pattern as ProductionShell/LodgeShell/ContractsShell -- capped at the
@@ -18,9 +19,9 @@ import 'wakala_screen.dart';
 /// Tills/Fee tiers stay reachable from the drawer only -- the same
 /// "cap at 5 + drawer for the rest" convention those shells use.
 ///
-/// Deliberately plain Material styling, not a Lodge/Contracts-style visual
-/// identity -- there is no design spec for Transactions mode, and the rest
-/// of the module (11+ screens) already uses this plain look.
+/// "Ledger chip" nav style from the mopos-design 3 handover: flat white
+/// bar 80 high, a blue pill (52x30) behind the active icon instead of
+/// Lodge's floating dark pill or Contracts' top indicator bar.
 ///
 /// An IndexedStack keeps each tab alive -- Cash/Bank basis and the SIMs tab
 /// hold fetched category + transaction lists, and rebuilding on every
@@ -68,21 +69,49 @@ class _TransactionsShellState extends State<TransactionsShell> {
         index: index,
         children: destinations.map((d) => d.screen).toList(),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (i) => setState(() => _index = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: isDark ? AppColors.darkTextLight : Colors.grey[600],
-        selectedFontSize: 11.5,
-        unselectedFontSize: 11.5,
-        items: destinations
-            .map((d) => BottomNavigationBarItem(
-                  icon: Icon(d.icon, size: 22),
-                  label: d.label,
-                ))
-            .toList(),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          height: 80,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            border: Border(top: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider)),
+          ),
+          child: Row(
+            children: destinations.asMap().entries.map((entry) {
+              final i = entry.key;
+              final d = entry.value;
+              final selected = i == index;
+              return Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _index = i),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: selected ? AppColors.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Icon(d.icon,
+                            size: 22,
+                            color: selected ? Colors.white : (isDark ? AppColors.darkTextLight : Colors.grey[600])),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(d.label,
+                          style: WakalaTheme.body(
+                              size: 12,
+                              weight: selected ? FontWeight.w700 : FontWeight.w500,
+                              color: selected ? AppColors.primary : (isDark ? AppColors.darkTextLight : Colors.grey[600]))),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }

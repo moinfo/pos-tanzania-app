@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mopos Report</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+button,input,select,textarea{font-family:inherit}
+.dsp{font-family:'Bricolage Grotesque','Public Sans',system-ui,sans-serif}
+.ib{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;position:relative;flex-shrink:0}
+.card{background:#fff;border:1px solid #E9ECEF;border-radius:20px}
+.arch{width:44px;height:52px;flex-shrink:0;border-radius:22px 22px 10px 10px;background:#F59E0B;color:#2B2D42;display:flex;align-items:center;justify-content:center;padding-top:8px;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:700}
+.bd{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:16px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.bd i{width:6px;height:6px;border-radius:999px;display:inline-block}
+.bd.lit{background:#FEF3C7;color:#92400E}.bd.lit i{background:#F59E0B}
+.eyebrow{font-size:12px;line-height:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#F59E0B}
+.ttl{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:36px;line-height:40px;font-weight:800;letter-spacing:-0.03em;color:#fff}
+.sec{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:20px;line-height:26px;font-weight:700;letter-spacing:-0.01em;color:#2B2D42}
+.hr{display:flex;justify-content:space-between;font-size:14px;line-height:22px;color:#E9ECEF}
+.hr span:last-child{color:#fff;font-weight:600}
+.kt{padding:14px;display:flex;flex-direction:column;gap:2px}
+.kt span:first-child{font-size:12px;line-height:16px;color:#6C757D}
+.kt span:last-child{font-family:'Bricolage Grotesque',sans-serif;font-size:28px;line-height:34px;font-weight:700;color:#2B2D42}
+</style>
+</helmet>
+<div style="width:390px;height:1240px;box-sizing:border-box;display:flex;flex-direction:column;background:#F8F9FA;font-family:'Public Sans',system-ui,sans-serif;color:#2B2D42;font-variant-numeric:tabular-nums;position:relative;overflow:hidden">
+
+  <header style="flex-shrink:0;position:relative;overflow:hidden;background:#0D47A1;border-radius:0 0 32px 32px;padding:8px 16px 22px 12px">
+    <svg width="170" height="94" viewBox="0 0 200 110" style="position:absolute;right:-4px;bottom:0" aria-hidden="true">
+      <circle cx="170" cy="20" r="11" fill="#F59E0B"></circle>
+      <path d="M14 110V86a28 28 0 0 1 56 0v24z" fill="#1565C0" fill-opacity=".55"></path>
+      <path d="M60 110V62a36 36 0 0 1 72 0v48z" fill="#1565C0" fill-opacity=".85"></path>
+      <path d="M122 110V84a30 30 0 0 1 60 0v26z" fill="#42A5F5" fill-opacity=".45"></path>
+      <path d="M78 110V92a18 18 0 0 1 36 0v18z" fill="#F59E0B"></path>
+      <path d="M140 110V98a12 12 0 0 1 24 0v12z" fill="#F59E0B"></path>
+    </svg>
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:6px">
+      <button class="ib" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg></button>
+      <div style="padding:0 4px;display:flex;flex-direction:column;gap:2px"><span class="eyebrow">Performance</span><h1 class="ttl">Report</h1></div>
+    </div>
+  </header>
+
+  <main style="flex-shrink:0;display:flex;flex-direction:column;gap:16px;padding:18px 16px 24px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E9ECEF;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:#2B2D42"><span style="width:8px;height:8px;border-radius:999px;background:#F59E0B"></span>1–29 Oct 2026</div>
+      <button style="width:44px;height:44px;border-radius:999px;border:1px solid #6C757D;background:#fff;color:#2B2D42;display:flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Pick a period"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg></button>
+    </div>
+
+    <section aria-label="Net result" style="position:relative;overflow:hidden;background:#0D47A1;border-radius:24px;padding:20px 18px;display:flex;flex-direction:column;gap:12px">
+      <svg width="130" height="72" viewBox="0 0 200 110" style="position:absolute;right:0;top:0;opacity:.9" aria-hidden="true">
+        <circle cx="170" cy="20" r="11" fill="#F59E0B"></circle>
+        <circle cx="120" cy="14" r="1.6" fill="#E9ECEF"></circle><circle cx="140" cy="38" r="1.6" fill="#E9ECEF"></circle>
+      </svg>
+      <div style="position:relative;display:flex;flex-direction:column"><span style="font-size:13px;line-height:18px;color:#E9ECEF">Net result</span><span class="dsp" style="font-size:44px;line-height:50px;font-weight:700;letter-spacing:-0.03em;color:#fff"><span style="font-size:15px;font-weight:600;color:#E9ECEF;letter-spacing:0">TZS </span>95,000</span></div>
+      <div style="height:1px;background:#1565C0"></div>
+      <div style="display:flex;flex-direction:column">
+        <div class="hr"><span>Revenue</span><span>105,000</span></div>
+        <div class="hr"><span>Expenses</span><span>−10,000</span></div>
+        <div class="hr"><span>Maintenance cost</span><span>0</span></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="col" class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px">
+      <h2 id="col" class="sec">Collected vs balance</h2>
+      <div style="display:flex;gap:3px;height:12px;border-radius:999px;overflow:hidden" role="img" aria-label="Paid 80,000, balance 25,000"><div style="width:76.2%;background:#1565C0"></div><div style="width:23.8%;background:#EF4444"></div></div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+        <div style="display:flex;flex-direction:column"><span style="display:flex;align-items:center;gap:6px;font-size:12px;line-height:16px;color:#6C757D"><i style="width:8px;height:8px;border-radius:999px;background:#1565C0;display:inline-block"></i>Paid</span><span class="dsp" style="font-size:22px;line-height:28px;font-weight:700;color:#2B2D42">80,000</span></div>
+        <div style="display:flex;flex-direction:column"><span style="display:flex;align-items:center;gap:6px;font-size:12px;line-height:16px;color:#6C757D"><i style="width:8px;height:8px;border-radius:999px;background:#EF4444;display:inline-block"></i>Balance</span><span class="dsp" style="font-size:22px;line-height:28px;font-weight:700;color:#B91C1C">25,000</span></div>
+      </div>
+    </section>
+
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+      <div class="card kt"><span>Occupancy</span><span>7%</span></div>
+      <div class="card kt"><span>Bookings</span><span>2</span></div>
+      <div class="card kt"><span>Nights sold</span><span>4</span></div>
+    </div>
+
+    <section aria-labelledby="rms" style="display:flex;flex-direction:column;gap:10px">
+      <h2 id="rms" class="sec" style="padding:0 4px">Rooms</h2>
+      <article class="card" style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div class="arch"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V10a6 6 0 0 1 12 0v11"></path><path d="M3 21h18"></path><path d="M14.5 14h.01"></path></svg></div>
+        <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0"><span class="dsp" style="font-size:18px;line-height:24px;font-weight:700;color:#2B2D42">Executive Garden Suite</span><span style="font-size:13px;line-height:18px;color:#6C757D">1 booking · 3 nights · 10% occupancy</span></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0"><span class="dsp" style="font-size:20px;line-height:26px;font-weight:700;color:#2B2D42">75K</span><span class="bd" style="color:#B91C1C;background:#FEE2E2">25K due</span></div>
+      </article>
+      <article class="card" style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div class="arch"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V10a6 6 0 0 1 12 0v11"></path><path d="M3 21h18"></path><path d="M14.5 14h.01"></path></svg></div>
+        <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0"><span class="dsp" style="font-size:18px;line-height:24px;font-weight:700;color:#2B2D42">Standard Single Room</span><span style="font-size:13px;line-height:18px;color:#6C757D">1 booking · 1 night · 3% occupancy</span></div><div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0"><span class="dsp" style="font-size:20px;line-height:26px;font-weight:700;color:#2B2D42">30K</span></div>
+      </article>
+    </section>
+
+    <section aria-labelledby="gl" style="display:flex;flex-direction:column;gap:10px">
+      <h2 id="gl" class="sec" style="padding:0 4px">Guest list</h2>
+      <article class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="dsp" style="font-size:18px;line-height:24px;font-weight:700;color:#2B2D42">Hassan</span><span class="dsp" style="font-size:18px;font-weight:700;color:#2B2D42">30K</span></div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px"><div style="display:flex;flex-direction:column"><span style="font-size:13px;line-height:18px;font-weight:600;color:#2B2D42">Standard Single Room</span><span style="font-size:13px;line-height:18px;color:#6C757D">29 Oct → 30 Oct · 1 night</span></div><span class="bd lit"><i></i>Checked in</span></div>
+      </article>
+      <article class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="dsp" style="font-size:18px;line-height:24px;font-weight:700;color:#2B2D42">Mohamed</span><span class="dsp" style="font-size:18px;font-weight:700;color:#2B2D42">75K</span></div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px"><div style="display:flex;flex-direction:column"><span style="font-size:13px;line-height:18px;font-weight:600;color:#2B2D42">Executive Garden Suite</span><span style="font-size:13px;line-height:18px;color:#6C757D">29 Oct → 1 Nov · 3 nights</span></div><span class="bd lit"><i></i>Checked in</span></div>
+      </article>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

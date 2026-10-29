@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mopos Wakala Lipa Namba · Tills</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+button,input,select,textarea{font-family:inherit}
+.sg{font-family:'Space Grotesk','Public Sans',system-ui,sans-serif}
+.ib{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;flex-shrink:0}
+.card{background:#fff;border:1px solid #E9ECEF;border-left:4px solid #1565C0;border-radius:4px 16px 16px 4px;overflow:hidden}
+.pc{background:#fff;border:1px solid #E9ECEF;border-radius:16px;overflow:hidden}
+.eyebrow{font-size:12px;line-height:16px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#42A5F5}
+.ttl{margin:0;font-family:'Space Grotesk',sans-serif;font-size:30px;line-height:34px;font-weight:700;letter-spacing:-0.02em;color:#fff}
+.lbl{font-size:12px;line-height:16px;color:#6C757D;font-weight:500}
+.sec{margin:0;font-family:'Space Grotesk',sans-serif;font-size:13px;line-height:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6C757D}
+.tile{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.t-blue{background:#DBEAFE;color:#1E40AF}.t-amber{background:#FEF3C7;color:#92400E}.t-green{background:#D1FAE5;color:#047857}.t-red{background:#FEE2E2;color:#B91C1C}.t-grey{background:#E9ECEF;color:#2B2D42}
+.sb{width:40px;height:40px;border:0;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.sb.e{background:#E9ECEF;color:#1565C0}.sb.d{background:#FEE2E2;color:#B91C1C}.sb.m{background:transparent;color:#2B2D42}
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;background:#E9ECEF;border-radius:14px;padding:4px}
+.seg button{height:40px;border:0;border-radius:11px;background:transparent;color:#6C757D;font-size:14px;font-weight:600;cursor:pointer}
+.seg button[aria-selected="true"]{background:#fff;color:#2B2D42;font-weight:700;box-shadow:0 1px 3px rgba(43,45,66,.18)}
+.bar{position:absolute;left:0;right:0;bottom:0;height:80px;background:#fff;border-top:1px solid #E9ECEF;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.bi{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-decoration:none;color:#6C757D;font-size:12px;line-height:16px;font-weight:500}
+.bi .ico{width:52px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center}
+.bi.on{color:#1565C0;font-weight:700}.bi.on .ico{background:#1565C0;color:#fff}
+.fab{position:absolute;right:16px;height:54px;padding:0 20px 0 16px;border-radius:16px;border:0;background:#1565C0;color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 10px 24px rgba(43,45,66,.28);cursor:pointer}
+.inp{height:48px;width:100%;box-sizing:border-box;border:1px solid #6C757D;border-radius:12px;padding:0 14px;font-size:15px;background:#fff;color:#2B2D42}
+.kv{display:flex;justify-content:space-between;align-items:center;min-height:38px;font-size:14px}
+.kv span:first-child{color:#2B2D42}.kv span:last-child{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px}
+.rng{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E9ECEF;border-radius:16px;padding:8px 8px 8px 10px}
+.rng .t{width:36px;height:36px;border-radius:10px;background:#DBEAFE;color:#1E40AF;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rng b{flex-grow:1;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#2B2D42}
+.rng button{height:40px;padding:0 14px;border-radius:12px;border:0;background:#DBEAFE;color:#1E40AF;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer}
+main>*{flex-shrink:0}
+</style>
+</helmet>
+<div style="width:390px;height:880px;box-sizing:border-box;display:flex;flex-direction:column;background:#F8F9FA;font-family:'Public Sans',system-ui,sans-serif;color:#2B2D42;font-variant-numeric:tabular-nums;position:relative;overflow:hidden">
+  <header style="flex-shrink:0;position:relative;overflow:hidden;background:#2B2D42;padding:8px 16px 24px 16px">
+    <svg width="104" height="80" viewBox="0 0 120 90" style="position:absolute;right:14px;bottom:18px" aria-hidden="true"><rect x="22" y="8" width="80" height="66" rx="12" fill="none" stroke="#42A5F5" stroke-opacity=".55" stroke-width="2"/><path d="M22 30h80M22 52h80M52 8v66M72 8v66" stroke="#42A5F5" stroke-opacity=".35" stroke-width="1.5" fill="none"/><rect x="52" y="30" width="20" height="22" rx="3" fill="#F59E0B"/></svg>
+    <div style="position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;margin-left:-4px"><button class="ib" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><div style="display:flex"></div></div>
+    <div style="position:relative;z-index:1;padding:8px 0 0 0;display:flex;flex-direction:column;gap:2px;max-width:250px"><span class="eyebrow">Lipa Namba</span><h1 class="ttl">Lipa Namba Tills</h1></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:4px;display:flex" aria-hidden="true"><i style="flex:1;background:#1565C0"></i><i style="flex:1;background:#F59E0B"></i><i style="flex:1;background:#10B981"></i></div>
+  </header><main style="flex-grow:1;display:flex;flex-direction:column;gap:14px;padding:16px 16px 110px 16px"><article class="card" style="padding:14px 8px 14px 14px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;align-items:center;gap:12px"><div class="tile t-blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><rect x="10" y="12" width="5" height="6" rx="1"/></svg></div><div style="flex-grow:1;display:flex;flex-direction:column"><span class="sg" style="font-size:18px;line-height:24px;font-weight:700">M-Pesa Till</span><span style="font-size:13px;color:#6C757D;letter-spacing:.04em">Till 400200</span></div><button class="sb m" aria-label="Actions for M-Pesa Till"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-right:8px"><div style="display:flex;flex-direction:column"><span class="lbl">Float</span><span class="sg" style="font-size:28px;line-height:34px;font-weight:700;color:#1565C0">40,000</span></div><span style="font-size:13px;color:#6C757D">Fees earned <b class="sg" style="color:#2B2D42">1,300</b></span></div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-right:8px"><button style="height:44px;border-radius:12px;border:1px solid #10B981;background:#fff;color:#047857;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>Deposit</button><button style="height:44px;border-radius:12px;border:1px solid #EF4444;background:#fff;color:#B91C1C;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>Withdraw</button></div></article><article class="card" style="padding:14px 8px 14px 14px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;align-items:center;gap:12px"><div class="tile t-blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><rect x="10" y="12" width="5" height="6" rx="1"/></svg></div><div style="flex-grow:1;display:flex;flex-direction:column"><span class="sg" style="font-size:18px;line-height:24px;font-weight:700">Tigo Lipa Namba</span><span style="font-size:13px;color:#6C757D;letter-spacing:.04em">Till 711500</span></div><button class="sb m" aria-label="Actions for Tigo Lipa Namba"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-right:8px"><div style="display:flex;flex-direction:column"><span class="lbl">Float</span><span class="sg" style="font-size:28px;line-height:34px;font-weight:700;color:#1565C0">85,000</span></div><span style="font-size:13px;color:#6C757D">Fees earned <b class="sg" style="color:#2B2D42">1,000</b></span></div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-right:8px"><button style="height:44px;border-radius:12px;border:1px solid #10B981;background:#fff;color:#047857;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>Deposit</button><button style="height:44px;border-radius:12px;border:1px solid #EF4444;background:#fff;color:#B91C1C;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>Withdraw</button></div></article></main><button class="fab" style="bottom:24px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add Till</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
