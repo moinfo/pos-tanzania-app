@@ -180,6 +180,28 @@ class _HomeScreenState extends State<HomeScreen> {
     // Format selected date for API
     final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
+    // Transactions-only tenants (Demo Wakala and similar) have no stock
+    // location, so the sales cards below never render (gated on
+    // hasLocation) -- without this, the Home tab is just a blank page
+    // under the "Dashboard" header. Same hasTransactionsPermission check
+    // and _transactionsDashboardData field _loadComeAndSaveDashboard()
+    // already uses, reusing the existing _buildTransactionsDashboard().
+    final permissionProvider = context.read<PermissionProvider>();
+    final hasTransactionsPermission =
+        permissionProvider.hasPermission(PermissionIds.transactions) ||
+            permissionProvider.hasModulePermission(PermissionIds.transactions);
+
+    if (hasTransactionsPermission) {
+      final transactionsResponse = await _apiService.getWakalaReport(
+        startDate: dateString,
+        endDate: dateString,
+      );
+      _transactionsDashboardData =
+          transactionsResponse.isSuccess ? transactionsResponse.data : null;
+    } else {
+      _transactionsDashboardData = null;
+    }
+
     // Get summary for selected date
     final summaryResponse = await _apiService.getCashSubmitTodaySummary(
       date: dateString,
