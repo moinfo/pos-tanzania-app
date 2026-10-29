@@ -111,8 +111,8 @@ class _LodgeHeader extends StatelessWidget implements PreferredSizeWidget {
     this.bottom,
   });
 
-  static const double _iconRowHeight = 52;
-  double get _titleBlockHeight => big ? 80 : 66;
+  static const double _iconRowHeight = 44;
+  double get _titleBlockHeight => big ? 94 : 78;
 
   @override
   Size get preferredSize =>
