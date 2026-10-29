@@ -14,6 +14,7 @@ import '../models/financial_banking.dart';
 import '../models/profit_submit.dart';
 import '../models/contract.dart';
 import '../models/contract_settings.dart';
+import '../models/contract_extras.dart';
 import '../models/discount_request.dart';
 import '../models/item_approval.dart';
 import '../models/transfer_approval.dart';
@@ -1889,6 +1890,281 @@ class ApiService {
       );
 
       return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- Tenant-wide Payments (separate from the per-contract statement) ----
+
+  Future<ApiResponse<List<ContractPaymentEntry>>> getContractPayments({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final params = {
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+      };
+      final uri = Uri.parse('$baseUrlSync/contracts/payments')
+          .replace(queryParameters: params);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<List<ContractPaymentEntry>>(
+        response,
+        (data) => ((data['payments'] as List<dynamic>?) ?? [])
+            .map((e) => ContractPaymentEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> editContractPayment(
+    int paymentId, {
+    required int contractId,
+    required double amount,
+    required String date,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/payments/$paymentId/update'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'contract_id': contractId,
+          'amount': amount,
+          'date': date,
+          if (description != null) 'description': description,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> deleteContractPayment(
+      int paymentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/payments/$paymentId/delete'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- Tenant-wide Services (maintenance costs, reduce profit) ----
+
+  Future<ApiResponse<List<ContractServiceEntry>>> getContractServices() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/contracts/services'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<List<ContractServiceEntry>>(
+        response,
+        (data) => ((data['services'] as List<dynamic>?) ?? [])
+            .map((e) => ContractServiceEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> addContractService({
+    required int contractId,
+    required double amount,
+    required String date,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/services/create'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'contract_id': contractId,
+          'amount': amount,
+          'date': date,
+          if (description != null) 'description': description,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> editContractService(
+    int serviceId, {
+    required int contractId,
+    required double amount,
+    required String date,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/services/$serviceId/update'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'contract_id': contractId,
+          'amount': amount,
+          'date': date,
+          if (description != null) 'description': description,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> deleteContractService(
+      int serviceId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/services/$serviceId/delete'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- Customer-submitted payment requests awaiting approval ----
+
+  Future<ApiResponse<List<ContractPaymentRequest>>>
+      getContractPaymentRequests() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/contracts/payment-requests'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<List<ContractPaymentRequest>>(
+        response,
+        (data) => ((data['requests'] as List<dynamic>?) ?? [])
+            .map((e) => ContractPaymentRequest.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> approveContractPaymentRequest(
+      int requestId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/payment-requests/$requestId/approve'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> rejectContractPaymentRequest(
+    int requestId, {
+    String? reason,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/payment-requests/$requestId/reject'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- Inspections ----
+
+  Future<ApiResponse<List<ContractInspectionDue>>>
+      getContractInspections() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/contracts/inspections'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<List<ContractInspectionDue>>(
+        response,
+        (data) => ((data['inspections'] as List<dynamic>?) ?? [])
+            .map((e) => ContractInspectionDue.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<ContractInspectionRecord>>>
+      getContractInspectionHistory(int contractId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/contracts/$contractId/inspections'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<List<ContractInspectionRecord>>(
+        response,
+        (data) => ((data['history'] as List<dynamic>?) ?? [])
+            .map((e) => ContractInspectionRecord.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> markContractInspected(
+    int contractId, {
+    String? notes,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/contracts/$contractId/mark-inspected'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ---- Messages (sent log + live "upcoming" preview) ----
+
+  Future<ApiResponse<ContractMessagesReport>> getContractMessages({
+    String? startDate,
+    String? endDate,
+    int? contractId,
+  }) async {
+    try {
+      final params = {
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+        if (contractId != null) 'contract_id': contractId.toString(),
+      };
+      final uri = Uri.parse('$baseUrlSync/contracts/messages')
+          .replace(queryParameters: params);
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<ContractMessagesReport>(
+        response,
+        (data) => ContractMessagesReport.fromJson(data),
+      );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }

@@ -95,17 +95,41 @@ class PermissionIds {
   static const String config = 'config';
   static const String office = 'office';
   static const String contracts = 'contracts';
+  static const String contractsAdd = 'contracts_add';
+  // Full contract edit (name/dates/terms/guarantors/asset) -- distinct from
+  // contractsAdd (create/renew) and updateAssetInfo's narrower grant.
+  static const String contractsEdit = 'contracts_edit';
+  // Admin-only by default, same rollout as contractsTerminate -- not yet
+  // exposed in the app (no delete UI on the contracts list).
+  static const String contractsDelete = 'contracts_delete';
+  // Marking a contract defaulted/repossessed -- admin-only by default.
+  static const String contractsTerminate = 'contracts_terminate';
+
+  // Tenant-wide Payments tab (all contracts' payments, not just one's
+  // statement) -- viewing is its own grant, separate from add/edit/delete.
+  static const String contractsPayments = 'contracts_payments';
   // Recording a payment is a separate grant from just viewing contracts,
   // same rollout convention as itemsApprove/transfersApprove.
   static const String contractsPaymentsAdd = 'contracts_payments_add';
+  static const String contractsPaymentsEdit = 'contracts_payments_edit';
+  static const String contractsPaymentsDelete = 'contracts_payments_delete';
   // Approving/rejecting a customer-submitted payment request -- split out
-  // from contractsPaymentsAdd so a tenant can grant the two separately; no
-  // mobile approval UI exists yet, this is just for permission-list parity.
+  // from contractsPaymentsAdd so a tenant can grant the two separately.
   static const String contractsPaymentsApprove = 'contracts_payments_approve';
-  static const String contractsAdd = 'contracts_add';
-  // Marking a contract defaulted/repossessed -- admin-only by default,
-  // same rollout as contractsDelete (not yet exposed in the app).
-  static const String contractsTerminate = 'contracts_terminate';
+
+  // Services tab (maintenance costs per contract, reduce profit).
+  static const String contractsServices = 'contracts_services';
+  static const String contractsServicesAdd = 'contracts_services_add';
+  static const String contractsServicesEdit = 'contracts_services_edit';
+  static const String contractsServicesDelete = 'contracts_services_delete';
+
+  // Inspections tab -- viewing the due/overdue report is a separate grant
+  // from logging that one happened (contractsInspectionsMark).
+  static const String contractsInspections = 'contracts_inspections';
+  static const String contractsInspectionsMark = 'contracts_inspections_mark';
+
+  // Messages tab -- the sent log plus the live "Upcoming" preview.
+  static const String contractsMessages = 'contracts_messages';
   static const String expenses = 'expenses';
   static const String withdrawal = 'withdrawal';
   static const String cashSubmit = 'cash_submit';
