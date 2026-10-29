@@ -10,6 +10,7 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import 'lodge_booking_detail_screen.dart';
 import 'lodge_new_booking_screen.dart';
+import 'lodge_report_screen.dart';
 
 /// Lodge Board — `GET lodge/dashboard`. This is the module's home screen:
 /// it is shown as the Home tab itself for a tenant subscribed to Lodge only
@@ -192,7 +193,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          _buildStatsStrip(dashboard, isDark),
+          _buildStatsStrip(dashboard, isDark, permissions),
           const SizedBox(height: 16),
           Text('Rooms',
               style: TextStyle(
@@ -221,51 +222,117 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
     );
   }
 
-  Widget _buildStatsStrip(LodgeDashboard d, bool isDark) {
+  /// Revenue gets top billing -- a big hero row, not one tile the same size
+  /// as "Vacant" -- then occupancy/arrivals/departures as smaller secondary
+  /// stats underneath.
+  Widget _buildStatsStrip(LodgeDashboard d, bool isDark, PermissionProvider permissions) {
     final cs = _meta?.currencySymbol ?? '';
-    final tiles = <_StatTile>[
-      _StatTile('Occupied', '${d.roomCounts.occupied}/${d.roomCounts.total}',
-          AppColors.warning),
+    final secondary = <_StatTile>[
+      _StatTile('Occupied', '${d.roomCounts.occupied}/${d.roomCounts.total}', AppColors.warning),
       _StatTile('Vacant', '${d.roomCounts.vacant}', AppColors.success),
       _StatTile('Arriving', '${d.stats.arrivals}', AppColors.info),
       _StatTile('Departing', '${d.stats.departures}', AppColors.info),
-      _StatTile("Today's revenue",
-          '$cs ${Formatters.formatCompactCurrency(d.stats.revenueToday)}',
-          AppColors.success),
-      _StatTile(
-          'Balance',
-          '$cs ${Formatters.formatCompactCurrency(d.stats.outstanding)}',
-          d.stats.outstanding > 0 ? AppColors.error : AppColors.success),
     ];
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: tiles
-          .map((t) => Container(
-                width: 108,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkCard : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(t.value,
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold, color: t.color)),
-                    const SizedBox(height: 2),
-                    Text(t.label,
-                        style: TextStyle(
-                            fontSize: 11.5,
-                            color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
-                  ],
-                ),
-              ))
-          .toList(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _heroStat(
+                "Today's revenue",
+                '$cs ${Formatters.formatCurrency(d.stats.revenueToday)}',
+                AppColors.success,
+                Icons.payments_outlined,
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _heroStat(
+                'Outstanding balance',
+                '$cs ${Formatters.formatCurrency(d.stats.outstanding)}',
+                d.stats.outstanding > 0 ? AppColors.error : AppColors.success,
+                Icons.account_balance_wallet_outlined,
+                isDark,
+              ),
+            ),
+          ],
+        ),
+        if (permissions.hasPermission(PermissionIds.lodgeReports)) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LodgeReportScreen()),
+              ),
+              icon: const Icon(Icons.bar_chart, size: 16),
+              label: const Text('Full report'),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: secondary
+              .map((t) => Container(
+                    width: 108,
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCard : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(t.value,
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.bold, color: t.color)),
+                        const SizedBox(height: 2),
+                        Text(t.label,
+                            style: TextStyle(
+                                fontSize: 11.5,
+                                color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _heroStat(String label, String value, Color color, IconData icon, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withOpacity(isDark ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+        ],
+      ),
     );
   }
 
