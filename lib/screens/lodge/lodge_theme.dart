@@ -112,7 +112,7 @@ class _LodgeHeader extends StatelessWidget implements PreferredSizeWidget {
   });
 
   static const double _iconRowHeight = 52;
-  double get _titleBlockHeight => big ? 92 : 76;
+  double get _titleBlockHeight => big ? 80 : 66;
 
   @override
   Size get preferredSize =>
@@ -175,27 +175,24 @@ class _LodgeHeader extends StatelessWidget implements PreferredSizeWidget {
                     ],
                   ),
                 ),
-                SizedBox(
-                  height: _titleBlockHeight,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(eyebrow.toUpperCase(), style: LodgeTheme.eyebrow(isDark)),
-                          Text(title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: LodgeTheme.display(
-                                  size: big ? 38 : 30,
-                                  weight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: -0.5)),
-                        ],
-                      ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(eyebrow.toUpperCase(), style: LodgeTheme.eyebrow(isDark)),
+                        Text(title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: LodgeTheme.display(
+                                size: big ? 38 : 30,
+                                weight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.5)),
+                      ],
                     ),
                   ),
                 ),
