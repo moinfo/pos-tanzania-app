@@ -11,6 +11,12 @@ import '../utils/constants.dart';
 import 'home_screen.dart';
 import 'today_summary_screen.dart';
 import 'contracts_screen.dart';
+import 'contracts/contracts_shell.dart';
+import 'contracts/contract_payments_screen.dart';
+import 'contracts/contract_services_screen.dart';
+import 'contracts/contract_payment_requests_screen.dart';
+import 'contracts/contract_inspections_screen.dart';
+import 'contracts/contract_messages_screen.dart';
 import 'z_report/z_reports_list_screen.dart';
 import 'cash_submit_screen.dart';
 import 'expenses_screen.dart';
@@ -336,7 +342,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     if (_isContractsOnlyTenant(permissionProvider)) {
       return [
         {
-          'screen': ContractsScreen(key: ValueKey('contracts_$userId')),
+          'screen': ContractsShell(key: ValueKey('contracts_shell_$userId')),
           'icon': Icons.assignment,
           'label': 'Contracts',
           'permission': PermissionIds.contracts,
@@ -1591,6 +1597,81 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ContractsScreen()),
+                  );
+                },
+              ),
+            ),
+            // The rest of the Contracts module (same destinations
+            // ContractsShell gives a contracts-only tenant as bottom tabs,
+            // see contracts/contracts_shell.dart) -- a full-package tenant
+            // reaches them here instead, one tap each, rather than nesting
+            // a whole second bottom nav inside this one's "Contracts" tab.
+            PermissionWrapper(
+              permissionId: PermissionIds.contractsPayments,
+              child: ListTile(
+                leading: Icon(Icons.payments_outlined, color: AppColors.brandPrimary),
+                title: const Text('Contract Payments'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ContractPaymentsScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.contractsServices,
+              child: ListTile(
+                leading: Icon(Icons.build_outlined, color: AppColors.brandPrimary),
+                title: const Text('Contract Services'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ContractServicesScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.contractsPaymentsApprove,
+              child: ListTile(
+                leading: Icon(Icons.fact_check_outlined, color: AppColors.brandPrimary),
+                title: const Text('Contract Payment Requests'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ContractPaymentRequestsScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.contractsInspections,
+              child: ListTile(
+                leading: Icon(Icons.search_outlined, color: AppColors.brandPrimary),
+                title: const Text('Contract Inspections'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ContractInspectionsScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.contractsMessages,
+              child: ListTile(
+                leading: Icon(Icons.sms_outlined, color: AppColors.brandPrimary),
+                title: const Text('Contract Messages'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ContractMessagesScreen()),
                   );
                 },
               ),
