@@ -149,6 +149,7 @@ class LodgeRoom {
   final String purpose; // guest | staff | office
   final String? occupant;
   final bool forSale;
+  final String? description;
   final String? lastMaintenance;
   final LodgeBooking? currentBooking;
 
@@ -163,6 +164,7 @@ class LodgeRoom {
     required this.purpose,
     this.occupant,
     required this.forSale,
+    this.description,
     this.lastMaintenance,
     this.currentBooking,
   });
@@ -181,6 +183,7 @@ class LodgeRoom {
       purpose: json['purpose']?.toString() ?? 'guest',
       occupant: json['occupant']?.toString(),
       forSale: json['for_sale'] == null ? true : _toBool(json['for_sale']),
+      description: json['description']?.toString(),
       lastMaintenance: json['last_maintenance']?.toString(),
       currentBooking: json['current_booking'] is Map
           ? LodgeBooking.fromJson(
@@ -627,7 +630,7 @@ class LodgeExpenseCategory {
   factory LodgeExpenseCategory.fromJson(Map<String, dynamic> json) {
     return LodgeExpenseCategory(
       id: _toInt(json['id'] ?? json['expense_category_id']),
-      name: json['name']?.toString() ?? '',
+      name: json['category_name']?.toString() ?? json['name']?.toString() ?? '',
     );
   }
 }
@@ -843,7 +846,7 @@ class LodgeReportRoom {
       roomId: _toInt(json['room_id']),
       roomNumber: json['room_number']?.toString() ?? '',
       bookings: _toInt(json['bookings']),
-      nightsSold: _toInt(json['nights_sold']),
+      nightsSold: _toInt(json['nights']),
       occupancyPct: _toDouble(json['occupancy_pct']),
       revenue: _toDouble(json['revenue']),
       paid: _toDouble(json['paid']),
@@ -953,8 +956,9 @@ class LodgeForecastRoom {
 }
 
 class LodgeForecastScenario {
-  final String label;
   final double occupancy;
+  final bool isActual;
+  final bool isSelected;
   final double day;
   final double month;
   final double year;
@@ -962,8 +966,9 @@ class LodgeForecastScenario {
   final double netYear;
 
   LodgeForecastScenario({
-    required this.label,
     required this.occupancy,
+    required this.isActual,
+    required this.isSelected,
     required this.day,
     required this.month,
     required this.year,
@@ -971,10 +976,16 @@ class LodgeForecastScenario {
     required this.netYear,
   });
 
+  /// The server doesn't send a label -- just occupancy plus is_actual/
+  /// is_selected flags -- so the display string is built here.
+  String get label =>
+      '${occupancy.toStringAsFixed(occupancy == occupancy.roundToDouble() ? 0 : 1)}%${isActual ? ' (actual)' : ''}';
+
   factory LodgeForecastScenario.fromJson(Map<String, dynamic> json) {
     return LodgeForecastScenario(
-      label: json['label']?.toString() ?? '',
       occupancy: _toDouble(json['occupancy']),
+      isActual: _toBool(json['is_actual']),
+      isSelected: _toBool(json['is_selected']),
       day: _toDouble(json['day']),
       month: _toDouble(json['month']),
       year: _toDouble(json['year']),
@@ -984,12 +995,30 @@ class LodgeForecastScenario {
   }
 }
 
+/// `rate x days` at 100% occupancy -- the server sends this as its own
+/// day/month/year triple, not a single number.
+class LodgeForecastCapacity {
+  final double day;
+  final double month;
+  final double year;
+
+  LodgeForecastCapacity({required this.day, required this.month, required this.year});
+
+  factory LodgeForecastCapacity.fromJson(Map<String, dynamic> json) {
+    return LodgeForecastCapacity(
+      day: _toDouble(json['day']),
+      month: _toDouble(json['month']),
+      year: _toDouble(json['year']),
+    );
+  }
+}
+
 class LodgeForecast {
   final List<LodgeForecastRoom> rooms;
   final double totalDay;
   final double totalMonth;
   final double totalYear;
-  final double fullCapacity;
+  final LodgeForecastCapacity fullCapacity;
   final double expensesMonth;
   final double netMonth;
   final double netYear;
@@ -1018,7 +1047,8 @@ class LodgeForecast {
       totalDay: _toDouble(totals['day']),
       totalMonth: _toDouble(totals['month']),
       totalYear: _toDouble(totals['year']),
-      fullCapacity: _toDouble(json['full_capacity']),
+      fullCapacity: LodgeForecastCapacity.fromJson(
+          Map<String, dynamic>.from(json['full_capacity'] ?? {})),
       expensesMonth: _toDouble(json['expenses_month']),
       netMonth: _toDouble(json['net_month']),
       netYear: _toDouble(json['net_year']),

@@ -23,6 +23,7 @@ class LodgePaymentsScreen extends StatefulWidget {
 class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
   final ApiService _apiService = ApiService();
   LodgePaymentsByType? _data;
+  LodgeMeta? _meta;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -40,18 +41,24 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-    final response = await _apiService.getLodgePayments(
-      startDate: Formatters.formatDateForApi(_startDate),
-      endDate: Formatters.formatDateForApi(_endDate),
-    );
+    final results = await Future.wait([
+      _apiService.getLodgePayments(
+        startDate: Formatters.formatDateForApi(_startDate),
+        endDate: Formatters.formatDateForApi(_endDate),
+      ),
+      _apiService.getLodgeMeta(),
+    ]);
     if (!mounted) return;
+    final response = results[0];
+    final metaResponse = results[1];
     setState(() {
       _isLoading = false;
       if (response.isSuccess && response.data != null) {
-        _data = response.data;
+        _data = response.data as LodgePaymentsByType;
       } else {
         _errorMessage = response.message;
       }
+      if (metaResponse.isSuccess) _meta = metaResponse.data as LodgeMeta?;
     });
   }
 
@@ -72,43 +79,61 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
 
   Future<void> _editPayment(LodgePayment p) async {
     final amountController = TextEditingController(text: p.amount.toStringAsFixed(0));
+    final nightsController = TextEditingController(text: p.nights?.toString() ?? '');
     final noteController = TextEditingController(text: p.note ?? '');
+    final paymentTypes = _meta?.paymentTypes ?? const ['Cash', 'Bank', 'Lipa Namba'];
+    String paymentType = paymentTypes.contains(p.paymentType) ? p.paymentType : paymentTypes.first;
 
     final save = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: 18,
-          right: 18,
-          top: 18,
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 18,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Edit payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 14),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: noteController,
-              decoration: const InputDecoration(labelText: 'Note (optional)', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(sheetContext, true),
-                child: const Text('Save'),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 18,
+            right: 18,
+            top: 18,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 18,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Edit payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 14),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Amount', border: OutlineInputBorder()),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: paymentType,
+                decoration: const InputDecoration(labelText: 'Payment type', border: OutlineInputBorder()),
+                items: paymentTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                onChanged: (v) => setSheetState(() => paymentType = v ?? paymentType),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: nightsController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Nights (optional)', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: noteController,
+                decoration: const InputDecoration(labelText: 'Note (optional)', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(sheetContext, true),
+                  child: const Text('Save'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -118,6 +143,8 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
     final response = await _apiService.editLodgePayment(
       paymentId: p.paymentId,
       amount: amount,
+      paymentType: paymentType,
+      nights: int.tryParse(nightsController.text),
       note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
     );
     if (!mounted) return;

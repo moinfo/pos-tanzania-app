@@ -128,6 +128,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
     final defaultCategoryId = categoriesData['default_category_id'];
     final rooms = roomsResponse.isSuccess ? (roomsResponse.data as List<LodgeRoom>? ?? []) : <LodgeRoom>[];
 
+    final canBackdate = context.read<PermissionProvider>().hasPermission(PermissionIds.lodgeExpensesDate);
     final amountController = TextEditingController();
     final descriptionController = TextEditingController();
     final paymentTypes = const ['Cash', 'Bank', 'Lipa Namba'];
@@ -136,6 +137,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
         ? (categories.any((c) => c.id == defaultCategoryId) ? defaultCategoryId : categories.first.id)
         : null;
     LodgeRoom? selectedRoom; // null = whole lodge
+    DateTime expenseDate = DateTime.now();
 
     await showModalBottomSheet(
       context: context,
@@ -195,6 +197,24 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                     items: paymentTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                     onChanged: (v) => setSheetState(() => paymentType = v ?? paymentType),
                   ),
+                  if (canBackdate) ...[
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: expenseDate,
+                          firstDate: DateTime(DateTime.now().year - 2),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) setSheetState(() => expenseDate = picked);
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'Date', border: OutlineInputBorder()),
+                        child: Text(Formatters.formatDateForApi(expenseDate)),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -214,6 +234,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                           paymentType: paymentType,
                           expenseCategoryId: categoryId,
                           roomId: selectedRoom?.roomId,
+                          date: canBackdate ? Formatters.formatDateForApi(expenseDate) : null,
                         );
                         if (!mounted) return;
                         if (response.isSuccess) {

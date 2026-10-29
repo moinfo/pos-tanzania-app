@@ -120,6 +120,7 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
     final typeController = TextEditingController(text: existing?.roomType ?? '');
     final rateController = TextEditingController(text: existing != null ? existing.rate.toStringAsFixed(0) : '');
     final occupantController = TextEditingController(text: existing?.occupant ?? '');
+    final descriptionController = TextEditingController(text: existing?.description ?? '');
     String purpose = existing?.purpose ?? 'guest';
 
     await showModalBottomSheet(
@@ -172,6 +173,12 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
                   controller: occupantController,
                   decoration: const InputDecoration(labelText: 'Occupant name', border: OutlineInputBorder()),
                 ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: descriptionController,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Description (optional)', border: OutlineInputBorder()),
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -191,6 +198,7 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
                             rate: double.tryParse(rateController.text),
                             purpose: purpose,
                             occupant: occupantController.text.trim().isEmpty ? null : occupantController.text.trim(),
+                            description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
                           )
                         : await _apiService.editLodgeRoom(
                             roomId: existing.roomId,
@@ -199,6 +207,7 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
                             rate: double.tryParse(rateController.text),
                             purpose: purpose,
                             occupant: occupantController.text.trim().isEmpty ? null : occupantController.text.trim(),
+                            description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
                           );
                     if (!mounted) return;
                     if (response.isSuccess) {
@@ -306,6 +315,7 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
                     : (room.occupant ?? 'Staff/Office'),
                 if (room.lastMaintenance != null)
                   'Last maintenance: ${Formatters.formatDate(room.lastMaintenance)}',
+                if (room.description != null && room.description!.isNotEmpty) room.description!,
               ].join(' · ')),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,

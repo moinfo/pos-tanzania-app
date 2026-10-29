@@ -24,6 +24,8 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
 
   DateTime _date = DateTime.now().subtract(const Duration(days: 1));
   LodgeDayClose? _data;
+  LodgeMeta? _meta;
+  int? _locationId;
   bool _isLoading = true;
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -31,7 +33,14 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
   @override
   void initState() {
     super.initState();
+    _loadMeta();
     _load();
+  }
+
+  Future<void> _loadMeta() async {
+    final response = await _apiService.getLodgeMeta();
+    if (!mounted) return;
+    if (response.isSuccess) setState(() => _meta = response.data);
   }
 
   @override
@@ -47,7 +56,10 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-    final response = await _apiService.getLodgeDayClose(date: Formatters.formatDateForApi(_date));
+    final response = await _apiService.getLodgeDayClose(
+      date: Formatters.formatDateForApi(_date),
+      locationId: _locationId,
+    );
     if (!mounted) return;
     setState(() {
       _isLoading = false;
@@ -80,6 +92,7 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
     setState(() => _isSubmitting = true);
     final response = await _apiService.closeLodgeDay(
       date: Formatters.formatDateForApi(_date),
+      locationId: _locationId,
       banked: banked,
       cashSubmitted: submitted,
       note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
@@ -115,6 +128,18 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
         foregroundColor: Colors.white,
         title: const Text('Day Close'),
         actions: [
+          if (_meta != null && _meta!.locations.length > 1)
+            PopupMenuButton<int?>(
+              icon: const Icon(Icons.location_on_outlined, size: 20),
+              tooltip: 'Branch',
+              onSelected: (id) {
+                setState(() => _locationId = id);
+                _load();
+              },
+              itemBuilder: (_) => _meta!.locations
+                  .map((l) => PopupMenuItem(value: l.locationId, child: Text(l.locationName)))
+                  .toList(),
+            ),
           if (_data?.canPickDate ?? false)
             IconButton(icon: const Icon(Icons.calendar_today, size: 20), onPressed: _pickDate),
         ],

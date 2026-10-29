@@ -135,7 +135,9 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
         ),
         const SizedBox(height: 16),
         _card(isDark, children: [
-          _row('Full capacity (100%)', f.fullCapacity, isDark),
+          _row('Full capacity: day', f.fullCapacity.day, isDark),
+          _row('Full capacity: month', f.fullCapacity.month, isDark),
+          _row('Full capacity: year', f.fullCapacity.year, isDark),
           _row('Expenses (avg/month)', -f.expensesMonth, isDark),
           _row('Net (month)', f.netMonth, isDark, highlight: true),
           _row('Net (year)', f.netYear, isDark, highlight: true),

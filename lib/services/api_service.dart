@@ -8912,7 +8912,7 @@ class ApiService {
         headers: await _getHeaders(),
       );
       return _handleResponse<LodgeBooking>(
-          response, (data) => LodgeBooking.fromJson(data));
+          response, (data) => _unwrapLodgeBooking(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -8952,7 +8952,7 @@ class ApiService {
         }),
       );
       return _handleResponse<LodgeBooking>(
-          response, (data) => LodgeBooking.fromJson(data));
+          response, (data) => _unwrapLodgeBooking(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -8965,7 +8965,7 @@ class ApiService {
         headers: await _getHeaders(),
       );
       return _handleResponse<LodgeBooking>(
-          response, (data) => LodgeBooking.fromJson(data));
+          response, (data) => _unwrapLodgeBooking(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -8993,7 +8993,7 @@ class ApiService {
         }),
       );
       return _handleResponse<LodgeBooking>(
-          response, (data) => LodgeBooking.fromJson(data));
+          response, (data) => _unwrapLodgeBooking(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9107,7 +9107,7 @@ class ApiService {
         body: json.encode({'status': status}),
       );
       return _handleResponse<LodgeRoom>(
-          response, (data) => LodgeRoom.fromJson(data));
+          response, (data) => _unwrapLodgeRoom(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9137,7 +9137,7 @@ class ApiService {
         }),
       );
       return _handleResponse<LodgeRoom>(
-          response, (data) => LodgeRoom.fromJson(data));
+          response, (data) => _unwrapLodgeRoom(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9166,7 +9166,7 @@ class ApiService {
         }),
       );
       return _handleResponse<LodgeRoom>(
-          response, (data) => LodgeRoom.fromJson(data));
+          response, (data) => _unwrapLodgeRoom(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9311,7 +9311,7 @@ class ApiService {
         }),
       );
       return _handleResponse<LodgePayment>(
-          response, (data) => LodgePayment.fromJson(data));
+          response, (data) => _unwrapLodgePayment(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9456,7 +9456,7 @@ class ApiService {
         body: json.encode({'check_out_date': checkOutDate}),
       );
       return _handleResponse<LodgeBooking>(
-          response, (data) => LodgeBooking.fromJson(data));
+          response, (data) => _unwrapLodgeBooking(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9479,21 +9479,23 @@ class ApiService {
         }),
       );
       return _handleResponse<LodgeBooking>(
-          response, (data) => LodgeBooking.fromJson(data));
+          response, (data) => _unwrapLodgeBooking(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
 
-  /// Only a `reserved` booking can be cancelled.
-  Future<ApiResponse<LodgeBooking>> cancelLodgeBooking(int bookingId) async {
+  /// Only a `reserved` booking can be cancelled. Unlike every other
+  /// booking_* action, the server's response here is just
+  /// `{booking_id, status}`, not a full booking object -- callers should
+  /// re-fetch (getLodgeBooking) rather than expect one back.
+  Future<ApiResponse<bool>> cancelLodgeBooking(int bookingId) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/cancel'),
         headers: await _getHeaders(),
       );
-      return _handleResponse<LodgeBooking>(
-          response, (data) => LodgeBooking.fromJson(data));
+      return _handleResponse<bool>(response, (data) => true);
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9658,7 +9660,7 @@ class ApiService {
         body: json.encode({'email': email, 'password': password}),
       );
       return _handleResponse<LodgeMessagesStatus>(
-          response, (data) => LodgeMessagesStatus.fromJson(data));
+          response, (data) => _unwrapLodgeMessagesStatus(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9684,7 +9686,7 @@ class ApiService {
         }),
       );
       return _handleResponse<LodgeMessagesStatus>(
-          response, (data) => LodgeMessagesStatus.fromJson(data));
+          response, (data) => _unwrapLodgeMessagesStatus(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9736,4 +9738,36 @@ class ApiService {
 int _toLodgeInt(dynamic v) {
   if (v is int) return v;
   return int.tryParse(v?.toString() ?? '') ?? 0;
+}
+
+/// Every booking-returning Lodge endpoint wraps the object as
+/// `{"booking": {...}}` rather than sending its fields at the top level of
+/// `data` (confirmed against the live API and the backend controller source,
+/// application/controllers/api/Lodge.php -- every booking_* action calls
+/// `send_response(array('booking' => $this->_booking_out(...)), ...)`).
+/// Falls back to flat for safety, but the nested case is the real one.
+LodgeBooking _unwrapLodgeBooking(Map<String, dynamic> data) {
+  final inner = data['booking'];
+  return LodgeBooking.fromJson(inner is Map ? Map<String, dynamic>.from(inner) : data);
+}
+
+/// Same wrapper pattern as [_unwrapLodgeBooking], for room_save/room_status
+/// (`{"room": {...}}`).
+LodgeRoom _unwrapLodgeRoom(Map<String, dynamic> data) {
+  final inner = data['room'];
+  return LodgeRoom.fromJson(inner is Map ? Map<String, dynamic>.from(inner) : data);
+}
+
+/// Same wrapper pattern as [_unwrapLodgeBooking], for payment_update
+/// (`{"payment": {...}}`).
+LodgePayment _unwrapLodgePayment(Map<String, dynamic> data) {
+  final inner = data['payment'];
+  return LodgePayment.fromJson(inner is Map ? Map<String, dynamic>.from(inner) : data);
+}
+
+/// Same wrapper pattern as [_unwrapLodgeBooking], for messages/link and
+/// messages/register (`{"status": {...}}`).
+LodgeMessagesStatus _unwrapLodgeMessagesStatus(Map<String, dynamic> data) {
+  final inner = data['status'];
+  return LodgeMessagesStatus.fromJson(inner is Map ? Map<String, dynamic>.from(inner) : data);
 }

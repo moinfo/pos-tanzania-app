@@ -862,9 +862,9 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
     if (!mounted) return;
     setState(() => _isBusy = false);
 
-    if (response.isSuccess && response.data != null) {
-      setState(() => _booking = response.data);
+    if (response.isSuccess) {
       _showSnack('Booking cancelled.', success: true);
+      await _load();
     } else {
       _showSnack(response.message, success: false);
     }
