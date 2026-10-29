@@ -150,9 +150,10 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
           ),
         ],
       ),
-      floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
-          ? LodgeFab(onPressed: () => _openNewBooking())
-          : null,
+      // No FAB here -- unlike Bookings/Calendar, Board's room cards each sit
+      // right above the nav bar and already carry their own "Book"/"Pay"/
+      // "Check out" buttons, so a floating "+ Booking" button just overlapped
+      // whichever card happened to be at the bottom of the list.
       body: _buildBody(isDark, permissions),
     );
   }
