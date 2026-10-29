@@ -10,6 +10,7 @@ import '../../widgets/skeleton_loader.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../models/permission_model.dart';
+import 'wakala_theme.dart';
 
 class WakalaExpensesScreen extends StatefulWidget {
   const WakalaExpensesScreen({super.key});
@@ -178,11 +179,11 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
         .hasPermission(PermissionIds.transactionsWakalaExpensesDateRange);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: const Text('Wakala Expenses'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Money out',
+        title: 'Wakala Expenses',
         actions: [
           if (canChangeDateRange)
             IconButton(
@@ -194,410 +195,198 @@ class _WakalaExpensesScreenState extends State<WakalaExpensesScreen> {
       ),
       body: Column(
         children: [
-          // Date range display - improved light mode
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.darkSurface
-                  : Colors.white,
-              border: Border(
-                bottom: BorderSide(
-                  color: isDark
-                      ? AppColors.darkDivider
-                      : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              boxShadow: isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.primary.withOpacity(0.15)
-                            : AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.calendar_today,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _startDate == _endDate
-                          ? DateFormat('MMMM dd, yyyy').format(_startDate)
-                          : '${DateFormat('MMM dd, yyyy').format(_startDate)} - ${DateFormat('MMM dd, yyyy').format(_endDate)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: isDark ? Colors.white : const Color(0xFF1F2937),
-                      ),
-                    ),
-                  ],
-                ),
-                // Second entry point to the same range picker as the app bar
-                // button, so it needs the same gate.
-                TextButton.icon(
-                  onPressed: canChangeDateRange ? _selectDateRange : null,
-                  icon: const Icon(Icons.edit_calendar, size: 18),
-                  label: const Text('Change'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: isDark
-                        ? AppColors.primary.withOpacity(0.1)
-                        : AppColors.primary.withOpacity(0.08),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Total summary card - improved light mode
-          if (!_isLoading && _expenses.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              margin: const EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDark
-                      ? [AppColors.darkCard, AppColors.darkSurface]
-                      : [Colors.white, const Color(0xFFFAFAFA)],
-                ),
+                color: isDark ? AppColors.darkSurface : Colors.white,
+                border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withOpacity(0.08)
-                      : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-                boxShadow: isDark
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 1,
-                          offset: const Offset(0, 1),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.account_balance_wallet,
-                          size: 20,
-                          color: AppColors.error,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Total Expenses',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white70 : const Color(0xFF6B7280),
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(color: const Color(0xFFDBEAFE), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.date_range, size: 18, color: Color(0xFF1E40AF)),
                   ),
-                  Text(
-                    'TZS ${Formatters.formatCurrency(_total)}',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.error,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _startDate == _endDate
+                          ? DateFormat('MMMM d, yyyy').format(_startDate)
+                          : '${DateFormat('MMM d, yyyy').format(_startDate)} - ${DateFormat('MMM d, yyyy').format(_endDate)}',
+                      style: WakalaTheme.display(size: 15, weight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.text),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: canChangeDateRange ? _selectDateRange : null,
+                    icon: const Icon(Icons.edit_calendar, size: 16),
+                    label: const Text('Change'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E40AF),
+                      backgroundColor: const Color(0xFFDBEAFE),
+                      textStyle: WakalaTheme.body(size: 14, weight: FontWeight.w700),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ],
               ),
             ),
-          // Content with gradient background - improved light mode
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [AppColors.darkBackground, AppColors.darkSurface]
-                      : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+          ),
+          if (!_isLoading && _expenses.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: WakalaCard(
+                railColor: AppColors.error,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    const WakalaIconTile(icon: Icons.account_balance_wallet_outlined, tint: WakalaTint.red),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Total expenses', style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                    text: 'TZS ',
+                                    style: WakalaTheme.body(size: 14, weight: FontWeight.w600, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                                TextSpan(
+                                    text: Formatters.formatCurrency(_total),
+                                    style: WakalaTheme.display(size: 28, weight: FontWeight.w700, color: const Color(0xFFB91C1C))),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: RefreshIndicator(
-                onRefresh: _loadExpenses,
-                child: _isLoading
-                    ? _buildSkeletonList(isDark)
-                    : _error != null
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(32.0),
+            ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadExpenses,
+              child: _isLoading
+                  ? _buildSkeletonList(isDark)
+                  : _error != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                                const SizedBox(height: 16),
+                                Text(_error!, style: const TextStyle(color: AppColors.error), textAlign: TextAlign.center),
+                                const SizedBox(height: 16),
+                                ElevatedButton(onPressed: _loadExpenses, child: const Text('Retry')),
+                              ],
+                            ),
+                          ),
+                        )
+                      : _expenses.isEmpty
+                          ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
-                                    Icons.error_outline,
-                                    size: 48,
-                                    color: AppColors.error,
-                                  ),
+                                  Icon(Icons.receipt_long, size: 64, color: isDark ? AppColors.darkTextLight : AppColors.textLight),
                                   const SizedBox(height: 16),
-                                  Text(
-                                    _error!,
-                                    style: const TextStyle(color: AppColors.error),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: _loadExpenses,
-                                    child: const Text('Retry'),
+                                  Text('No wakala expenses found',
+                                      style: WakalaTheme.body(size: 16, color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                                  const SizedBox(height: 24),
+                                  ElevatedButton.icon(
+                                    onPressed: _showAddExpenseDialog,
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Add Expense'),
                                   ),
                                 ],
                               ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
+                              itemCount: _expenses.length,
+                              itemBuilder: (context, index) {
+                                final expense = _expenses[index];
+                                return _buildExpenseCard(expense, isDark);
+                              },
                             ),
-                          )
-                        : _expenses.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.receipt_long,
-                                      size: 64,
-                                      color: isDark
-                                          ? AppColors.darkTextLight
-                                          : AppColors.textLight,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No wakala expenses found',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: isDark
-                                            ? AppColors.darkTextLight
-                                            : AppColors.textLight,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    ElevatedButton.icon(
-                                      onPressed: _showAddExpenseDialog,
-                                      icon: const Icon(Icons.add),
-                                      label: const Text('Add Expense'),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                itemCount: _expenses.length,
-                                itemBuilder: (context, index) {
-                                  final expense = _expenses[index];
-                                  return _buildExpenseCard(expense, isDark);
-                                },
-                              ),
-              ),
             ),
           ),
         ],
       ),
       floatingActionButton: _expenses.isNotEmpty
-          ? FloatingActionButton(
+          ? FloatingActionButton.extended(
               onPressed: _showAddExpenseDialog,
+              icon: const Icon(Icons.add),
+              label: const Text('Expense'),
               backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add, color: Colors.white),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             )
           : null,
     );
   }
 
   Widget _buildExpenseCard(WakalaExpense expense, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: GlassmorphicCard(
-        isDark: isDark,
-        child: InkWell(
-          onTap: () => _showEditExpenseDialog(expense),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: WakalaCard(
+        railColor: AppColors.error,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Icon with gradient background
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.error.withOpacity(0.8),
-                            AppColors.error,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.error.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.money_off,
-                        size: 24,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            expense.description.isNotEmpty
-                                ? expense.description
-                                : 'Wakala Expense',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkText : AppColors.text,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today,
-                                size: 14,
-                                color: isDark
-                                    ? AppColors.darkTextLight
-                                    : AppColors.textLight,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                Formatters.formatDate(expense.date),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? AppColors.darkTextLight
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Amount with emphasis
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.error.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        'TZS ${Formatters.formatCurrency(expense.amount)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.error,
-                        ),
-                      ),
-                    ),
-                  ],
+                const WakalaIconTile(icon: Icons.receipt_long_outlined, tint: WakalaTint.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(expense.description.isNotEmpty ? expense.description : 'Wakala Expense',
+                          style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                      Text(Formatters.formatDate(expense.date),
+                          style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Edit button
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.edit,
-                            color: AppColors.primary, size: 20),
-                        onPressed: () => _showEditExpenseDialog(expense),
-                        padding: const EdgeInsets.all(8),
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Edit expense',
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Delete button
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.delete,
-                            color: AppColors.error, size: 20),
-                        onPressed: () => _deleteExpense(expense.id),
-                        padding: const EdgeInsets.all(8),
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Delete expense',
-                      ),
-                    ),
-                  ],
-                ),
+                Text(Formatters.formatCurrency(expense.amount),
+                    style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: const Color(0xFFB91C1C))),
               ],
             ),
-          ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _setupActionButton(Icons.edit_outlined, isEdit: true, onTap: () => _showEditExpenseDialog(expense)),
+                const SizedBox(width: 8),
+                _setupActionButton(Icons.delete_outline, isEdit: false, onTap: () => _deleteExpense(expense.id)),
+              ],
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _setupActionButton(IconData icon, {required bool isEdit, required VoidCallback onTap}) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isEdit ? const Color(0xFFE9ECEF) : const Color(0xFFFEE2E2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 18, color: isEdit ? AppColors.primary : const Color(0xFFB91C1C)),
       ),
     );
   }
