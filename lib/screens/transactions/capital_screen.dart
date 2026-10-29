@@ -5,10 +5,10 @@ import '../../services/api_service.dart';
 import '../../models/transaction.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
-import '../../widgets/glassmorphic_card.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../models/permission_model.dart';
+import 'wakala_theme.dart';
 
 class CapitalScreen extends StatefulWidget {
   const CapitalScreen({super.key});
@@ -180,11 +180,11 @@ class _CapitalScreenState extends State<CapitalScreen> {
         .hasPermission(PermissionIds.transactionsCapitalDateRange);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: const Text('Capital'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Investment',
+        title: 'Capital',
         actions: [
           if (canChangeDateRange)
             IconButton(
@@ -196,84 +196,58 @@ class _CapitalScreenState extends State<CapitalScreen> {
       ),
       body: Column(
         children: [
-          // Date range display
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : Colors.white,
-              border: Border(
-                bottom: BorderSide(
-                  color: isDark ? AppColors.darkDivider : const Color(0xFFE5E7EB),
-                  width: 1,
-                ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface : Colors.white,
+                border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                borderRadius: BorderRadius.circular(16),
               ),
-              boxShadow: isDark
-                  ? null
-                  : [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${DateFormat('MMM dd, yyyy').format(_startDate)} - ${DateFormat('MMM dd, yyyy').format(_endDate)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: isDark ? Colors.white : const Color(0xFF1F2937),
-                      ),
-                    ),
-                  ],
-                ),
-                // Second entry point to the same range picker as the app bar
-                // button, so it needs the same gate.
-                TextButton.icon(
-                  onPressed: canChangeDateRange ? _selectDateRange : null,
-                  icon: const Icon(Icons.edit_calendar, size: 18),
-                  label: const Text('Change'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: AppColors.primary.withOpacity(isDark ? 0.1 : 0.08),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Summary cards
-          if (!_isLoading) ...[
-            Padding(
-              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Expanded(
-                    child: _buildSummaryCard('Capital', _totalCapital, Icons.work, AppColors.primary, isDark),
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(color: const Color(0xFFDBEAFE), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.date_range, size: 18, color: Color(0xFF1E40AF)),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: _buildSummaryCard('Commission', _totalCommission, Icons.percent, AppColors.success, isDark),
+                    child: Text(
+                      '${DateFormat('MMM d, yyyy').format(_startDate)} – ${DateFormat('MMM d, yyyy').format(_endDate)}',
+                      style: WakalaTheme.display(size: 15, weight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.text),
+                    ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildSummaryCard('Total', _actualCapital, Icons.account_balance_wallet, const Color(0xFF7C3AED), isDark),
+                  TextButton.icon(
+                    onPressed: canChangeDateRange ? _selectDateRange : null,
+                    icon: const Icon(Icons.edit_calendar, size: 16),
+                    label: const Text('Change'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E40AF),
+                      backgroundColor: const Color(0xFFDBEAFE),
+                      textStyle: WakalaTheme.body(size: 14, weight: FontWeight.w700),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-          // Content
+          ),
+          if (!_isLoading)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Row(
+                children: [
+                  Expanded(child: _buildSummaryCard('Capital', _totalCapital, Icons.work_outline, WakalaTint.blue, isDark)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildSummaryCard('Commission', _totalCommission, Icons.percent, WakalaTint.green, isDark)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildSummaryCard('Total', _actualCapital, Icons.account_balance_wallet_outlined, WakalaTint.amber, isDark)),
+                ],
+              ),
+            ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -298,14 +272,14 @@ class _CapitalScreenState extends State<CapitalScreen> {
                                 Icon(Icons.work_outline, size: 64, color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF)),
                                 const SizedBox(height: 16),
                                 Text('No capital entries found',
-                                    style: TextStyle(fontSize: 16, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
+                                    style: WakalaTheme.body(size: 16, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
                               ],
                             ),
                           )
                         : RefreshIndicator(
                             onRefresh: _loadCapital,
                             child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
                               itemCount: _entries.length,
                               itemBuilder: (context, index) {
                                 final entry = _entries[index];
@@ -316,33 +290,28 @@ class _CapitalScreenState extends State<CapitalScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddDialog,
+        icon: const Icon(Icons.add),
+        label: const Text('Capital'),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 
-  Widget _buildSummaryCard(String label, double amount, IconData icon, Color color, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE5E7EB)),
-        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
+  Widget _buildSummaryCard(String label, double amount, IconData icon, WakalaTint tint, bool isDark) {
+    return WakalaPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
-          const SizedBox(height: 4),
+          WakalaIconTile(icon: icon, tint: tint, size: 32),
+          const SizedBox(height: 6),
+          Text(label, style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
           Text(
             Formatters.formatCurrency(amount),
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937)),
-            textAlign: TextAlign.center,
+            style: WakalaTheme.display(size: 17, weight: FontWeight.w700, letterSpacing: -0.2, color: isDark ? AppColors.darkText : AppColors.text),
           ),
         ],
       ),
@@ -350,50 +319,34 @@ class _CapitalScreenState extends State<CapitalScreen> {
   }
 
   Widget _buildEntryCard(CapitalEntry entry, bool isDark) {
-    return GlassmorphicCard(
-      isDark: isDark,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: WakalaCard(
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.work, color: AppColors.primary, size: 24),
-            ),
-            const SizedBox(width: 16),
+            const WakalaIconTile(icon: Icons.work_outline),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    Formatters.formatCurrency(entry.amount),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: isDark ? Colors.white : const Color(0xFF1F2937),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
+                  Text(Formatters.formatCurrency(entry.amount),
+                      style: WakalaTheme.display(size: 20, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
                   if (entry.description.isNotEmpty)
-                    Text(entry.description,
-                        style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
-                  Text(entry.date,
-                      style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF))),
+                    Text(entry.description, style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkText : AppColors.text)),
+                  Text(entry.date, style: WakalaTheme.body(size: 12.5, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
                 ],
               ),
             ),
             PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextLight : AppColors.text),
               onSelected: (value) {
                 if (value == 'edit') _showEditDialog(entry);
                 if (value == 'delete') _deleteEntry(entry.id);
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')])),
-                const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+                const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                const PopupMenuItem(value: 'delete', child: Text('Delete')),
               ],
             ),
           ],
