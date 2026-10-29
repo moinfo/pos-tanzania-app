@@ -17,6 +17,7 @@ import 'contracts/contract_services_screen.dart';
 import 'contracts/contract_payment_requests_screen.dart';
 import 'contracts/contract_inspections_screen.dart';
 import 'contracts/contract_messages_screen.dart';
+import 'contracts/contract_theme.dart';
 import 'z_report/z_reports_list_screen.dart';
 import 'cash_submit_screen.dart';
 import 'expenses_screen.dart';
@@ -739,6 +740,80 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     );
   }
 
+  /// A Contracts-only tenant (see [_isContractsOnlyTenant]) gets the
+  /// ContractDrawer header from the "Road" handover -- road art in the
+  /// corner, same header color as every other Contracts screen -- instead
+  /// of the plain DrawerHeader every other tenant type keeps. Scoped to
+  /// that one tenant type only (not a shared base widget) so it stays
+  /// consistent with the "ZISIINGILIANE" constraint: Contracts styling
+  /// never leaks into shared chrome for tenants that didn't buy e-Contract.
+  Widget _buildDrawerHeader(dynamic user, bool isDark, PermissionProvider permissionProvider) {
+    if (!_isContractsOnlyTenant(permissionProvider)) {
+      return DrawerHeader(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            // Profile picture (Leruma feature) or default icon
+            _buildDrawerAvatar(user, isDark),
+            const SizedBox(height: 12),
+            Text(
+              user?.displayName ?? 'User',
+              style: TextStyle(
+                color: isDark ? AppColors.darkText : Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (user?.email != null && user!.email!.isNotEmpty)
+              Text(
+                user.email!,
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextLight : Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      height: 180,
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: isDark ? AppColors.darkSurface : AppColors.primaryDark),
+      child: Stack(
+        children: [
+          const Positioned(right: -4, bottom: 0, child: RoadArt(width: 150)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _buildDrawerAvatar(user, isDark),
+                const SizedBox(height: 12),
+                Text(
+                  user?.displayName ?? 'Contract Admin',
+                  style: ContractTheme.display(size: 19, weight: FontWeight.w800, color: Colors.white),
+                ),
+                if (user?.email != null && user!.email!.isNotEmpty)
+                  Text(
+                    user.email!,
+                    style: ContractTheme.body(size: 13.5, color: Colors.white70),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -851,39 +926,15 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         child: _buildCurvedAppBar(isDark, themeProvider),
       ),
       drawer: Drawer(
+        width: _isContractsOnlyTenant(permissionProvider) ? 312 : null,
+        shape: _isContractsOnlyTenant(permissionProvider)
+            ? const RoundedRectangleBorder(
+                borderRadius: BorderRadius.horizontal(right: Radius.circular(28)))
+            : null,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.brandPrimary,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Profile picture (Leruma feature) or default icon
-                  _buildDrawerAvatar(user, isDark),
-                  const SizedBox(height: 12),
-                  Text(
-                    user?.displayName ?? 'User',
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkText : Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (user?.email != null && user!.email!.isNotEmpty)
-                    Text(
-                      user.email!,
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : Colors.white70,
-                        fontSize: 14,
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            _buildDrawerHeader(user, isDark, permissionProvider),
             // 1. Customers Menu — hide the whole group when the user has none
             // of its child permissions (the ExpansionTile itself isn't gated).
             PermissionWrapper(
