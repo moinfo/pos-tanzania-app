@@ -280,6 +280,31 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     return !hasOtherModules;
   }
 
+  /// Same pattern as [_isLodgeOnlyTenant], for a tenant that bought e-Contract
+  /// alone (My Subscription -> Optional Modules -> e-Contract, or the
+  /// standalone e-Contract package) with none of the other retail modules.
+  /// `home` is excluded from the "other modules" check for the same reason
+  /// as Lodge's: it's granted to effectively every employee regardless of
+  /// subscribed modules, so its presence says nothing on its own.
+  bool _isContractsOnlyTenant(PermissionProvider permissionProvider) {
+    if (!permissionProvider.hasPermission(PermissionIds.contracts)) return false;
+
+    final hasOtherModules = permissionProvider.hasPermission(PermissionIds.lodge) ||
+        permissionProvider.hasPermission(PermissionIds.sales) ||
+        permissionProvider.hasPermission(PermissionIds.items) ||
+        permissionProvider.hasPermission(PermissionIds.receivings) ||
+        permissionProvider.hasPermission(PermissionIds.cashSubmit) ||
+        permissionProvider.hasPermission(PermissionIds.expenses) ||
+        permissionProvider.hasPermission(PermissionIds.customers) ||
+        permissionProvider.hasPermission(PermissionIds.suppliers) ||
+        permissionProvider.hasPermission(PermissionIds.production) ||
+        permissionProvider.hasPermission(PermissionIds.reports) ||
+        permissionProvider.hasPermission(PermissionIds.transactions) ||
+        permissionProvider.hasPermission(PermissionIds.banking);
+
+    return !hasOtherModules;
+  }
+
   // Screen configuration with permissions
   // IMPORTANT: All screens MUST have permission checks based on ospos_permissions table
   // Built dynamically to support client-specific screens
@@ -289,6 +314,13 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   // - Lodge-only tenant: LodgeShell alone (see _isLodgeOnlyTenant) -- the
   //   module becomes this tenant's whole app (its own bottom nav: Board,
   //   Bookings, Calendar, Rooms, More) rather than a drawer add-on.
+  // - Contracts-only tenant: ContractsScreen alone (see
+  //   _isContractsOnlyTenant), same reasoning -- e-Contract is a runtime
+  //   per-tenant subscription (standalone package, or My Subscription ->
+  //   Optional Modules -> e-Contract) independent of client flavor, so this
+  //   is decided from the live grant set, not from `features.hasContracts`
+  //   (that flag only controls whether the *regular* multi-tab layout below
+  //   adds a Contracts tab for a full-package tenant).
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
     if (_isLodgeOnlyTenant(permissionProvider)) {
       return [
@@ -297,6 +329,17 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           'icon': Icons.hotel,
           'label': 'Lodge',
           'permission': PermissionIds.lodge,
+        },
+      ];
+    }
+
+    if (_isContractsOnlyTenant(permissionProvider)) {
+      return [
+        {
+          'screen': ContractsScreen(key: ValueKey('contracts_$userId')),
+          'icon': Icons.assignment,
+          'label': 'Contracts',
+          'permission': PermissionIds.contracts,
         },
       ];
     }
@@ -720,12 +763,16 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       if (permission == null) continue;
 
       // Check if feature is enabled for this client
+      // (Contracts isn't gated here -- _buildScreenConfigs already decides
+      // whether to include it, either via the client's hasContracts flag
+      // for the regular multi-tab layout, or purely from the tenant's own
+      // `contracts` grant for a contracts-only tenant's single-tab layout;
+      // gating on hasContracts again here would wrongly strip that single
+      // tab out for a contracts-only tenant on a client build that doesn't
+      // set hasContracts.)
       bool featureEnabled = true;
       if (features != null) {
         switch (permission) {
-          case PermissionIds.contracts:
-            featureEnabled = features.hasContracts;
-            break;
           case PermissionIds.zreports:
             featureEnabled = features.hasZReports;
             break;
