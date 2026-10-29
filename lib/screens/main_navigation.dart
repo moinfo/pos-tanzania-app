@@ -46,6 +46,7 @@ import 'transactions/lipa_namba_screen.dart';
 import 'transactions/lipa_namba_transactions_screen.dart';
 import 'transactions/lipa_namba_fees_screen.dart';
 import 'transactions/transactions_shell.dart';
+import 'transactions/wakala_theme.dart';
 import 'reports/reports_screen.dart';
 import 'business_intelligence_screen.dart';
 import 'stock_tracking/stock_tracking_screen.dart';
@@ -731,6 +732,17 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     );
   }
 
+  /// Section label for the Transactions/e-Wakala drawer group (Money,
+  /// Books, Wakala, Lipa Namba) -- "Ledger chip" mode's grouped-list
+  /// pattern, so setup and transactions stay easy to scan.
+  Widget _drawerGroupLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+      child: Text(text.toUpperCase(),
+          style: WakalaTheme.body(size: 12, weight: FontWeight.w700, color: const Color(0xFF6C757D)).copyWith(letterSpacing: 1.2)),
+    );
+  }
+
   Widget _buildDrawerAvatar(dynamic user, bool isDark) {
     final hasCommissionDashboard = ApiService.currentClient?.features.hasCommissionDashboard ?? false;
     final profilePicture = user?.profilePicture;
@@ -791,14 +803,68 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     );
   }
 
-  /// A Contracts-only tenant (see [_isContractsOnlyTenant]) gets the
-  /// ContractDrawer header from the "Road" handover -- road art in the
-  /// corner, same header color as every other Contracts screen -- instead
-  /// of the plain DrawerHeader every other tenant type keeps. Scoped to
-  /// that one tenant type only (not a shared base widget) so it stays
-  /// consistent with the "ZISIINGILIANE" constraint: Contracts styling
-  /// never leaks into shared chrome for tenants that didn't buy e-Contract.
+  /// A Contracts-only or Transactions-only tenant gets that mode's own
+  /// drawer header ("Road" art / SIM-chip art, same header color as every
+  /// other screen in that mode) instead of the plain DrawerHeader every
+  /// other tenant type keeps. Scoped to those two tenant types only (not a
+  /// shared base widget) so it stays consistent with the "ZISIINGILIANE"
+  /// constraint: neither mode's styling leaks into shared chrome for a
+  /// tenant that didn't buy that module.
   Widget _buildDrawerHeader(dynamic user, bool isDark, PermissionProvider permissionProvider) {
+    if (_isTransactionsOnlyTenant(permissionProvider)) {
+      return Container(
+        height: 190,
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(color: isDark ? AppColors.darkSurface : AppColors.secondary),
+        child: Stack(
+          children: [
+            const Positioned(right: 10, bottom: 14, child: SimChipArt(width: 104)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                    child: const Icon(Icons.person, color: AppColors.primary, size: 34),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    user?.displayName ?? 'Wakala Admin',
+                    style: WakalaTheme.display(size: 22, weight: FontWeight.w700, color: Colors.white),
+                  ),
+                  if (user?.email != null && user!.email!.isNotEmpty)
+                    Text(
+                      user.email!,
+                      style: WakalaTheme.body(size: 14, color: const Color(0xFFE9ECEF)),
+                    ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SizedBox(
+                height: 4,
+                child: Row(
+                  children: const [
+                    Expanded(child: ColoredBox(color: AppColors.primary)),
+                    Expanded(child: ColoredBox(color: AppColors.warning)),
+                    Expanded(child: ColoredBox(color: AppColors.success)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (!_isContractsOnlyTenant(permissionProvider)) {
       return DrawerHeader(
         decoration: BoxDecoration(
@@ -977,11 +1043,16 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
         child: _buildCurvedAppBar(isDark, themeProvider),
       ),
       drawer: Drawer(
-        width: _isContractsOnlyTenant(permissionProvider) ? 312 : null,
+        width: _isContractsOnlyTenant(permissionProvider)
+            ? 312
+            : (_isTransactionsOnlyTenant(permissionProvider) ? 324 : null),
         shape: _isContractsOnlyTenant(permissionProvider)
             ? const RoundedRectangleBorder(
                 borderRadius: BorderRadius.horizontal(right: Radius.circular(28)))
-            : null,
+            : (_isTransactionsOnlyTenant(permissionProvider)
+                ? const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.horizontal(right: Radius.circular(20)))
+                : null),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -1656,16 +1727,20 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 },
               ),
             ),
-            // Transactions - module-level: the `transactions` row itself or any
-            // `transactions_*` sub-permission. Matches the bottom-nav gate so a
-            // user granted only e.g. transactions_wakala sees both entry points.
-            // The individual entries below give e-Wakala tenants direct access
-            // to every sub-area from the drawer, same "Transactions overview +
-            // one entry per sub-area" pattern as Contracts' drawer entries.
+            // Transactions/e-Wakala group -- "Money" in the handover's
+            // drawer grouping. moduleId on the overview entry matches the
+            // bottom-nav gate so a user granted only e.g. transactions_wakala
+            // sees both entry points; the rest give direct access to every
+            // sub-area, same "overview + one entry per sub-area" pattern as
+            // Contracts' drawer entries. Icon tiles use the Ledger chip
+            // module's own tint tokens regardless of tenant type -- this is
+            // just the Transactions section of the drawer, not gated to
+            // transactions-only tenants.
+            _drawerGroupLabel('Money'),
             PermissionWrapper(
               moduleId: PermissionIds.transactions,
               child: ListTile(
-                leading: Icon(Icons.swap_horiz, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.swap_horiz, size: 34),
                 title: const Text('Transactions'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1679,7 +1754,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactionsDepositsAndWithdraws,
               child: ListTile(
-                leading: Icon(Icons.account_balance_wallet_outlined, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.account_balance_wallet_outlined, size: 34),
                 title: const Text('Deposits & Withdrawals'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1693,7 +1768,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactionsCustomerBalance,
               child: ListTile(
-                leading: Icon(Icons.people_outline, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.people_outline, size: 34),
                 title: const Text('Customer Balances'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1704,10 +1779,13 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 },
               ),
             ),
+            if (permissionProvider.hasPermission(PermissionIds.transactionsCashBasis) ||
+                permissionProvider.hasPermission(PermissionIds.transactionsBankBasis))
+              _drawerGroupLabel('Books'),
             PermissionWrapper(
               permissionId: PermissionIds.transactionsCashBasis,
               child: ListTile(
-                leading: Icon(Icons.money_outlined, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.money_outlined, size: 34),
                 title: const Text('Cash Basis'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1721,7 +1799,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactionsBankBasis,
               child: ListTile(
-                leading: Icon(Icons.account_balance_outlined, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.account_balance_outlined, size: 34),
                 title: const Text('Bank Basis'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1732,10 +1810,15 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 },
               ),
             ),
+            if (permissionProvider.hasPermission(PermissionIds.transactionsWakala) ||
+                permissionProvider.hasPermission(PermissionIds.transactionsWakalaReport) ||
+                permissionProvider.hasPermission(PermissionIds.transactionsCommission) ||
+                permissionProvider.hasPermission(PermissionIds.transactionsCapital))
+              _drawerGroupLabel('Wakala'),
             PermissionWrapper(
               permissionId: PermissionIds.transactionsWakala,
               child: ListTile(
-                leading: Icon(Icons.sim_card_outlined, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.sim_card_outlined, size: 34),
                 title: const Text('Wakala Float'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1751,7 +1834,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactionsWakala,
               child: ListTile(
-                leading: Icon(Icons.money_off_outlined, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.money_off_outlined, size: 34),
                 title: const Text('Wakala Expenses'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1765,7 +1848,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactionsWakalaReport,
               child: ListTile(
-                leading: Icon(Icons.assessment_outlined, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.assessment_outlined, size: 34),
                 title: const Text('Wakala Report'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1779,7 +1862,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactionsCommission,
               child: ListTile(
-                leading: Icon(Icons.percent, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.percent, size: 34),
                 title: const Text('Commission'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1793,7 +1876,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.transactionsCapital,
               child: ListTile(
-                leading: Icon(Icons.account_balance_wallet, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.account_balance_wallet, size: 34),
                 title: const Text('Capital'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1804,10 +1887,13 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 },
               ),
             ),
+            if (permissionProvider.hasPermission(PermissionIds.lipaNamba) ||
+                permissionProvider.hasPermission(PermissionIds.lipaNambaFees))
+              _drawerGroupLabel('Lipa Namba'),
             PermissionWrapper(
               permissionId: PermissionIds.lipaNamba,
               child: ListTile(
-                leading: Icon(Icons.sim_card, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.sim_card, size: 34),
                 title: const Text('Lipa Namba Tills'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1821,7 +1907,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.lipaNamba,
               child: ListTile(
-                leading: Icon(Icons.receipt_long_outlined, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.receipt_long_outlined, size: 34),
                 title: const Text('Lipa Namba Transactions'),
                 onTap: () {
                   Navigator.pop(context);
@@ -1835,7 +1921,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             PermissionWrapper(
               permissionId: PermissionIds.lipaNambaFees,
               child: ListTile(
-                leading: Icon(Icons.percent, color: AppColors.brandPrimary),
+                leading: const WakalaIconTile(icon: Icons.percent, size: 34),
                 title: const Text('Lipa Namba Fee Tiers'),
                 onTap: () {
                   Navigator.pop(context);
