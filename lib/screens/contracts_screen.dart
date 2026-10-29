@@ -198,8 +198,6 @@ class _ContractsScreenState extends State<ContractsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildDashboardStats(isDark),
-        const SizedBox(height: 16),
         _buildSearchAndFilters(isDark),
         const SizedBox(height: 12),
         if (visible.isEmpty)
@@ -266,70 +264,6 @@ class _ContractsScreenState extends State<ContractsScreen> {
               .toList(),
         ),
       ],
-    );
-  }
-
-  /// Same at-a-glance numbers the web list's header row shows -- computed
-  /// client-side from the contracts already fetched (every field here
-  /// comes straight from Contract::compute_metrics() per contract, so
-  /// there's no separate dashboard endpoint to call).
-  Widget _buildDashboardStats(bool isDark) {
-    final contracts = _contracts!;
-    final liveOnes =
-        contracts.where((c) => !c.isCompleted && !c.isTerminated).toList();
-    final behindCount =
-        liveOnes.where((c) => c.status != 'on_track').length;
-    final toCollectNow =
-        liveOnes.fold<double>(0, (sum, c) => sum + c.currentUnpaid);
-    final collected =
-        contracts.fold<double>(0, (sum, c) => sum + c.payments);
-    final stillOwedOnActive =
-        liveOnes.fold<double>(0, (sum, c) => sum + c.balance);
-
-    final stats = <_DashboardStat>[
-      _DashboardStat('Active contracts', '${liveOnes.length} of ${contracts.length}',
-          isDark ? AppColors.darkText : AppColors.text),
-      _DashboardStat('Behind', '$behindCount',
-          behindCount > 0 ? AppColors.error : AppColors.success),
-      _DashboardStat('To collect now', Formatters.formatCurrency(toCollectNow),
-          AppColors.error),
-      _DashboardStat('Collected', Formatters.formatCurrency(collected),
-          AppColors.success),
-      _DashboardStat('Still owed on active', Formatters.formatCurrency(stillOwedOnActive),
-          isDark ? AppColors.darkText : AppColors.text),
-    ];
-
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 1,
-      color: isDark ? AppColors.darkSurface : Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Wrap(
-          spacing: 20,
-          runSpacing: 12,
-          children: stats
-              .map((s) => SizedBox(
-                    width: 140,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(s.value,
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold, color: s.color)),
-                        const SizedBox(height: 2),
-                        Text(s.label,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: isDark
-                                    ? AppColors.darkTextLight
-                                    : AppColors.textLight)),
-                      ],
-                    ),
-                  ))
-              .toList(),
-        ),
-      ),
     );
   }
 
@@ -684,11 +618,4 @@ class _ContractsScreenState extends State<ContractsScreen> {
       ),
     );
   }
-}
-
-class _DashboardStat {
-  final String label;
-  final String value;
-  final Color color;
-  _DashboardStat(this.label, this.value, this.color);
 }

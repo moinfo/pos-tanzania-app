@@ -5,21 +5,21 @@ import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/constants.dart';
 import '../contracts_screen.dart';
-import 'contract_payments_screen.dart';
+import 'contract_dashboard_screen.dart';
 import 'contract_services_screen.dart';
 import 'contract_payment_requests_screen.dart';
 import 'contract_inspections_screen.dart';
-import 'contract_messages_screen.dart';
 
 /// Holds the Contracts module's own bottom navigation, same pattern as
-/// ProductionShell/LodgeShell -- every page the web's own tab bar lists
-/// (Contracts/Payments/Services/Payment requests/Inspections/Messages,
-/// see CONTRACTS_MODULE.md) gets a tab here instead of being reachable
-/// only through the drawer, now that a contracts-only tenant lands
-/// directly in this shell as their Home tab.
+/// ProductionShell/LodgeShell -- capped at the five destinations used
+/// every day (Dashboard, Contracts, Requests, Inspections, Services, on
+/// request). Payments and Messages stay reachable from the drawer only,
+/// same "cap at 5 + drawer for the rest" convention LodgeShell uses --
+/// see the 5 extra drawer entries added alongside "Contracts" in
+/// main_navigation.dart.
 ///
-/// An IndexedStack keeps each tab alive -- the Payments tab holds a date
-/// range, and rebuilding it on every switch would throw that away.
+/// An IndexedStack keeps each tab alive -- the Dashboard/Services tabs
+/// hold fetched data, and rebuilding on every switch would throw it away.
 class ContractsShell extends StatefulWidget {
   final int initialIndex;
 
@@ -44,17 +44,14 @@ class _ContractsShellState extends State<ContractsShell> {
     final permissions = context.watch<PermissionProvider>();
 
     final destinations = <_Destination>[
+      const _Destination('Dashboard', Icons.dashboard_outlined, ContractDashboardScreen()),
       const _Destination('Contracts', Icons.assignment_outlined, ContractsScreen()),
-      if (permissions.hasPermission(PermissionIds.contractsPayments))
-        const _Destination('Payments', Icons.payments_outlined, ContractPaymentsScreen()),
-      if (permissions.hasPermission(PermissionIds.contractsServices))
-        const _Destination('Services', Icons.build_outlined, ContractServicesScreen()),
       if (permissions.hasPermission(PermissionIds.contractsPaymentsApprove))
         const _Destination('Requests', Icons.fact_check_outlined, ContractPaymentRequestsScreen()),
       if (permissions.hasPermission(PermissionIds.contractsInspections))
         const _Destination('Inspections', Icons.search_outlined, ContractInspectionsScreen()),
-      if (permissions.hasPermission(PermissionIds.contractsMessages))
-        const _Destination('Messages', Icons.sms_outlined, ContractMessagesScreen()),
+      if (permissions.hasPermission(PermissionIds.contractsServices))
+        const _Destination('Services', Icons.build_outlined, ContractServicesScreen()),
     ];
 
     // A revoked grant can shrink the list while a later tab is selected.
