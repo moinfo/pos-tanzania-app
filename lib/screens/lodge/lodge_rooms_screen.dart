@@ -259,6 +259,7 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
             : '${_rooms.length} room${_rooms.length == 1 ? '' : 's'} · '
                 '${_rooms.where((r) => r.status == 'occupied').length} occupied',
         title: 'Rooms',
+        showStars: true,
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeRoomsAdd)
           ? LodgeFab(onPressed: () => _showRoomFormSheet(), label: 'Room')

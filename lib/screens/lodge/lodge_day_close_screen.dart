@@ -150,6 +150,7 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
         isDark: isDark,
         eyebrow: 'End of day',
         title: 'Day close',
+        showStars: true,
         actions: [
           if (_meta != null && _meta!.locations.length > 1)
             PopupMenuButton<int?>(

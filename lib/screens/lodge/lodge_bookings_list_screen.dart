@@ -74,7 +74,8 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Reservations', title: 'Bookings'),
+      appBar: LodgeTheme.appBar(
+          isDark: isDark, eyebrow: 'Reservations', title: 'Bookings', showStars: true),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
           ? LodgeFab(
               onPressed: () async {

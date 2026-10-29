@@ -57,11 +57,16 @@ class LodgeTheme {
         color: AppColors.warning,
       ).copyWith(letterSpacing: 1.0);
 
-  /// A rounded-bottom AppBar carrying an eyebrow line + a big display
-  /// title over the skyline illustration, matching every Lodge screen's
-  /// header in the mockups. `big` is Board's own taller/48px variant (the
-  /// only screen whose body overlaps up into the header); every other
-  /// screen uses the standard 36px title with a plain "back" leading icon.
+  /// A rounded-bottom header carrying an eyebrow line + a display title
+  /// over the skyline illustration, matching every Lodge screen's header
+  /// in the mockups. Built as a plain widget rather than a stock `AppBar`
+  /// -- `AppBar` vertically *centers* its title and actions as one block
+  /// within `toolbarHeight`, which left the icons floating oddly next to
+  /// an oversized title; the mockup instead pins the icon row to the top
+  /// and the eyebrow/title to the bottom of the header. `big` is Board's
+  /// own taller variant (the only screen whose header carries stars by
+  /// default); every other screen uses the standard title size with a
+  /// plain "back" leading icon.
   static PreferredSizeWidget appBar({
     required bool isDark,
     required String eyebrow,
@@ -70,40 +75,122 @@ class LodgeTheme {
     Widget? leading,
     PreferredSizeWidget? bottom,
     bool big = false,
+    bool? showStars,
   }) {
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.primaryDark;
-    return AppBar(
-      backgroundColor: headerColor,
-      foregroundColor: Colors.white,
-      elevation: 0,
-      toolbarHeight: big ? 150 : 96,
+    return _LodgeHeader(
+      isDark: isDark,
+      eyebrow: eyebrow,
+      title: title,
+      actions: actions,
       leading: leading,
+      bottom: bottom,
+      big: big,
+      showStars: showStars ?? big,
+    );
+  }
+}
+
+class _LodgeHeader extends StatelessWidget implements PreferredSizeWidget {
+  final bool isDark;
+  final bool big;
+  final bool showStars;
+  final String eyebrow;
+  final String title;
+  final List<Widget>? actions;
+  final Widget? leading;
+  final PreferredSizeWidget? bottom;
+
+  const _LodgeHeader({
+    required this.isDark,
+    required this.eyebrow,
+    required this.title,
+    required this.big,
+    required this.showStars,
+    this.actions,
+    this.leading,
+    this.bottom,
+  });
+
+  static const double _iconRowHeight = 52;
+  double get _titleBlockHeight => big ? 92 : 76;
+
+  @override
+  Size get preferredSize =>
+      Size.fromHeight(_iconRowHeight + _titleBlockHeight + (bottom?.preferredSize.height ?? 0));
+
+  @override
+  Widget build(BuildContext context) {
+    final headerColor = isDark ? AppColors.darkSurface : AppColors.primaryDark;
+    final canPop = leading == null && Navigator.canPop(context);
+
+    return Material(
+      color: headerColor,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
-      clipBehavior: Clip.antiAlias,
-      actions: actions,
-      bottom: bottom,
-      flexibleSpace: const Positioned(
-        right: -6,
-        bottom: 0,
-        child: LodgeSkyline(width: 170, showStars: false),
-      ),
-      title: Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: SafeArea(
+        bottom: false,
+        child: Stack(
           children: [
-            Text(eyebrow.toUpperCase(), style: LodgeTheme.eyebrow(isDark)),
-            Text(title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: LodgeTheme.display(
-                    size: big ? 48 : 36,
-                    weight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -1)),
+            Positioned(
+              right: -6,
+              bottom: bottom != null ? bottom!.preferredSize.height : 0,
+              child: LodgeSkyline(width: big ? 190 : 170, showStars: showStars),
+            ),
+            Column(
+              children: [
+                SizedBox(
+                  height: _iconRowHeight,
+                  child: Row(
+                    children: [
+                      if (leading != null)
+                        leading!
+                      else if (canPop)
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.maybePop(context),
+                        )
+                      else
+                        const SizedBox(width: 8),
+                      const Spacer(),
+                      if (actions != null)
+                        ...actions!.map((a) => IconTheme(
+                              data: const IconThemeData(color: Colors.white),
+                              child: a,
+                            )),
+                      const SizedBox(width: 4),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  height: _titleBlockHeight,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(eyebrow.toUpperCase(), style: LodgeTheme.eyebrow(isDark)),
+                          Text(title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: LodgeTheme.display(
+                                  size: big ? 38 : 30,
+                                  weight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (bottom != null) bottom!,
+              ],
+            ),
           ],
         ),
       ),

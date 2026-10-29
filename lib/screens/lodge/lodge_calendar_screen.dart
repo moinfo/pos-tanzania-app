@@ -135,6 +135,7 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
         isDark: isDark,
         eyebrow: 'Availability',
         title: 'Calendar',
+        showStars: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(40),
           child: Padding(
