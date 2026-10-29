@@ -643,6 +643,7 @@ class _WakalaScreenState extends State<WakalaScreen>
       label = 'Add Float';
     }
     return FloatingActionButton.extended(
+      heroTag: 'wakala_sims_fab',
       onPressed: onPressed,
       icon: const Icon(Icons.add),
       label: Text(label),

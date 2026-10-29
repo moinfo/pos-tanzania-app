@@ -647,6 +647,7 @@ class _BankBasisScreenState extends State<BankBasisScreen>
       label = 'Add Transaction';
     }
     return FloatingActionButton.extended(
+      heroTag: 'bank_basis_fab',
       onPressed: onPressed,
       icon: const Icon(Icons.add),
       label: Text(label),

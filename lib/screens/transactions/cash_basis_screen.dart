@@ -378,6 +378,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
       label = 'Add Transaction';
     }
     return FloatingActionButton.extended(
+      heroTag: 'cash_basis_fab',
       onPressed: onPressed,
       icon: const Icon(Icons.add),
       label: Text(label),
