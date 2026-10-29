@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mopos Forecast</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1565C0}a:hover{color:#0D47A1}
+button,input,select,textarea{font-family:inherit}
+.dsp{font-family:'Bricolage Grotesque','Public Sans',system-ui,sans-serif}
+.ib{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;position:relative;flex-shrink:0}
+.card{background:#fff;border:1px solid #E9ECEF;border-radius:20px}
+.eyebrow{font-size:12px;line-height:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#F59E0B}
+.ttl{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:36px;line-height:40px;font-weight:800;letter-spacing:-0.03em;color:#fff}
+.sec{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:20px;line-height:26px;font-weight:700;letter-spacing:-0.01em;color:#2B2D42}
+.kv{display:flex;align-items:center;justify-content:space-between;min-height:42px;font-size:14px;line-height:20px}
+.kv span:first-child{color:#6C757D}
+.kv span:last-child{font-weight:700;color:#2B2D42}
+.kt{padding:14px;display:flex;flex-direction:column;gap:2px}
+.kt span:first-child{font-size:12px;line-height:16px;color:#6C757D}
+.kt span:last-child{font-family:'Bricolage Grotesque',sans-serif;font-size:26px;line-height:32px;font-weight:700;color:#2B2D42}
+.arch{width:44px;height:52px;flex-shrink:0;border-radius:22px 22px 10px 10px;background:#F59E0B;color:#2B2D42;display:flex;align-items:center;justify-content:center;padding-top:8px;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:700}
+.sc{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sc .l{display:flex;flex-direction:column}
+.sc .l span:first-child{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;line-height:26px;font-weight:700;color:#2B2D42}
+.sc .l span:last-child{font-size:13px;line-height:18px;color:#6C757D}
+.sc .r{display:flex;flex-direction:column;align-items:flex-end;font-size:13px;line-height:18px;font-weight:600;color:#047857;white-space:nowrap}
+input[type=range]{accent-color:#1565C0;width:100%;height:44px;margin:0}
+</style>
+</helmet>
+<div style="width:390px;height:1380px;box-sizing:border-box;display:flex;flex-direction:column;background:#F8F9FA;font-family:'Public Sans',system-ui,sans-serif;color:#2B2D42;font-variant-numeric:tabular-nums;position:relative;overflow:hidden">
+
+  <header style="flex-shrink:0;position:relative;overflow:hidden;background:#0D47A1;border-radius:0 0 32px 32px;padding:8px 16px 22px 12px">
+    <svg width="170" height="94" viewBox="0 0 200 110" style="position:absolute;right:-4px;bottom:0" aria-hidden="true">
+      <circle cx="170" cy="20" r="11" fill="#F59E0B"></circle>
+      <path d="M14 110V86a28 28 0 0 1 56 0v24z" fill="#1565C0" fill-opacity=".55"></path>
+      <path d="M60 110V62a36 36 0 0 1 72 0v48z" fill="#1565C0" fill-opacity=".85"></path>
+      <path d="M122 110V84a30 30 0 0 1 60 0v26z" fill="#42A5F5" fill-opacity=".45"></path>
+      <path d="M78 110V92a18 18 0 0 1 36 0v18z" fill="#F59E0B"></path>
+      <path d="M140 110V98a12 12 0 0 1 24 0v12z" fill="#F59E0B"></path>
+    </svg>
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:6px">
+      <button class="ib" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg></button>
+      <div style="padding:0 4px;display:flex;flex-direction:column;gap:2px"><span class="eyebrow">Projection</span><h1 class="ttl">Forecast</h1></div>
+    </div>
+  </header>
+
+  <main style="flex-shrink:0;display:flex;flex-direction:column;gap:16px;padding:18px 16px 24px 16px">
+    <section aria-label="Occupancy assumption" class="card" style="padding:18px 18px 8px 18px;display:flex;flex-direction:column;gap:4px;border-radius:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;flex-direction:column"><label for="occ" style="font-size:13px;line-height:18px;color:#6C757D">Assumed occupancy</label><span class="dsp" style="font-size:44px;line-height:50px;font-weight:700;letter-spacing:-0.03em;color:#2B2D42">70%</span></div>
+        <a href="#actual" style="font-size:14px;font-weight:600;text-decoration:none;min-height:44px;display:flex;align-items:center">Use actual (2.2%)</a>
+      </div>
+      <input id="occ" type="range" min="0" max="100" value="70" aria-label="Assumed occupancy percent">
+    </section>
+
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+      <div class="card kt"><span>Per day</span><span>38.5K</span></div>
+      <div class="card kt"><span>Per month</span><span>1.2M</span></div>
+      <div class="card kt"><span>Per year</span><span>14.1M</span></div>
+    </div>
+
+    <section class="card" style="padding:8px 18px 10px 18px">
+      <div class="kv"><span>Full capacity: day</span><span>55,000</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Full capacity: month</span><span>1,650,000</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Full capacity: year</span><span>20,075,000</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Expenses (avg / month)</span><span>−3,333</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Net (month)</span><span style="color:#047857">1,151,667</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Net (year)</span><span style="color:#047857">13,820,000</span></div>
+    </section>
+
+    <section aria-labelledby="rms" style="display:flex;flex-direction:column;gap:10px">
+      <h2 id="rms" class="sec" style="padding:0 4px">Rooms</h2>
+      <article class="card sc"><div class="arch"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V10a6 6 0 0 1 12 0v11"></path><path d="M3 21h18"></path><path d="M14.5 14h.01"></path></svg></div><div class="l" style="flex-grow:1;min-width:0"><span style="font-size:18px;line-height:24px">Executive Garden Suite</span><span>25,000 / night · actual 3%</span></div><span class="dsp" style="font-size:20px;font-weight:700;color:#2B2D42;flex-shrink:0">525K</span></article>
+      <article class="card sc"><div class="arch"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V10a6 6 0 0 1 12 0v11"></path><path d="M3 21h18"></path><path d="M14.5 14h.01"></path></svg></div><div class="l" style="flex-grow:1;min-width:0"><span style="font-size:18px;line-height:24px">Standard Single Room</span><span>30,000 / night · actual 1%</span></div><span class="dsp" style="font-size:20px;font-weight:700;color:#2B2D42;flex-shrink:0">630K</span></article>
+    </section>
+
+    <section aria-labelledby="scn" style="display:flex;flex-direction:column;gap:10px">
+      <h2 id="scn" class="sec" style="padding:0 4px">Scenarios</h2>
+      <article class="card sc"><div class="l"><span>2.2% · actual</span><span>Day 1.2K · Month 36.3K · Year 441.6K</span></div><div class="r"><span>Net/mo 33K</span><span>Net/yr 395.6K</span></div></article>
+      <article class="card sc"><div class="l"><span>50%</span><span>Day 27.5K · Month 825K · Year 10M</span></div><div class="r"><span>Net/mo 821.7K</span><span>Net/yr 9.9M</span></div></article>
+      <article class="card sc" style="background:#FEF3C7;border-color:#F59E0B"><div class="l"><span>70% · selected</span><span style="color:#2B2D42">Day 38.5K · Month 1.2M · Year 14.1M</span></div><div class="r" style="color:#047857"><span>Net/mo 1.2M</span><span>Net/yr 13.8M</span></div></article>
+      <article class="card sc"><div class="l"><span>100%</span><span>Day 55K · Month 1.6M · Year 20.1M</span></div><div class="r"><span>Net/mo 1.6M</span><span>Net/yr 19.8M</span></div></article>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1380}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

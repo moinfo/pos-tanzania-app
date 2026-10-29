@@ -9,6 +9,7 @@ import 'contract_dashboard_screen.dart';
 import 'contract_services_screen.dart';
 import 'contract_payment_requests_screen.dart';
 import 'contract_inspections_screen.dart';
+import 'contract_theme.dart';
 
 /// Holds the Contracts module's own bottom navigation, same pattern as
 /// ProductionShell/LodgeShell -- capped at the five destinations used
@@ -62,21 +63,57 @@ class _ContractsShellState extends State<ContractsShell> {
         index: index,
         children: destinations.map((d) => d.screen).toList(),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (i) => setState(() => _index = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: isDark ? AppColors.darkTextLight : Colors.grey[600],
-        selectedFontSize: 10.5,
-        unselectedFontSize: 10.5,
-        items: destinations
-            .map((d) => BottomNavigationBarItem(
-                  icon: Icon(d.icon, size: 21),
-                  label: d.label,
-                ))
-            .toList(),
+      // Flat white bar (not Lodge's floating dark pill): 76 tall, a 1px top
+      // border, and a 28x4 amber indicator bar above the active tab --
+      // matches the "Road" mode handover exactly rather than the stock
+      // Material BottomNavigationBar.
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          height: 76,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            border: Border(top: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider)),
+          ),
+          child: Row(
+            children: destinations.asMap().entries.map((entry) {
+              final i = entry.key;
+              final d = entry.value;
+              final selected = i == index;
+              return Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _index = i),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: selected ? AppColors.warning : Colors.transparent,
+                          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Icon(d.icon,
+                          size: 22,
+                          color: selected
+                              ? AppColors.primary
+                              : (isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                      const SizedBox(height: 3),
+                      Text(d.label,
+                          style: ContractTheme.body(
+                              size: 12,
+                              weight: selected ? FontWeight.w700 : FontWeight.w500,
+                              color: selected
+                                  ? AppColors.primary
+                                  : (isDark ? AppColors.darkTextLight : AppColors.lightTextLight))),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }

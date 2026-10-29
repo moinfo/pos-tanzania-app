@@ -11,6 +11,7 @@ import '../widgets/skeleton_loader.dart';
 import 'contract_details_screen.dart';
 import 'contract_form_screen.dart';
 import 'contract_settings_screen.dart';
+import 'contracts/contract_theme.dart';
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -116,10 +117,11 @@ class _ContractsScreenState extends State<ContractsScreen> {
         .hasPermission(PermissionIds.contractsAdd);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Contracts'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: ContractTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Portfolio',
+        title: 'Contracts',
         actions: [
           if (canAdd)
             IconButton(
@@ -138,7 +140,8 @@ class _ContractsScreenState extends State<ContractsScreen> {
               onPressed: () => _openNewContract(),
               icon: const Icon(Icons.add),
               label: const Text('New Contract'),
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.warning,
+              foregroundColor: AppColors.secondary,
             )
           : null,
       body: _isLoading
@@ -243,11 +246,18 @@ class _ContractsScreenState extends State<ContractsScreen> {
       children: [
         TextField(
           controller: _searchController,
+          style: ContractTheme.body(size: 15),
           decoration: InputDecoration(
             hintText: 'Search name, phone or plate...',
+            hintStyle: ContractTheme.body(size: 15, color: AppColors.lightTextLight),
             prefixIcon: const Icon(Icons.search),
             isDense: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(vertical: 13),
+            filled: true,
+            fillColor: isDark ? AppColors.darkCard : Colors.white,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightTextLight)),
           ),
           onChanged: (v) => setState(() => _searchQuery = v),
         ),
@@ -255,13 +265,39 @@ class _ContractsScreenState extends State<ContractsScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: labels.entries
-              .map((e) => ChoiceChip(
-                    label: Text('${e.value} ${counts[e.key]}'),
-                    selected: _statusFilter == e.key,
-                    onSelected: (_) => setState(() => _statusFilter = e.key),
-                  ))
-              .toList(),
+          children: labels.entries.map((e) {
+            final selected = _statusFilter == e.key;
+            return GestureDetector(
+              onTap: () => setState(() => _statusFilter = e.key),
+              child: Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.secondary : (isDark ? AppColors.darkCard : Colors.white),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                      color: selected
+                          ? AppColors.secondary
+                          : (isDark ? AppColors.darkDivider : AppColors.lightTextLight)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (selected) ...[
+                      const Icon(Icons.check, size: 15, color: Colors.white),
+                      const SizedBox(width: 6),
+                    ],
+                    Text('${e.value} ${counts[e.key]}',
+                        style: ContractTheme.body(
+                            size: 14,
+                            weight: FontWeight.w600,
+                            color: selected ? Colors.white : (isDark ? AppColors.darkText : AppColors.text))),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
@@ -320,151 +356,138 @@ class _ContractsScreenState extends State<ContractsScreen> {
   }
 
   Widget _buildContractCard(Contract contract, bool isDark) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      child: InkWell(
-        onTap: () => _openDetails(contract),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with name and status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      contract.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkText : AppColors.text,
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
+    final canAdd = context.watch<PermissionProvider>().hasPermission(PermissionIds.contractsAdd);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: () => _openDetails(contract),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(contract.name,
+                          style: ContractTheme.display(size: 22, weight: FontWeight.w700, color: textColor)),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 4,
+                        children: [
+                          if (contract.phone.isNotEmpty)
+                            _metaChip(Icons.call_outlined, contract.phone, subColor),
+                          if (contract.contractDescription.isNotEmpty)
+                            _metaChip(Icons.two_wheeler_outlined, contract.contractDescription, subColor),
+                        ],
                       ),
-                    ),
+                    ],
                   ),
-                  _buildStatusBadge(contract),
+                ),
+                _buildStatusBadge(contract),
+              ],
+            ),
+            const SizedBox(height: 14),
+            ContractDayStrip(
+              daysPaid: contract.daysPaid.round(),
+              daysUnpaid: contract.daysUnpaid.round(),
+              totalDays: contract.days,
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: _buildDayInfo('Days', contract.days.toString(), textColor, subColor)),
+                Expanded(
+                    child: _buildDayInfo('Paid', contract.daysPaid.toStringAsFixed(0), const Color(0xFF047857), subColor)),
+                Expanded(
+                    child: _buildDayInfo('Unpaid', contract.daysUnpaid.toStringAsFixed(0),
+                        contract.daysUnpaid > 0 ? const Color(0xFFB91C1C) : textColor, subColor)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface : AppColors.lightBackground,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  _buildInfoRow('Contract amount', Formatters.formatCurrency(contract.contractAmount),
+                      textColor: textColor, subColor: subColor),
+                  Divider(height: 1, color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                  _buildInfoRow('Payments', Formatters.formatCurrency(contract.payments),
+                      color: const Color(0xFF047857), subColor: subColor),
+                  Divider(height: 1, color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                  _buildInfoRow('Balance', Formatters.formatCurrency(contract.balance),
+                      color: contract.balance > 0 ? const Color(0xFFB91C1C) : const Color(0xFF047857),
+                      subColor: subColor),
+                  Divider(height: 1, color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                  _buildInfoRow('Profit', Formatters.formatCurrency(contract.profit),
+                      color: contract.profit >= 0 ? const Color(0xFF047857) : const Color(0xFFB91C1C),
+                      subColor: subColor),
                 ],
               ),
-              const SizedBox(height: 8),
-
-              // Phone and description
-              if (contract.phone.isNotEmpty)
-                Row(
-                  children: [
-                    Icon(Icons.phone,
-                        size: 16,
-                        color: isDark
-                            ? AppColors.darkTextLight
-                            : AppColors.textLight),
-                    const SizedBox(width: 4),
-                    Text(
-                      contract.phone,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark
-                            ? AppColors.darkTextLight
-                            : AppColors.textLight,
-                      ),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 4),
-              Text(
-                contract.contractDescription,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 12),
-
-              // Financial summary
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    _buildInfoRow('Contract Amount',
-                        Formatters.formatCurrency(contract.contractAmount),
-                        isDark: isDark),
-                    const Divider(height: 16),
-                    _buildInfoRow('Payments',
-                        Formatters.formatCurrency(contract.payments),
-                        color: AppColors.success, isDark: isDark),
-                    const Divider(height: 16),
-                    _buildInfoRow(
-                        'Balance', Formatters.formatCurrency(contract.balance),
-                        color: contract.balance > 0
-                            ? AppColors.error
-                            : AppColors.success,
-                        isDark: isDark),
-                    const Divider(height: 16),
-                    _buildInfoRow(
-                        'Profit', Formatters.formatCurrency(contract.profit),
-                        color: contract.profit >= 0
-                            ? AppColors.success
-                            : AppColors.error,
-                        isDark: isDark),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Days info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildDayInfo('Days', contract.days.toString(),
-                      isDark: isDark),
-                  _buildDayInfo('Paid', contract.daysPaid.toStringAsFixed(0),
-                      color: AppColors.success, isDark: isDark),
-                  _buildDayInfo(
-                      'Unpaid', contract.daysUnpaid.toStringAsFixed(0),
-                      color: contract.daysUnpaid > 0
-                          ? AppColors.error
-                          : (isDark
-                              ? AppColors.darkTextLight
-                              : AppColors.textLight),
-                      isDark: isDark),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (context
-                      .watch<PermissionProvider>()
-                      .hasPermission(PermissionIds.contractsAdd))
-                    TextButton.icon(
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (canAdd)
+                  Expanded(
+                    child: OutlinedButton.icon(
                       onPressed: () => _openNewContract(renewFrom: contract),
                       icon: const Icon(Icons.autorenew, size: 18),
                       label: const Text('Renew'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.success,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF047857),
+                        side: const BorderSide(color: AppColors.success),
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
-                  TextButton.icon(
-                    onPressed: () => _openDetails(contract),
-                    icon: const Icon(Icons.arrow_forward),
-                    label: const Text('View Statement'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                    ),
                   ),
-                ],
-              ),
-            ],
-          ),
+                if (canAdd) const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _openDetails(contract),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: textColor,
+                      side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightTextLight),
+                      minimumSize: const Size.fromHeight(44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('View statement'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _metaChip(IconData icon, String text, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: color),
+        const SizedBox(width: 5),
+        Text(text, style: ContractTheme.body(size: 13.5, color: color)),
+      ],
     );
   }
 
@@ -473,88 +496,41 @@ class _ContractsScreenState extends State<ContractsScreen> {
   /// screen's own balance>0 guess -- that couldn't tell "paid off" from
   /// "still within term" apart, and never showed "Completed" at all.
   Widget _buildStatusBadge(Contract contract) {
-    final Color color;
-    final String label;
     switch (contract.status) {
       case 'terminated':
-        color = Colors.grey;
-        label = 'Terminated';
-        break;
+        return const ContractStatusBadge(
+            label: 'Terminated', dot: Colors.grey, background: Color(0xFFE9ECEF), foreground: Color(0xFF6C757D));
       case 'completed':
-        color = AppColors.success;
-        label = 'Completed';
-        break;
+        return const ContractStatusBadge(
+            label: 'Completed', dot: AppColors.success, background: Color(0xFFD1FAE5), foreground: Color(0xFF047857));
       case 'on_track':
-        color = AppColors.success;
-        label = 'On Track';
-        break;
-      case 'behind':
-        color = AppColors.warning;
-        label = 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d';
-        break;
+        return const ContractStatusBadge(
+            label: 'On track', dot: AppColors.success, background: Color(0xFFD1FAE5), foreground: Color(0xFF047857));
       default:
-        color = AppColors.error;
-        label = 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d';
+        return ContractStatusBadge(label: 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d');
     }
+  }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style:
-            TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+  Widget _buildInfoRow(String label, String value, {Color? color, required Color subColor, Color? textColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: ContractTheme.body(size: 14, color: subColor)),
+          Text(value, style: ContractTheme.display(size: 17, weight: FontWeight.w700, color: color ?? textColor)),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value,
-      {Color? color, required bool isDark}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: color ?? (isDark ? AppColors.darkText : AppColors.text),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDayInfo(String label, String value,
-      {Color? color, required bool isDark}) {
+  Widget _buildDayInfo(String label, String value, Color valueColor, Color subColor) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color ?? (isDark ? AppColors.darkText : AppColors.text),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-          ),
-        ),
+        Text(value, style: ContractTheme.display(size: 26, weight: FontWeight.w700, color: valueColor)),
+        const SizedBox(height: 2),
+        Text(label, style: ContractTheme.body(size: 13, color: subColor)),
       ],
     );
   }

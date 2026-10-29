@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mopos Day close</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1565C0}a:hover{color:#0D47A1}
+button,input,select,textarea{font-family:inherit}
+.dsp{font-family:'Bricolage Grotesque','Public Sans',system-ui,sans-serif}
+.ib{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;position:relative;flex-shrink:0}
+.card{background:#fff;border:1px solid #E9ECEF;border-radius:20px}
+.eyebrow{font-size:12px;line-height:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#F59E0B}
+.ttl{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:36px;line-height:40px;font-weight:800;letter-spacing:-0.03em;color:#fff}
+.nav{position:absolute;left:16px;right:16px;bottom:14px;height:68px;box-sizing:border-box;padding:6px;border-radius:26px;background:#2B2D42;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;box-shadow:0 14px 32px rgba(11,35,64,.35)}
+.nv{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;color:#E9ECEF;font-size:12px;line-height:16px;font-weight:500;border-radius:20px}
+.nv.on{background:#F59E0B;color:#2B2D42;font-weight:700;border-radius:22px 22px 12px 12px}
+.lbl{font-size:13px;line-height:18px;font-weight:600;color:#2B2D42}
+.inp{height:48px;width:100%;box-sizing:border-box;border:1px solid #6C757D;border-radius:14px;padding:0 14px;font-size:15px;color:#2B2D42;background:#fff}
+.inp::placeholder{color:#6C757D}
+.inp:focus{outline:2px solid #1565C0;outline-offset:1px}
+.fld{display:flex;flex-direction:column;gap:6px}
+.pre{position:absolute;left:14px;top:0;height:48px;display:flex;align-items:center;font-size:14px;font-weight:600;color:#6C757D}
+.kv{display:flex;align-items:center;justify-content:space-between;min-height:42px;font-size:14px;line-height:20px}
+.kv span:first-child{color:#6C757D}
+.kv span:last-child{font-weight:700;color:#2B2D42}
+.sec{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:20px;line-height:26px;font-weight:700;letter-spacing:-0.01em;color:#2B2D42}
+</style>
+</helmet>
+<div style="width:390px;height:1200px;box-sizing:border-box;display:flex;flex-direction:column;background:#F8F9FA;font-family:'Public Sans',system-ui,sans-serif;color:#2B2D42;font-variant-numeric:tabular-nums;position:relative;overflow:hidden">
+
+  <header style="position:relative;overflow:hidden;background:#0D47A1;border-radius:0 0 32px 32px;padding:8px 16px 22px 16px">
+    <svg width="200" height="110" viewBox="0 0 200 110" style="position:absolute;right:0;bottom:0" aria-hidden="true">
+      <circle cx="170" cy="20" r="11" fill="#F59E0B"></circle>
+      <circle cx="120" cy="14" r="1.6" fill="#E9ECEF"></circle><circle cx="140" cy="38" r="1.6" fill="#E9ECEF"></circle><circle cx="96" cy="34" r="1.6" fill="#E9ECEF"></circle>
+      <path d="M14 110V86a28 28 0 0 1 56 0v24z" fill="#1565C0" fill-opacity=".55"></path>
+      <path d="M60 110V62a36 36 0 0 1 72 0v48z" fill="#1565C0" fill-opacity=".85"></path>
+      <path d="M122 110V84a30 30 0 0 1 60 0v26z" fill="#42A5F5" fill-opacity=".45"></path>
+      <path d="M78 110V92a18 18 0 0 1 36 0v18z" fill="#F59E0B"></path>
+      <path d="M140 110V98a12 12 0 0 1 24 0v12z" fill="#F59E0B"></path>
+    </svg>
+    <div style="position:relative;z-index:1;display:flex;align-items:center;gap:2px">
+      <button class="ib" aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"></path></svg></button>
+      <div style="display:flex;align-items:center;gap:8px;flex-grow:1"><div class="dsp" style="width:30px;height:30px;border-radius:15px 15px 8px 8px;background:#F59E0B;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#2B2D42">M</div><span class="dsp" style="font-size:19px;font-weight:700;color:#fff;letter-spacing:-0.01em">Mopos</span></div>
+      <button class="ib" aria-label="Switch business"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 3 8l4 4"></path><path d="M3 8h14"></path><path d="m17 20 4-4-4-4"></path><path d="M21 16H7"></path></svg></button>
+      <button class="ib" aria-label="Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"></path><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"></path></svg></button>
+      <button class="ib" aria-label="Switch to dark theme"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg></button>
+    </div>
+    <div style="position:relative;z-index:1;padding:14px 6px 0 6px;display:flex;flex-direction:column;gap:2px">
+      <span class="eyebrow">End of day</span>
+      <h1 class="ttl">Day close</h1>
+    </div>
+  </header>
+
+  <main style="flex-grow:1;display:flex;flex-direction:column;gap:20px;padding:18px 16px 120px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E9ECEF;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:#2B2D42"><span style="width:8px;height:8px;border-radius:999px;background:#F59E0B"></span>Tue, 28 Oct 2026</div>
+      <button style="width:44px;height:44px;border-radius:999px;border:1px solid #6C757D;background:#fff;color:#2B2D42;display:flex;align-items:center;justify-content:center;cursor:pointer" aria-label="Pick a date"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg></button>
+    </div>
+
+    <section aria-labelledby="sum" class="card" style="padding:8px 18px 10px 18px">
+      <h2 id="sum" class="sec" style="padding:10px 0 4px">Summary</h2>
+      <div class="kv"><span>Opening cash</span><span>0</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Cash sales</span><span>0</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Lipa Namba</span><span>0</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Bank</span><span>0</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Put on customer credit</span><span>0</span></div>
+      <div class="kv" style="border-top:1px solid #E9ECEF"><span>Cash expenses</span><span>−0</span></div>
+    </section>
+
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+      <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:4px">
+        <h2 class="sec" style="font-size:18px">Takings</h2>
+        <span style="font-size:13px;line-height:18px;color:#6C757D">No payments were received on this day.</span>
+      </section>
+      <section class="card" style="padding:16px;display:flex;flex-direction:column;gap:4px">
+        <h2 class="sec" style="font-size:18px">Expenses</h2>
+        <span style="font-size:13px;line-height:18px;color:#6C757D">No lodge expenses on this day.</span>
+      </section>
+    </div>
+
+    <section aria-labelledby="cnt" style="display:flex;flex-direction:column;gap:12px">
+      <h2 id="cnt" class="sec">Cash count</h2>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div class="fld"><label class="lbl" for="bk">Banked</label>
+          <div style="position:relative"><span class="pre">TZS</span><input id="bk" class="inp" type="text" inputmode="numeric" value="0" style="padding-left:52px"></div>
+        </div>
+        <div class="fld"><label class="lbl" for="cs">Cash submitted</label>
+          <div style="position:relative"><span class="pre">TZS</span><input id="cs" class="inp" type="text" inputmode="numeric" value="0" style="padding-left:52px"></div>
+        </div>
+      </div>
+      <div class="fld"><label class="lbl" for="nt">Note <span style="font-weight:400;color:#6C757D">(optional)</span></label>
+        <textarea id="nt" class="inp" rows="2" style="height:76px;padding:12px 14px;resize:none" placeholder="Anything the owner should know"></textarea>
+      </div>
+    </section>
+
+    <section aria-label="Closing" style="position:relative;overflow:hidden;background:#0D47A1;border-radius:24px;padding:20px 18px;min-height:96px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:2px">
+      <svg width="130" height="72" viewBox="0 0 200 110" style="position:absolute;right:0;bottom:0" aria-hidden="true">
+        <circle cx="170" cy="20" r="11" fill="#F59E0B"></circle>
+        <path d="M14 110V86a28 28 0 0 1 56 0v24z" fill="#1565C0" fill-opacity=".55"></path>
+        <path d="M60 110V62a36 36 0 0 1 72 0v48z" fill="#1565C0" fill-opacity=".85"></path>
+        <path d="M122 110V84a30 30 0 0 1 60 0v26z" fill="#42A5F5" fill-opacity=".45"></path>
+        <path d="M78 110V92a18 18 0 0 1 36 0v18z" fill="#F59E0B"></path>
+        <path d="M140 110V98a12 12 0 0 1 24 0v12z" fill="#F59E0B"></path>
+      </svg>
+      <span style="position:relative;font-size:13px;line-height:18px;color:#E9ECEF">Closing cash</span>
+      <span class="dsp" style="position:relative;font-size:40px;line-height:44px;font-weight:700;letter-spacing:-0.02em;color:#fff"><span style="font-size:14px;font-weight:600;color:#E9ECEF;letter-spacing:0">TZS </span>0</span>
+    </section>
+
+    <button style="height:56px;border-radius:18px;border:0;background:#1565C0;color:#fff;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Close day</button>
+  </main>
+
+  <nav class="nav" aria-label="Lodge sections">
+    <a class="nv" href="Main.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>Board</a>
+    <a class="nv" href="Bookings.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h3"></path></svg>Bookings</a>
+    <a class="nv" href="Calendar.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>Calendar</a>
+    <a class="nv" href="Rooms.dc.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M6 21V4h12v17"></path><path d="M14 12h.01"></path></svg>Rooms</a>
+    <a class="nv on" href="DayClose.dc.html" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Day close</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

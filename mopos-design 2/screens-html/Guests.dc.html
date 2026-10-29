@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mopos Guests</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+button,input,select,textarea{font-family:inherit}
+.dsp{font-family:'Bricolage Grotesque','Public Sans',system-ui,sans-serif}
+.ib{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;position:relative;flex-shrink:0}
+.card{background:#fff;border:1px solid #E9ECEF;border-radius:20px}
+.eyebrow{font-size:12px;line-height:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#F59E0B}
+.ttl{margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:36px;line-height:40px;font-weight:800;letter-spacing:-0.03em;color:#fff}
+.inp{height:48px;width:100%;box-sizing:border-box;border:1px solid #6C757D;border-radius:14px;padding:0 14px;font-size:15px;color:#2B2D42;background:#fff}
+.inp::placeholder{color:#6C757D}
+.inp:focus{outline:2px solid #1565C0;outline-offset:1px}
+.bd{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:16px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.arch{width:44px;height:52px;flex-shrink:0;border-radius:22px 22px 10px 10px;background:#2B2D42;color:#fff;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;box-sizing:border-box;font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:700}
+</style>
+</helmet>
+<div style="width:390px;height:880px;box-sizing:border-box;display:flex;flex-direction:column;background:#F8F9FA;font-family:'Public Sans',system-ui,sans-serif;color:#2B2D42;font-variant-numeric:tabular-nums;position:relative;overflow:hidden">
+
+  <header style="position:relative;overflow:hidden;background:#0D47A1;border-radius:0 0 32px 32px;padding:8px 16px 22px 12px">
+    <svg width="170" height="94" viewBox="0 0 200 110" style="position:absolute;right:-4px;bottom:0" aria-hidden="true">
+      <circle cx="170" cy="20" r="11" fill="#F59E0B"></circle>
+      <path d="M14 110V86a28 28 0 0 1 56 0v24z" fill="#1565C0" fill-opacity=".55"></path>
+      <path d="M60 110V62a36 36 0 0 1 72 0v48z" fill="#1565C0" fill-opacity=".85"></path>
+      <path d="M122 110V84a30 30 0 0 1 60 0v26z" fill="#42A5F5" fill-opacity=".45"></path>
+      <path d="M78 110V92a18 18 0 0 1 36 0v18z" fill="#F59E0B"></path>
+      <path d="M140 110V98a12 12 0 0 1 24 0v12z" fill="#F59E0B"></path>
+    </svg>
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:6px">
+      <button class="ib" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg></button>
+      <div style="padding:0 4px;display:flex;flex-direction:column;gap:2px"><span class="eyebrow">Directory</span><h1 class="ttl">Guests</h1></div>
+    </div>
+  </header>
+
+  <main style="display:flex;flex-direction:column;gap:14px;padding:18px 16px">
+    <div style="position:relative">
+      <svg style="position:absolute;left:15px;top:15px" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C757D" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <input class="inp" type="search" aria-label="Search guests" placeholder="Search guest…" style="padding-left:42px">
+    </div>
+    <span style="font-size:13px;line-height:18px;color:#6C757D;padding:0 4px">2 guests</span>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <article class="card" style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div class="arch">MO</div>
+        <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0;gap:2px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="dsp" style="font-size:20px;line-height:26px;font-weight:700;color:#2B2D42">Mohamed</span><span class="bd" style="color:#B91C1C;background:#FEE2E2">Owes 25K</span></div><span style="font-size:13px;line-height:18px;color:#6C757D">1 stay · Spent TZS 0 · Last stay 29 Oct 2026</span></div>
+      </article>
+      <article class="card" style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div class="arch">HA</div>
+        <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0;gap:2px"><span class="dsp" style="font-size:20px;line-height:26px;font-weight:700;color:#2B2D42">Hassan</span><span style="font-size:13px;line-height:18px;color:#6C757D">1 stay · Spent TZS 0 · Last stay 29 Oct 2026</span></div>
+      </article>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

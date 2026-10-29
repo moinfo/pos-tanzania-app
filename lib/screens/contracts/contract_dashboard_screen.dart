@@ -6,6 +6,7 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import '../contract_details_screen.dart';
+import 'contract_theme.dart';
 
 /// A standalone overview -- the at-a-glance numbers the web list's header
 /// row shows (Active contracts/Behind/To collect now/Collected/Still owed
@@ -61,11 +62,8 @@ class _ContractDashboardScreenState extends State<ContractDashboardScreen> {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: ContractTheme.appBar(isDark: isDark, eyebrow: 'Overview', title: 'Dashboard'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
@@ -105,46 +103,87 @@ class _ContractDashboardScreenState extends State<ContractDashboardScreen> {
     final toCollectNow = liveOnes.fold<double>(0, (sum, c) => sum + c.currentUnpaid);
     final collected = contracts.fold<double>(0, (sum, c) => sum + c.payments);
     final stillOwedOnActive = liveOnes.fold<double>(0, (sum, c) => sum + c.balance);
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
 
-    final stats = <_DashboardStat>[
-      _DashboardStat('Active contracts', '${liveOnes.length} of ${contracts.length}',
-          isDark ? AppColors.darkText : AppColors.text),
-      _DashboardStat(
-          'Behind', '$behindCount', behindCount > 0 ? AppColors.error : AppColors.success),
-      _DashboardStat('To collect now', Formatters.formatCurrency(toCollectNow), AppColors.error),
-      _DashboardStat('Collected', Formatters.formatCurrency(collected), AppColors.success),
-      _DashboardStat('Still owed on active', Formatters.formatCurrency(stillOwedOnActive),
-          isDark ? AppColors.darkText : AppColors.text),
-    ];
-
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 1,
-      color: isDark ? AppColors.darkSurface : Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Wrap(
-          spacing: 20,
-          runSpacing: 12,
-          children: stats
-              .map((s) => SizedBox(
-                    width: 140,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ContractRingGauge(value: behindCount, total: liveOnes.length),
+                  const SizedBox(width: 16),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.value,
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: s.color)),
-                        const SizedBox(height: 2),
-                        Text(s.label,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                        Text('Active contracts', style: ContractTheme.body(size: 13, color: subColor)),
+                        Text('${liveOnes.length} of ${contracts.length}',
+                            style: ContractTheme.display(size: 30, weight: FontWeight.w700, letterSpacing: -0.5, color: textColor)),
+                        if (behindCount > 0)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                  width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle)),
+                              const SizedBox(width: 6),
+                              Text('$behindCount behind',
+                                  style: ContractTheme.body(size: 14, weight: FontWeight.w600, color: const Color(0xFFB91C1C))),
+                            ],
+                          ),
                       ],
                     ),
-                  ))
-              .toList(),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Divider(height: 1, color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(Formatters.formatCurrency(toCollectNow),
+                            style: ContractTheme.display(size: 24, weight: FontWeight.w700, color: const Color(0xFFB91C1C))),
+                        Text('To collect now', style: ContractTheme.body(size: 13, color: subColor)),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(Formatters.formatCurrency(collected),
+                            style: ContractTheme.display(size: 24, weight: FontWeight.w700, color: const Color(0xFF047857))),
+                        Text('Collected', style: ContractTheme.body(size: 13, color: subColor)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
+        const SizedBox(height: 14),
+        ContractHeroPanel(
+          caption: 'Still owed on active',
+          value: 'TZS ${Formatters.formatCurrency(stillOwedOnActive)}',
+        ),
+      ],
     );
   }
 
@@ -157,51 +196,89 @@ class _ContractDashboardScreenState extends State<ContractDashboardScreen> {
         .toList()
       ..sort((a, b) => b.currentUnpaid.compareTo(a.currentUnpaid));
 
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
+
     if (behind.isEmpty) {
-      return Card(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              const Icon(Icons.check_circle_outline, color: AppColors.success),
-              const SizedBox(width: 10),
-              Text('Nothing to collect right now -- every active contract is on track.',
-                  style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
-            ],
-          ),
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: AppColors.success),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('Nothing to collect right now -- every active contract is on track.',
+                  style: ContractTheme.body(size: 13.5, color: subColor)),
+            ),
+          ],
         ),
       );
     }
 
+    // The unpaid-days bar is a visual ratio only, capped at a sensible max
+    // (same convention the handover uses) -- not a claim about the longest
+    // possible unpaid streak.
+    const maxBarDays = 40.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Most behind',
-            style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkText : AppColors.text)),
-        const SizedBox(height: 8),
-        ...behind.take(10).map((c) => Card(
+        Text('Most behind', style: ContractTheme.display(size: 17, weight: FontWeight.w700, color: textColor)),
+        const SizedBox(height: 10),
+        ...behind.take(10).toList().asMap().entries.map((entry) {
+          final rank = entry.key + 1;
+          final c = entry.value;
+          final barFraction = (c.daysUnpaid / maxBarDays).clamp(0.0, 1.0);
+          return InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _openDetails(c),
+            child: Container(
               margin: const EdgeInsets.only(bottom: 8),
-              color: isDark ? AppColors.darkCard : Colors.white,
-              child: ListTile(
-                title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('${c.daysUnpaid.toStringAsFixed(0)} day(s) unpaid'),
-                trailing: Text(Formatters.formatCurrency(c.currentUnpaid),
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.error)),
-                onTap: () => _openDetails(c),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkCard : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
               ),
-            )),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ContractCircleBadge(text: '$rank', size: 36),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(c.name, style: ContractTheme.display(size: 17, weight: FontWeight.w700, color: textColor)),
+                        Text('${c.daysUnpaid.toStringAsFixed(0)} day(s) unpaid',
+                            style: ContractTheme.body(size: 13, color: subColor)),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: barFraction,
+                            minHeight: 6,
+                            backgroundColor: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(Formatters.formatCurrency(c.currentUnpaid),
+                      style: ContractTheme.display(size: 17, weight: FontWeight.w700, color: const Color(0xFFB91C1C))),
+                ],
+              ),
+            ),
+          );
+        }),
       ],
     );
   }
-}
-
-class _DashboardStat {
-  final String label;
-  final String value;
-  final Color color;
-  _DashboardStat(this.label, this.value, this.color);
 }
