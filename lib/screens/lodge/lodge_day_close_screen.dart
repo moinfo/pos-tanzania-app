@@ -85,7 +85,28 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
     _load();
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit(bool isReopenedForEdit) async {
+    if (isReopenedForEdit) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Update closed day'),
+          content: Text(
+              'This day (${Formatters.formatDateForApi(_date)}) was already closed. '
+              "You're about to change its figures, not close it again."),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning, foregroundColor: Colors.white),
+              child: const Text('Update'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
     final banked = double.tryParse(_bankedController.text) ?? 0;
     final submitted = double.tryParse(_submittedController.text) ?? 0;
 
@@ -105,7 +126,9 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
       final sent = response.data!.bossReport.length;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(sent > 0 ? 'Day closed. Boss report sent to $sent number(s).' : 'Day closed.'),
+          content: Text(isReopenedForEdit
+              ? 'Closed day updated.'
+              : (sent > 0 ? 'Day closed. Boss report sent to $sent number(s).' : 'Day closed.')),
           backgroundColor: AppColors.success,
         ),
       );
@@ -167,7 +190,12 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
     final banked = double.tryParse(_bankedController.text) ?? 0;
     final submitted = double.tryParse(_submittedController.text) ?? 0;
     final closing = f.openingCash + f.cashIn - f.cashExpenses - banked - submitted;
+    // Locked out entirely: day is closed and this user can't override it.
     final readOnly = _data!.closed && !_data!.canEditClose;
+    // Closed, but this user holds lodge_day_close_edit so the form still
+    // shows -- the banner below makes clear that's what's happening, so it
+    // never again looks like an ordinary not-yet-closed day.
+    final isReopenedForEdit = _data!.closed && _data!.canEditClose;
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -240,6 +268,22 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
               ),
             )
           else ...[
+            if (isReopenedForEdit)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text('This day is already closed. Changes here update that close, '
+                          "they don't create a new one.")),
+                  ],
+                ),
+              ),
             TextField(
               controller: _bankedController,
               keyboardType: TextInputType.number,
@@ -286,15 +330,15 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _submit,
+                onPressed: _isSubmitting ? null : () => _submit(isReopenedForEdit),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brandPrimary,
+                    backgroundColor: isReopenedForEdit ? AppColors.warning : AppColors.brandPrimary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14)),
                 child: _isSubmitting
                     ? const SizedBox(
                         width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Close day'),
+                    : Text(isReopenedForEdit ? 'Update closed day' : 'Close day'),
               ),
             ),
           ],
