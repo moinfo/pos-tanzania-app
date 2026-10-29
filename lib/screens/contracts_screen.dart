@@ -25,6 +25,41 @@ class _ContractsScreenState extends State<ContractsScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   bool _showCompleted = false;
+  String _statusFilter = 'all'; // all / behind / on_track / completed / terminated
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _matchesStatusFilter(Contract c) {
+    switch (_statusFilter) {
+      case 'behind':
+        return c.status != 'on_track' && c.status != 'completed' && c.status != 'terminated';
+      case 'on_track':
+        return c.status == 'on_track';
+      case 'completed':
+        return c.status == 'completed';
+      case 'terminated':
+        return c.status == 'terminated';
+      default:
+        return true;
+    }
+  }
+
+  List<Contract> get _visibleContracts {
+    final query = _searchQuery.trim().toLowerCase();
+    return _contracts!.where((c) {
+      if (!_matchesStatusFilter(c)) return false;
+      if (query.isEmpty) return true;
+      return c.name.toLowerCase().contains(query) ||
+          c.phone.toLowerCase().contains(query) ||
+          (c.assetPlateNumber ?? '').toLowerCase().contains(query);
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -156,17 +191,80 @@ class _ContractsScreenState extends State<ContractsScreen> {
   /// section by default so a tenant with a long history isn't scrolling
   /// past dozens of finished contracts to see the ones still active.
   Widget _buildContractsList(bool isDark) {
-    final active = _contracts!.where((c) => c.status != 'completed').toList();
-    final completed =
-        _contracts!.where((c) => c.status == 'completed').toList();
+    final visible = _visibleContracts;
+    final active = visible.where((c) => c.status != 'completed').toList();
+    final completed = visible.where((c) => c.status == 'completed').toList();
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         _buildDashboardStats(isDark),
         const SizedBox(height: 16),
-        ...active.map((c) => _buildContractCard(c, isDark)),
-        if (completed.isNotEmpty) _buildCompletedSection(completed, isDark),
+        _buildSearchAndFilters(isDark),
+        const SizedBox(height: 12),
+        if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: Text('No contracts match this filter',
+                  style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+            ),
+          )
+        else ...[
+          ...active.map((c) => _buildContractCard(c, isDark)),
+          if (completed.isNotEmpty) _buildCompletedSection(completed, isDark),
+        ],
+      ],
+    );
+  }
+
+  /// Search by name/phone/plate plus the same five status filters the web
+  /// list's chip row has (All/Behind/On track/Completed/Terminated) --
+  /// counts come from the full unfiltered list so they stay stable as a
+  /// reference while a filter/search narrows what's shown below.
+  Widget _buildSearchAndFilters(bool isDark) {
+    final all = _contracts!;
+    final counts = {
+      'all': all.length,
+      'behind': all.where((c) =>
+          c.status != 'on_track' && c.status != 'completed' && c.status != 'terminated').length,
+      'on_track': all.where((c) => c.status == 'on_track').length,
+      'completed': all.where((c) => c.status == 'completed').length,
+      'terminated': all.where((c) => c.status == 'terminated').length,
+    };
+    final labels = {
+      'all': 'All',
+      'behind': 'Behind',
+      'on_track': 'On track',
+      'completed': 'Completed',
+      'terminated': 'Terminated',
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Search name, phone or plate...',
+            prefixIcon: const Icon(Icons.search),
+            isDense: true,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onChanged: (v) => setState(() => _searchQuery = v),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: labels.entries
+              .map((e) => ChoiceChip(
+                    label: Text('${e.value} ${counts[e.key]}'),
+                    selected: _statusFilter == e.key,
+                    onSelected: (_) => setState(() => _statusFilter = e.key),
+                  ))
+              .toList(),
+        ),
       ],
     );
   }
