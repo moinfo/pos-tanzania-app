@@ -82,11 +82,11 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
   Color _statusColor(String status) {
     switch (status) {
       case 'checked_in':
-        return AppColors.error;
+        return AppColors.warning;
       case 'checked_out':
-        return AppColors.secondary;
+        return AppColors.lightTextLight;
       default:
-        return AppColors.info; // reserved
+        return AppColors.brandPrimary; // reserved
     }
   }
 
@@ -133,7 +133,7 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: LodgeTheme.appBar(
         isDark: isDark,
-        eyebrow: 'Schedule',
+        eyebrow: 'Availability',
         title: 'Calendar',
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(40),
@@ -182,9 +182,9 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      _legendDot('Reserved', AppColors.info, isDark),
-                      _legendDot('Checked in', AppColors.error, isDark),
-                      _legendDot('Checked out', AppColors.secondary, isDark),
+                      _legendDot('Reserved', AppColors.brandPrimary, isDark),
+                      _legendDot('Checked in', AppColors.warning, isDark),
+                      _legendDot('Checked out', AppColors.lightTextLight, isDark),
                     ],
                   ),
                 ),
@@ -205,9 +205,99 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
               ],
             ),
           ),
-          Expanded(child: _buildGrid(isDark)),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Column(
+                children: [
+                  _buildGrid(isDark),
+                  const SizedBox(height: 14),
+                  _buildTodayCard(isDark),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  /// A plain-language itinerary for today, under the grid -- "who's in,
+  /// which night of their stay, when they leave" -- answers the question
+  /// the grid itself only shows as a coded bar.
+  Widget _buildTodayCard(bool isDark) {
+    final cal = _calendar;
+    if (cal == null || !_isCurrentMonth) return const SizedBox.shrink();
+    final today = DateTime.now().day;
+    final todayStr = DateFormat('EEE d MMM').format(DateTime.now());
+
+    final staying = <(LodgeRoom, LodgeCalendarBooking)>[];
+    for (final room in cal.rooms) {
+      final booking = _bookingOn(room, today);
+      if (booking != null) staying.add((room, booking));
+    }
+    if (staying.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Today · $todayStr',
+              style: LodgeTheme.display(
+                  size: 20, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.lightText)),
+          const SizedBox(height: 12),
+          for (int i = 0; i < staying.length; i++) ...[
+            if (i > 0) ...[
+              const SizedBox(height: 12),
+              Divider(height: 1, color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+              const SizedBox(height: 12),
+            ],
+            _todayRow(staying[i].$1, staying[i].$2, isDark),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _todayRow(LodgeRoom room, LodgeCalendarBooking booking, bool isDark) {
+    final from = DateTime.tryParse(booking.from);
+    final to = DateTime.tryParse(booking.to);
+    final nightOf = from != null ? DateTime.now().difference(from).inDays + 1 : null;
+    final totalNights = (from != null && to != null) ? to.difference(from).inDays : null;
+    final leaves = to != null ? DateFormat('d MMM').format(to) : '-';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const LodgeArchIcon(width: 40, height: 48),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(booking.guestName,
+                  style: LodgeTheme.body(
+                      size: 15, weight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.lightText)),
+              Text(room.roomNumber,
+                  style: LodgeTheme.body(size: 13, color: isDark ? AppColors.darkText : AppColors.lightText)),
+              Text(
+                nightOf != null && totalNights != null
+                    ? 'Night $nightOf of $totalNights · leaves $leaves'
+                    : 'Leaves $leaves',
+                style: LodgeTheme.body(
+                    size: 13, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -266,11 +356,10 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
         border: Border.all(color: borderColor),
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
               children: [
                 SizedBox(width: _labelWidth, height: _dayHeaderHeight),
                 Divider(height: 1, thickness: 1, color: borderColor),
@@ -400,8 +489,10 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
                                                     padding: const EdgeInsets.symmetric(horizontal: 2),
                                                     child: Text(
                                                       _initials(booking.guestName),
-                                                      style: const TextStyle(
-                                                          color: Colors.white,
+                                                      style: TextStyle(
+                                                          color: booking.status == 'checked_in'
+                                                              ? AppColors.secondary
+                                                              : Colors.white,
                                                           fontSize: 11,
                                                           fontWeight: FontWeight.w700),
                                                     ),
@@ -420,7 +511,6 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }

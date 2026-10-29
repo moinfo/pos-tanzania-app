@@ -107,7 +107,7 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
             Text('Occupancy: ${occupancy.round()}%', style: LodgeTheme.display(weight: FontWeight.w700, size: 16)),
             TextButton(
               onPressed: () => _onSliderChanged(f.actualOccupancy),
-              child: const Text('Use actual'),
+              child: Text('Use actual (${f.actualOccupancy.toStringAsFixed(1)}%)'),
             ),
           ],
         ),
@@ -145,45 +145,66 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
               color: isDark ? AppColors.darkCard : Colors.white,
               margin: const EdgeInsets.only(bottom: 6),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
               ),
               elevation: 0,
               child: ListTile(
-                dense: true,
-                title: Text(r.roomNumber),
+                leading: const LodgeArchIcon(),
+                title: Text(r.roomNumber, style: LodgeTheme.body(size: 15, weight: FontWeight.w600)),
                 subtitle: Text('${Formatters.formatCurrency(r.rate)}/night · actual ${r.actualOccupancy.toStringAsFixed(0)}%'),
-                trailing: Text(Formatters.formatCompactCurrency(r.month)),
+                trailing: Text(Formatters.formatCompactCurrency(r.month),
+                    style: LodgeTheme.display(size: 17, weight: FontWeight.w700)),
               ),
             )),
         if (f.scenarios.isNotEmpty) ...[
           const SizedBox(height: 20),
           Text('Scenarios', style: LodgeTheme.display(weight: FontWeight.w700, size: 15, color: isDark ? AppColors.darkText : AppColors.lightText)),
           const SizedBox(height: 8),
-          ...f.scenarios.map((s) => Card(
-                color: isDark ? AppColors.darkCard : Colors.white,
+          ...f.scenarios.map((s) => Container(
                 margin: const EdgeInsets.only(bottom: 6),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: s.isSelected
+                      ? const Color(0xFFFEF3C7)
+                      : (isDark ? AppColors.darkCard : Colors.white),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: s.isSelected
+                          ? AppColors.warning
+                          : (isDark ? AppColors.darkDivider : AppColors.lightDivider)),
                 ),
-                elevation: 0,
-                child: ListTile(
-                  dense: true,
-                  title: Text('${s.label} (${s.occupancy.toStringAsFixed(0)}%)'),
-                  subtitle: Text('Day ${Formatters.formatCompactCurrency(s.day)} · '
-                      'Month ${Formatters.formatCompactCurrency(s.month)} · '
-                      'Year ${Formatters.formatCompactCurrency(s.year)}'),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('Net/mo ${Formatters.formatCompactCurrency(s.netMonth)}',
-                          style: const TextStyle(fontSize: 11, color: AppColors.success)),
-                      Text('Net/yr ${Formatters.formatCompactCurrency(s.netYear)}',
-                          style: const TextStyle(fontSize: 11, color: AppColors.success)),
-                    ],
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s.label,
+                              style: LodgeTheme.body(
+                                  size: 15,
+                                  weight: FontWeight.w600,
+                                  color: isDark ? AppColors.darkText : AppColors.lightText)),
+                          Text(
+                              'Day ${Formatters.formatCompactCurrency(s.day)} · '
+                              'Month ${Formatters.formatCompactCurrency(s.month)} · '
+                              'Year ${Formatters.formatCompactCurrency(s.year)}',
+                              style: LodgeTheme.body(
+                                  size: 12.5,
+                                  color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('Net/mo ${Formatters.formatCompactCurrency(s.netMonth)}',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF047857))),
+                        Text('Net/yr ${Formatters.formatCompactCurrency(s.netYear)}',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF047857))),
+                      ],
+                    ),
+                  ],
                 ),
               )),
         ],

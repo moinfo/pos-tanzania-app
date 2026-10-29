@@ -116,21 +116,17 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
             style: TextStyle(fontSize: 12.5, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          _netResultPanel(t),
+          const SizedBox(height: 14),
+          _collectedVsBalanceCard(t, isDark),
+          const SizedBox(height: 14),
+          Row(
             children: [
-              _statTile('Revenue', Formatters.formatCompactCurrency(t.revenue), AppColors.success, isDark),
-              _statTile('Paid', Formatters.formatCompactCurrency(t.paid), AppColors.info, isDark),
-              _statTile('Balance', Formatters.formatCompactCurrency(t.balance),
-                  t.balance > 0 ? AppColors.error : AppColors.success, isDark),
-              _statTile('Occupancy', '${t.occupancyPct.toStringAsFixed(0)}%', AppColors.warning, isDark),
-              _statTile('Bookings', '${t.bookings}', AppColors.brandPrimary, isDark),
-              _statTile('Nights sold', '${t.nightsSold}', AppColors.brandPrimary, isDark),
-              _statTile('Expenses', Formatters.formatCompactCurrency(t.expenses), AppColors.error, isDark),
-              _statTile('Net', Formatters.formatCompactCurrency(t.net),
-                  t.net >= 0 ? AppColors.success : AppColors.error, isDark),
-              _statTile('Maintenance cost', Formatters.formatCompactCurrency(t.maintenanceCost), Colors.grey, isDark),
+              Expanded(child: _kpiTile('Occupancy', '${t.occupancyPct.toStringAsFixed(0)}%', isDark)),
+              const SizedBox(width: 10),
+              Expanded(child: _kpiTile('Bookings', '${t.bookings}', isDark)),
+              const SizedBox(width: 10),
+              Expanded(child: _kpiTile('Nights sold', '${t.nightsSold}', isDark)),
             ],
           ),
           const SizedBox(height: 20),
@@ -140,13 +136,13 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
                 color: isDark ? AppColors.darkCard : Colors.white,
                 margin: const EdgeInsets.only(bottom: 6),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
                 ),
                 elevation: 0,
                 child: ListTile(
-                  dense: true,
-                  title: Text(r.roomNumber),
+                  leading: const LodgeArchIcon(),
+                  title: Text(r.roomNumber, style: LodgeTheme.body(size: 15, weight: FontWeight.w600)),
                   subtitle: Text('${r.bookings} booking(s) · ${r.nightsSold} night(s) · '
                       '${r.occupancyPct.toStringAsFixed(0)}% occupancy'
                       '${r.maintenanceCost > 0 ? ' · Maintenance ${Formatters.formatCompactCurrency(r.maintenanceCost)}' : ''}'),
@@ -154,9 +150,20 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(Formatters.formatCompactCurrency(r.revenue), style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text(Formatters.formatCompactCurrency(r.revenue),
+                          style: LodgeTheme.display(size: 17, weight: FontWeight.w700)),
                       if (r.balance > 0)
-                        Text(Formatters.formatCompactCurrency(r.balance), style: const TextStyle(color: AppColors.error, fontSize: 11)),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                                color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(999)),
+                            child: Text('${Formatters.formatCompactCurrency(r.balance)} due',
+                                style: LodgeTheme.body(
+                                    size: 11, weight: FontWeight.w600, color: const Color(0xFFB91C1C))),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -169,13 +176,12 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
                   color: isDark ? AppColors.darkCard : Colors.white,
                   margin: const EdgeInsets.only(bottom: 6),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                     side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
                   ),
                   elevation: 0,
                   child: ListTile(
-                    dense: true,
-                    title: Text(g.guestName),
+                    title: Text(g.guestName, style: LodgeTheme.display(size: 18, weight: FontWeight.w700)),
                     subtitle: Text([
                       if (g.roomNumber != null) 'Room ${g.roomNumber}',
                       if (g.checkInDate != null) '${Formatters.formatDate(g.checkInDate)} → ${Formatters.formatDate(g.checkOutDate)}',
@@ -185,8 +191,12 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(Formatters.formatCompactCurrency(g.total), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        if (g.status != null)
+                        Text(Formatters.formatCompactCurrency(g.total),
+                            style: LodgeTheme.display(size: 18, weight: FontWeight.w700)),
+                        if (g.status == 'checked_in')
+                          const Padding(
+                              padding: EdgeInsets.only(top: 4), child: LodgeStatusBadge(label: 'Checked in'))
+                        else if (g.status != null)
                           Text(g.status!, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                       ],
                     ),
@@ -198,22 +208,124 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
     );
   }
 
-  Widget _statTile(String label, String value, Color color, bool isDark) {
+  Widget _netResultPanel(LodgeReportTotals t) {
     return Container(
-      width: 108,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: AppColors.primaryDark, borderRadius: BorderRadius.circular(24)),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+      child: Stack(
+        children: [
+          const Positioned(
+            right: 0,
+            top: 0,
+            child: LodgeSkyline(width: 130, showBuildings: false),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Net result', style: TextStyle(fontSize: 13, color: Color(0xFFE9ECEF))),
+              Text('TZS ${Formatters.formatCurrency(t.net)}',
+                  style: LodgeTheme.display(size: 36, weight: FontWeight.w800, color: Colors.white, letterSpacing: -1)),
+              const SizedBox(height: 10),
+              Divider(color: AppColors.brandPrimary, height: 1),
+              const SizedBox(height: 8),
+              _heroRow('Revenue', Formatters.formatCurrency(t.revenue)),
+              _heroRow('Expenses', '−${Formatters.formatCurrency(t.expenses)}'),
+              _heroRow('Maintenance cost', Formatters.formatCurrency(t.maintenanceCost)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFFE9ECEF))),
+          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
+  Widget _collectedVsBalanceCard(LodgeReportTotals t, bool isDark) {
+    final pct = t.paid + t.balance > 0 ? t.paid / (t.paid + t.balance) : 1.0;
+    return Container(
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: LodgeTheme.display(size: 15, weight: FontWeight.w700, color: color)),
-          const SizedBox(height: 2),
-          Text(label,
-              style: LodgeTheme.body(size: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+          Text('Collected vs balance',
+              style: LodgeTheme.display(size: 17, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.lightText)),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: SizedBox(
+              height: 12,
+              child: Row(
+                children: [
+                  Expanded(flex: (pct * 1000).round().clamp(1, 1000), child: Container(color: AppColors.brandPrimary)),
+                  Expanded(
+                      flex: ((1 - pct) * 1000).round().clamp(1, 1000), child: Container(color: AppColors.error)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _legendValue('Paid', Formatters.formatCompactCurrency(t.paid), AppColors.brandPrimary,
+                    isDark ? AppColors.darkText : AppColors.lightText)),
+              Expanded(
+                child: _legendValue('Balance', Formatters.formatCompactCurrency(t.balance), AppColors.error,
+                    const Color(0xFFB91C1C))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _legendValue(String label, String value, Color dot, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Text(label, style: LodgeTheme.body(size: 12, color: Colors.grey)),
+          ],
+        ),
+        Text(value, style: LodgeTheme.display(size: 22, weight: FontWeight.w700, color: valueColor)),
+      ],
+    );
+  }
+
+  Widget _kpiTile(String label, String value, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: LodgeTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+          Text(value, style: LodgeTheme.display(size: 22, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.lightText)),
         ],
       ),
     );

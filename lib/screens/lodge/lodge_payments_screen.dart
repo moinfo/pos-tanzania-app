@@ -196,7 +196,7 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: LodgeTheme.appBar(
         isDark: isDark,
-        eyebrow: 'Takings',
+        eyebrow: 'Money in',
         title: 'Payments',
         actions: [
           if (permissions.hasPermission(PermissionIds.lodgePaymentsDateRangeFilter))
@@ -234,63 +234,158 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
             '${Formatters.formatDateForApi(_startDate)} to ${Formatters.formatDateForApi(_endDate)}',
             style: TextStyle(fontSize: 12.5, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
           ),
-          const SizedBox(height: 8),
-          if (_data!.byType.isNotEmpty)
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _data!.byType.entries
-                  .map((e) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkCard : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(Formatters.formatCompactCurrency(e.value),
-                                style: LodgeTheme.display(weight: FontWeight.w700, size: 15)),
-                            Text(e.key, style: LodgeTheme.body(size: 11.5, color: Colors.grey)),
-                          ],
-                        ),
-                      ))
-                  .toList(),
-            ),
+          const SizedBox(height: 10),
+          if (_data!.byType.isNotEmpty) _paymentTotalsCard(isDark),
           const SizedBox(height: 12),
           ..._data!.payments.map((p) => Card(
                 color: isDark ? AppColors.darkCard : Colors.white,
                 margin: const EdgeInsets.only(bottom: 6),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
                 ),
                 elevation: 0,
                 child: ListTile(
-                  dense: true,
-                  leading: !p.editable ? const Icon(Icons.lock_outline, size: 18) : null,
-                  title: Text('${p.paymentType} · ${Formatters.formatCurrency(p.amount)}'),
+                  leading: LodgeArchIcon(
+                    icon: _paymentTypeIcon(p.paymentType),
+                    width: 40,
+                    height: 48,
+                    background: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                    foreground: isDark ? AppColors.darkText : AppColors.lightText,
+                  ),
+                  title: Text(p.paymentType, style: LodgeTheme.body(size: 15, weight: FontWeight.w600)),
                   subtitle: Text(
-                      '${Formatters.formatDate(p.paymentTime)}${p.receivedByName != null ? ' · ${p.receivedByName}' : ''}'),
-                  trailing: p.editable && (canEdit || canDelete)
-                      ? PopupMenuButton<String>(
-                          onSelected: (action) {
-                            if (action == 'edit') _editPayment(p);
-                            if (action == 'delete') _deletePayment(p);
-                          },
-                          itemBuilder: (_) => [
-                            if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                            if (canDelete) const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                          ],
-                        )
-                      : null,
+                      '${Formatters.formatDate(p.paymentTime)}${p.receivedByName != null ? ' · ${p.receivedByName}' : ''}'
+                      '${!p.editable ? ' · locked' : ''}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(Formatters.formatCurrency(p.amount),
+                          style: LodgeTheme.display(size: 17, weight: FontWeight.w700)),
+                      _paymentActionsMenu(p, canEdit, canDelete),
+                    ],
+                  ),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => LodgeBookingDetailScreen(bookingId: p.bookingId)),
                   ),
                 ),
               )),
+        ],
+      ),
+    );
+  }
+
+  IconData _paymentTypeIcon(String type) {
+    switch (type) {
+      case 'Bank':
+        return Icons.account_balance_outlined;
+      case 'Lipa Namba':
+        return Icons.smartphone_outlined;
+      default:
+        return Icons.payments_outlined;
+    }
+  }
+
+  Widget _paymentActionsMenu(LodgePayment p, bool canEdit, bool canDelete) {
+    if (!p.editable || !(canEdit || canDelete)) return const SizedBox.shrink();
+    return PopupMenuButton<String>(
+      onSelected: (action) {
+        if (action == 'edit') _editPayment(p);
+        if (action == 'delete') _deletePayment(p);
+      },
+      itemBuilder: (_) => [
+        if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+        if (canDelete) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+      ],
+    );
+  }
+
+  static final _typeColors = {
+    'Bank': AppColors.brandPrimary,
+    'Lipa Namba': AppColors.warning,
+    'Cash': AppColors.secondary,
+  };
+  static const _fallbackColors = [AppColors.info, AppColors.success, AppColors.error];
+
+  Color _colorFor(String type, int index) =>
+      _typeColors[type] ?? _fallbackColors[index % _fallbackColors.length];
+
+  /// The mockup's "Payment totals" card: a big total, a segmented bar by
+  /// type, then each type as its own legend row -- replaces the old flat
+  /// row of unlabelled chips with something that actually totals up.
+  Widget _paymentTotalsCard(bool isDark) {
+    final byType = _data!.byType;
+    final total = byType.values.fold<double>(0, (a, b) => a + b);
+    final entries = byType.entries.toList();
+    final cs = _meta?.currencySymbol ?? 'TZS';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total received',
+                        style: LodgeTheme.body(
+                            size: 13, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                    Text('$cs ${Formatters.formatCurrency(total)}',
+                        style: LodgeTheme.display(size: 32, weight: FontWeight.w700, letterSpacing: -0.5)),
+                  ],
+                ),
+              ),
+              Text('${_data!.payments.length} payment(s)',
+                  style: LodgeTheme.body(
+                      size: 13, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: SizedBox(
+              height: 12,
+              child: Row(
+                children: entries.asMap().entries.map((e) {
+                  final flex = total > 0 ? (e.value.value / total * 1000).round().clamp(1, 1000) : 1;
+                  return Expanded(
+                    flex: flex,
+                    child: Container(color: _colorFor(e.value.key, e.key)),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            children: entries.asMap().entries.map((e) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                      width: 8,
+                      height: 8,
+                      decoration:
+                          BoxDecoration(color: _colorFor(e.value.key, e.key), shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Text('${e.value.key} ${Formatters.formatCompactCurrency(e.value.value)}',
+                      style: LodgeTheme.body(size: 12.5, weight: FontWeight.w600)),
+                ],
+              );
+            }).toList(),
+          ),
         ],
       ),
     );

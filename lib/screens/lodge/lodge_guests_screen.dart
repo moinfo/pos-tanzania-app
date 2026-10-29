@@ -132,13 +132,20 @@ class _LodgeGuestsScreenState extends State<LodgeGuestsScreen> {
                                   background: AppColors.secondary,
                                   foreground: Colors.white,
                                 ),
-                                title: Text(g.name, style: LodgeTheme.body(size: 14.5, weight: FontWeight.w700)),
+                                title: Text(g.name, style: LodgeTheme.display(size: 20, weight: FontWeight.w700)),
                                 subtitle: Text('${g.stays} stay(s) · '
                                     'Spent ${Formatters.formatCompactCurrency(g.spent)}'
                                     '${g.lastStay != null ? ' · Last stay ${Formatters.formatDate(g.lastStay)}' : ''}'),
                                 trailing: g.balance > 0
-                                    ? Text(Formatters.formatCompactCurrency(g.balance),
-                                        style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold))
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                            color: const Color(0xFFFEE2E2),
+                                            borderRadius: BorderRadius.circular(999)),
+                                        child: Text('Owes ${Formatters.formatCompactCurrency(g.balance)}',
+                                            style: LodgeTheme.body(
+                                                size: 12, weight: FontWeight.w600, color: const Color(0xFFB91C1C))),
+                                      )
                                     : null,
                                 onTap: () => Navigator.push(
                                   context,

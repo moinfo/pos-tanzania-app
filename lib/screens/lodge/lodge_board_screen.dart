@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/lodge.dart';
 import '../../models/permission_model.dart';
@@ -122,8 +123,9 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: LodgeTheme.appBar(
         isDark: isDark,
-        eyebrow: 'Overview',
-        title: 'Lodge Board',
+        big: true,
+        eyebrow: DateFormat('EEE d MMM yyyy').format(DateTime.now()),
+        title: 'Lodge',
         actions: [
           if (_meta != null && _meta!.locations.length > 1)
             PopupMenuButton<int?>(
@@ -187,14 +189,36 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
         padding: const EdgeInsets.all(12),
         children: [
           _buildStatsStrip(dashboard, isDark, permissions),
-          const SizedBox(height: 16),
-          Text('Rooms',
-              style: LodgeTheme.display(
-                  size: 17,
-                  weight: FontWeight.w700,
-                  color: isDark ? AppColors.darkText : AppColors.lightText)),
-          const SizedBox(height: 8),
-          _buildRoomGrid(dashboard, isDark, permissions),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Rooms tonight',
+                  style: LodgeTheme.display(
+                      size: 19,
+                      weight: FontWeight.w800,
+                      color: isDark ? AppColors.darkText : AppColors.lightText)),
+              if (permissions.hasPermission(PermissionIds.lodgeReports))
+                InkWell(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LodgeReportScreen()),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Full report',
+                          style: LodgeTheme.body(
+                              size: 13, weight: FontWeight.w700, color: AppColors.brandPrimary)),
+                      const SizedBox(width: 3),
+                      Icon(Icons.arrow_forward, size: 14, color: AppColors.brandPrimary),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _buildRoomList(dashboard, isDark, permissions),
           if (dashboard.arrivals.isNotEmpty) ...[
             const SizedBox(height: 20),
             _buildBookingList('Arriving', dashboard.arrivals, isDark,
@@ -216,15 +240,19 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
   }
 
   /// Revenue gets top billing -- a big hero row, not one tile the same size
-  /// as "Vacant" -- then occupancy/arrivals/departures as smaller secondary
-  /// stats underneath.
+  /// as "Vacant" -- then occupancy/arrivals/departures as one bordered strip
+  /// with a divider between each number, matching the mockup's "Tonight"
+  /// card exactly (Occupied alone picks up the amber-brown tint; the rest
+  /// stay plain dark, since the room count isn't itself good or bad news).
   Widget _buildStatsStrip(LodgeDashboard d, bool isDark, PermissionProvider permissions) {
-    final cs = _meta?.currencySymbol ?? '';
+    final cs = _meta?.currencySymbol ?? 'TZS';
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
     final secondary = <_StatTile>[
-      _StatTile('Occupied', '${d.roomCounts.occupied}/${d.roomCounts.total}', AppColors.warning),
-      _StatTile('Vacant', '${d.roomCounts.vacant}', AppColors.success),
-      _StatTile('Arriving', '${d.stats.arrivals}', AppColors.info),
-      _StatTile('Departing', '${d.stats.departures}', AppColors.info),
+      _StatTile('Occupied', '${d.roomCounts.occupied}', const Color(0xFF92400E)),
+      _StatTile('Vacant', '${d.roomCounts.vacant}', textColor),
+      _StatTile('Arriving', '${d.stats.arrivals}', textColor),
+      _StatTile('Departing', '${d.stats.departures}', textColor),
     ];
 
     return Column(
@@ -235,92 +263,85 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
             Expanded(
               child: _heroStat(
                 "Today's revenue",
-                '$cs ${Formatters.formatCurrency(d.stats.revenueToday)}',
-                AppColors.success,
-                Icons.payments_outlined,
+                Formatters.formatCurrency(d.stats.revenueToday),
+                d.stats.revenueToday > 0 ? 'collected today' : 'no payments yet',
+                textColor,
+                cs,
                 isDark,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               child: _heroStat(
-                'Outstanding balance',
-                '$cs ${Formatters.formatCurrency(d.stats.outstanding)}',
-                d.stats.outstanding > 0 ? AppColors.error : AppColors.success,
-                Icons.account_balance_wallet_outlined,
+                'Outstanding',
+                Formatters.formatCurrency(d.stats.outstanding),
+                d.stats.outstanding > 0 ? 'to collect' : 'fully paid',
+                d.stats.outstanding > 0 ? const Color(0xFFB91C1C) : textColor,
+                cs,
                 isDark,
               ),
             ),
           ],
         ),
-        if (permissions.hasPermission(PermissionIds.lodgeReports)) ...[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LodgeReportScreen()),
-              ),
-              icon: const Icon(Icons.bar_chart, size: 16),
-              label: const Text('Full report'),
-            ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: dividerColor),
           ),
-        ],
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: secondary
-              .map((t) => Container(
-                    width: 108,
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkCard : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(t.value,
-                            style: LodgeTheme.display(size: 16, weight: FontWeight.w800, color: t.color)),
-                        const SizedBox(height: 2),
-                        Text(t.label,
-                            style: LodgeTheme.body(
-                                size: 11.5,
-                                color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
-                      ],
-                    ),
-                  ))
-              .toList(),
+          child: Row(
+            children: secondary
+                .asMap()
+                .entries
+                .map((e) => Expanded(
+                      child: Container(
+                        decoration: e.key == 0
+                            ? null
+                            : BoxDecoration(border: Border(left: BorderSide(color: dividerColor))),
+                        child: Column(
+                          children: [
+                            Text(e.value.value,
+                                style: LodgeTheme.display(size: 30, weight: FontWeight.w700, color: e.value.color)),
+                            const SizedBox(height: 2),
+                            Text(e.value.label,
+                                style: LodgeTheme.body(
+                                    size: 12,
+                                    color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                          ],
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
         ),
       ],
     );
   }
 
-  Widget _heroStat(String label, String value, Color color, IconData icon, bool isDark) {
+  Widget _heroStat(
+      String label, String value, String caption, Color valueColor, String currencySymbol, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight, size: 18),
-          const SizedBox(height: 10),
+          Text(label,
+              style: LodgeTheme.body(
+                  size: 13, weight: FontWeight.w500, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
           Text(
             value,
-            style: LodgeTheme.display(size: 20, weight: FontWeight.w800, color: color),
+            style: LodgeTheme.display(size: 32, weight: FontWeight.w700, color: valueColor, letterSpacing: -0.5),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 2),
-          Text(label,
+          Text('$currencySymbol · $caption',
               style: LodgeTheme.body(
                   size: 12, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
         ],
@@ -328,7 +349,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
     );
   }
 
-  Widget _buildRoomGrid(
+  Widget _buildRoomList(
       LodgeDashboard d, bool isDark, PermissionProvider permissions) {
     if (d.rooms.isEmpty) {
       return Padding(
@@ -341,17 +362,13 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       );
     }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: 1.02,
-      ),
-      itemCount: d.rooms.length,
-      itemBuilder: (_, i) => _buildRoomCard(d.rooms[i], isDark, permissions),
+    return Column(
+      children: d.rooms
+          .map((r) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _buildRoomCard(r, isDark, permissions),
+              ))
+          .toList(),
     );
   }
 
@@ -374,138 +391,143 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
     final color = _statusColor(room.status, room.forSale);
     final booking = room.currentBooking;
     final today = _meta?.today;
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.lightTextLight;
 
-    Widget? action;
+    // Two-column Pay/Check out (occupied), one wide action (reserved/
+    // vacant), or nothing (a room nobody can act on) -- matches the
+    // mockup's full-width button row under each room, not small chips.
+    List<Widget> actions = [];
     if (!room.forSale) {
-      action = null;
+      actions = [];
     } else if (booking != null && booking.status == 'reserved') {
       final canCheckIn = today != null && booking.checkInDate.compareTo(today) <= 0;
-      if (canCheckIn && permissions.hasPermission(PermissionIds.lodgeCheckin)) {
-        action = _miniButton('Check in', () => _checkin(booking));
-      } else {
-        action = _miniButton('View', () => _openBookingDetail(booking.bookingId));
-      }
+      actions = [
+        Expanded(
+          child: canCheckIn && permissions.hasPermission(PermissionIds.lodgeCheckin)
+              ? _wideButton('Check in', () => _checkin(booking), filled: true)
+              : _wideButton('View', () => _openBookingDetail(booking.bookingId), filled: true),
+        ),
+      ];
     } else if (booking != null && booking.status == 'checked_in') {
-      action = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (permissions.hasPermission(PermissionIds.lodgePaymentsAdd))
-            _miniButton('Pay', () => _openBookingDetail(booking.bookingId)),
-          const SizedBox(width: 6),
-          if (permissions.hasPermission(PermissionIds.lodgeCheckout))
-            _miniButton('Check out', () => _openBookingDetail(booking.bookingId)),
-        ],
-      );
+      actions = [
+        if (permissions.hasPermission(PermissionIds.lodgePaymentsAdd))
+          Expanded(child: _wideButton('Pay', () => _openBookingDetail(booking.bookingId), filled: true)),
+        if (permissions.hasPermission(PermissionIds.lodgePaymentsAdd) &&
+            permissions.hasPermission(PermissionIds.lodgeCheckout))
+          const SizedBox(width: 10),
+        if (permissions.hasPermission(PermissionIds.lodgeCheckout))
+          Expanded(
+              child: _wideButton('Check out', () => _openBookingDetail(booking.bookingId), filled: false)),
+      ];
     } else if (room.status == 'vacant' &&
         permissions.hasPermission(PermissionIds.lodgeBookingsAdd)) {
-      action = _miniButton('Book', () => _openNewBooking(roomId: room.roomId));
+      actions = [Expanded(child: _wideButton('Book', () => _openNewBooking(roomId: room.roomId), filled: true))];
     }
 
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(20),
       onTap: booking != null
           ? () => _openBookingDetail(booking.bookingId)
           : (room.forSale ? () => _showRoomSheet(room, permissions) : null),
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCard : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 LodgeArchIcon(
-                  text: room.roomNumber,
-                  width: 36,
-                  height: 42,
-                  background: room.forSale ? color.withOpacity(isDark ? 0.3 : 0.15) : AppColors.secondary,
-                  foreground: room.forSale ? color : Colors.white,
+                  width: 48,
+                  height: 56,
+                  background: room.forSale ? AppColors.warning : AppColors.secondary,
+                  foreground: room.forSale ? AppColors.secondary : Colors.white,
+                  ringColor: room.status == 'occupied' ? const Color(0xFFFEF3C7) : null,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(room.roomNumber,
-                          style: LodgeTheme.display(
-                              size: 15,
-                              weight: FontWeight.w700,
-                              color: isDark ? AppColors.darkText : AppColors.lightText)),
-                      if (room.roomType != null && room.roomType!.isNotEmpty)
-                        Text(room.roomType!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: LodgeTheme.body(
-                                size: 11,
-                                color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                          style: LodgeTheme.display(size: 20, weight: FontWeight.w700, color: textColor)),
+                      Text(
+                        room.forSale
+                            ? '${room.roomType ?? 'Room'} · ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(room.rate)} / night'
+                            : (room.roomType ?? 'Staff / office'),
+                        style: LodgeTheme.body(size: 13, color: subColor),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            if (booking != null)
+                              Text(booking.guestName,
+                                  style: LodgeTheme.body(size: 15, weight: FontWeight.w600, color: textColor)),
+                            room.status == 'occupied'
+                                ? const LodgeStatusBadge(label: 'Occupied')
+                                : Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: color.withOpacity(isDark ? 0.25 : 0.12),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      room.forSale
+                                          ? (room.statusLabel ?? room.status)
+                                          : (room.occupant ?? 'Staff'),
+                                      style: LodgeTheme.body(size: 11, color: color, weight: FontWeight.w600),
+                                    ),
+                                  ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            room.status == 'occupied'
-                ? const LodgeStatusBadge(label: 'Occupied')
-                : Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(isDark ? 0.25 : 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      room.forSale ? (room.statusLabel ?? room.status) : (room.occupant ?? 'Staff'),
-                      style: LodgeTheme.body(size: 11, color: color, weight: FontWeight.w600),
-                    ),
-                  ),
-            if (room.forSale)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  '${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(room.rate)}/night',
-                  style: LodgeTheme.body(
-                      size: 11.5,
-                      color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
-                ),
-              ),
-            if (booking != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(booking.guestName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: LodgeTheme.body(
-                        size: 12.5,
-                        weight: FontWeight.w600,
-                        color: isDark ? AppColors.darkText : AppColors.lightText)),
-              ),
-            const Spacer(),
-            if (action != null) action,
+            if (actions.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(children: actions),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _miniButton(String label, VoidCallback onTap) {
+  Widget _wideButton(String label, VoidCallback onTap, {required bool filled}) {
     return SizedBox(
-      height: 28,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.brandPrimary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          textStyle: const TextStyle(fontSize: 11.5),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: Text(label),
-      ),
+      height: 44,
+      child: filled
+          ? ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.brandPrimary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: Text(label, style: LodgeTheme.body(size: 14, weight: FontWeight.w700, color: Colors.white)),
+            )
+          : OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.secondary,
+                side: const BorderSide(color: AppColors.lightTextLight),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: Text(label, style: LodgeTheme.body(size: 14, weight: FontWeight.w700)),
+            ),
     );
   }
 
@@ -637,3 +659,4 @@ class _StatTile {
   final Color color;
   _StatTile(this.label, this.value, this.color);
 }
+

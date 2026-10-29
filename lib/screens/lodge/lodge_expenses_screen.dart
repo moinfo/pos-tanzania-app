@@ -270,7 +270,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: LodgeTheme.appBar(
         isDark: isDark,
-        eyebrow: 'Outgoings',
+        eyebrow: 'Money out',
         title: 'Expenses',
         actions: [
           if (permissions.hasPermission(PermissionIds.lodgeExpensesDateRangeFilter))
@@ -312,34 +312,42 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
             style: TextStyle(fontSize: 12.5, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
           ),
           const SizedBox(height: 4),
-          Text('Total: ${Formatters.formatCurrency(_data!.total)}',
-              style: LodgeTheme.display(weight: FontWeight.w700, size: 16)),
-          const SizedBox(height: 10),
+          LodgeHeroPanel(
+            caption: 'Total expenses · ${_data!.expenses.length} entry/entries',
+            value: 'TZS ${Formatters.formatCurrency(_data!.total)}',
+          ),
+          const SizedBox(height: 14),
           ..._data!.expenses.map((e) => Card(
                 color: isDark ? AppColors.darkCard : Colors.white,
                 margin: const EdgeInsets.only(bottom: 6),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
                 ),
                 elevation: 0,
                 child: ListTile(
-                  dense: true,
-                  title: Text(e.description),
+                  leading: LodgeArchIcon(
+                    icon: Icons.receipt_long_outlined,
+                    width: 40,
+                    height: 48,
+                    background: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                    foreground: isDark ? AppColors.darkText : AppColors.lightText,
+                  ),
+                  title: Text(e.description, style: LodgeTheme.body(size: 15, weight: FontWeight.w600)),
                   subtitle: Text(
                       '${e.categoryName ?? ''}${e.roomNumber != null ? ' · Room ${e.roomNumber}' : ''} · ${Formatters.formatDate(e.date)}'),
-                  trailing: canDelete
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(Formatters.formatCurrency(e.amount)),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => _deleteExpense(e),
-                            ),
-                          ],
-                        )
-                      : Text(Formatters.formatCurrency(e.amount)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(Formatters.formatCurrency(e.amount),
+                          style: LodgeTheme.display(size: 17, weight: FontWeight.w700)),
+                      if (canDelete)
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () => _deleteExpense(e),
+                        ),
+                    ],
+                  ),
                 ),
               )),
           if (byCategory.isNotEmpty) ...[

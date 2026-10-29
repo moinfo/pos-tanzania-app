@@ -148,8 +148,8 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: LodgeTheme.appBar(
         isDark: isDark,
-        eyebrow: 'Close out',
-        title: 'Day Close',
+        eyebrow: 'End of day',
+        title: 'Day close',
         actions: [
           if (_meta != null && _meta!.locations.length > 1)
             PopupMenuButton<int?>(
@@ -304,26 +304,10 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
             ),
           ],
           const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: closing < 0
-                  ? AppColors.error.withOpacity(0.12)
-                  : (isDark ? AppColors.darkCard : Colors.white),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Closing cash', style: TextStyle(fontWeight: FontWeight.w600)),
-                Text(Formatters.formatCurrency(closing),
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: closing < 0 ? AppColors.error : null)),
-              ],
-            ),
+          LodgeHeroPanel(
+            caption: 'Closing cash',
+            value: '${_meta?.currencySymbol ?? 'TZS'} ${Formatters.formatCurrency(closing)}',
+            valueColor: closing < 0 ? AppColors.error : Colors.white,
           ),
           if (!readOnly) ...[
             const SizedBox(height: 16),

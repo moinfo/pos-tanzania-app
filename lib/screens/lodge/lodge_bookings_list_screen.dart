@@ -194,71 +194,116 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         itemCount: _bookings.length,
-        itemBuilder: (_, i) {
-          final b = _bookings[i];
-          return Card(
-            color: isDark ? AppColors.darkCard : Colors.white,
-            margin: const EdgeInsets.only(bottom: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
-            ),
-            elevation: 0,
-            child: ListTile(
-              leading: LodgeArchIcon(text: _initials(b.guestName), width: 38, height: 44),
-              title: Text(b.guestName, style: LodgeTheme.body(size: 14.5, weight: FontWeight.w700)),
-              subtitle: Text('Room ${b.roomNumber ?? '-'} · '
-                  '${Formatters.formatDate(b.checkInDate)} → ${Formatters.formatDate(b.checkOutDate)} · '
-                  '${b.ledger?.plannedNights ?? ''} night(s)\n'
-                  'Total ${Formatters.formatCompactCurrency(b.totalAmount)} · Paid ${Formatters.formatCompactCurrency(b.amountPaid)}'),
-              isThreeLine: true,
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (b.hasBalance)
-                    Text(Formatters.formatCompactCurrency(b.balance),
-                        style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
-                  _statusBadge(b.status),
-                ],
-              ),
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => LodgeBookingDetailScreen(bookingId: b.bookingId)),
-                );
-                _load();
-              },
-            ),
-          );
-        },
+        itemBuilder: (_, i) => _bookingCard(_bookings[i], isDark),
       ),
     );
   }
 
-  Widget _statusBadge(String status) {
+  /// Matches the mockup's booking card: a bell badge, name + status badge,
+  /// room type, dates, a paid-percent progress bar, then Total/Paid/Balance
+  /// as a 3-column grid -- a lot more information at a glance than a plain
+  /// ListTile gave.
+  Widget _bookingCard(LodgeBooking b, bool isDark) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.lightTextLight;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final nights = b.ledger?.plannedNights;
+    final paidPct = b.totalAmount > 0 ? (b.amountPaid / b.totalAmount).clamp(0.0, 1.0) : 0.0;
     final labels = {
       'reserved': 'Reserved',
       'checked_in': 'Checked in',
       'checked_out': 'Checked out',
       'cancelled': 'Cancelled',
     };
-    if (status == 'checked_in') {
-      return const Padding(
-        padding: EdgeInsets.only(top: 4),
-        child: LodgeStatusBadge(label: 'Checked in'),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Text(labels[status] ?? status, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => LodgeBookingDetailScreen(bookingId: b.bookingId)),
+        );
+        _load();
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: dividerColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const LodgeArchIcon(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(b.guestName,
+                                style: LodgeTheme.display(size: 20, weight: FontWeight.w700, color: textColor))),
+                          if (b.status == 'checked_in')
+                            const LodgeStatusBadge(label: 'Checked in')
+                          else
+                            Text(labels[b.status] ?? b.status,
+                                style: LodgeTheme.body(size: 12, weight: FontWeight.w600, color: subColor)),
+                        ],
+                      ),
+                      Text(b.roomNumber != null ? 'Room ${b.roomNumber}' : '-',
+                          style: LodgeTheme.body(size: 13, weight: FontWeight.w600, color: textColor)),
+                      Text(
+                        '${Formatters.formatDate(b.checkInDate)} → ${Formatters.formatDate(b.checkOutDate)}'
+                        '${nights != null ? ' · $nights night(s)' : ''}',
+                        style: LodgeTheme.body(size: 13, color: subColor),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: paidPct,
+                minHeight: 8,
+                backgroundColor: dividerColor,
+                color: AppColors.brandPrimary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: _moneyColumn('Total', Formatters.formatCompactCurrency(b.totalAmount), subColor)),
+                Expanded(child: _moneyColumn('Paid', Formatters.formatCompactCurrency(b.amountPaid), subColor)),
+                Expanded(
+                  child: _moneyColumn('Balance', Formatters.formatCompactCurrency(b.balance), subColor,
+                      valueColor: b.hasBalance ? const Color(0xFFB91C1C) : subColor),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  String _initials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+  Widget _moneyColumn(String label, String value, Color labelColor, {Color? valueColor}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: LodgeTheme.body(size: 12, color: labelColor)),
+        Text(value,
+            style: LodgeTheme.display(size: 18, weight: FontWeight.w700, color: valueColor ?? labelColor)),
+      ],
+    );
   }
 }

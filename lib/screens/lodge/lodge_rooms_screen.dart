@@ -252,7 +252,14 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Availability', title: 'Rooms'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: _rooms.isEmpty
+            ? 'Availability'
+            : '${_rooms.length} room${_rooms.length == 1 ? '' : 's'} · '
+                '${_rooms.where((r) => r.status == 'occupied').length} occupied',
+        title: 'Rooms',
+      ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeRoomsAdd)
           ? LodgeFab(onPressed: () => _showRoomFormSheet(), label: 'Room')
           : null,
@@ -290,70 +297,89 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
           final color = _statusColor(room.status);
           final hasMenu = (room.forSale && canChangeStatus) || canEdit || canSeeMaintenance || canDelete;
 
-          return Card(
-            color: isDark ? AppColors.darkCard : Colors.white,
-            margin: const EdgeInsets.only(bottom: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+          final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+          final subColor = isDark ? AppColors.darkTextLight : AppColors.lightTextLight;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCard : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
             ),
-            elevation: 0,
-            child: ListTile(
-              leading: LodgeArchIcon(
-                icon: Icons.hotel_outlined,
-                width: 38,
-                height: 44,
-                background: color.withOpacity(isDark ? 0.3 : 0.15),
-                foreground: color,
-              ),
-              title: Text('${room.roomNumber} ${room.roomType ?? ''}', style: LodgeTheme.body(size: 14.5, weight: FontWeight.w700)),
-              subtitle: Text([
-                room.forSale
-                    ? '${Formatters.formatCurrency(room.rate)}/night'
-                    : (room.occupant ?? 'Staff/Office'),
-                if (room.lastMaintenance != null)
-                  'Last maintenance: ${Formatters.formatDate(room.lastMaintenance)}',
-                if (room.description != null && room.description!.isNotEmpty) room.description!,
-              ].join(' · ')),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  room.status == 'occupied'
-                      ? const LodgeStatusBadge(label: 'Occupied')
-                      : Text(room.statusLabel ?? room.status,
-                          style: LodgeTheme.body(size: 12.5, color: color, weight: FontWeight.w600)),
-                  if (hasMenu)
-                    PopupMenuButton<String>(
-                      onSelected: (action) {
-                        switch (action) {
-                          case 'status':
-                            _changeStatus(room);
-                            break;
-                          case 'edit':
-                            _showRoomFormSheet(existing: room);
-                            break;
-                          case 'maintenance':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => LodgeMaintenanceScreen(room: room)),
-                            ).then((_) => _load());
-                            break;
-                          case 'delete':
-                            _deleteRoom(room);
-                            break;
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        if (room.forSale && canChangeStatus)
-                          const PopupMenuItem(value: 'status', child: Text('Change status')),
-                        if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit room')),
-                        if (canSeeMaintenance) const PopupMenuItem(value: 'maintenance', child: Text('Maintenance')),
-                        if (canDelete)
-                          const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.error))),
-                      ],
-                    ),
-                ],
-              ),
+            child: Row(
+              children: [
+                LodgeArchIcon(
+                  background: room.forSale ? AppColors.warning : AppColors.secondary,
+                  foreground: room.forSale ? AppColors.secondary : Colors.white,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(room.roomType != null && room.roomType!.isNotEmpty
+                              ? '${room.roomNumber} · ${room.roomType}'
+                              : room.roomNumber,
+                          style: LodgeTheme.display(size: 20, weight: FontWeight.w700, color: textColor)),
+                      Text(
+                        room.forSale
+                            ? '${Formatters.formatCurrency(room.rate)} / night'
+                            : (room.occupant ?? 'Staff / office'),
+                        style: LodgeTheme.body(size: 13, color: subColor),
+                      ),
+                      if (room.description != null && room.description!.isNotEmpty)
+                        Text(room.description!,
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: LodgeTheme.body(size: 12, color: subColor)),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: room.status == 'occupied'
+                            ? const LodgeStatusBadge(label: 'Occupied')
+                            : Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: color.withOpacity(isDark ? 0.25 : 0.12),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(room.statusLabel ?? room.status,
+                                    style: LodgeTheme.body(size: 11, color: color, weight: FontWeight.w600)),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasMenu)
+                  PopupMenuButton<String>(
+                    onSelected: (action) {
+                      switch (action) {
+                        case 'status':
+                          _changeStatus(room);
+                          break;
+                        case 'edit':
+                          _showRoomFormSheet(existing: room);
+                          break;
+                        case 'maintenance':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => LodgeMaintenanceScreen(room: room)),
+                          ).then((_) => _load());
+                          break;
+                        case 'delete':
+                          _deleteRoom(room);
+                          break;
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      if (room.forSale && canChangeStatus)
+                        const PopupMenuItem(value: 'status', child: Text('Change status')),
+                      if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit room')),
+                      if (canSeeMaintenance) const PopupMenuItem(value: 'maintenance', child: Text('Maintenance')),
+                      if (canDelete)
+                        const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.error))),
+                    ],
+                  ),
+              ],
             ),
           );
         },
