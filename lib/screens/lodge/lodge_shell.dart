@@ -8,13 +8,13 @@ import 'lodge_board_screen.dart';
 import 'lodge_bookings_list_screen.dart';
 import 'lodge_calendar_screen.dart';
 import 'lodge_rooms_screen.dart';
-import 'lodge_more_screen.dart';
 
 /// Holds the Lodge module's own bottom navigation -- same pattern as
-/// ProductionShell, capped at the handful of destinations that matter most
-/// on a phone (Board, Bookings, Calendar, Rooms); everything else (Payments,
-/// Guests, Expenses, Report, Forecast, Day close, Messages) lives behind
-/// "More", which lists the same destinations as the drawer's Lodge section.
+/// ProductionShell, capped at the four destinations used every day (Board,
+/// Bookings, Calendar, Rooms). Everything else (Payments, Guests, Expenses,
+/// Report, Forecast, Day close, Messages) lives in the drawer's Lodge
+/// section only (lodge_menu_items.dart) -- no separate "More" tab, so there
+/// is exactly one place each of those destinations lives, not two.
 class LodgeShell extends StatefulWidget {
   final int initialIndex;
 
@@ -46,7 +46,6 @@ class _LodgeShellState extends State<LodgeShell> {
         const _Destination('Calendar', Icons.calendar_month_outlined, LodgeCalendarScreen()),
       if (permissions.hasPermission(PermissionIds.lodgeRooms))
         const _Destination('Rooms', Icons.meeting_room_outlined, LodgeRoomsScreen()),
-      const _Destination('More', Icons.more_horiz, LodgeMoreScreen()),
     ];
 
     final index = _index.clamp(0, destinations.length - 1);

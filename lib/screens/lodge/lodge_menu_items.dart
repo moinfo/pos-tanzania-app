@@ -7,14 +7,15 @@ import 'lodge_rooms_screen.dart';
 import 'lodge_payments_screen.dart';
 import 'lodge_guests_screen.dart';
 import 'lodge_expenses_screen.dart';
+import 'lodge_report_screen.dart';
+import 'lodge_forecast_screen.dart';
+import 'lodge_day_close_screen.dart';
+import 'lodge_messages_screen.dart';
 
-/// One definition of "every Lodge destination", shared by the drawer's Lodge
-/// section and the "More" tab inside LodgeShell -- so the two lists can't
-/// drift the way the web's own nav (`lodge/partial_nav.php`) and a hand-
-/// duplicated mobile copy would. `builder == null` means the mobile screen
-/// isn't built yet (Report/Forecast/Day close/Messages); it still shows, so
-/// the full structure is visible ahead of being functional, but taps surface
-/// "coming soon" instead of a dead screen.
+/// One definition of "every Lodge destination", used by the drawer's Lodge
+/// section -- the single place all eleven destinations live (LodgeShell's
+/// bottom nav only has room for four of them: Board, Bookings, Calendar,
+/// Rooms). Matches the web's own nav (`lodge/partial_nav.php`) order.
 class LodgeMenuEntry {
   final String key;
   final String label;
@@ -63,11 +64,12 @@ final List<LodgeMenuEntry> lodgeMenuEntries = [
     permissionId: PermissionIds.lodgeGuests,
     builder: (_) => const LodgeGuestsScreen(),
   ),
-  const LodgeMenuEntry(
+  LodgeMenuEntry(
     key: 'messages',
     label: 'Messages',
     icon: Icons.sms_outlined,
     permissionId: PermissionIds.lodgeMessages,
+    builder: (_) => const LodgeMessagesScreen(),
   ),
   LodgeMenuEntry(
     key: 'calendar',
@@ -90,37 +92,33 @@ final List<LodgeMenuEntry> lodgeMenuEntries = [
     permissionId: PermissionIds.lodgeExpenses,
     builder: (_) => const LodgeExpensesScreen(),
   ),
-  const LodgeMenuEntry(
+  LodgeMenuEntry(
     key: 'report',
     label: 'Report',
     icon: Icons.bar_chart_outlined,
     permissionId: PermissionIds.lodgeReports,
+    builder: (_) => const LodgeReportScreen(),
   ),
-  const LodgeMenuEntry(
+  LodgeMenuEntry(
     key: 'forecast',
     label: 'Forecast',
     icon: Icons.trending_up,
     permissionId: PermissionIds.lodgeForecast,
+    builder: (_) => const LodgeForecastScreen(),
   ),
-  const LodgeMenuEntry(
+  LodgeMenuEntry(
     key: 'day_close',
     label: 'Day close',
     icon: Icons.lock_clock_outlined,
     permissionId: PermissionIds.lodgeDayClose,
+    builder: (_) => const LodgeDayCloseScreen(),
   ),
 ];
-
-/// Tabs already on LodgeShell's bottom bar -- "More" and the drawer section
-/// only need the rest.
-const _primaryTabKeys = {'board', 'bookings', 'calendar', 'rooms'};
-
-List<LodgeMenuEntry> lodgeOverflowMenuEntries() =>
-    lodgeMenuEntries.where((e) => !_primaryTabKeys.contains(e.key)).toList();
 
 void openLodgeMenuEntry(BuildContext context, LodgeMenuEntry entry) {
   if (entry.builder == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${entry.label}: kinakuja hivi karibuni')),
+      SnackBar(content: Text('${entry.label} is coming soon')),
     );
     return;
   }

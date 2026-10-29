@@ -85,17 +85,17 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Expense mpya', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('New Expense', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
                   TextField(
                     controller: amountController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Kiasi *', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Amount *', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: descriptionController,
-                    decoration: const InputDecoration(labelText: 'Maelezo *', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Description *', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 10),
                   if (categories.isNotEmpty)
@@ -110,7 +110,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     value: paymentType,
-                    decoration: const InputDecoration(labelText: 'Aina ya malipo', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Payment type', border: OutlineInputBorder()),
                     items: paymentTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                     onChanged: (v) => setSheetState(() => paymentType = v ?? paymentType),
                   ),
@@ -122,7 +122,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                         final amount = double.tryParse(amountController.text);
                         if (amount == null || amount <= 0 || descriptionController.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Jaza kiasi na maelezo'), backgroundColor: AppColors.error),
+                            const SnackBar(content: Text('Fill in the amount and description'), backgroundColor: AppColors.error),
                           );
                           return;
                         }
@@ -136,7 +136,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                         if (!mounted) return;
                         if (response.isSuccess) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Expense imehifadhiwa.'), backgroundColor: AppColors.success),
+                            const SnackBar(content: Text('Expense saved.'), backgroundColor: AppColors.success),
                           );
                           _load();
                         } else {
@@ -145,7 +145,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                           );
                         }
                       },
-                      child: const Text('Hifadhi'),
+                      child: const Text('Save'),
                     ),
                   ),
                 ],
@@ -186,7 +186,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                     children: [
                       Text(_errorMessage!),
                       const SizedBox(height: 12),
-                      ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+                      ElevatedButton(onPressed: _load, child: const Text('Try again')),
                     ],
                   ),
                 )
@@ -195,7 +195,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(12),
                     children: [
-                      Text('Jumla: ${Formatters.formatCurrency(_data!.total)}',
+                      Text('Total: ${Formatters.formatCurrency(_data!.total)}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       const SizedBox(height: 10),
                       ..._data!.expenses.map((e) => Card(
@@ -205,7 +205,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                               dense: true,
                               title: Text(e.description),
                               subtitle: Text(
-                                  '${e.categoryName ?? ''}${e.roomNumber != null ? ' · Chumba ${e.roomNumber}' : ''} · ${Formatters.formatDate(e.date)}'),
+                                  '${e.categoryName ?? ''}${e.roomNumber != null ? ' · Room ${e.roomNumber}' : ''} · ${Formatters.formatDate(e.date)}'),
                               trailing: Text(Formatters.formatCurrency(e.amount)),
                             ),
                           )),

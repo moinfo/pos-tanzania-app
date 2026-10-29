@@ -123,7 +123,7 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
                     children: [
                       Text(_errorMessage!),
                       const SizedBox(height: 12),
-                      ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+                      ElevatedButton(onPressed: _load, child: const Text('Try again')),
                     ],
                   ),
                 )
@@ -146,10 +146,10 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
                           title: Text('${room.roomNumber} ${room.roomType ?? ''}'),
                           subtitle: Text([
                             room.forSale
-                                ? '${Formatters.formatCurrency(room.rate)}/usiku'
+                                ? '${Formatters.formatCurrency(room.rate)}/night'
                                 : (room.occupant ?? 'Staff/Office'),
                             if (room.lastMaintenance != null)
-                              'Matengenezo: ${Formatters.formatDate(room.lastMaintenance)}',
+                              'Last maintenance: ${Formatters.formatDate(room.lastMaintenance)}',
                           ].join(' · ')),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,

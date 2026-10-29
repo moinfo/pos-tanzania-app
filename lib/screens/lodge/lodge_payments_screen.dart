@@ -67,7 +67,7 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
                     children: [
                       Text(_errorMessage!),
                       const SizedBox(height: 12),
-                      ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+                      ElevatedButton(onPressed: _load, child: const Text('Try again')),
                     ],
                   ),
                 )

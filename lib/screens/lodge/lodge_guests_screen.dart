@@ -84,7 +84,7 @@ class _LodgeGuestsScreenState extends State<LodgeGuestsScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Tafuta mgeni...',
+                hintText: 'Search guest...',
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -102,7 +102,7 @@ class _LodgeGuestsScreenState extends State<LodgeGuestsScreen> {
                           children: [
                             Text(_errorMessage!),
                             const SizedBox(height: 12),
-                            ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+                            ElevatedButton(onPressed: _load, child: const Text('Try again')),
                           ],
                         ),
                       )
@@ -118,9 +118,9 @@ class _LodgeGuestsScreenState extends State<LodgeGuestsScreen> {
                               margin: const EdgeInsets.only(bottom: 8),
                               child: ListTile(
                                 title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: Text('${g.stays} safari · '
-                                    'Ametumia ${Formatters.formatCompactCurrency(g.spent)}'
-                                    '${g.lastStay != null ? ' · Mara ya mwisho ${Formatters.formatDate(g.lastStay)}' : ''}'),
+                                subtitle: Text('${g.stays} stay(s) · '
+                                    'Spent ${Formatters.formatCompactCurrency(g.spent)}'
+                                    '${g.lastStay != null ? ' · Last stay ${Formatters.formatDate(g.lastStay)}' : ''}'),
                                 trailing: g.balance > 0
                                     ? Text(Formatters.formatCompactCurrency(g.balance),
                                         style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold))
@@ -220,7 +220,7 @@ class _LodgeGuestHistoryScreenState extends State<LodgeGuestHistoryScreen> {
                       color: isDark ? AppColors.darkCard : Colors.white,
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
-                        title: Text('Chumba ${b.roomNumber ?? '-'}'),
+                        title: Text('Room ${b.roomNumber ?? '-'}'),
                         subtitle: Text(
                             '${Formatters.formatDate(b.checkInDate)} → ${Formatters.formatDate(b.checkOutDate)}'),
                         trailing: Text(Formatters.formatCompactCurrency(b.totalAmount)),

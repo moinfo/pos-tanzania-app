@@ -61,7 +61,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       setState(() {
         _isLoading = false;
         _errorMessage = metaResponse.statusCode == 403
-            ? 'Lodge haijawashwa; iwashe kwenye My Subscription (web) au nunua e-Lodge.'
+            ? 'Lodge is not enabled; turn it on in My Subscription (web) or buy e-Lodge.'
             : metaResponse.message;
       });
       return;
@@ -128,13 +128,13 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
           if (_meta != null && _meta!.locations.length > 1)
             PopupMenuButton<int?>(
               icon: const Icon(Icons.location_on_outlined),
-              tooltip: 'Tawi',
+              tooltip: 'Branch',
               onSelected: (id) {
                 setState(() => _locationId = id);
                 _loadDashboard();
               },
               itemBuilder: (_) => [
-                const PopupMenuItem(value: null, child: Text('Matawi yote')),
+                const PopupMenuItem(value: null, child: Text('All branches')),
                 ..._meta!.locations.map((l) => PopupMenuItem(
                       value: l.locationId,
                       child: Text(l.locationName),
@@ -144,7 +144,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => _loadDashboard(),
-            tooltip: 'Onyesha upya',
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -176,7 +176,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
               const SizedBox(height: 12),
               Text(_errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+              ElevatedButton(onPressed: _load, child: const Text('Try again')),
             ],
           ),
         ),
@@ -193,7 +193,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
         children: [
           _buildStatsStrip(dashboard, isDark),
           const SizedBox(height: 16),
-          Text('Vyumba',
+          Text('Rooms',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -202,14 +202,14 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
           _buildRoomGrid(dashboard, isDark, permissions),
           if (dashboard.arrivals.isNotEmpty) ...[
             const SizedBox(height: 20),
-            _buildBookingList('Wanaofika', dashboard.arrivals, isDark,
+            _buildBookingList('Arriving', dashboard.arrivals, isDark,
                 actionLabel: 'Check in',
                 canAct: permissions.hasPermission(PermissionIds.lodgeCheckin),
                 onAction: (b) => _checkin(b)),
           ],
           if (dashboard.departures.isNotEmpty) ...[
             const SizedBox(height: 20),
-            _buildBookingList('Wanaoondoka', dashboard.departures, isDark,
+            _buildBookingList('Departing', dashboard.departures, isDark,
                 actionLabel: 'Check out',
                 canAct: permissions.hasPermission(PermissionIds.lodgeCheckout),
                 onAction: (b) => _openBookingDetail(b.bookingId)),
@@ -228,11 +228,11 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       _StatTile('Vacant', '${d.roomCounts.vacant}', AppColors.success),
       _StatTile('Arriving', '${d.stats.arrivals}', AppColors.info),
       _StatTile('Departing', '${d.stats.departures}', AppColors.info),
-      _StatTile('Mapato leo',
+      _StatTile("Today's revenue",
           '$cs ${Formatters.formatCompactCurrency(d.stats.revenueToday)}',
           AppColors.success),
       _StatTile(
-          'Deni',
+          'Balance',
           '$cs ${Formatters.formatCompactCurrency(d.stats.outstanding)}',
           d.stats.outstanding > 0 ? AppColors.error : AppColors.success),
     ];
@@ -274,7 +274,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
-          child: Text('Hakuna vyumba bado',
+          child: Text('No rooms yet',
               style: TextStyle(
                   color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
         ),
@@ -323,14 +323,14 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       if (canCheckIn && permissions.hasPermission(PermissionIds.lodgeCheckin)) {
         action = _miniButton('Check in', () => _checkin(booking));
       } else {
-        action = _miniButton('Angalia', () => _openBookingDetail(booking.bookingId));
+        action = _miniButton('View', () => _openBookingDetail(booking.bookingId));
       }
     } else if (booking != null && booking.status == 'checked_in') {
       action = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (permissions.hasPermission(PermissionIds.lodgePaymentsAdd))
-            _miniButton('Lipa', () => _openBookingDetail(booking.bookingId)),
+            _miniButton('Pay', () => _openBookingDetail(booking.bookingId)),
           const SizedBox(width: 6),
           if (permissions.hasPermission(PermissionIds.lodgeCheckout))
             _miniButton('Check out', () => _openBookingDetail(booking.bookingId)),
@@ -345,7 +345,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       borderRadius: BorderRadius.circular(10),
       onTap: booking != null
           ? () => _openBookingDetail(booking.bookingId)
-          : null,
+          : (room.forSale ? () => _showRoomSheet(room, permissions) : null),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -387,7 +387,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
-                  '${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(room.rate)}/usiku',
+                  '${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(room.rate)}/night',
                   style: TextStyle(
                       fontSize: 11.5,
                       color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
@@ -453,7 +453,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
               child: ListTile(
                 dense: true,
                 title: Text(b.guestName),
-                subtitle: Text('Chumba ${b.roomNumber ?? '-'} · '
+                subtitle: Text('Room ${b.roomNumber ?? '-'} · '
                     '${Formatters.formatDate(b.checkInDate)} → ${Formatters.formatDate(b.checkOutDate)}'),
                 trailing: canAct
                     ? TextButton(
@@ -473,10 +473,10 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Check in'),
-        content: Text('Check in ${booking.guestName} chumba ${booking.roomNumber ?? ''}?'),
+        content: Text('Check in ${booking.guestName}, room ${booking.roomNumber ?? ''}?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false), child: const Text('Ghairi')),
+              onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
               onPressed: () => Navigator.pop(context, true), child: const Text('Check in')),
         ],
@@ -489,8 +489,60 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
 
     if (response.isSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${booking.guestName} ameingia.'), backgroundColor: AppColors.success),
+        SnackBar(content: Text('${booking.guestName} checked in.'), backgroundColor: AppColors.success),
       );
+      _loadDashboard(showSpinner: false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response.message), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  /// Empty-room quick actions -- README's "Room sheet": mark vacant/cleaning/
+  /// maintenance. (Statement/Extend/Move/Edit room/Add expense live on the
+  /// booking itself or the Rooms tab; this sheet only covers what applies to
+  /// a room with nobody currently in it.)
+  Future<void> _showRoomSheet(LodgeRoom room, PermissionProvider permissions) async {
+    if (!permissions.hasPermission(PermissionIds.lodgeRoomsStatus)) return;
+
+    final status = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Room ${room.roomNumber}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline, color: AppColors.success),
+              title: const Text('Mark vacant'),
+              onTap: () => Navigator.pop(ctx, 'vacant'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.cleaning_services_outlined, color: AppColors.info),
+              title: const Text('Mark cleaning'),
+              onTap: () => Navigator.pop(ctx, 'cleaning'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.build_outlined, color: Colors.grey),
+              title: const Text('Mark maintenance'),
+              onTap: () => Navigator.pop(ctx, 'maintenance'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (status == null) return;
+
+    final response = await _apiService.setLodgeRoomStatus(roomId: room.roomId, status: status);
+    if (!mounted) return;
+    if (response.isSuccess) {
       _loadDashboard(showSpinner: false);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

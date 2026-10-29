@@ -9254,6 +9254,293 @@ class ApiService {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
+
+  Future<ApiResponse<LodgeBooking>> extendLodgeBooking({
+    required int bookingId,
+    required String checkOutDate,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/extend'),
+        headers: await _getHeaders(),
+        body: json.encode({'check_out_date': checkOutDate}),
+      );
+      return _handleResponse<LodgeBooking>(
+          response, (data) => LodgeBooking.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeBooking>> moveLodgeBooking({
+    required int bookingId,
+    required int roomId,
+    double? ratePerNight,
+    String? note,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/move'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'room_id': roomId,
+          if (ratePerNight != null) 'rate_per_night': ratePerNight,
+          if (note != null) 'note': note,
+        }),
+      );
+      return _handleResponse<LodgeBooking>(
+          response, (data) => LodgeBooking.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Only a `reserved` booking can be cancelled.
+  Future<ApiResponse<LodgeBooking>> cancelLodgeBooking(int bookingId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/cancel'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<LodgeBooking>(
+          response, (data) => LodgeBooking.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Send a guest message right now, regardless of whether that event's
+  /// switch is on -- the main SMS toggle and a linked MoSmS account still
+  /// have to be ready, or the server reports it as skipped/failed.
+  Future<ApiResponse<Map<String, dynamic>>> sendLodgeBookingMessage({
+    required int bookingId,
+    required String event,
+    String? phone,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/message'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'event': event,
+          if (phone != null) 'phone': phone,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeDayClose>> getLodgeDayClose({
+    String? date,
+    int? locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/day-close').replace(
+        queryParameters: {
+          if (date != null) 'date': date,
+          if (locationId != null) 'location_id': locationId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<LodgeDayClose>(
+          response, (data) => LodgeDayClose.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeDayClose>> closeLodgeDay({
+    required String date,
+    int? locationId,
+    required double banked,
+    required double cashSubmitted,
+    String? note,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/day-close'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'date': date,
+          if (locationId != null) 'location_id': locationId,
+          'banked': banked,
+          'cash_submitted': cashSubmitted,
+          if (note != null) 'note': note,
+        }),
+      );
+      return _handleResponse<LodgeDayClose>(
+          response, (data) => LodgeDayClose.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeReport>> getLodgeReport({
+    String? startDate,
+    String? endDate,
+    int? locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/report').replace(
+        queryParameters: {
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+          if (locationId != null) 'location_id': locationId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<LodgeReport>(
+          response, (data) => LodgeReport.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeForecast>> getLodgeForecast({
+    double? occupancy,
+    int? locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/forecast').replace(
+        queryParameters: {
+          if (occupancy != null) 'occupancy': occupancy.round().toString(),
+          if (locationId != null) 'location_id': locationId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<LodgeForecast>(
+          response, (data) => LodgeForecast.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeMessagesSettings>> getLodgeMessagesSettings() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/lodge/messages/settings'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<LodgeMessagesSettings>(
+          response, (data) => LodgeMessagesSettings.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// All fields optional -- partial updates only touch the keys sent.
+  Future<ApiResponse<LodgeMessagesSettings>> saveLodgeMessagesSettings({
+    bool? enabled,
+    String? channel,
+    String? smsName,
+    Map<String, Map<String, dynamic>>? events,
+    Map<String, dynamic>? boss,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/messages/settings'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (enabled != null) 'enabled': enabled,
+          if (channel != null) 'channel': channel,
+          if (smsName != null) 'sms_name': smsName,
+          if (events != null) 'events': events,
+          if (boss != null) 'boss': boss,
+        }),
+      );
+      return _handleResponse<LodgeMessagesSettings>(
+          response, (data) => LodgeMessagesSettings.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeMessagesStatus>> linkLodgeMessagesAccount({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/messages/link'),
+        headers: await _getHeaders(),
+        body: json.encode({'email': email, 'password': password}),
+      );
+      return _handleResponse<LodgeMessagesStatus>(
+          response, (data) => LodgeMessagesStatus.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeMessagesStatus>> registerLodgeMessagesAccount({
+    required String orgName,
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/messages/register'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'org_name': orgName,
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'password': password,
+        }),
+      );
+      return _handleResponse<LodgeMessagesStatus>(
+          response, (data) => LodgeMessagesStatus.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// [preview] true returns the rendered text without sending anything;
+  /// false actually sends (event `day_close` sends the boss report, and
+  /// skips [bookingId]).
+  Future<ApiResponse<Map<String, dynamic>>> testLodgeMessage({
+    required String event,
+    int? bookingId,
+    String? phone,
+    bool preview = false,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/messages/test'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'event': event,
+          if (bookingId != null) 'booking_id': bookingId,
+          if (phone != null) 'phone': phone,
+          'preview': preview,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<LodgeMessageLogEntry>>> getLodgeMessagesLog({int limit = 50}) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/messages/log')
+          .replace(queryParameters: {'limit': limit.toString()});
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<LodgeMessageLogEntry>>(
+        response,
+        (data) => (data['messages'] as List<dynamic>? ?? [])
+            .map((m) => LodgeMessageLogEntry.fromJson(Map<String, dynamic>.from(m)))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
 }
 
 int _toLodgeInt(dynamic v) {

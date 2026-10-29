@@ -679,3 +679,435 @@ class LodgeExpensesList {
     );
   }
 }
+
+/// `GET/POST lodge/day-close` -- README 3.15.
+class LodgeDayCloseFigures {
+  final double openingCash;
+  final double cashIn;
+  final double lipaIn;
+  final double bankIn;
+  final double creditIn;
+  final double cashExpenses;
+  final double banked;
+  final double cashSubmitted;
+  final double closingCash;
+
+  LodgeDayCloseFigures({
+    required this.openingCash,
+    required this.cashIn,
+    required this.lipaIn,
+    required this.bankIn,
+    required this.creditIn,
+    required this.cashExpenses,
+    required this.banked,
+    required this.cashSubmitted,
+    required this.closingCash,
+  });
+
+  factory LodgeDayCloseFigures.fromJson(Map<String, dynamic> json) {
+    return LodgeDayCloseFigures(
+      openingCash: _toDouble(json['opening_cash']),
+      cashIn: _toDouble(json['cash_in']),
+      lipaIn: _toDouble(json['lipa_in']),
+      bankIn: _toDouble(json['bank_in']),
+      creditIn: _toDouble(json['credit_in']),
+      cashExpenses: _toDouble(json['cash_expenses']),
+      banked: _toDouble(json['banked']),
+      cashSubmitted: _toDouble(json['cash_submitted']),
+      closingCash: _toDouble(json['closing_cash']),
+    );
+  }
+}
+
+class LodgeDayCloseRecent {
+  final String date;
+  final double closingCash;
+  final bool closed;
+
+  LodgeDayCloseRecent({required this.date, required this.closingCash, required this.closed});
+
+  factory LodgeDayCloseRecent.fromJson(Map<String, dynamic> json) {
+    return LodgeDayCloseRecent(
+      date: json['date']?.toString() ?? '',
+      closingCash: _toDouble(json['closing_cash']),
+      closed: _toBool(json['closed']),
+    );
+  }
+}
+
+class LodgeDayClose {
+  final bool closed;
+  final LodgeDayCloseFigures figures;
+  final List<LodgePayment> payments;
+  final List<LodgeExpense> expenses;
+  final List<LodgeDayCloseRecent> recent;
+  final bool canPickDate;
+  final bool canEditClose;
+  final List<dynamic> bossReport;
+
+  LodgeDayClose({
+    required this.closed,
+    required this.figures,
+    required this.payments,
+    required this.expenses,
+    required this.recent,
+    required this.canPickDate,
+    required this.canEditClose,
+    this.bossReport = const [],
+  });
+
+  factory LodgeDayClose.fromJson(Map<String, dynamic> json) {
+    return LodgeDayClose(
+      closed: _toBool(json['closed']),
+      figures: LodgeDayCloseFigures.fromJson(Map<String, dynamic>.from(json['figures'] ?? {})),
+      payments: (json['payments'] as List<dynamic>? ?? [])
+          .map((p) => LodgePayment.fromJson(Map<String, dynamic>.from(p)))
+          .toList(),
+      expenses: (json['expenses'] as List<dynamic>? ?? [])
+          .map((e) => LodgeExpense.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      recent: (json['recent'] as List<dynamic>? ?? [])
+          .map((r) => LodgeDayCloseRecent.fromJson(Map<String, dynamic>.from(r)))
+          .toList(),
+      canPickDate: _toBool(json['can_pick_date']),
+      canEditClose: _toBool(json['can_edit_close']),
+      bossReport: json['boss_report'] as List<dynamic>? ?? [],
+    );
+  }
+}
+
+/// `GET lodge/report` -- README 3.14.
+class LodgeReportTotals {
+  final double revenue;
+  final double paid;
+  final double balance;
+  final int nightsSold;
+  final double occupancyPct;
+  final int bookings;
+  final double expenses;
+  final double net;
+  final double maintenanceCost;
+
+  LodgeReportTotals({
+    required this.revenue,
+    required this.paid,
+    required this.balance,
+    required this.nightsSold,
+    required this.occupancyPct,
+    required this.bookings,
+    required this.expenses,
+    required this.net,
+    required this.maintenanceCost,
+  });
+
+  factory LodgeReportTotals.fromJson(Map<String, dynamic> json) {
+    return LodgeReportTotals(
+      revenue: _toDouble(json['revenue']),
+      paid: _toDouble(json['paid']),
+      balance: _toDouble(json['balance']),
+      nightsSold: _toInt(json['nights_sold'] ?? json['room_nights']),
+      occupancyPct: _toDouble(json['occupancy_pct']),
+      bookings: _toInt(json['bookings']),
+      expenses: _toDouble(json['expenses']),
+      net: _toDouble(json['net']),
+      maintenanceCost: _toDouble(json['maintenance_cost']),
+    );
+  }
+}
+
+class LodgeReportRoom {
+  final int roomId;
+  final String roomNumber;
+  final double occupancyPct;
+  final double revenue;
+  final double balance;
+  final double maintenanceCost;
+
+  LodgeReportRoom({
+    required this.roomId,
+    required this.roomNumber,
+    required this.occupancyPct,
+    required this.revenue,
+    required this.balance,
+    required this.maintenanceCost,
+  });
+
+  factory LodgeReportRoom.fromJson(Map<String, dynamic> json) {
+    return LodgeReportRoom(
+      roomId: _toInt(json['room_id']),
+      roomNumber: json['room_number']?.toString() ?? '',
+      occupancyPct: _toDouble(json['occupancy_pct']),
+      revenue: _toDouble(json['revenue']),
+      balance: _toDouble(json['balance']),
+      maintenanceCost: _toDouble(json['maintenance_cost']),
+    );
+  }
+}
+
+class LodgeReport {
+  final LodgeReportTotals totals;
+  final List<LodgeReportRoom> rooms;
+  final List<LodgeGuest> guests;
+
+  LodgeReport({required this.totals, required this.rooms, required this.guests});
+
+  factory LodgeReport.fromJson(Map<String, dynamic> json) {
+    return LodgeReport(
+      totals: LodgeReportTotals.fromJson(Map<String, dynamic>.from(json['totals'] ?? {})),
+      rooms: (json['rooms'] as List<dynamic>? ?? [])
+          .map((r) => LodgeReportRoom.fromJson(Map<String, dynamic>.from(r)))
+          .toList(),
+      guests: (json['guests'] as List<dynamic>? ?? [])
+          .map((g) => LodgeGuest.fromJson(Map<String, dynamic>.from(g)))
+          .toList(),
+    );
+  }
+}
+
+/// `GET lodge/forecast` -- README 3.16.
+class LodgeForecastRoom {
+  final int roomId;
+  final String roomNumber;
+  final double rate;
+  final double day;
+  final double month;
+  final double year;
+  final double actualOccupancy;
+
+  LodgeForecastRoom({
+    required this.roomId,
+    required this.roomNumber,
+    required this.rate,
+    required this.day,
+    required this.month,
+    required this.year,
+    required this.actualOccupancy,
+  });
+
+  factory LodgeForecastRoom.fromJson(Map<String, dynamic> json) {
+    return LodgeForecastRoom(
+      roomId: _toInt(json['room_id']),
+      roomNumber: json['room_number']?.toString() ?? '',
+      rate: _toDouble(json['rate']),
+      day: _toDouble(json['day']),
+      month: _toDouble(json['month']),
+      year: _toDouble(json['year']),
+      actualOccupancy: _toDouble(json['actual_occupancy']),
+    );
+  }
+}
+
+class LodgeForecastScenario {
+  final String label;
+  final double occupancy;
+  final double month;
+  final double year;
+
+  LodgeForecastScenario({
+    required this.label,
+    required this.occupancy,
+    required this.month,
+    required this.year,
+  });
+
+  factory LodgeForecastScenario.fromJson(Map<String, dynamic> json) {
+    return LodgeForecastScenario(
+      label: json['label']?.toString() ?? '',
+      occupancy: _toDouble(json['occupancy']),
+      month: _toDouble(json['month']),
+      year: _toDouble(json['year']),
+    );
+  }
+}
+
+class LodgeForecast {
+  final List<LodgeForecastRoom> rooms;
+  final double totalDay;
+  final double totalMonth;
+  final double totalYear;
+  final double fullCapacity;
+  final double expensesMonth;
+  final double netMonth;
+  final double netYear;
+  final double actualOccupancy;
+  final List<LodgeForecastScenario> scenarios;
+
+  LodgeForecast({
+    required this.rooms,
+    required this.totalDay,
+    required this.totalMonth,
+    required this.totalYear,
+    required this.fullCapacity,
+    required this.expensesMonth,
+    required this.netMonth,
+    required this.netYear,
+    required this.actualOccupancy,
+    required this.scenarios,
+  });
+
+  factory LodgeForecast.fromJson(Map<String, dynamic> json) {
+    final totals = json['totals'] as Map<String, dynamic>? ?? {};
+    return LodgeForecast(
+      rooms: (json['rooms'] as List<dynamic>? ?? [])
+          .map((r) => LodgeForecastRoom.fromJson(Map<String, dynamic>.from(r)))
+          .toList(),
+      totalDay: _toDouble(totals['day']),
+      totalMonth: _toDouble(totals['month']),
+      totalYear: _toDouble(totals['year']),
+      fullCapacity: _toDouble(json['full_capacity']),
+      expensesMonth: _toDouble(json['expenses_month']),
+      netMonth: _toDouble(json['net_month']),
+      netYear: _toDouble(json['net_year']),
+      actualOccupancy: _toDouble(json['actual_occupancy']),
+      scenarios: (json['scenarios'] as List<dynamic>? ?? [])
+          .map((s) => LodgeForecastScenario.fromJson(Map<String, dynamic>.from(s)))
+          .toList(),
+    );
+  }
+}
+
+/// `GET/POST lodge/messages/settings` -- README 3.17.
+class LodgeMessageEvent {
+  final String event;
+  final String label;
+  final bool enabled;
+  final String template;
+  final String defaultTemplate;
+  final String? cron;
+
+  LodgeMessageEvent({
+    required this.event,
+    required this.label,
+    required this.enabled,
+    required this.template,
+    required this.defaultTemplate,
+    this.cron,
+  });
+
+  factory LodgeMessageEvent.fromJson(Map<String, dynamic> json) {
+    return LodgeMessageEvent(
+      event: json['event']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      enabled: _toBool(json['enabled']),
+      template: json['template']?.toString() ?? '',
+      defaultTemplate: json['default_template']?.toString() ?? '',
+      cron: json['cron']?.toString(),
+    );
+  }
+}
+
+class LodgeBossPhone {
+  final String name;
+  final String phone;
+
+  LodgeBossPhone({required this.name, required this.phone});
+
+  factory LodgeBossPhone.fromJson(Map<String, dynamic> json) {
+    return LodgeBossPhone(
+      name: json['name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'name': name, 'phone': phone};
+}
+
+class LodgeBossSettings {
+  final bool enabled;
+  final List<LodgeBossPhone> phones;
+  final String template;
+
+  LodgeBossSettings({required this.enabled, required this.phones, required this.template});
+
+  factory LodgeBossSettings.fromJson(Map<String, dynamic> json) {
+    return LodgeBossSettings(
+      enabled: _toBool(json['enabled']),
+      phones: (json['phones'] as List<dynamic>? ?? [])
+          .map((p) => LodgeBossPhone.fromJson(Map<String, dynamic>.from(p)))
+          .toList(),
+      template: json['template']?.toString() ?? '',
+    );
+  }
+}
+
+class LodgeMessagesStatus {
+  final bool linked;
+  final double? balance;
+  final bool whatsappReady;
+
+  LodgeMessagesStatus({required this.linked, this.balance, required this.whatsappReady});
+
+  factory LodgeMessagesStatus.fromJson(Map<String, dynamic> json) {
+    return LodgeMessagesStatus(
+      linked: _toBool(json['linked']),
+      balance: json['balance'] == null ? null : _toDouble(json['balance']),
+      whatsappReady: _toBool(json['whatsapp_ready']),
+    );
+  }
+}
+
+class LodgeMessagesSettings {
+  final bool enabled;
+  final String channel;
+  final String smsName;
+  final List<LodgeMessageEvent> events;
+  final LodgeBossSettings boss;
+  final LodgeMessagesStatus status;
+  final bool canEdit;
+
+  LodgeMessagesSettings({
+    required this.enabled,
+    required this.channel,
+    required this.smsName,
+    required this.events,
+    required this.boss,
+    required this.status,
+    required this.canEdit,
+  });
+
+  factory LodgeMessagesSettings.fromJson(Map<String, dynamic> json) {
+    return LodgeMessagesSettings(
+      enabled: _toBool(json['enabled']),
+      channel: json['channel']?.toString() ?? 'sms',
+      smsName: json['sms_name']?.toString() ?? '',
+      events: (json['events'] as List<dynamic>? ?? [])
+          .map((e) => LodgeMessageEvent.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      boss: LodgeBossSettings.fromJson(Map<String, dynamic>.from(json['boss'] ?? {})),
+      status: LodgeMessagesStatus.fromJson(Map<String, dynamic>.from(json['status'] ?? {})),
+      canEdit: json['can_edit'] == null ? true : _toBool(json['can_edit']),
+    );
+  }
+}
+
+class LodgeMessageLogEntry {
+  final String event;
+  final String channel;
+  final String? phone;
+  final String status;
+  final String? response;
+  final String? message;
+  final String createdAt;
+
+  LodgeMessageLogEntry({
+    required this.event,
+    required this.channel,
+    this.phone,
+    required this.status,
+    this.response,
+    this.message,
+    required this.createdAt,
+  });
+
+  factory LodgeMessageLogEntry.fromJson(Map<String, dynamic> json) {
+    return LodgeMessageLogEntry(
+      event: json['event']?.toString() ?? '',
+      channel: json['channel']?.toString() ?? '',
+      phone: json['phone']?.toString(),
+      status: json['status']?.toString() ?? '',
+      response: json['response']?.toString(),
+      message: json['message']?.toString(),
+      createdAt: json['created_at']?.toString() ?? '',
+    );
+  }
+}

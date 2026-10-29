@@ -102,9 +102,9 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_errorMessage ?? 'Haikupatikana', textAlign: TextAlign.center),
+              Text(_errorMessage ?? 'Not found', textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+              ElevatedButton(onPressed: _load, child: const Text('Try again')),
             ],
           ),
         ),
@@ -125,38 +125,38 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
             children: [
               _statusChip(b.status, isDark),
               const SizedBox(height: 10),
-              _infoRow('Chumba', b.roomNumber ?? '-', isDark),
-              _infoRow('Simu', b.guestPhone ?? '-', isDark),
-              _infoRow('Wageni', '${b.numGuests}', isDark),
+              _infoRow('Room', b.roomNumber ?? '-', isDark),
+              _infoRow('Phone', b.guestPhone ?? '-', isDark),
+              _infoRow('Guests', '${b.numGuests}', isDark),
               _infoRow('Check-in', Formatters.formatDate(b.checkInDate), isDark),
               _infoRow('Check-out', Formatters.formatDate(b.checkOutDate), isDark),
-              _infoRow('Bei/usiku', '$cs ${Formatters.formatCurrency(b.ratePerNight)}', isDark),
+              _infoRow('Rate/night', '$cs ${Formatters.formatCurrency(b.ratePerNight)}', isDark),
               if (b.notes != null && b.notes!.isNotEmpty)
-                _infoRow('Maelezo', b.notes!, isDark),
+                _infoRow('Notes', b.notes!, isDark),
             ],
           ),
           if (ledger != null) ...[
             const SizedBox(height: 12),
             _card(
               isDark,
-              title: 'Hesabu',
+              title: 'Ledger',
               children: [
-                _infoRow('Amelipa', '$cs ${Formatters.formatCurrency(ledger.paid)}', isDark),
-                _infoRow('Amelipia mpaka',
+                _infoRow('Paid', '$cs ${Formatters.formatCurrency(ledger.paid)}', isDark),
+                _infoRow('Paid through',
                     ledger.paidThrough != null ? Formatters.formatDate(ledger.paidThrough) : '-',
                     isDark),
                 _infoRow(
-                  'Anadaiwa leo',
+                  'Owing today',
                   '$cs ${Formatters.formatCurrency(ledger.balanceNow)}',
                   isDark,
                   valueColor: ledger.balanceNow > 0 ? AppColors.error : AppColors.success,
                 ),
-                _infoRow('Jumla ya salio (mpaka check-out)',
+                _infoRow('Full balance (to check-out)',
                     '$cs ${Formatters.formatCurrency(ledger.balancePlanned)}', isDark),
                 if (ledger.overstay)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text('Amezidisha muda',
+                    child: Text('Overstaying',
                         style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w600)),
                   ),
               ],
@@ -166,7 +166,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
             const SizedBox(height: 12),
             _card(
               isDark,
-              title: 'Malipo',
+              title: 'Payments',
               children: b.payments
                   .map((p) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -195,6 +195,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
 
   Widget _buildActions(LodgeBooking b, bool isDark, PermissionProvider permissions) {
     final buttons = <Widget>[];
+    final isActive = b.status == 'reserved' || b.status == 'checked_in';
 
     if (b.status == 'reserved' && permissions.hasPermission(PermissionIds.lodgeCheckin)) {
       buttons.add(ElevatedButton.icon(
@@ -210,7 +211,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
         buttons.add(OutlinedButton.icon(
           onPressed: _isBusy ? null : _showPaymentSheet,
           icon: const Icon(Icons.payments_outlined),
-          label: const Text('Lipa'),
+          label: const Text('Pay'),
         ));
       }
       if (permissions.hasPermission(PermissionIds.lodgeCheckout)) {
@@ -221,6 +222,39 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandPrimary, foregroundColor: Colors.white),
         ));
       }
+    }
+
+    if (isActive && permissions.hasPermission(PermissionIds.lodgeExtend)) {
+      buttons.add(OutlinedButton.icon(
+        onPressed: _isBusy ? null : _showExtendSheet,
+        icon: const Icon(Icons.event_repeat_outlined),
+        label: const Text('Extend'),
+      ));
+    }
+
+    if (isActive && permissions.hasPermission(PermissionIds.lodgeMove)) {
+      buttons.add(OutlinedButton.icon(
+        onPressed: _isBusy ? null : _showMoveSheet,
+        icon: const Icon(Icons.swap_horiz),
+        label: const Text('Move room'),
+      ));
+    }
+
+    if (permissions.hasPermission(PermissionIds.lodgeMessagesEdit)) {
+      buttons.add(OutlinedButton.icon(
+        onPressed: _isBusy ? null : _showMessageSheet,
+        icon: const Icon(Icons.sms_outlined),
+        label: const Text('Message guest'),
+      ));
+    }
+
+    if (b.status == 'reserved' && permissions.hasPermission(PermissionIds.lodgeBookingsCancel)) {
+      buttons.add(OutlinedButton.icon(
+        onPressed: _isBusy ? null : _cancelBooking,
+        icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+        label: const Text('Cancel booking', style: TextStyle(color: AppColors.error)),
+        style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.error)),
+      ));
     }
 
     if (buttons.isEmpty) return const SizedBox.shrink();
@@ -279,11 +313,11 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
 
   Widget _statusChip(String status, bool isDark) {
     final labels = {
-      'reserved': 'Amehifadhi',
-      'checked_in': 'Yupo',
-      'checked_out': 'Ameondoka',
-      'cancelled': 'Imeghairiwa',
-      'no_show': 'Hakuja',
+      'reserved': 'Reserved',
+      'checked_in': 'Checked in',
+      'checked_out': 'Checked out',
+      'cancelled': 'Cancelled',
+      'no_show': 'No show',
     };
     final colors = {
       'reserved': AppColors.info,
@@ -309,7 +343,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
 
     if (response.isSuccess) {
       setState(() => _booking = response.data);
-      _showSnack('Ameingia.', success: true);
+      _showSnack('Checked in.', success: true);
     } else {
       _showSnack(response.message, success: false);
     }
@@ -369,12 +403,12 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Pokea malipo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('Receive payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
                   TextField(
                     controller: nightsController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Analipia usiku ngapi', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Paying for how many nights', border: OutlineInputBorder()),
                     onChanged: (v) {
                       onNightsChanged(v);
                       setSheetState(() {});
@@ -384,7 +418,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                   TextField(
                     controller: amountController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Kiasi', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Amount', border: OutlineInputBorder()),
                     onChanged: (v) {
                       onAmountChanged(v);
                       setSheetState(() {});
@@ -393,7 +427,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     value: paymentType,
-                    decoration: const InputDecoration(labelText: 'Aina ya malipo', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Payment type', border: OutlineInputBorder()),
                     items: paymentTypes
                         .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                         .toList(),
@@ -402,7 +436,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: noteController,
-                    decoration: const InputDecoration(labelText: 'Maelezo (hiari)', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Note (optional)', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -411,7 +445,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                       onPressed: () async {
                         final amount = double.tryParse(amountController.text);
                         if (amount == null || amount <= 0) {
-                          _showSnack('Weka kiasi sahihi', success: false);
+                          _showSnack('Enter a valid amount', success: false);
                           return;
                         }
                         Navigator.pop(sheetContext);
@@ -422,7 +456,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                           note: noteController.text.isEmpty ? null : noteController.text,
                         );
                       },
-                      child: const Text('Pokea malipo'),
+                      child: const Text('Receive payment'),
                     ),
                   ),
                 ],
@@ -460,8 +494,8 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
       final paidThrough = response.data!.ledger?.paidThrough;
       _showSnack(
         paidThrough != null
-            ? 'Amelipia mpaka ${Formatters.formatDate(paidThrough)}.'
-            : 'Malipo yamepokelewa.',
+            ? 'Paid through ${Formatters.formatDate(paidThrough)}.'
+            : 'Payment received.',
         success: true,
       );
     } else {
@@ -516,25 +550,25 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                   TextField(
                     controller: nightsController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Usiku', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Nights', border: OutlineInputBorder()),
                     onChanged: (_) => setSheetState(() {}),
                   ),
                   const SizedBox(height: 10),
-                  Text('Jumla: ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(jumla)}'),
-                  Text('Amelipa: ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(alreadyPaid)}'),
+                  Text('Total: ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(jumla)}'),
+                  Text('Paid: ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(alreadyPaid)}'),
                   const SizedBox(height: 10),
                   TextField(
                     controller: amountNowController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                        labelText: 'Analipa sasa (salio: ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(salio)})',
+                        labelText: 'Paying now (balance: ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(salio)})',
                         border: const OutlineInputBorder()),
                     onChanged: (_) => setSheetState(() {}),
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     value: paymentType,
-                    decoration: const InputDecoration(labelText: 'Aina ya malipo', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Payment type', border: OutlineInputBorder()),
                     items: paymentTypes
                         .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                         .toList(),
@@ -548,13 +582,13 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                           color: AppColors.warning.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(8)),
                       child: Text(
-                          'Salio ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(remaining)}',
+                          'Balance ${_meta?.currencySymbol ?? ''} ${Formatters.formatCurrency(remaining)}',
                           style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w600)),
                     ),
                     if (canPutOnCredit)
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: Text('Weka salio kwenye mkopo wa ${booking.guestName}'),
+                        title: Text("Put balance on ${booking.guestName}'s credit"),
                         value: onCredit,
                         onChanged: (v) => setSheetState(() => onCredit = v),
                       )
@@ -562,7 +596,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          'Lipa salio kwanza, au unganisha mgeni na akaunti ya mteja kwenye kuhariri booking.',
+                          'Pay the balance first, or link the guest to a customer account by editing the booking.',
                           style: TextStyle(fontSize: 12, color: AppColors.warning),
                         ),
                       ),
@@ -580,7 +614,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
                           onCredit: remaining > 0.009 && onCredit,
                         );
                       },
-                      child: const Text('Kamilisha check out'),
+                      child: const Text('Complete check out'),
                     ),
                   ),
                 ],
@@ -611,9 +645,226 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
 
     if (response.isSuccess && response.data != null) {
       setState(() => _booking = response.data!.booking);
-      _showSnack('Check out imekamilika.', success: true);
+      _showSnack('Check out complete.', success: true);
     } else if (response.statusCode == 409 && response.errors?['owing'] != null) {
       _showSnack(response.message, success: false);
+    } else {
+      _showSnack(response.message, success: false);
+    }
+  }
+
+  Future<void> _showExtendSheet() async {
+    final booking = _booking!;
+    final currentOut = DateTime.tryParse(booking.checkOutDate) ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: currentOut.add(const Duration(days: 1)),
+      firstDate: currentOut.add(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+    );
+    if (picked == null) return;
+
+    setState(() => _isBusy = true);
+    final response = await _apiService.extendLodgeBooking(
+      bookingId: widget.bookingId,
+      checkOutDate: Formatters.formatDateForApi(picked),
+    );
+    if (!mounted) return;
+    setState(() => _isBusy = false);
+
+    if (response.isSuccess && response.data != null) {
+      setState(() => _booking = response.data);
+      _showSnack('Stay extended to ${Formatters.formatDate(response.data!.checkOutDate)}.', success: true);
+    } else {
+      _showSnack(response.message, success: false);
+    }
+  }
+
+  Future<void> _showMoveSheet() async {
+    final booking = _booking!;
+    final roomsResponse = await _apiService.getLodgeAvailableRooms(
+      checkInDate: booking.checkInDate,
+      checkOutDate: booking.checkOutDate,
+      excludeBookingId: widget.bookingId,
+    );
+    if (!mounted) return;
+    if (!roomsResponse.isSuccess || roomsResponse.data == null) {
+      _showSnack(roomsResponse.message, success: false);
+      return;
+    }
+    final rooms = roomsResponse.data!;
+    if (rooms.isEmpty) {
+      _showSnack('No other rooms are free for these dates.', success: false);
+      return;
+    }
+
+    final noteController = TextEditingController();
+    LodgeRoom? selected;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 18,
+            right: 18,
+            top: 18,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 18,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Move to room', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: rooms
+                    .map((r) => ChoiceChip(
+                          label: Text('${r.roomNumber} (${Formatters.formatCurrency(r.rate)})'),
+                          selected: selected?.roomId == r.roomId,
+                          onSelected: (_) => setSheetState(() => selected = r),
+                        ))
+                    .toList(),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: noteController,
+                decoration: const InputDecoration(labelText: 'Reason (optional)', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: selected == null
+                      ? null
+                      : () async {
+                          Navigator.pop(sheetContext);
+                          setState(() => _isBusy = true);
+                          final response = await _apiService.moveLodgeBooking(
+                            bookingId: widget.bookingId,
+                            roomId: selected!.roomId,
+                            ratePerNight: selected!.rate,
+                            note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+                          );
+                          if (!mounted) return;
+                          setState(() => _isBusy = false);
+                          if (response.isSuccess && response.data != null) {
+                            setState(() => _booking = response.data);
+                            _showSnack('Moved to room ${response.data!.roomNumber}.', success: true);
+                          } else {
+                            _showSnack(response.message, success: false);
+                          }
+                        },
+                  child: const Text('Move'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showMessageSheet() async {
+    final booking = _booking!;
+    const events = [
+      ('reservation', 'Reservation'),
+      ('checkin', 'Check-in'),
+      ('payment', 'Payment'),
+      ('checkout', 'Check-out'),
+      ('arrival_reminder', 'Arrival reminder'),
+      ('checkout_reminder', 'Checkout reminder'),
+      ('balance_reminder', 'Balance reminder'),
+      ('feedback', 'Feedback request'),
+    ];
+    String event = events.first.$1;
+    final phoneController = TextEditingController(text: booking.guestPhone ?? '');
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 18,
+            right: 18,
+            top: 18,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 18,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Message guest', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+                value: event,
+                decoration: const InputDecoration(labelText: 'Message', border: OutlineInputBorder()),
+                items: events.map((e) => DropdownMenuItem(value: e.$1, child: Text(e.$2))).toList(),
+                onChanged: (v) => setSheetState(() => event = v ?? event),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(sheetContext);
+                    final response = await _apiService.sendLodgeBookingMessage(
+                      bookingId: widget.bookingId,
+                      event: event,
+                      phone: phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
+                    );
+                    if (!mounted) return;
+                    final status = response.data?['status']?.toString();
+                    _showSnack(
+                      status == 'sent' ? 'Message sent.' : (response.message),
+                      success: status == 'sent',
+                    );
+                  },
+                  child: const Text('Send'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cancelBooking() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Cancel booking'),
+        content: Text('Cancel ${_booking!.guestName}\'s booking?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            child: const Text('Cancel booking'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _isBusy = true);
+    final response = await _apiService.cancelLodgeBooking(widget.bookingId);
+    if (!mounted) return;
+    setState(() => _isBusy = false);
+
+    if (response.isSuccess && response.data != null) {
+      setState(() => _booking = response.data);
+      _showSnack('Booking cancelled.', success: true);
     } else {
       _showSnack(response.message, success: false);
     }

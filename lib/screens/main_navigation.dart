@@ -1040,7 +1040,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                             leading: Icon(entry.icon, color: AppColors.brandPrimary),
                             title: Text(entry.label),
                             trailing: entry.builder == null
-                                ? const Text('Hivi karibuni',
+                                ? const Text('Coming soon',
                                     style: TextStyle(fontSize: 11, color: Colors.grey))
                                 : null,
                             onTap: () {

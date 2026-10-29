@@ -180,15 +180,15 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
 
   Future<void> _submit() async {
     if (_guestNameController.text.trim().isEmpty) {
-      _snack('Jina la mgeni linahitajika', success: false);
+      _snack('Guest name is required', success: false);
       return;
     }
     if (!_datesChosen) {
-      _snack('Chagua tarehe za check-in na check-out', success: false);
+      _snack('Choose check-in and check-out dates', success: false);
       return;
     }
     if (_selectedRoom == null) {
-      _snack('Chagua chumba', success: false);
+      _snack('Choose a room', success: false);
       return;
     }
 
@@ -210,7 +210,7 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
     setState(() => _isSubmitting = false);
 
     if (response.isSuccess) {
-      _snack('Booking imetengenezwa.', success: true);
+      _snack('Booking created.', success: true);
       Navigator.pop(context, true);
     } else {
       _snack(response.message, success: false);
@@ -233,39 +233,39 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
       appBar: AppBar(
         backgroundColor: headerColor,
         foregroundColor: Colors.white,
-        title: const Text('Booking mpya'),
+        title: const Text('New Booking'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _sectionTitle('1. Mgeni', isDark),
+          _sectionTitle('1. Guest', isDark),
           const SizedBox(height: 8),
           TextField(
             controller: _guestNameController,
-            decoration: const InputDecoration(labelText: 'Jina la mgeni *', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Guest name *', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _guestPhoneController,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Simu', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _guestIdController,
-            decoration: const InputDecoration(labelText: 'Namba ya kitambulisho', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'ID number', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _numGuestsController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Idadi ya wageni', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Number of guests', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _customerSearchController,
             decoration: InputDecoration(
-              labelText: 'Akaunti ya mteja (hiari)',
+              labelText: 'Customer account (optional)',
               border: const OutlineInputBorder(),
               suffixIcon: _selectedCustomer != null
                   ? IconButton(
@@ -305,13 +305,13 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
-              title: const Text('Tengeneza akaunti ya mteja kutoka jina+simu'),
-              subtitle: const Text('Inahitajika tu kama mgeni anaweza kuondoka na deni'),
+              title: const Text('Create a customer account from name+phone'),
+              subtitle: const Text('Only needed if the guest might leave owing a balance'),
               value: _createCustomerAccount,
               onChanged: (v) => setState(() => _createCustomerAccount = v ?? false),
             ),
           const SizedBox(height: 20),
-          _sectionTitle('2. Tarehe', isDark),
+          _sectionTitle('2. Dates', isDark),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -325,15 +325,15 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          _sectionTitle('3. Chumba', isDark),
+          _sectionTitle('3. Room', isDark),
           const SizedBox(height: 8),
           if (!_datesChosen)
-            Text('Chagua tarehe mbili kwanza',
+            Text('Choose both dates first',
                 style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight))
           else if (_isLoadingRooms)
             const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()))
           else if (_availableRooms.isEmpty)
-            Text('Hakuna chumba wazi kwa tarehe hizi',
+            Text('No rooms available for these dates',
                 style: TextStyle(color: AppColors.error))
           else
             Wrap(
@@ -352,13 +352,13 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
             TextField(
               controller: _rateController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Bei/usiku', border: OutlineInputBorder()),
+              decoration: const InputDecoration(labelText: 'Rate/night', border: OutlineInputBorder()),
             ),
             if (_datesChosen)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  'Usiku ${_checkOut!.difference(_checkIn!).inDays} × ${Formatters.formatCurrency(double.tryParse(_rateController.text) ?? _selectedRoom!.rate)} '
+                  '${_checkOut!.difference(_checkIn!).inDays} night(s) × ${Formatters.formatCurrency(double.tryParse(_rateController.text) ?? _selectedRoom!.rate)} '
                   '= ${Formatters.formatCurrency((_checkOut!.difference(_checkIn!).inDays) * (double.tryParse(_rateController.text) ?? _selectedRoom!.rate))}',
                   style: TextStyle(fontSize: 12.5, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
                 ),
@@ -368,7 +368,7 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
           TextField(
             controller: _notesController,
             maxLines: 2,
-            decoration: const InputDecoration(labelText: 'Maelezo (hiari)', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Notes (optional)', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -380,7 +380,7 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
               child: _isSubmitting
                   ? const SizedBox(
                       width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Hifadhi booking'),
+                  : const Text('Save booking'),
             ),
           ),
         ],

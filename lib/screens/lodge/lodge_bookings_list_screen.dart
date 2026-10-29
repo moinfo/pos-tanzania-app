@@ -100,7 +100,7 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Tafuta jina, simu, ID, chumba...',
+                hintText: 'Search name, phone, ID, room...',
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -160,7 +160,7 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Jumla: $_total',
+                child: Text('Total: $_total',
                     style: TextStyle(
                         fontSize: 12, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
               ),
@@ -184,14 +184,14 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
           children: [
             Text(_errorMessage!),
             const SizedBox(height: 12),
-            ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+            ElevatedButton(onPressed: _load, child: const Text('Try again')),
           ],
         ),
       );
     }
     if (_bookings.isEmpty) {
       return Center(
-        child: Text('Hakuna bookings',
+        child: Text('No bookings',
             style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
       );
     }
@@ -208,7 +208,7 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               title: Text(b.guestName, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('Chumba ${b.roomNumber ?? '-'} · '
+              subtitle: Text('Room ${b.roomNumber ?? '-'} · '
                   '${Formatters.formatDate(b.checkInDate)} → ${Formatters.formatDate(b.checkOutDate)}'),
               trailing: b.hasBalance
                   ? Text(Formatters.formatCompactCurrency(b.balance),
@@ -230,10 +230,10 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
 
   Widget _statusBadge(String status) {
     final labels = {
-      'reserved': 'Amehifadhi',
-      'checked_in': 'Yupo',
-      'checked_out': 'Ameondoka',
-      'cancelled': 'Imeghairiwa',
+      'reserved': 'Reserved',
+      'checked_in': 'Checked in',
+      'checked_out': 'Checked out',
+      'cancelled': 'Cancelled',
     };
     return Text(labels[status] ?? status, style: const TextStyle(fontSize: 12, color: Colors.grey));
   }

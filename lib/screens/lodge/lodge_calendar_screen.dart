@@ -154,7 +154,7 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
           children: [
             Text(_errorMessage!),
             const SizedBox(height: 12),
-            ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+            ElevatedButton(onPressed: _load, child: const Text('Try again')),
           ],
         ),
       );
@@ -163,7 +163,7 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
     final cal = _calendar;
     if (cal == null || cal.rooms.isEmpty) {
       return Center(
-          child: Text('Hakuna vyumba',
+          child: Text('No rooms',
               style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)));
     }
 

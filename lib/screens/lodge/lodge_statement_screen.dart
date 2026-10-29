@@ -79,9 +79,9 @@ class _LodgeStatementScreenState extends State<LodgeStatementScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(_errorMessage ?? 'Haikupatikana', textAlign: TextAlign.center),
+                        Text(_errorMessage ?? 'Not found', textAlign: TextAlign.center),
                         const SizedBox(height: 16),
-                        ElevatedButton(onPressed: _load, child: const Text('Jaribu tena')),
+                        ElevatedButton(onPressed: _load, child: const Text('Try again')),
                       ],
                     ),
                   ),
@@ -105,12 +105,12 @@ class _LodgeStatementScreenState extends State<LodgeStatementScreen> {
                                   fontSize: 15,
                                   color: isDark ? AppColors.darkText : AppColors.lightText)),
                           const SizedBox(height: 4),
-                          Text('Chumba ${_statement!.booking.roomNumber ?? '-'}',
+                          Text('Room ${_statement!.booking.roomNumber ?? '-'}',
                               style: TextStyle(
                                   fontSize: 12.5,
                                   color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
                           const Divider(height: 20),
-                          Text('Anadaiwa leo: $cs ${Formatters.formatCurrency(_statement!.ledger.balanceNow)}',
+                          Text('Owing today: $cs ${Formatters.formatCurrency(_statement!.ledger.balanceNow)}',
                               style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: _statement!.ledger.balanceNow > 0
@@ -145,7 +145,7 @@ class _LodgeStatementScreenState extends State<LodgeStatementScreen> {
           ),
           Expanded(
             child: Text(
-              row.charge != null ? 'Malazi' : (isCredit ? 'Kwa mkopo' : 'Malipo'),
+              row.charge != null ? 'Accommodation' : (isCredit ? 'On credit' : 'Payment'),
               style: TextStyle(fontSize: 13, color: textColor, fontWeight: FontWeight.w500),
             ),
           ),
