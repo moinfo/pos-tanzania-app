@@ -33,6 +33,18 @@ import 'banking/banking_list_screen.dart';
 import 'financial_banking/financial_banking_screen.dart';
 import 'profit_submit/profit_submit_list_screen.dart';
 import 'transactions/transactions_screen.dart';
+import 'transactions/customer_transactions_screen.dart';
+import 'transactions/customer_balance_screen.dart';
+import 'transactions/cash_basis_screen.dart';
+import 'transactions/bank_basis_screen.dart';
+import 'transactions/wakala_screen.dart';
+import 'transactions/wakala_expenses_screen.dart';
+import 'transactions/wakala_report_screen.dart';
+import 'transactions/commission_screen.dart';
+import 'transactions/capital_screen.dart';
+import 'transactions/lipa_namba_screen.dart';
+import 'transactions/lipa_namba_transactions_screen.dart';
+import 'transactions/lipa_namba_fees_screen.dart';
 import 'reports/reports_screen.dart';
 import 'business_intelligence_screen.dart';
 import 'stock_tracking/stock_tracking_screen.dart';
@@ -1608,6 +1620,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             // Transactions - module-level: the `transactions` row itself or any
             // `transactions_*` sub-permission. Matches the bottom-nav gate so a
             // user granted only e.g. transactions_wakala sees both entry points.
+            // The individual entries below give e-Wakala tenants direct access
+            // to every sub-area from the drawer, same "Transactions overview +
+            // one entry per sub-area" pattern as Contracts' drawer entries.
             PermissionWrapper(
               moduleId: PermissionIds.transactions,
               child: ListTile(
@@ -1618,6 +1633,176 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const TransactionsScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsDepositsAndWithdraws,
+              child: ListTile(
+                leading: Icon(Icons.account_balance_wallet_outlined, color: AppColors.brandPrimary),
+                title: const Text('Deposits & Withdrawals'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CustomerTransactionsScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsCustomerBalance,
+              child: ListTile(
+                leading: Icon(Icons.people_outline, color: AppColors.brandPrimary),
+                title: const Text('Customer Balances'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CustomerBalanceScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsCashBasis,
+              child: ListTile(
+                leading: Icon(Icons.money_outlined, color: AppColors.brandPrimary),
+                title: const Text('Cash Basis'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CashBasisScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsBankBasis,
+              child: ListTile(
+                leading: Icon(Icons.account_balance_outlined, color: AppColors.brandPrimary),
+                title: const Text('Bank Basis'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BankBasisScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsWakala,
+              child: ListTile(
+                leading: Icon(Icons.sim_card_outlined, color: AppColors.brandPrimary),
+                title: const Text('Wakala Float'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WakalaScreen()),
+                  );
+                },
+              ),
+            ),
+            // Wakala Expenses reuses transactions_wakala -- not a real
+            // permission on web (see TransactionsScreen's own card).
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsWakala,
+              child: ListTile(
+                leading: Icon(Icons.money_off_outlined, color: AppColors.brandPrimary),
+                title: const Text('Wakala Expenses'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WakalaExpensesScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsWakalaReport,
+              child: ListTile(
+                leading: Icon(Icons.assessment_outlined, color: AppColors.brandPrimary),
+                title: const Text('Wakala Report'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WakalaReportScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsCommission,
+              child: ListTile(
+                leading: Icon(Icons.percent, color: AppColors.brandPrimary),
+                title: const Text('Commission'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CommissionScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.transactionsCapital,
+              child: ListTile(
+                leading: Icon(Icons.account_balance_wallet, color: AppColors.brandPrimary),
+                title: const Text('Capital'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CapitalScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.lipaNamba,
+              child: ListTile(
+                leading: Icon(Icons.sim_card, color: AppColors.brandPrimary),
+                title: const Text('Lipa Namba Tills'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LipaNambaScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.lipaNamba,
+              child: ListTile(
+                leading: Icon(Icons.receipt_long_outlined, color: AppColors.brandPrimary),
+                title: const Text('Lipa Namba Transactions'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LipaNambaTransactionsScreen()),
+                  );
+                },
+              ),
+            ),
+            PermissionWrapper(
+              permissionId: PermissionIds.lipaNambaFees,
+              child: ListTile(
+                leading: Icon(Icons.percent, color: AppColors.brandPrimary),
+                title: const Text('Lipa Namba Fee Tiers'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LipaNambaFeesScreen()),
                   );
                 },
               ),
