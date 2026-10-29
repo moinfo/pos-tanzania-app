@@ -52,6 +52,7 @@ import '../models/item_quantity_offer.dart';
 import '../models/customer_card.dart';
 import '../models/nfc_wallet.dart';
 import '../models/shop.dart';
+import '../models/lipa_namba.dart';
 import '../config/clients_config.dart';
 
 class ApiService {
@@ -6260,6 +6261,320 @@ class ApiService {
       return _handleResponse<Map<String, dynamic>>(
         response,
         (data) => data,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ==================== LIPA NAMBA API ====================
+
+  /// Get all Lipa Namba tills (accounts)
+  Future<ApiResponse<List<LipaNambaAccount>>> getLipaNambaAccounts() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/lipa_namba'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<List<LipaNambaAccount>>(
+        response,
+        (data) => ((data as Map<String, dynamic>)['accounts'] as List? ?? [])
+            .map((a) => LipaNambaAccount.fromJson(a))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add a Lipa Namba till
+  Future<ApiResponse<Map<String, dynamic>>> addLipaNambaAccount({
+    required String name,
+    required String number,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/add'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'name': name,
+          'number': number,
+          'description': description ?? '',
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update a Lipa Namba till
+  Future<ApiResponse<Map<String, dynamic>>> editLipaNambaAccount(
+    int id, {
+    required String name,
+    required String number,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/edit/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'name': name,
+          'number': number,
+          'description': description ?? '',
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete a Lipa Namba till
+  Future<ApiResponse<Map<String, dynamic>>> deleteLipaNambaAccount(
+      int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/delete/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Record a Lipa Namba deposit. The fee in the response is what the
+  /// server actually applied (looked up from the configured tiers) --
+  /// use it to update any fee preview shown before the call.
+  Future<ApiResponse<Map<String, dynamic>>> depositLipaNamba({
+    required int lipaNambaId,
+    required double amount,
+    String? clientName,
+    String? clientPhone,
+    String? notes,
+    String? transactionDate,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/deposit'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'lipa_namba_id': lipaNambaId,
+          'amount': amount,
+          'client_name': clientName ?? '',
+          'client_phone': clientPhone ?? '',
+          'notes': notes ?? '',
+          if (transactionDate != null) 'transaction_date': transactionDate,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Record a Lipa Namba withdrawal
+  Future<ApiResponse<Map<String, dynamic>>> withdrawLipaNamba({
+    required int lipaNambaId,
+    required double amount,
+    String? clientName,
+    String? clientPhone,
+    String? notes,
+    String? transactionDate,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/withdraw'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'lipa_namba_id': lipaNambaId,
+          'amount': amount,
+          'client_name': clientName ?? '',
+          'client_phone': clientPhone ?? '',
+          'notes': notes ?? '',
+          if (transactionDate != null) 'transaction_date': transactionDate,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Preview the fee that would apply to a deposit of this amount, from
+  /// the configured fee tiers -- the server recalculates it again when
+  /// the deposit is actually posted, this is just for the UI.
+  Future<ApiResponse<double>> getLipaNambaFeeForAmount(double amount) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lipa_namba/fee_for_amount')
+          .replace(queryParameters: {'amount': amount.toString()});
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<double>(
+        response,
+        (data) =>
+            ((data as Map<String, dynamic>)['fee'] as num? ?? 0).toDouble(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get Lipa Namba transaction history + summary for a date range,
+  /// optionally filtered to one till
+  Future<ApiResponse<LipaNambaTransactionsResponse>> getLipaNambaTransactions({
+    String? startDate,
+    String? endDate,
+    int? lipaNambaId,
+  }) async {
+    try {
+      final queryParams = <String, String>{};
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+      if (lipaNambaId != null) {
+        queryParams['lipa_namba_id'] = lipaNambaId.toString();
+      }
+
+      final uri = Uri.parse('$baseUrlSync/lipa_namba/transactions').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<LipaNambaTransactionsResponse>(
+        response,
+        (data) =>
+            LipaNambaTransactionsResponse.fromJson(data as Map<String, dynamic>),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete a Lipa Namba transaction
+  Future<ApiResponse<Map<String, dynamic>>> deleteLipaNambaTransaction(
+      int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/delete_transaction/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Get Lipa Namba fee tiers, sorted by min_amount
+  Future<ApiResponse<List<LipaNambaFeeTier>>> getLipaNambaFees() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/lipa_namba/fees'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<List<LipaNambaFeeTier>>(
+        response,
+        (data) => ((data as Map<String, dynamic>)['fees'] as List? ?? [])
+            .map((f) => LipaNambaFeeTier.fromJson(f))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Add a Lipa Namba fee tier
+  Future<ApiResponse<Map<String, dynamic>>> addLipaNambaFee({
+    required double minAmount,
+    required double maxAmount,
+    required double fee,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/add_fee'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'min_amount': minAmount,
+          'max_amount': maxAmount,
+          'fee': fee,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Update a Lipa Namba fee tier
+  Future<ApiResponse<Map<String, dynamic>>> editLipaNambaFee(
+    int id, {
+    required double minAmount,
+    required double maxAmount,
+    required double fee,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/edit_fee/$id'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'min_amount': minAmount,
+          'max_amount': maxAmount,
+          'fee': fee,
+        }),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Delete a Lipa Namba fee tier
+  Future<ApiResponse<Map<String, dynamic>>> deleteLipaNambaFee(int id) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lipa_namba/delete_fee/$id'),
+        headers: await _getHeaders(),
+      );
+
+      return _handleResponse<Map<String, dynamic>>(
+        response,
+        (data) => data as Map<String, dynamic>,
       );
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');

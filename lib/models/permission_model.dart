@@ -514,6 +514,20 @@ class PermissionIds {
   static const String transactionsCapitalDateRange =
       'transactions_capital_date_range';
 
+  // Lipa Namba (part of the e-Wakala add-on package, module_id='lipa_namba').
+  // One permission ('lipaNambaFees') covers the whole Fee tiers page
+  // including its own add/edit/delete -- there are no
+  // lipa_namba_fees_add/_edit/_delete siblings on the web side.
+  static const String lipaNamba = 'lipa_namba';
+  static const String lipaNambaAdd = 'lipa_namba_add';
+  static const String lipaNambaEdit = 'lipa_namba_edit';
+  static const String lipaNambaDelete = 'lipa_namba_delete';
+  static const String lipaNambaDeposit = 'lipa_namba_deposit';
+  static const String lipaNambaWithdraw = 'lipa_namba_withdraw';
+  static const String lipaNambaDeleteTransaction =
+      'lipa_namba_delete_transaction';
+  static const String lipaNambaFees = 'lipa_namba_fees';
+
   // Reports sub-permissions
   static const String reportsCustomers = 'reports_customers';
   static const String reportsReceivings = 'reports_receivings';

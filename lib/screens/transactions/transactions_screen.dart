@@ -16,6 +16,9 @@ import 'wakala_expenses_screen.dart';
 import 'commission_screen.dart';
 import 'capital_screen.dart';
 import 'wakala_dashboard_section.dart';
+import 'lipa_namba_screen.dart';
+import 'lipa_namba_transactions_screen.dart';
+import 'lipa_namba_fees_screen.dart';
 
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
@@ -275,6 +278,69 @@ class TransactionsScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => const CapitalScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+
+                // Lipa Namba Section (part of the e-Wakala add-on package).
+                // Fee tiers carries its own permission -- lipa_namba_fees is
+                // not implied by the bare lipa_namba grant.
+                if (permissionProvider.hasPermission(PermissionIds.lipaNamba) ||
+                    permissionProvider.hasPermission(PermissionIds.lipaNambaFees)) ...[
+                  const SizedBox(height: 12),
+                  _buildSectionHeader(context, 'Lipa Namba', isDark),
+                  const SizedBox(height: 12),
+
+                  if (permissionProvider.hasPermission(PermissionIds.lipaNamba)) ...[
+                    _buildTransactionCard(
+                      context,
+                      icon: Icons.sim_card,
+                      title: 'Tills',
+                      subtitle: 'Manage tills, deposits and withdrawals',
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LipaNambaScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTransactionCard(
+                      context,
+                      icon: Icons.receipt_long,
+                      title: 'Transactions',
+                      subtitle: 'View Lipa Namba transaction history',
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LipaNambaTransactionsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  if (permissionProvider.hasPermission(PermissionIds.lipaNambaFees)) ...[
+                    _buildTransactionCard(
+                      context,
+                      icon: Icons.percent,
+                      title: 'Fee tiers',
+                      subtitle: 'Configure deposit fees by amount range',
+                      isDark: isDark,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LipaNambaFeesScreen(),
                           ),
                         );
                       },
