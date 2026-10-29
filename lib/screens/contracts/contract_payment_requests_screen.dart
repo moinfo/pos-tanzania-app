@@ -5,6 +5,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'contract_theme.dart';
 
 /// Staff review queue for customer-submitted payment claims (amount +
 /// receipt photo). Approving applies it as a real payment; rejecting
@@ -149,11 +150,8 @@ class _ContractPaymentRequestsScreenState extends State<ContractPaymentRequestsS
     final isDark = context.watch<ThemeProvider>().isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payment requests'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: ContractTheme.appBar(isDark: isDark, eyebrow: 'Review', title: 'Payment requests'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
@@ -169,67 +167,112 @@ class _ContractPaymentRequestsScreenState extends State<ContractPaymentRequestsS
                 )
               : (_requests == null || _requests!.isEmpty)
                   ? Center(
-                      child: Text('No payment requests awaiting review',
-                          style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.task_alt, size: 48, color: isDark ? AppColors.darkTextLight : AppColors.textLight),
+                            const SizedBox(height: 12),
+                            Text('All caught up',
+                                style: ContractTheme.display(
+                                    size: 18, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                            const SizedBox(height: 4),
+                            Text('No payment requests awaiting review',
+                                style: ContractTheme.body(size: 13.5, color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                          ],
+                        ),
+                      ),
                     )
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView(
                         padding: const EdgeInsets.all(16),
-                        children: _requests!.map((r) {
-                          final busy = _busyIds.contains(r.id);
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            color: isDark ? AppColors.darkCard : Colors.white,
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Awaiting review',
+                                  style: ContractTheme.display(
+                                      size: 17, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(999)),
+                                child: Text('${_requests!.length} pending',
+                                    style: ContractTheme.body(size: 12, weight: FontWeight.w600, color: const Color(0xFF92400E))),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ..._requests!.map((r) {
+                            final busy = _busyIds.contains(r.id);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkCard : Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Expanded(
-                                        child: Text(r.contractName,
-                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(r.contractName,
+                                                style: ContractTheme.display(
+                                                    size: 22, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                                            if (r.contractPhone != null && r.contractPhone!.isNotEmpty)
+                                              Text(r.contractPhone!,
+                                                  style: ContractTheme.body(
+                                                      size: 14, color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                                          ],
+                                        ),
                                       ),
                                       Text(Formatters.formatCurrency(r.amount),
-                                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                          style: ContractTheme.display(size: 24, weight: FontWeight.w700, color: AppColors.primary)),
                                     ],
                                   ),
-                                  if (r.contractPhone != null && r.contractPhone!.isNotEmpty)
-                                    Text(r.contractPhone!,
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
-                                  const SizedBox(height: 4),
-                                  Text('Submitted ${Formatters.formatDate(r.date)}',
-                                      style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
-                                  if (r.receiptUrl.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
-                                    GestureDetector(
-                                      onTap: () => _viewReceipt(r.receiptUrl),
-                                      child: Row(
-                                        children: const [
-                                          Icon(Icons.receipt_long, size: 18, color: AppColors.primary),
-                                          SizedBox(width: 6),
-                                          Text('View receipt', style: TextStyle(color: AppColors.primary)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Submitted ${Formatters.formatDate(r.date)}',
+                                          style: ContractTheme.body(
+                                              size: 13, color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                                      if (r.receiptUrl.isNotEmpty)
+                                        TextButton.icon(
+                                          onPressed: () => _viewReceipt(r.receiptUrl),
+                                          icon: const Icon(Icons.receipt_long, size: 18),
+                                          label: const Text('View receipt'),
+                                          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
                                   if (busy)
-                                    const Center(child: CircularProgressIndicator())
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 10),
+                                      child: Center(child: CircularProgressIndicator()),
+                                    )
                                   else
                                     Row(
                                       children: [
                                         Expanded(
                                           child: OutlinedButton(
                                             onPressed: () => _reject(r),
-                                            style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: const Color(0xFFB91C1C),
+                                              side: const BorderSide(color: AppColors.error),
+                                              minimumSize: const Size.fromHeight(46),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                            ),
                                             child: const Text('Reject'),
                                           ),
                                         ),
@@ -238,7 +281,11 @@ class _ContractPaymentRequestsScreenState extends State<ContractPaymentRequestsS
                                           child: ElevatedButton(
                                             onPressed: () => _approve(r),
                                             style: ElevatedButton.styleFrom(
-                                                backgroundColor: AppColors.success, foregroundColor: Colors.white),
+                                              backgroundColor: const Color(0xFF047857),
+                                              foregroundColor: Colors.white,
+                                              minimumSize: const Size.fromHeight(46),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                            ),
                                             child: const Text('Approve'),
                                           ),
                                         ),
@@ -246,9 +293,9 @@ class _ContractPaymentRequestsScreenState extends State<ContractPaymentRequestsS
                                     ),
                                 ],
                               ),
-                            ),
-                          );
-                        }).toList(),
+                            );
+                          }),
+                        ],
                       ),
                     ),
     );

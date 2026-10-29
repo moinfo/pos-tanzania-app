@@ -9,6 +9,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'contract_theme.dart';
 
 /// Tenant-wide Services tab -- maintenance costs against a contract (these
 /// reduce profit, distinct from Payments which reduce balance). Mirrors
@@ -215,18 +216,16 @@ class _ContractServicesScreenState extends State<ContractServicesScreen> {
     final canDelete = permissions.hasPermission(PermissionIds.contractsServicesDelete);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Services'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: ContractTheme.appBar(isDark: isDark, eyebrow: 'Repairs', title: 'Services'),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
               heroTag: 'contract_services_fab',
               onPressed: () => _showServiceForm(),
-              icon: const Icon(Icons.add),
-              label: const Text('Service'),
-              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add, color: AppColors.secondary),
+              label: Text('Service',
+                  style: ContractTheme.body(size: 14, weight: FontWeight.w700, color: AppColors.secondary)),
+              backgroundColor: AppColors.warning,
             )
           : null,
       body: _isLoading
@@ -245,46 +244,77 @@ class _ContractServicesScreenState extends State<ContractServicesScreen> {
               : (_services == null || _services!.isEmpty)
                   ? Center(
                       child: Text('No service costs recorded yet',
-                          style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                          style: ContractTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
                     )
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView(
                         padding: const EdgeInsets.all(16),
-                        children: _services!
-                            .map((s) => Card(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  color: isDark ? AppColors.darkCard : Colors.white,
-                                  child: ListTile(
-                                    title: Text(s.contractName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text(
-                                        '${Formatters.formatDate(s.date)}${s.description != null && s.description!.isNotEmpty ? ' · ${s.description}' : ''}'),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(Formatters.formatCurrency(s.amount),
-                                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                                        if (canEdit || canDelete)
-                                          PopupMenuButton<String>(
-                                            onSelected: (action) {
-                                              if (action == 'edit') _showServiceForm(existing: s);
-                                              if (action == 'delete') _deleteService(s);
-                                            },
-                                            itemBuilder: (_) => [
-                                              if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                              if (canDelete)
-                                                const PopupMenuItem(
-                                                    value: 'delete',
-                                                    child: Text('Delete', style: TextStyle(color: AppColors.error))),
-                                            ],
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
+                        children: [
+                          ContractHeroPanel(
+                            caption: 'Service cost · ${_services!.length} job(s)',
+                            value: 'TZS ${Formatters.formatCurrency(_services!.fold<double>(0, (sum, s) => sum + s.amount))}',
+                          ),
+                          const SizedBox(height: 16),
+                          ..._services!.map((s) => _serviceRow(s, isDark, canEdit, canDelete)),
+                        ],
                       ),
                     ),
+    );
+  }
+
+  Widget _serviceRow(ContractServiceEntry s, bool isDark, bool canEdit, bool canDelete) {
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+      ),
+      child: Row(
+        children: [
+          ContractCircleBadge(
+            icon: Icons.build_outlined,
+            background: isDark ? AppColors.darkDivider : const Color(0xFFE9ECEF),
+            foreground: AppColors.primary,
+            size: 44,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.contractName, style: ContractTheme.display(size: 16, weight: FontWeight.w700, color: textColor)),
+                Text(
+                    '${Formatters.formatDate(s.date)}${s.description != null && s.description!.isNotEmpty ? ' · ${s.description}' : ''}',
+                    style: ContractTheme.body(size: 12.5, color: subColor)),
+              ],
+            ),
+          ),
+          Text(Formatters.formatCurrency(s.amount),
+              style: ContractTheme.display(size: 15, weight: FontWeight.w700, color: textColor)),
+          if (canEdit || canDelete)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: subColor),
+              onSelected: (action) {
+                if (action == 'edit') _showServiceForm(existing: s);
+                if (action == 'delete') _deleteService(s);
+              },
+              itemBuilder: (_) => [
+                if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                if (canDelete)
+                  const PopupMenuItem(
+                      value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.error))),
+              ],
+            )
+          else
+            const SizedBox(width: 12),
+        ],
+      ),
     );
   }
 }
