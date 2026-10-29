@@ -6,10 +6,10 @@ import '../../models/api_response.dart';
 import '../../models/transaction.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
-import '../../widgets/glassmorphic_card.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../models/permission_model.dart';
+import 'wakala_theme.dart';
 
 class CommissionScreen extends StatefulWidget {
   const CommissionScreen({super.key});
@@ -184,11 +184,11 @@ class _CommissionScreenState extends State<CommissionScreen> {
         .hasPermission(PermissionIds.transactionsCommissionDateRange);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: const Text('Commission'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Earnings',
+        title: 'Commission',
         actions: [
           if (canChangeDateRange)
             IconButton(icon: const Icon(Icons.date_range), onPressed: _selectDateRange, tooltip: 'Filter by date range'),
@@ -196,99 +196,77 @@ class _CommissionScreenState extends State<CommissionScreen> {
       ),
       body: Column(
         children: [
-          // Date range display
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : Colors.white,
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.darkDivider : const Color(0xFFE5E7EB), width: 1)),
-              boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: AppColors.primary.withOpacity(isDark ? 0.15 : 0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Icon(Icons.calendar_today, size: 16, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${DateFormat('MMM dd, yyyy').format(_startDate)} - ${DateFormat('MMM dd, yyyy').format(_endDate)}',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1F2937)),
-                    ),
-                  ],
-                ),
-                // Second entry point to the same range picker as the app bar
-                // button, so it needs the same gate.
-                TextButton.icon(
-                  onPressed: canChangeDateRange ? _selectDateRange : null,
-                  icon: const Icon(Icons.edit_calendar, size: 18),
-                  label: const Text('Change'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: AppColors.primary.withOpacity(isDark ? 0.1 : 0.08),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Total summary
-          if (!_isLoading && _commissions.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              margin: const EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDark ? [AppColors.darkCard, AppColors.darkSurface] : [Colors.white, const Color(0xFFFAFAFA)],
-                ),
+                color: isDark ? AppColors.darkSurface : Colors.white,
+                border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE5E7EB), width: 1),
-                boxShadow: isDark
-                    ? [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
-                    : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 1, offset: const Offset(0, 1)), BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: Icon(Icons.percent, color: AppColors.success, size: 24),
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Total Commission', style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
-                          const SizedBox(height: 4),
-                          Text(
-                            Formatters.formatCurrency(_total),
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                    child: Text('${_commissions.length} entries', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600, fontSize: 12)),
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(color: const Color(0xFFDBEAFE), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.date_range, size: 18, color: Color(0xFF1E40AF)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '${DateFormat('MMM d, yyyy').format(_startDate)} – ${DateFormat('MMM d, yyyy').format(_endDate)}',
+                      style: WakalaTheme.display(size: 15, weight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.text),
+                    ),
+                  ),
+                  // Second entry point to the same range picker as the app bar
+                  // button, so it needs the same gate.
+                  TextButton.icon(
+                    onPressed: canChangeDateRange ? _selectDateRange : null,
+                    icon: const Icon(Icons.edit_calendar, size: 16),
+                    label: const Text('Change'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E40AF),
+                      backgroundColor: const Color(0xFFDBEAFE),
+                      textStyle: WakalaTheme.body(size: 14, weight: FontWeight.w700),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ],
               ),
             ),
-          // Content
+          ),
+          if (!_isLoading && _commissions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: WakalaCard(
+                railColor: AppColors.success,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    const WakalaIconTile(icon: Icons.percent, tint: WakalaTint.green),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Total commission', style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                          Text(Formatters.formatCurrency(_total),
+                              style: WakalaTheme.display(size: 28, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(color: const Color(0xFFD1FAE5), borderRadius: BorderRadius.circular(999)),
+                      child: Text('${_commissions.length} ${_commissions.length == 1 ? 'entry' : 'entries'}',
+                          style: WakalaTheme.body(size: 12, weight: FontWeight.w600, color: const Color(0xFF047857))),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -312,14 +290,15 @@ class _CommissionScreenState extends State<CommissionScreen> {
                               children: [
                                 Icon(Icons.percent, size: 64, color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF)),
                                 const SizedBox(height: 16),
-                                Text('No commissions found', style: TextStyle(fontSize: 16, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
+                                Text('No commissions found',
+                                    style: WakalaTheme.body(size: 16, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
                               ],
                             ),
                           )
                         : RefreshIndicator(
                             onRefresh: _loadData,
                             child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
                               itemCount: _commissions.length,
                               itemBuilder: (context, index) {
                                 final c = _commissions[index];
@@ -330,65 +309,57 @@ class _CommissionScreenState extends State<CommissionScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddDialog,
+        icon: const Icon(Icons.add),
+        label: const Text('Commission'),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 
   Widget _buildCommissionCard(Commission c, bool isDark) {
     final isWakala = c.sourceType == 'wakala';
-    final badgeColor = isWakala ? const Color(0xFFD97706) : AppColors.primary;
+    final tint = isWakala ? WakalaTint.amber : WakalaTint.blue;
+    final railColor = isWakala ? AppColors.warning : AppColors.primary;
     final badgeLabel = isWakala ? 'Wakala' : 'Bank';
 
-    return GlassmorphicCard(
-      isDark: isDark,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: WakalaCard(
+        railColor: railColor,
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: badgeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-              child: Icon(isWakala ? Icons.sim_card : Icons.account_balance, color: badgeColor, size: 24),
-            ),
-            const SizedBox(width: 16),
+            WakalaIconTile(icon: isWakala ? Icons.sim_card_outlined : Icons.account_balance_outlined, tint: tint),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: badgeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                        child: Text(badgeLabel, style: TextStyle(color: badgeColor, fontSize: 11, fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(c.sourceName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isDark ? Colors.white : const Color(0xFF374151)), overflow: TextOverflow.ellipsis),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: tint.background, borderRadius: BorderRadius.circular(999)),
+                    child: Text(badgeLabel.toUpperCase(),
+                        style: WakalaTheme.body(size: 11, weight: FontWeight.w700, color: tint.foreground).copyWith(letterSpacing: 0.6)),
                   ),
-                  const SizedBox(height: 6),
                   Text(Formatters.formatCurrency(c.amount),
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF1F2937))),
-                  const SizedBox(height: 4),
-                  if (c.description.isNotEmpty) Text(c.description, style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
-                  Text(c.date, style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF))),
+                      style: WakalaTheme.display(size: 20, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                  if (c.description.isNotEmpty)
+                    Text(c.description, style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkText : AppColors.text)),
+                  Text(c.date, style: WakalaTheme.body(size: 12.5, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
                 ],
               ),
             ),
             PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextLight : AppColors.text),
               onSelected: (value) {
                 if (value == 'edit') _showEditDialog(c);
                 if (value == 'delete') _deleteCommission(c.id);
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')])),
-                const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+                const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                const PopupMenuItem(value: 'delete', child: Text('Delete')),
               ],
             ),
           ],
