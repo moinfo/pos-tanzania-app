@@ -9,6 +9,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import 'wakala_theme.dart';
 
 class LipaNambaFeesScreen extends StatefulWidget {
   const LipaNambaFeesScreen({super.key});
@@ -195,85 +196,87 @@ class _LipaNambaFeesScreenState extends State<LipaNambaFeesScreen> {
     final canManage = permissionProvider.hasPermission(PermissionIds.lipaNambaFees);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Lipa Namba Fee Tiers')),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
-          ),
-        ),
-        child: _isLoading
-            ? _buildSkeletonList(isDark)
-            : _error != null
-                ? Center(child: Text(_error!))
-                : _fees.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No fee tiers configured',
-                          style: TextStyle(
-                            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _fees.length,
-                        itemBuilder: (context, index) {
-                          final fee = _fees[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: GlassmorphicCard(
-                              isDark: isDark,
-                              child: ListTile(
-                                leading: const CircleAvatar(
-                                  backgroundColor: AppColors.primary,
-                                  child: Icon(Icons.percent, color: Colors.white),
-                                ),
-                                title: Text(
-                                  '${Formatters.formatCurrency(fee.minAmount)} - ${Formatters.formatCurrency(fee.maxAmount)}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  'Fee: ${Formatters.formatCurrency(fee.fee)}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
-                                ),
-                                trailing: canManage
-                                    ? PopupMenuButton<String>(
-                                        icon: Icon(
-                                          Icons.more_vert,
-                                          color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                                        ),
-                                        onSelected: (value) {
-                                          if (value == 'edit') {
-                                            _showFeeDialog(existing: fee);
-                                          } else if (value == 'delete') {
-                                            _deleteFee(fee);
-                                          }
-                                        },
-                                        itemBuilder: (context) => const [
-                                          PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                          PopupMenuItem(value: 'delete', child: Text('Delete')),
-                                        ],
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          );
-                        },
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(isDark: isDark, eyebrow: 'Lipa Namba', title: 'Fee Tiers'),
+      body: _isLoading
+          ? _buildSkeletonList(isDark)
+          : _error != null
+              ? Center(child: Text(_error!))
+              : _fees.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No fee tiers configured',
+                        style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
                       ),
-      ),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+                      child: WakalaPanel(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: _fees.asMap().entries.map((entry) {
+                            final fee = entry.value;
+                            return Container(
+                              padding: const EdgeInsets.fromLTRB(16, 10, 4, 10),
+                              decoration: BoxDecoration(
+                                border: entry.key == 0
+                                    ? null
+                                    : Border(top: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Amount range',
+                                            style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
+                                        Text(
+                                            '${Formatters.formatCurrency(fee.minAmount)} – ${Formatters.formatCurrency(fee.maxAmount)}',
+                                            style: WakalaTheme.display(
+                                                size: 18, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                                      ],
+                                    ),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text('Fee', style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
+                                      Text(Formatters.formatCurrency(fee.fee),
+                                          style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: AppColors.primary)),
+                                    ],
+                                  ),
+                                  if (canManage)
+                                    PopupMenuButton<String>(
+                                      icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextLight : AppColors.text),
+                                      onSelected: (value) {
+                                        if (value == 'edit') {
+                                          _showFeeDialog(existing: fee);
+                                        } else if (value == 'delete') {
+                                          _deleteFee(fee);
+                                        }
+                                      },
+                                      itemBuilder: (context) => const [
+                                        PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                      ],
+                                    )
+                                  else
+                                    const SizedBox(width: 8),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
               onPressed: () => _showFeeDialog(),
               icon: const Icon(Icons.add),
               label: const Text('Add Tier'),
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             )
           : null,
     );

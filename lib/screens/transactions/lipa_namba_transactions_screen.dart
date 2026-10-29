@@ -10,6 +10,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import 'wakala_theme.dart';
 
 class LipaNambaTransactionsScreen extends StatefulWidget {
   const LipaNambaTransactionsScreen({super.key});
@@ -128,8 +129,11 @@ class _LipaNambaTransactionsScreenState extends State<LipaNambaTransactionsScree
     final canDelete = permissionProvider.hasPermission(PermissionIds.lipaNambaDeleteTransaction);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lipa Namba Transactions'),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Tills',
+        title: 'Lipa Namba Transactions',
         actions: [
           IconButton(
             icon: const Icon(Icons.date_range),
@@ -151,102 +155,83 @@ class _LipaNambaTransactionsScreenState extends State<LipaNambaTransactionsScree
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
-          ),
-        ),
-        child: _isLoading
-            ? _buildSkeletonList(isDark)
-            : _error != null
-                ? Center(child: Text(_error!))
-                : Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                        child: DropdownButtonFormField<int?>(
-                          value: _selectedAccountId,
-                          isExpanded: true,
-                          decoration: const InputDecoration(labelText: 'Till', border: OutlineInputBorder()),
-                          items: [
-                            const DropdownMenuItem<int?>(value: null, child: Text('All tills')),
-                            ..._accounts.map((a) => DropdownMenuItem<int?>(
-                                  value: a.id,
-                                  child: Text('${a.name} (${a.number})', overflow: TextOverflow.ellipsis),
-                                )),
-                          ],
-                          onChanged: (value) {
-                            setState(() => _selectedAccountId = value);
-                            _loadData();
-                          },
-                        ),
+      body: _isLoading
+          ? _buildSkeletonList(isDark)
+          : _error != null
+              ? Center(child: Text(_error!))
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: DropdownButtonFormField<int?>(
+                        value: _selectedAccountId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(labelText: 'Till', border: OutlineInputBorder()),
+                        items: [
+                          const DropdownMenuItem<int?>(value: null, child: Text('All tills')),
+                          ..._accounts.map((a) => DropdownMenuItem<int?>(
+                                value: a.id,
+                                child: Text('${a.name} (${a.number})', overflow: TextOverflow.ellipsis),
+                              )),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedAccountId = value);
+                          _loadData();
+                        },
                       ),
-                      if (_summary != null) _buildSummaryCard(isDark),
-                      Expanded(child: _buildTransactionsList(isDark, canDelete)),
-                    ],
-                  ),
-      ),
+                    ),
+                    if (_summary != null) _buildSummaryGrid(isDark),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                      child: Text('Transactions',
+                          style: WakalaTheme.display(size: 13, weight: FontWeight.w700, letterSpacing: 0.9, color: const Color(0xFF6C757D))),
+                    ),
+                    Expanded(child: _buildTransactionsList(isDark, canDelete)),
+                  ],
+                ),
     );
   }
 
-  Widget _buildSummaryCard(bool isDark) {
+  Widget _buildSummaryGrid(bool isDark) {
     final s = _summary!;
     return Padding(
-      padding: const EdgeInsets.all(16),
-      child: GlassmorphicCard(
-        isDark: isDark,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _summaryItem(
-                    'Deposits',
-                    '${Formatters.formatCurrency(s.totalDeposits)} (${s.depositCount})',
-                    AppColors.success,
-                    isDark,
-                  ),
-                  _summaryItem(
-                    'Withdrawals',
-                    '${Formatters.formatCurrency(s.totalWithdraws)} (${s.withdrawCount})',
-                    AppColors.error,
-                    isDark,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _summaryItem('Fees', Formatters.formatCurrency(s.totalFees), AppColors.primary, isDark),
-                  _summaryItem('Net', Formatters.formatCurrency(s.net), AppColors.primary, isDark),
-                ],
-              ),
-            ],
-          ),
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: GridView.count(
+        crossAxisCount: 2,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 2.4,
+        children: [
+          _summaryTile(Icons.arrow_downward, 'Deposits', '${Formatters.formatCurrency(s.totalDeposits)} (${s.depositCount})',
+              const Color(0xFF047857), isDark),
+          _summaryTile(Icons.arrow_upward, 'Withdrawals', '${Formatters.formatCurrency(s.totalWithdraws)} (${s.withdrawCount})',
+              const Color(0xFFB91C1C), isDark),
+          _summaryTile(Icons.percent, 'Fees', Formatters.formatCurrency(s.totalFees), AppColors.primary, isDark),
+          _summaryTile(Icons.receipt_long, 'Net', Formatters.formatCurrency(s.net), isDark ? AppColors.darkText : AppColors.text, isDark),
+        ],
       ),
     );
   }
 
-  Widget _summaryItem(String label, String value, Color valueColor, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
-        ),
-        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: valueColor)),
-      ],
+  Widget _summaryTile(IconData icon, String label, String value, Color valueColor, bool isDark) {
+    return WakalaPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D)),
+              const SizedBox(width: 6),
+              Text(label, style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+            ],
+          ),
+          Text(value, style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: valueColor)),
+        ],
+      ),
     );
   }
 
@@ -255,60 +240,60 @@ class _LipaNambaTransactionsScreenState extends State<LipaNambaTransactionsScree
       return Center(
         child: Text(
           'No transactions found',
-          style: TextStyle(color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
+          style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       itemCount: _transactions.length,
       itemBuilder: (context, index) {
         final t = _transactions[index];
-        final typeColor = t.isDeposit ? AppColors.success : AppColors.error;
+        final tint = t.isDeposit ? WakalaTint.green : WakalaTint.red;
+        final railColor = t.isDeposit ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+        final amountColor = t.isDeposit ? const Color(0xFF047857) : const Color(0xFFB91C1C);
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: GlassmorphicCard(
-            isDark: isDark,
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: typeColor,
-                child: Icon(t.isDeposit ? Icons.arrow_downward : Icons.arrow_upward, color: Colors.white),
-              ),
-              title: Text(
-                t.clientName.isNotEmpty ? t.clientName : t.lipaNambaName,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+          padding: const EdgeInsets.only(bottom: 10),
+          child: WakalaCard(
+            railColor: railColor,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                WakalaIconTile(icon: t.isDeposit ? Icons.arrow_downward : Icons.arrow_upward, tint: tint),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(t.clientName.isNotEmpty ? t.clientName : t.lipaNambaName,
+                          style: WakalaTheme.display(size: 17, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                      Text(t.lipaNambaName, style: WakalaTheme.body(size: 12.5, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                      Text(
+                        t.clientPhone.isNotEmpty ? '${t.transactionDate} · ${t.clientPhone}' : t.transactionDate,
+                        style: WakalaTheme.body(size: 12.5, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D)),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${t.lipaNambaName} · ${t.transactionDate}',
-                    style: TextStyle(color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
-                  ),
-                  if (t.clientPhone.isNotEmpty)
-                    Text(
-                      t.clientPhone,
-                      style: TextStyle(color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
-                    ),
-                  Text(
-                    t.isDeposit && t.fee > 0
-                        ? '${Formatters.formatCurrency(t.amount)} + fee ${Formatters.formatCurrency(t.fee)}'
-                        : Formatters.formatCurrency(t.amount),
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: typeColor),
-                  ),
-                ],
-              ),
-              trailing: canDelete
-                  ? IconButton(
-                      icon: const Icon(Icons.delete, color: AppColors.error),
-                      onPressed: () => _deleteTransaction(t),
-                      tooltip: 'Delete',
-                    )
-                  : null,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(Formatters.formatCurrency(t.amount), style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: amountColor)),
+                    if (t.isDeposit && t.fee > 0)
+                      Text('+ fee ${Formatters.formatCurrency(t.fee)}',
+                          style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                  ],
+                ),
+                if (canDelete)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Color(0xFFB91C1C)),
+                    onPressed: () => _deleteTransaction(t),
+                    tooltip: 'Delete',
+                  )
+                else
+                  const SizedBox(width: 8),
+              ],
             ),
           ),
         );

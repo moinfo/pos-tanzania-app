@@ -10,6 +10,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import 'wakala_theme.dart';
 
 class LipaNambaScreen extends StatefulWidget {
   const LipaNambaScreen({super.key});
@@ -393,164 +394,144 @@ class _LipaNambaScreenState extends State<LipaNambaScreen> {
     final hasAnyAction = canEdit || canDelete;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Lipa Namba Tills')),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
-          ),
-        ),
-        child: _isLoading
-            ? _buildSkeletonList(isDark)
-            : _error != null
-                ? Center(child: Text(_error!))
-                : _accounts.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No tills found',
-                          style: TextStyle(
-                            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _accounts.length,
-                        itemBuilder: (context, index) {
-                          final account = _accounts[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: GlassmorphicCard(
-                              isDark: isDark,
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(isDark: isDark, eyebrow: 'Lipa Namba', title: 'Tills'),
+      body: _isLoading
+          ? _buildSkeletonList(isDark)
+          : _error != null
+              ? Center(child: Text(_error!))
+              : _accounts.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No tills found',
+                        style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+                      itemCount: _accounts.length,
+                      itemBuilder: (context, index) {
+                        final account = _accounts[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: WakalaCard(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    Row(
-                                      children: [
-                                        const CircleAvatar(
-                                          backgroundColor: AppColors.primary,
-                                          child: Icon(Icons.sim_card, color: Colors.white),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                account.name,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                                                ),
-                                              ),
-                                              Text(
-                                                account.number,
-                                                style: TextStyle(
-                                                  color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        if (hasAnyAction)
-                                          PopupMenuButton<String>(
-                                            icon: Icon(
-                                              Icons.more_vert,
-                                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                                            ),
-                                            onSelected: (value) {
-                                              if (value == 'edit') {
-                                                _showEditAccountDialog(account);
-                                              } else if (value == 'delete') {
-                                                _deleteAccount(account);
-                                              }
-                                            },
-                                            itemBuilder: (context) => [
-                                              if (canEdit)
-                                                const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                              if (canDelete)
-                                                const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                                            ],
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Float',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                                              ),
-                                            ),
-                                            Text(
-                                              Formatters.formatCurrency(account.float),
-                                              style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.primary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        if (account.totalFees > 0)
-                                          Text(
-                                            'Fees earned: ${Formatters.formatCurrency(account.totalFees)}',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    if (canDeposit || canWithdraw) ...[
-                                      const SizedBox(height: 12),
-                                      Row(
+                                    const WakalaIconTile(icon: Icons.sim_card_outlined),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          if (canDeposit)
-                                            Expanded(
-                                              child: OutlinedButton(
-                                                onPressed: () => _showMoveMoneyDialog(account, isDeposit: true),
-                                                style: OutlinedButton.styleFrom(foregroundColor: AppColors.success),
-                                                child: const Text('Deposit'),
-                                              ),
-                                            ),
-                                          if (canDeposit && canWithdraw) const SizedBox(width: 8),
-                                          if (canWithdraw)
-                                            Expanded(
-                                              child: OutlinedButton(
-                                                onPressed: () => _showMoveMoneyDialog(account, isDeposit: false),
-                                                style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
-                                                child: const Text('Withdraw'),
-                                              ),
-                                            ),
+                                          Text(account.name,
+                                              style: WakalaTheme.display(
+                                                  size: 18, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                                          Text('Till ${account.number}',
+                                              style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))
+                                                  .copyWith(letterSpacing: 0.4)),
                                         ],
                                       ),
-                                    ],
+                                    ),
+                                    if (hasAnyAction)
+                                      PopupMenuButton<String>(
+                                        icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextLight : AppColors.text),
+                                        onSelected: (value) {
+                                          if (value == 'edit') {
+                                            _showEditAccountDialog(account);
+                                          } else if (value == 'delete') {
+                                            _deleteAccount(account);
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                          if (canDelete) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                        ],
+                                      ),
                                   ],
                                 ),
-                              ),
+                                const SizedBox(height: 14),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Float',
+                                              style: WakalaTheme.body(size: 12, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
+                                          Text(Formatters.formatCurrency(account.float),
+                                              style: WakalaTheme.display(size: 28, weight: FontWeight.w700, color: AppColors.primary)),
+                                        ],
+                                      ),
+                                    ),
+                                    Text.rich(
+                                      TextSpan(
+                                        style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
+                                        children: [
+                                          const TextSpan(text: 'Fees earned '),
+                                          TextSpan(
+                                              text: Formatters.formatCurrency(account.totalFees),
+                                              style: WakalaTheme.display(size: 13, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (canDeposit || canWithdraw) ...[
+                                  const SizedBox(height: 14),
+                                  Row(
+                                    children: [
+                                      if (canDeposit)
+                                        Expanded(
+                                          child: OutlinedButton.icon(
+                                            onPressed: () => _showMoveMoneyDialog(account, isDeposit: true),
+                                            icon: const Icon(Icons.add, size: 18),
+                                            label: const Text('Deposit'),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: const Color(0xFF047857),
+                                              side: const BorderSide(color: AppColors.success),
+                                              minimumSize: const Size.fromHeight(44),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                              textStyle: WakalaTheme.body(size: 14, weight: FontWeight.w700),
+                                            ),
+                                          ),
+                                        ),
+                                      if (canDeposit && canWithdraw) const SizedBox(width: 10),
+                                      if (canWithdraw)
+                                        Expanded(
+                                          child: OutlinedButton.icon(
+                                            onPressed: () => _showMoveMoneyDialog(account, isDeposit: false),
+                                            icon: const Icon(Icons.remove, size: 18),
+                                            label: const Text('Withdraw'),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: const Color(0xFFB91C1C),
+                                              side: const BorderSide(color: AppColors.error),
+                                              minimumSize: const Size.fromHeight(44),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                              textStyle: WakalaTheme.body(size: 14, weight: FontWeight.w700),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ],
                             ),
-                          );
-                        },
-                      ),
-      ),
+                          ),
+                        );
+                      },
+                    ),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
               onPressed: _showAddAccountDialog,
               icon: const Icon(Icons.add),
               label: const Text('Add Till'),
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             )
           : null,
     );
