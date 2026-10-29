@@ -81,6 +81,7 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
           ? FloatingActionButton.extended(
+              heroTag: 'lodge_bookings_fab',
               onPressed: () async {
                 final created = await Navigator.push<bool>(
                   context,

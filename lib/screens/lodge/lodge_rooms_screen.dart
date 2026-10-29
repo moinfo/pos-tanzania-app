@@ -250,6 +250,7 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeRoomsAdd)
           ? FloatingActionButton.extended(
+              heroTag: 'lodge_rooms_fab',
               onPressed: () => _showRoomFormSheet(),
               icon: const Icon(Icons.add),
               label: const Text('Room'),

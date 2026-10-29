@@ -258,6 +258,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeExpensesAdd)
           ? FloatingActionButton(
+              heroTag: 'lodge_expenses_fab',
               onPressed: _showAddExpenseSheet,
               backgroundColor: AppColors.brandPrimary,
               child: const Icon(Icons.add, color: Colors.white),

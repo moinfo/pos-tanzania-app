@@ -192,6 +192,7 @@ class _LodgeGuestHistoryScreenState extends State<LodgeGuestHistoryScreen> {
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
           ? FloatingActionButton.extended(
+              heroTag: 'lodge_guest_history_fab',
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(

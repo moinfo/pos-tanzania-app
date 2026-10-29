@@ -276,6 +276,7 @@ class _ProductionBatchesScreenState extends State<ProductionBatchesScreen> {
       ),
       floatingActionButton: canWrite
           ? FloatingActionButton.extended(
+              heroTag: 'production_batches_fab',
               onPressed: _newBatch,
               backgroundColor: AppColors.primary,
               icon: const Icon(Icons.add, color: Colors.white),

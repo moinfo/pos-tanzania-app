@@ -112,6 +112,7 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
           ? FloatingActionButton.extended(
+              heroTag: 'lodge_calendar_fab',
               onPressed: () async {
                 final created = await Navigator.push<bool>(
                   context,

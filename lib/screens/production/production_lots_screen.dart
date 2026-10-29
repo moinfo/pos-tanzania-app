@@ -161,6 +161,7 @@ class _ProductionLotsScreenState extends State<ProductionLotsScreen> {
       ),
       floatingActionButton: canWrite
           ? FloatingActionButton.extended(
+        heroTag: 'production_lots_fab',
         onPressed: _newLot,
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),

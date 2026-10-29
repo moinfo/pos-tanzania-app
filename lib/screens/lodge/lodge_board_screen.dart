@@ -150,6 +150,7 @@ class _LodgeBoardScreenState extends State<LodgeBoardScreen> {
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
           ? FloatingActionButton.extended(
+              heroTag: 'lodge_board_fab',
               onPressed: () => _openNewBooking(),
               icon: const Icon(Icons.add),
               label: const Text('Booking'),

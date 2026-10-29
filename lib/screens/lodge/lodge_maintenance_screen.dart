@@ -233,6 +233,7 @@ class _LodgeMaintenanceScreenState extends State<LodgeMaintenanceScreen> {
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeMaintenanceAdd)
           ? FloatingActionButton(
+              heroTag: 'lodge_maintenance_fab',
               onPressed: _showAddSheet,
               backgroundColor: AppColors.brandPrimary,
               child: const Icon(Icons.add, color: Colors.white),

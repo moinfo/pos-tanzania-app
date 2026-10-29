@@ -141,6 +141,7 @@ class _ProductionRecipesScreenState extends State<ProductionRecipesScreen> {
       ),
       floatingActionButton: canWrite
           ? FloatingActionButton.extended(
+        heroTag: 'production_recipes_fab',
         onPressed: () => _openForm(),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
