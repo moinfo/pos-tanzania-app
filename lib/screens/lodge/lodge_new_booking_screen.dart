@@ -17,11 +17,21 @@ class LodgeNewBookingScreen extends StatefulWidget {
   final String? initialCheckInDate;
   final int? locationId;
 
+  /// Pre-fill from Guests -> "Book again": a past guest's name/phone, and
+  /// their linked customer account if they have one (skips the autocomplete
+  /// search -- we already know who this is).
+  final String? initialGuestName;
+  final String? initialGuestPhone;
+  final int? initialCustomerId;
+
   const LodgeNewBookingScreen({
     super.key,
     this.initialRoomId,
     this.initialCheckInDate,
     this.locationId,
+    this.initialGuestName,
+    this.initialGuestPhone,
+    this.initialCustomerId,
   });
 
   @override
@@ -56,6 +66,19 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
     super.initState();
     if (widget.initialCheckInDate != null) {
       _checkIn = DateTime.tryParse(widget.initialCheckInDate!);
+    }
+    if (widget.initialGuestName != null) {
+      _guestNameController.text = widget.initialGuestName!;
+    }
+    if (widget.initialGuestPhone != null) {
+      _guestPhoneController.text = widget.initialGuestPhone!;
+    }
+    if (widget.initialCustomerId != null) {
+      _selectedCustomer = LodgeCustomerSuggestion(
+        value: widget.initialCustomerId!,
+        label: widget.initialGuestName ?? '',
+      );
+      _customerSearchController.text = _selectedCustomer!.label;
     }
   }
 

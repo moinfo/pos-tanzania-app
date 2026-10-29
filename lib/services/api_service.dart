@@ -9041,4 +9041,222 @@ class ApiService {
       return ApiResponse.error(message: 'Connection error: $e');
     }
   }
+
+  Future<ApiResponse<LodgeBookingsList>> getLodgeBookings({
+    String? startDate,
+    String? endDate,
+    int? locationId,
+    String? status,
+    String? search,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/bookings').replace(
+        queryParameters: {
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+          if (locationId != null) 'location_id': locationId.toString(),
+          if (status != null) 'status': status,
+          if (search != null && search.isNotEmpty) 'search': search,
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<LodgeBookingsList>(
+          response, (data) => LodgeBookingsList.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<LodgeRoom>>> getLodgeRooms({
+    int? locationId,
+    String? purpose,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/rooms').replace(
+        queryParameters: {
+          if (locationId != null) 'location_id': locationId.toString(),
+          if (purpose != null) 'purpose': purpose,
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<LodgeRoom>>(
+        response,
+        (data) => (data['rooms'] as List<dynamic>? ?? [])
+            .map((r) => LodgeRoom.fromJson(Map<String, dynamic>.from(r)))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// [status] is one of vacant/cleaning/maintenance -- occupied is server-
+  /// driven by check-in/out, never settable from here.
+  Future<ApiResponse<LodgeRoom>> setLodgeRoomStatus({
+    required int roomId,
+    required String status,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/rooms/$roomId/status'),
+        headers: await _getHeaders(),
+        body: json.encode({'status': status}),
+      );
+      return _handleResponse<LodgeRoom>(
+          response, (data) => LodgeRoom.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeCalendar>> getLodgeCalendar({
+    required String month,
+    int? locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/calendar').replace(
+        queryParameters: {
+          'month': month,
+          if (locationId != null) 'location_id': locationId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<LodgeCalendar>(
+          response, (data) => LodgeCalendar.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgePaymentsByType>> getLodgePayments({
+    String? startDate,
+    String? endDate,
+    int? locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/payments').replace(
+        queryParameters: {
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+          if (locationId != null) 'location_id': locationId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<LodgePaymentsByType>(
+          response, (data) => LodgePaymentsByType.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<LodgeGuest>>> getLodgeGuests({
+    String? query,
+    int? locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/guests').replace(
+        queryParameters: {
+          if (query != null && query.isNotEmpty) 'q': query,
+          if (locationId != null) 'location_id': locationId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<LodgeGuest>>(
+        response,
+        (data) => (data['guests'] as List<dynamic>? ?? [])
+            .map((g) => LodgeGuest.fromJson(Map<String, dynamic>.from(g)))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<LodgeBooking>>> getLodgeGuestHistory(String guestKey) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/guests/history')
+          .replace(queryParameters: {'key': guestKey});
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<LodgeBooking>>(
+        response,
+        (data) => (data['bookings'] as List<dynamic>? ?? [])
+            .map((b) => LodgeBooking.fromJson(Map<String, dynamic>.from(b)))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeExpensesList>> getLodgeExpenses({
+    String? startDate,
+    String? endDate,
+    int? locationId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/expenses').replace(
+        queryParameters: {
+          if (startDate != null) 'start_date': startDate,
+          if (endDate != null) 'end_date': endDate,
+          if (locationId != null) 'location_id': locationId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<LodgeExpensesList>(
+          response, (data) => LodgeExpensesList.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getLodgeExpenseCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/lodge/expenses/categories'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<int>> createLodgeExpense({
+    required double amount,
+    required String description,
+    String? date,
+    String? paymentType,
+    int? expenseCategoryId,
+    int? roomId,
+    int? locationId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/expenses'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'amount': amount,
+          'description': description,
+          if (date != null) 'date': date,
+          if (paymentType != null) 'payment_type': paymentType,
+          if (expenseCategoryId != null) 'expense_category_id': expenseCategoryId,
+          if (roomId != null) 'room_id': roomId,
+          if (locationId != null) 'location_id': locationId,
+        }),
+      );
+      return _handleResponse<int>(
+          response, (data) => _toLodgeInt(data['expense_id']));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+}
+
+int _toLodgeInt(dynamic v) {
+  if (v is int) return v;
+  return int.tryParse(v?.toString() ?? '') ?? 0;
 }

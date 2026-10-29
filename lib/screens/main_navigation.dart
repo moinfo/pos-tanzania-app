@@ -50,7 +50,8 @@ import 'notifications_screen.dart';
 import '../main.dart' show handlePushTap;
 import 'cash_movements_screen.dart';
 import 'production/production_shell.dart';
-import 'lodge/lodge_board_screen.dart';
+import 'lodge/lodge_shell.dart';
+import 'lodge/lodge_menu_items.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -285,15 +286,16 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   // - SADA: Home, Sales, Expenses, Summary, Contracts, Reports (or Transactions if no stock location)
   // - Leruma: Home, Sales, Expenses, Summary, Seller, Reports
   // - Come & Save: Home, Sales, Expenses, Summary, Reports (or Transactions if no stock location)
-  // - Lodge-only tenant: Board alone (see _isLodgeOnlyTenant) -- the module
-  //   becomes this tenant's whole app rather than a drawer add-on.
+  // - Lodge-only tenant: LodgeShell alone (see _isLodgeOnlyTenant) -- the
+  //   module becomes this tenant's whole app (its own bottom nav: Board,
+  //   Bookings, Calendar, Rooms, More) rather than a drawer add-on.
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
     if (_isLodgeOnlyTenant(permissionProvider)) {
       return [
         {
-          'screen': LodgeBoardScreen(key: ValueKey('lodge_board_$userId')),
+          'screen': LodgeShell(key: ValueKey('lodge_shell_$userId')),
           'icon': Icons.hotel,
-          'label': 'Board',
+          'label': 'Lodge',
           'permission': PermissionIds.lodge,
         },
       ];
@@ -1019,24 +1021,37 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ],
               ),
             ),
-            // Lodge Menu — hidden when the tenant is lodge-only (that tenant
-            // already lands on the Board as their Home tab; repeating it
-            // here would be a dead-end duplicate entry).
-            if (!_isLodgeOnlyTenant(permissionProvider))
-              PermissionWrapper(
-                permissionId: PermissionIds.lodge,
-                child: ListTile(
-                  leading: Icon(Icons.hotel_outlined, color: AppColors.brandPrimary),
-                  title: const Text('Lodge'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LodgeBoardScreen()),
-                    );
-                  },
-                ),
+            // Lodge Menu — full destination list (same entries as LodgeShell's
+            // "More" tab, see lodge_menu_items.dart) so every section is one
+            // tap from the drawer too, not just the 5 that fit the bottom
+            // bar. Shown for lodge-only tenants as well: their bottom nav
+            // only has room for Board/Bookings/Calendar/Rooms/More, so this
+            // is still the fastest way to jump straight to e.g. Guests.
+            PermissionWrapper(
+              permissionId: PermissionIds.lodge,
+              child: ExpansionTile(
+                leading: Icon(Icons.hotel_outlined, color: AppColors.brandPrimary),
+                title: const Text('Lodge'),
+                childrenPadding: const EdgeInsets.only(left: 16),
+                children: lodgeMenuEntries
+                    .map((entry) => PermissionWrapper(
+                          permissionId: entry.permissionId,
+                          child: ListTile(
+                            leading: Icon(entry.icon, color: AppColors.brandPrimary),
+                            title: Text(entry.label),
+                            trailing: entry.builder == null
+                                ? const Text('Hivi karibuni',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey))
+                                : null,
+                            onTap: () {
+                              Navigator.pop(context);
+                              openLodgeMenuEntry(context, entry);
+                            },
+                          ),
+                        ))
+                    .toList(),
               ),
+            ),
             // Cash Movements Menu — split into the two entries the web uses
             // ("Direct Deposit" / "Direct Withdraw") rather than one umbrella,
             // since the grants are per-type and a user often holds only one.

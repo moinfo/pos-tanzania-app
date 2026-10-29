@@ -494,3 +494,188 @@ class LodgeCheckoutResult {
     );
   }
 }
+
+/// `GET lodge/bookings` (list/filter) result.
+class LodgeBookingsList {
+  final int total;
+  final List<LodgeBooking> bookings;
+
+  LodgeBookingsList({required this.total, required this.bookings});
+
+  factory LodgeBookingsList.fromJson(Map<String, dynamic> json) {
+    return LodgeBookingsList(
+      total: _toInt(json['total']),
+      bookings: (json['bookings'] as List<dynamic>? ?? [])
+          .map((b) => LodgeBooking.fromJson(Map<String, dynamic>.from(b)))
+          .toList(),
+    );
+  }
+}
+
+/// A booking bar on the Calendar -- deliberately separate from [LodgeBooking]
+/// since the calendar endpoint sends `from`/`to` (the slice of the stay that
+/// falls inside the requested month), not the booking's full date range.
+class LodgeCalendarBooking {
+  final int bookingId;
+  final int roomId;
+  final String guestName;
+  final String from;
+  final String to;
+  final String status;
+
+  LodgeCalendarBooking({
+    required this.bookingId,
+    required this.roomId,
+    required this.guestName,
+    required this.from,
+    required this.to,
+    required this.status,
+  });
+
+  factory LodgeCalendarBooking.fromJson(Map<String, dynamic> json) {
+    return LodgeCalendarBooking(
+      bookingId: _toInt(json['booking_id']),
+      roomId: _toInt(json['room_id']),
+      guestName: json['guest_name']?.toString() ?? '',
+      from: json['from']?.toString() ?? '',
+      to: json['to']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'reserved',
+    );
+  }
+}
+
+/// `GET lodge/calendar?month=YYYY-MM` -- guest rooms only.
+class LodgeCalendar {
+  final List<LodgeRoom> rooms;
+  final List<LodgeCalendarBooking> bookings;
+
+  LodgeCalendar({required this.rooms, required this.bookings});
+
+  factory LodgeCalendar.fromJson(Map<String, dynamic> json) {
+    return LodgeCalendar(
+      rooms: (json['rooms'] as List<dynamic>? ?? [])
+          .map((r) => LodgeRoom.fromJson(Map<String, dynamic>.from(r)))
+          .toList(),
+      bookings: (json['bookings'] as List<dynamic>? ?? [])
+          .map((b) => LodgeCalendarBooking.fromJson(Map<String, dynamic>.from(b)))
+          .toList(),
+    );
+  }
+}
+
+class LodgePaymentsByType {
+  final Map<String, double> byType;
+  final List<LodgePayment> payments;
+
+  LodgePaymentsByType({required this.byType, required this.payments});
+
+  factory LodgePaymentsByType.fromJson(Map<String, dynamic> json) {
+    final byTypeJson = json['by_type'] as Map<String, dynamic>? ?? {};
+    return LodgePaymentsByType(
+      byType: byTypeJson.map((k, v) => MapEntry(k, _toDouble(v))),
+      payments: (json['payments'] as List<dynamic>? ?? [])
+          .map((p) => LodgePayment.fromJson(Map<String, dynamic>.from(p)))
+          .toList(),
+    );
+  }
+}
+
+/// A row on the Guests register -- aggregated across a guest's bookings
+/// (`guest_key`, not a customer account id; `customer_id` is set only when
+/// linked to one).
+class LodgeGuest {
+  final String guestKey;
+  final String name;
+  final String? phone;
+  final int stays;
+  final double spent;
+  final double balance;
+  final String? lastStay;
+  final int? customerId;
+
+  LodgeGuest({
+    required this.guestKey,
+    required this.name,
+    this.phone,
+    required this.stays,
+    required this.spent,
+    required this.balance,
+    this.lastStay,
+    this.customerId,
+  });
+
+  factory LodgeGuest.fromJson(Map<String, dynamic> json) {
+    return LodgeGuest(
+      guestKey: json['guest_key']?.toString() ?? '',
+      name: json['guest_name']?.toString() ?? json['name']?.toString() ?? '',
+      phone: json['guest_phone']?.toString() ?? json['phone']?.toString(),
+      stays: _toInt(json['stays']),
+      spent: _toDouble(json['spent']),
+      balance: _toDouble(json['balance']),
+      lastStay: json['last_stay']?.toString(),
+      customerId: _toIntOrNull(json['customer_id']),
+    );
+  }
+}
+
+class LodgeExpenseCategory {
+  final int id;
+  final String name;
+
+  LodgeExpenseCategory({required this.id, required this.name});
+
+  factory LodgeExpenseCategory.fromJson(Map<String, dynamic> json) {
+    return LodgeExpenseCategory(
+      id: _toInt(json['id'] ?? json['expense_category_id']),
+      name: json['name']?.toString() ?? '',
+    );
+  }
+}
+
+class LodgeExpense {
+  final int expenseId;
+  final String date;
+  final double amount;
+  final String paymentType;
+  final String? categoryName;
+  final String description;
+  final String? roomNumber;
+
+  LodgeExpense({
+    required this.expenseId,
+    required this.date,
+    required this.amount,
+    required this.paymentType,
+    this.categoryName,
+    required this.description,
+    this.roomNumber,
+  });
+
+  factory LodgeExpense.fromJson(Map<String, dynamic> json) {
+    return LodgeExpense(
+      expenseId: _toInt(json['expense_id']),
+      date: json['date']?.toString() ?? '',
+      amount: _toDouble(json['amount']),
+      paymentType: json['payment_type']?.toString() ?? '',
+      categoryName: json['category_name']?.toString(),
+      description: json['description']?.toString() ?? '',
+      roomNumber: json['room_number']?.toString(),
+    );
+  }
+}
+
+class LodgeExpensesList {
+  final double total;
+  final List<LodgeExpense> expenses;
+
+  LodgeExpensesList({required this.total, required this.expenses});
+
+  factory LodgeExpensesList.fromJson(Map<String, dynamic> json) {
+    return LodgeExpensesList(
+      total: _toDouble(json['total']),
+      expenses: (json['expenses'] as List<dynamic>? ?? [])
+          .map((e) => LodgeExpense.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+    );
+  }
+}
