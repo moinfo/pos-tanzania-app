@@ -46,7 +46,7 @@ class WakalaTheme {
   /// primaryLight, not amber -- the one deliberate colour difference from
   /// Lodge/Contracts' eyebrow (see the handover's mode comparison table).
   static TextStyle eyebrow() =>
-      body(size: 12, weight: FontWeight.w700, color: AppColors.primaryLight).copyWith(letterSpacing: 1.2);
+      body(size: 12, height: 16, weight: FontWeight.w700, color: AppColors.primaryLight).copyWith(letterSpacing: 1.2);
 
   /// A flat-bottomed charcoal header with SIM-chip art and the tri-colour
   /// stripe -- every Transactions/e-Wakala screen's header in the
@@ -82,7 +82,15 @@ class _LedgerHeader extends StatelessWidget implements PreferredSizeWidget {
   });
 
   static const double _iconRowHeight = 44;
-  static const double _titleBlockHeight = 72;
+  // Sized for the worst case, not the common case: the handover's own spec
+  // has titles wrap to two lines ("Customer Transactions", "Lipa Namba
+  // Transactions") within the 250px max width, and both the eyebrow and
+  // title now use an explicit line-height (16 and 34) matching the
+  // handover exactly, so this is eyebrow(16) + title(2x34) + bottom
+  // padding(16) = 100, plus a small safety margin -- same overflow lesson
+  // as Lodge/Contracts' headers: pad the estimate, don't trim it to the
+  // single-line minimum.
+  static const double _titleBlockHeight = 104;
   static const double _stripeHeight = 4;
 
   @override
@@ -146,7 +154,7 @@ class _LedgerHeader extends StatelessWidget implements PreferredSizeWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: WakalaTheme.display(
-                                  size: 28, weight: FontWeight.w700, color: Colors.white, letterSpacing: -0.5)),
+                                  size: 30, height: 34, weight: FontWeight.w700, color: Colors.white, letterSpacing: -0.5)),
                         ],
                       ),
                     ),
