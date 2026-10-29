@@ -10,6 +10,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import 'wakala_theme.dart';
 
 class WakalaReportScreen extends StatefulWidget {
   const WakalaReportScreen({super.key});
@@ -79,8 +80,11 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
         .hasPermission(PermissionIds.transactionsWakalaReportDateRange);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Wakala Report'),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Summary',
+        title: 'Wakala Report',
         actions: [
           if (canChangeDateRange)
             IconButton(
@@ -107,36 +111,25 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [AppColors.lightBackground, Colors.white],
-          ),
-        ),
-        child: _isLoading
-            ? _buildSkeletonList(isDark)
-            : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_error!),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadReport,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  )
-                : _report == null
-                    ? const Center(child: Text('No report data available'))
-                    : _buildReportContent(),
-      ),
+      body: _isLoading
+          ? _buildSkeletonList(isDark)
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(_error!),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadReport,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : _report == null
+                  ? const Center(child: Text('No report data available'))
+                  : _buildReportContent(),
     );
   }
 
@@ -144,220 +137,205 @@ class _WakalaReportScreenState extends State<WakalaReportScreen> {
     final report = _report!;
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
+    final subColor = isDark ? AppColors.darkTextLight : const Color(0xFF6C757D);
+
+    final moneyOnHand = report.sims.total + report.bankBasis.total + report.cashBasis.total;
+    final simPct = moneyOnHand > 0 ? (report.sims.total / moneyOnHand * 100) : 0.0;
+    final bankPct = moneyOnHand > 0 ? (report.bankBasis.total / moneyOnHand * 100) : 0.0;
+    final cashPct = moneyOnHand > 0 ? (report.cashBasis.total / moneyOnHand * 100) : 0.0;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Date Range
-          GlassmorphicCard(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Report Period:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkText : AppColors.lightText,
-                    ),
-                  ),
-                  Text(
-                    '${report.startDate} - ${report.endDate}',
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
-                    ),
-                  ),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Text('Report period', style: WakalaTheme.body(size: 13, weight: FontWeight.w600, color: subColor)),
+                const Spacer(),
+                Text('${report.startDate} – ${report.endDate}',
+                    style: WakalaTheme.display(size: 14, weight: FontWeight.w600, color: textColor)),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // SIMs Section
-          _buildSectionHeader('SIM Cards Float', isDark: isDark),
+          WakalaPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Money on hand', style: WakalaTheme.body(size: 12, color: subColor)),
+                Text(Formatters.formatCurrency(moneyOnHand),
+                    style: WakalaTheme.display(size: 36, weight: FontWeight.w700, letterSpacing: -0.5, color: textColor)),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: SizedBox(
+                    height: 12,
+                    child: Row(
+                      children: [
+                        if (simPct > 0) Expanded(flex: (simPct * 10).round().clamp(1, 1000), child: Container(color: AppColors.primary)),
+                        if (bankPct > 0) Expanded(flex: (bankPct * 10).round().clamp(1, 1000), child: Container(color: AppColors.primaryLight)),
+                        if (cashPct > 0) Expanded(flex: (cashPct * 10).round().clamp(1, 1000), child: Container(color: AppColors.warning)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 4,
+                  children: [
+                    _legendDot(AppColors.primary, 'SIM float', subColor),
+                    _legendDot(AppColors.primaryLight, 'Bank', subColor),
+                    _legendDot(AppColors.warning, 'Cash', subColor),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          _buildSectionHeader('SIM cards float'),
           const SizedBox(height: 8),
-          _buildReportSection(report.sims, context),
-          const SizedBox(height: 24),
+          _buildReportSection(report.sims, AppColors.primary),
+          const SizedBox(height: 20),
 
-          // Bank Basis Section
-          _buildSectionHeader('Bank / Mobile Money', isDark: isDark),
+          _buildSectionHeader('Bank / Mobile money'),
           const SizedBox(height: 8),
-          _buildReportSection(report.bankBasis, context),
-          const SizedBox(height: 24),
+          _buildReportSection(report.bankBasis, AppColors.primaryLight),
+          const SizedBox(height: 20),
 
-          // Cash Basis Section
-          _buildSectionHeader('Cash Transactions', isDark: isDark),
+          _buildSectionHeader('Cash transactions'),
           const SizedBox(height: 8),
-          _buildReportSection(report.cashBasis, context),
-          const SizedBox(height: 24),
+          _buildReportSection(report.cashBasis, AppColors.warning),
+          const SizedBox(height: 20),
 
-          // Wakala Expenses Section
-          _buildSectionHeader('Wakala Expenses', isDark: isDark),
+          _buildSectionHeader('Wakala expenses'),
           const SizedBox(height: 8),
-          _buildExpensesSection(report.wakalaExpenses, context),
-          const SizedBox(height: 24),
+          _buildExpensesSection(report.wakalaExpenses),
+          const SizedBox(height: 20),
 
-          // Summary Section
-          _buildSectionHeader('Financial Summary', isDark: isDark),
+          _buildSectionHeader('Financial summary'),
           const SizedBox(height: 8),
           _buildSummaryCard(report, context),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Gain/Loss Card
           _buildGainLossCard(report, context),
-          const SizedBox(height: 24),
 
-          // Creditors/Withdraw Section
           if (report.creditors.list.isNotEmpty) ...[
-            _buildSectionHeader('Today Creditors/Withdraw', isDark: isDark),
+            const SizedBox(height: 20),
+            _buildSectionHeader('Today creditors/withdraw'),
             const SizedBox(height: 8),
             _buildCreditorDebtorSection(report.creditors, context, isCreditor: true),
-            const SizedBox(height: 24),
           ],
 
-          // Debtors/Deposit Section
           if (report.debtors.list.isNotEmpty) ...[
-            _buildSectionHeader('Today Debtors/Deposit', isDark: isDark),
+            const SizedBox(height: 20),
+            _buildSectionHeader('Today debtors/deposit'),
             const SizedBox(height: 8),
             _buildCreditorDebtorSection(report.debtors, context, isCreditor: false),
-            const SizedBox(height: 24),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, {required bool isDark}) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: isDark ? AppColors.primary : AppColors.secondary,
-      ),
+  Widget _legendDot(Color color, String label, Color textColor) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 5),
+        Text(label, style: WakalaTheme.body(size: 12, color: textColor)),
+      ],
     );
   }
 
-  Widget _buildReportSection(WakalaReportSection section, BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final amountColor = themeProvider.isDarkMode ? Colors.white : AppColors.secondary;
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Text(title, style: WakalaTheme.display(size: 13, weight: FontWeight.w700, letterSpacing: 0.9, color: const Color(0xFF6C757D))),
+    );
+  }
 
-    return GlassmorphicCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Items List
-            ...section.list.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
+  /// The "balance card" pattern -- one kv row per item, then a charcoal
+  /// footer band with the section total. Mirrors the WReport handover.
+  Widget _buildBalanceCard(List<MapEntry<String, double>> rows, double total, Color railColor, bool isDark) {
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(4),
+          topRight: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+          bottomLeft: Radius.circular(4),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(width: 4, color: railColor),
+          Expanded(
+            child: Column(
+              children: [
+                ...rows.map((row) => Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(row.key, style: WakalaTheme.body(size: 14, color: textColor), overflow: TextOverflow.ellipsis)),
+                          Text(Formatters.formatCurrency(row.value), style: WakalaTheme.display(size: 15, weight: FontWeight.w600, color: textColor)),
+                        ],
+                      ),
+                    )),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+                  color: AppColors.secondary,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(item.name),
-                      Text(
-                        Formatters.formatCurrency(item.amount),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: amountColor,
-                        ),
-                      ),
+                      Text('TOTAL',
+                          style: WakalaTheme.body(size: 13, weight: FontWeight.w600, color: const Color(0xFFE9ECEF)).copyWith(letterSpacing: 1.2)),
+                      Text(Formatters.formatCurrency(total), style: WakalaTheme.display(size: 22, weight: FontWeight.w700, color: Colors.white)),
                     ],
-                  ),
-                )),
-
-            if (section.list.isNotEmpty) const Divider(height: 24),
-
-            // Total
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total:',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  Formatters.formatCurrency(section.total),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: amountColor,
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildExpensesSection(WakalaExpensesSection section, BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
-    final amountColor = AppColors.primary; // Expenses shown in red
+  Widget _buildReportSection(WakalaReportSection section, Color railColor) {
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+    return _buildBalanceCard(
+      section.list.map((item) => MapEntry(item.name, item.amount)).toList(),
+      section.total,
+      railColor,
+      isDark,
+    );
+  }
 
-    return GlassmorphicCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Items List
-            ...section.list.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.description.isNotEmpty ? item.description : 'Expense',
-                          style: TextStyle(
-                            color: isDark ? AppColors.darkText : AppColors.lightText,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        Formatters.formatCurrency(item.amount),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: amountColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
-
-            if (section.list.isNotEmpty) const Divider(height: 24),
-
-            // Total
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total:',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  Formatters.formatCurrency(section.total),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: amountColor,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+  Widget _buildExpensesSection(WakalaExpensesSection section) {
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+    return _buildBalanceCard(
+      section.list.map((item) => MapEntry(item.description.isNotEmpty ? item.description : 'Expense', item.amount)).toList(),
+      section.total,
+      AppColors.error,
+      isDark,
     );
   }
 
