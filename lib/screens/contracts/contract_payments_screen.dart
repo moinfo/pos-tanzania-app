@@ -9,6 +9,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'contract_theme.dart';
 
 /// Tenant-wide Payments tab -- every payment across all contracts in a
 /// date range, with Add/Edit/Delete. Distinct from the per-contract
@@ -232,21 +233,16 @@ class _ContractPaymentsScreenState extends State<ContractPaymentsScreen> {
     final canDelete = permissions.hasPermission(PermissionIds.contractsPaymentsDelete);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payments'),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(icon: const Icon(Icons.date_range), onPressed: _pickRange, tooltip: 'Date range'),
-        ],
-      ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: ContractTheme.appBar(isDark: isDark, eyebrow: 'Money in', title: 'Payments'),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
               heroTag: 'contract_payments_fab',
               onPressed: () => _showPaymentForm(),
-              icon: const Icon(Icons.add),
-              label: const Text('Payment'),
-              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add, color: AppColors.secondary),
+              label: Text('Payment',
+                  style: ContractTheme.body(size: 14, weight: FontWeight.w700, color: AppColors.secondary)),
+              backgroundColor: AppColors.warning,
             )
           : null,
       body: _isLoading
@@ -267,56 +263,105 @@ class _ContractPaymentsScreenState extends State<ContractPaymentsScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      Text(
-                        '${_fmt(_startDate)} to ${_fmt(_endDate)}',
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            color: isDark ? AppColors.darkTextLight : AppColors.textLight),
+                      GestureDetector(
+                        onTap: _pickRange,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface : Colors.white,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                  width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle)),
+                              const SizedBox(width: 8),
+                              Text('${_fmt(_startDate)} to ${_fmt(_endDate)}',
+                                  style: ContractTheme.body(
+                                      size: 13.5, weight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.text)),
+                              const SizedBox(width: 6),
+                              Icon(Icons.date_range, size: 16, color: isDark ? AppColors.darkTextLight : AppColors.textLight),
+                            ],
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       if (_payments == null || _payments!.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 40),
                           child: Center(
                             child: Text('No payments in this range',
-                                style: TextStyle(
-                                    color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
+                                style: ContractTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
                           ),
                         )
-                      else
-                        ..._payments!.map((p) => Card(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              color: isDark ? AppColors.darkCard : Colors.white,
-                              child: ListTile(
-                                title: Text(p.contractName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: Text(
-                                    '${Formatters.formatDate(p.date)}${p.description != null && p.description!.isNotEmpty ? ' · ${p.description}' : ''}'),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(Formatters.formatCurrency(p.amount),
-                                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    if (canEdit || canDelete)
-                                      PopupMenuButton<String>(
-                                        onSelected: (action) {
-                                          if (action == 'edit') _showPaymentForm(existing: p);
-                                          if (action == 'delete') _deletePayment(p);
-                                        },
-                                        itemBuilder: (_) => [
-                                          if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                          if (canDelete)
-                                            const PopupMenuItem(
-                                                value: 'delete',
-                                                child: Text('Delete', style: TextStyle(color: AppColors.error))),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            )),
+                      else ...[
+                        ContractHeroPanel(
+                          caption: 'Total received · ${_payments!.length} payment(s)',
+                          value: 'TZS ${Formatters.formatCurrency(_payments!.fold<double>(0, (sum, p) => sum + p.amount))}',
+                        ),
+                        const SizedBox(height: 16),
+                        ..._payments!.map((p) => _paymentRow(p, isDark, canEdit, canDelete)),
+                      ],
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget _paymentRow(ContractPaymentEntry p, bool isDark, bool canEdit, bool canDelete) {
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+      ),
+      child: Row(
+        children: [
+          ContractCircleBadge(
+            icon: Icons.payments_outlined,
+            background: isDark ? AppColors.darkDivider : const Color(0xFFE9ECEF),
+            foreground: const Color(0xFF047857),
+            size: 44,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(p.contractName, style: ContractTheme.display(size: 16, weight: FontWeight.w700, color: textColor)),
+                Text(
+                    '${Formatters.formatDate(p.date)}${p.description != null && p.description!.isNotEmpty ? ' · ${p.description}' : ''}',
+                    style: ContractTheme.body(size: 12.5, color: subColor)),
+              ],
+            ),
+          ),
+          Text(Formatters.formatCurrency(p.amount),
+              style: ContractTheme.display(size: 15, weight: FontWeight.w700, color: const Color(0xFF047857))),
+          if (canEdit || canDelete)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: subColor),
+              onSelected: (action) {
+                if (action == 'edit') _showPaymentForm(existing: p);
+                if (action == 'delete') _deletePayment(p);
+              },
+              itemBuilder: (_) => [
+                if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                if (canDelete)
+                  const PopupMenuItem(
+                      value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.error))),
+              ],
+            )
+          else
+            const SizedBox(width: 12),
+        ],
+      ),
     );
   }
 }
