@@ -1022,36 +1022,58 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
               ),
             ),
             // Lodge Menu — full destination list (same entries as LodgeShell's
-            // "More" tab, see lodge_menu_items.dart) so every section is one
+            // bottom tabs, see lodge_menu_items.dart) so every section is one
             // tap from the drawer too, not just the 5 that fit the bottom
-            // bar. Shown for lodge-only tenants as well: their bottom nav
-            // only has room for Board/Bookings/Calendar/Rooms/More, so this
-            // is still the fastest way to jump straight to e.g. Guests.
-            PermissionWrapper(
-              permissionId: PermissionIds.lodge,
-              child: ExpansionTile(
-                leading: Icon(Icons.hotel_outlined, color: AppColors.brandPrimary),
-                title: const Text('Lodge'),
-                childrenPadding: const EdgeInsets.only(left: 16),
-                children: lodgeMenuEntries
-                    .map((entry) => PermissionWrapper(
-                          permissionId: entry.permissionId,
-                          child: ListTile(
-                            leading: Icon(entry.icon, color: AppColors.brandPrimary),
-                            title: Text(entry.label),
-                            trailing: entry.builder == null
-                                ? const Text('Coming soon',
-                                    style: TextStyle(fontSize: 11, color: Colors.grey))
-                                : null,
-                            onTap: () {
-                              Navigator.pop(context);
-                              openLodgeMenuEntry(context, entry);
-                            },
-                          ),
-                        ))
-                    .toList(),
+            // bar.
+            //
+            // Lodge-only tenants (see _isLodgeOnlyTenant) get the entries as
+            // flat top-level rows, not grouped under a collapsible "Lodge"
+            // header: Lodge is their whole app, so a group label with
+            // nothing else to distinguish it from is just an extra tap for
+            // no reason. A tenant with other modules too still gets the
+            // collapsible group, same as Production's.
+            if (_isLodgeOnlyTenant(permissionProvider))
+              ...lodgeMenuEntries.map((entry) => PermissionWrapper(
+                    permissionId: entry.permissionId,
+                    child: ListTile(
+                      leading: Icon(entry.icon, color: AppColors.brandPrimary),
+                      title: Text(entry.label),
+                      trailing: entry.builder == null
+                          ? const Text('Coming soon',
+                              style: TextStyle(fontSize: 11, color: Colors.grey))
+                          : null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        openLodgeMenuEntry(context, entry);
+                      },
+                    ),
+                  ))
+            else
+              PermissionWrapper(
+                permissionId: PermissionIds.lodge,
+                child: ExpansionTile(
+                  leading: Icon(Icons.hotel_outlined, color: AppColors.brandPrimary),
+                  title: const Text('Lodge'),
+                  childrenPadding: const EdgeInsets.only(left: 16),
+                  children: lodgeMenuEntries
+                      .map((entry) => PermissionWrapper(
+                            permissionId: entry.permissionId,
+                            child: ListTile(
+                              leading: Icon(entry.icon, color: AppColors.brandPrimary),
+                              title: Text(entry.label),
+                              trailing: entry.builder == null
+                                  ? const Text('Coming soon',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey))
+                                  : null,
+                              onTap: () {
+                                Navigator.pop(context);
+                                openLodgeMenuEntry(context, entry);
+                              },
+                            ),
+                          ))
+                      .toList(),
+                ),
               ),
-            ),
             // Cash Movements Menu — split into the two entries the web uses
             // ("Direct Deposit" / "Direct Withdraw") rather than one umbrella,
             // since the grants are per-type and a user often holds only one.
