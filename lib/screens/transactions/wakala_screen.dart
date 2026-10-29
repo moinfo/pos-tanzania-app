@@ -566,7 +566,7 @@ class _WakalaScreenState extends State<WakalaScreen>
         actions: [
           // Filtering the float-transaction list by an arbitrary range is a
           // separate grant from viewing it, mirroring web's $can_search_wk gate.
-          if (_tabController.index == 1 &&
+          if (_tabController.index == 0 &&
               permissionProvider.hasPermission(PermissionIds.transactionsWakalaDateRange))
             IconButton(
               icon: const Icon(Icons.date_range),
@@ -602,7 +602,7 @@ class _WakalaScreenState extends State<WakalaScreen>
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: WakalaSegmentedControl(
-                        labels: const ['SIM Cards', 'Float Transactions'],
+                        labels: const ['Float Transactions', 'SIM Cards'],
                         selectedIndex: _tabController.index,
                         onChanged: (i) => _tabController.animateTo(i),
                       ),
@@ -611,8 +611,8 @@ class _WakalaScreenState extends State<WakalaScreen>
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildSimsList(permissionProvider, isDark),
                           _buildTransactionsList(permissionProvider, isDark),
+                          _buildSimsList(permissionProvider, isDark),
                         ],
                       ),
                     ),
@@ -623,24 +623,25 @@ class _WakalaScreenState extends State<WakalaScreen>
   }
 
   Widget? _buildFloatingActionButton(PermissionProvider permissionProvider) {
-    final isOnSimsTab = _tabController.index == 0;
+    // Float Transactions is tab 0 now.
+    final isOnTransactionsTab = _tabController.index == 0;
 
     final VoidCallback? onPressed;
     final String label;
-    if (isOnSimsTab) {
-      // SIM cards tab - check setting_add permission
-      if (!permissionProvider.hasPermission(PermissionIds.transactionsWakalaSettingAdd)) {
-        return null;
-      }
-      onPressed = _showAddSimDialog;
-      label = 'Add SIM';
-    } else {
+    if (isOnTransactionsTab) {
       // Float transactions tab - check add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsWakalaAdd)) {
         return null;
       }
       onPressed = _showAddTransactionDialog;
       label = 'Add Float';
+    } else {
+      // SIM cards tab - check setting_add permission
+      if (!permissionProvider.hasPermission(PermissionIds.transactionsWakalaSettingAdd)) {
+        return null;
+      }
+      onPressed = _showAddSimDialog;
+      label = 'Add SIM';
     }
     return FloatingActionButton.extended(
       heroTag: 'wakala_sims_fab',

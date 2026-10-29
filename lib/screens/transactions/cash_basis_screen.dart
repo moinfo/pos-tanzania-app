@@ -305,7 +305,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
         actions: [
           // Filtering the transaction list by an arbitrary range is a separate
           // grant from viewing it, mirroring web's $can_search_* gate.
-          if (_tabController.index == 1 &&
+          if (_tabController.index == 0 &&
               permissionProvider.hasPermission(PermissionIds.transactionsCashBasisDateRange))
             IconButton(
               icon: const Icon(Icons.date_range),
@@ -336,7 +336,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: WakalaSegmentedControl(
-                        labels: const ['Categories', 'Transactions'],
+                        labels: const ['Transactions', 'Categories'],
                         selectedIndex: _tabController.index,
                         onChanged: (i) => _tabController.animateTo(i),
                       ),
@@ -345,8 +345,8 @@ class _CashBasisScreenState extends State<CashBasisScreen>
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildCategoriesList(permissionProvider, isDark),
                           _buildTransactionsList(permissionProvider, isDark),
+                          _buildCategoriesList(permissionProvider, isDark),
                         ],
                       ),
                     ),
@@ -357,25 +357,25 @@ class _CashBasisScreenState extends State<CashBasisScreen>
   }
 
   Widget? _buildFloatingActionButton(PermissionProvider permissionProvider) {
-    // Check permissions based on current tab
-    final isOnCategoriesTab = _tabController.index == 0;
+    // Check permissions based on current tab -- Transactions is tab 0 now.
+    final isOnTransactionsTab = _tabController.index == 0;
 
     final VoidCallback? onPressed;
     final String label;
-    if (isOnCategoriesTab) {
-      // Categories tab - check setting_add permission
-      if (!permissionProvider.hasPermission(PermissionIds.transactionsCashBasisSettingAdd)) {
-        return null; // Hide FAB if no permission
-      }
-      onPressed = _showAddCategoryDialog;
-      label = 'Add Category';
-    } else {
+    if (isOnTransactionsTab) {
       // Transactions tab - check add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsCashBasisAdd)) {
         return null; // Hide FAB if no permission
       }
       onPressed = _showAddTransactionDialog;
       label = 'Add Transaction';
+    } else {
+      // Categories tab - check setting_add permission
+      if (!permissionProvider.hasPermission(PermissionIds.transactionsCashBasisSettingAdd)) {
+        return null; // Hide FAB if no permission
+      }
+      onPressed = _showAddCategoryDialog;
+      label = 'Add Category';
     }
     return FloatingActionButton.extended(
       heroTag: 'cash_basis_fab',
