@@ -35,6 +35,13 @@ class _LodgeMessagesScreenState extends State<LodgeMessagesScreen> {
   final _bossTemplateController = TextEditingController();
   List<LodgeBossPhone> _bossPhones = [];
 
+  // "Test a message" section -- separate from each event's inline Preview:
+  // this one renders (or sends) using a REAL booking's details via
+  // booking_id, not placeholder data.
+  final _testBookingIdController = TextEditingController();
+  final _testPhoneController = TextEditingController();
+  String _testEvent = 'reservation';
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +52,8 @@ class _LodgeMessagesScreenState extends State<LodgeMessagesScreen> {
   void dispose() {
     _smsNameController.dispose();
     _bossTemplateController.dispose();
+    _testBookingIdController.dispose();
+    _testPhoneController.dispose();
     super.dispose();
   }
 
@@ -246,6 +255,52 @@ class _LodgeMessagesScreenState extends State<LodgeMessagesScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(response.message), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  /// The dedicated "Test a message" section: renders (or sends) using a
+  /// real booking's data via [bookingId], unlike each event's inline
+  /// Preview button which uses placeholder data.
+  Future<void> _runTest({required bool preview}) async {
+    final bookingId = int.tryParse(_testBookingIdController.text.trim());
+    if (_testEvent != 'day_close' && bookingId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a booking number'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    final response = await _apiService.testLodgeMessage(
+      event: _testEvent,
+      bookingId: _testEvent == 'day_close' ? null : bookingId,
+      phone: _testPhoneController.text.trim().isEmpty ? null : _testPhoneController.text.trim(),
+      preview: preview,
+    );
+    if (!mounted) return;
+
+    if (preview) {
+      if (response.isSuccess && response.data != null) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Preview'),
+            content: Text(response.data!['message']?.toString() ?? ''),
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.message), backgroundColor: AppColors.error),
+        );
+      }
+    } else {
+      final status = response.data?['status']?.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(status == 'sent' ? 'Test message sent.' : response.message),
+          backgroundColor: status == 'sent' ? AppColors.success : AppColors.error,
+        ),
       );
     }
   }
@@ -456,6 +511,57 @@ class _LodgeMessagesScreenState extends State<LodgeMessagesScreen> {
           enabled: canEdit,
           maxLines: 3,
           decoration: const InputDecoration(labelText: 'Boss report template', border: OutlineInputBorder()),
+        ),
+        const SizedBox(height: 20),
+        Text('Test a message', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+        const SizedBox(height: 4),
+        Text('Pick a booking and a moment; the message is rendered with that booking\'s details.',
+            style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _testBookingIdController,
+                keyboardType: TextInputType.number,
+                enabled: _testEvent != 'day_close',
+                decoration: const InputDecoration(labelText: 'Booking #', border: OutlineInputBorder(), isDense: true),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _testEvent,
+                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                items: [
+                  ..._eventStates.map((e) => DropdownMenuItem(value: e.event, child: Text(e.label, overflow: TextOverflow.ellipsis))),
+                  const DropdownMenuItem(value: 'day_close', child: Text('Day-close report')),
+                ],
+                onChanged: (v) => setState(() => _testEvent = v ?? _testEvent),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _testPhoneController,
+          decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder(), isDense: true),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(onPressed: () => _runTest(preview: true), child: const Text('Preview')),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _runTest(preview: false),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandPrimary, foregroundColor: Colors.white),
+                child: const Text('Send test'),
+              ),
+            ),
+          ],
         ),
         if (canEdit) ...[
           const SizedBox(height: 20),

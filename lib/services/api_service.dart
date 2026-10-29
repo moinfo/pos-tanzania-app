@@ -9113,6 +9113,143 @@ class ApiService {
     }
   }
 
+  Future<ApiResponse<LodgeRoom>> createLodgeRoom({
+    required String roomNumber,
+    String? roomType,
+    double? rate,
+    String purpose = 'guest',
+    String? occupant,
+    int? locationId,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/rooms'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'room_number': roomNumber,
+          if (roomType != null) 'room_type': roomType,
+          if (rate != null) 'rate': rate,
+          'purpose': purpose,
+          if (occupant != null) 'occupant': occupant,
+          if (locationId != null) 'location_id': locationId,
+          if (description != null) 'description': description,
+        }),
+      );
+      return _handleResponse<LodgeRoom>(
+          response, (data) => LodgeRoom.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeRoom>> editLodgeRoom({
+    required int roomId,
+    String? roomNumber,
+    String? roomType,
+    double? rate,
+    String? purpose,
+    String? occupant,
+    String? description,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/rooms/$roomId'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (roomNumber != null) 'room_number': roomNumber,
+          if (roomType != null) 'room_type': roomType,
+          if (rate != null) 'rate': rate,
+          if (purpose != null) 'purpose': purpose,
+          if (occupant != null) 'occupant': occupant,
+          if (description != null) 'description': description,
+        }),
+      );
+      return _handleResponse<LodgeRoom>(
+          response, (data) => LodgeRoom.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// 409 if the room has an active booking.
+  Future<ApiResponse<int>> deleteLodgeRoom(int roomId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/rooms/$roomId/delete'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<int>(
+          response, (data) => _toLodgeInt(data['room_id']));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<LodgeMaintenance>>> getLodgeRoomMaintenance(int roomId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/lodge/rooms/$roomId/maintenance'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<List<LodgeMaintenance>>(
+        response,
+        (data) => (data['maintenance'] as List<dynamic>? ?? [])
+            .map((m) => LodgeMaintenance.fromJson(Map<String, dynamic>.from(m)))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// [postExpense] true also records [cost] as a Lodge maintenance expense.
+  /// [setStatus] true puts the room into maintenance status.
+  Future<ApiResponse<Map<String, dynamic>>> addLodgeMaintenance({
+    required int roomId,
+    required String description,
+    String? doneOn,
+    String? category,
+    String? doneBy,
+    double? cost,
+    bool postExpense = false,
+    String? paymentType,
+    bool setStatus = false,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/rooms/$roomId/maintenance'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'description': description,
+          if (doneOn != null) 'done_on': doneOn,
+          if (category != null) 'category': category,
+          if (doneBy != null) 'done_by': doneBy,
+          if (cost != null) 'cost': cost,
+          'post_expense': postExpense,
+          if (paymentType != null) 'payment_type': paymentType,
+          'set_status': setStatus,
+        }),
+      );
+      return _handleResponse<Map<String, dynamic>>(response, (data) => data);
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<int>> deleteLodgeMaintenance(int maintenanceId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/maintenance/$maintenanceId/delete'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<int>(
+          response, (data) => _toLodgeInt(data['maintenance_id']));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   Future<ApiResponse<LodgeCalendar>> getLodgeCalendar({
     required String month,
     int? locationId,
@@ -9148,6 +9285,46 @@ class ApiService {
       final response = await http.get(uri, headers: await _getHeaders());
       return _handleResponse<LodgePaymentsByType>(
           response, (data) => LodgePaymentsByType.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// 409 if the booking has already checked out -- the payment is on the
+  /// sale by then and locked (`editable: false` on the row).
+  Future<ApiResponse<LodgePayment>> editLodgePayment({
+    required int paymentId,
+    double? amount,
+    String? paymentType,
+    int? nights,
+    String? note,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/payments/$paymentId'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (amount != null) 'amount': amount,
+          if (paymentType != null) 'payment_type': paymentType,
+          if (nights != null) 'nights': nights,
+          if (note != null) 'note': note,
+        }),
+      );
+      return _handleResponse<LodgePayment>(
+          response, (data) => LodgePayment.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<int>> deleteLodgePayment(int paymentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/payments/$paymentId/delete'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<int>(
+          response, (data) => _toLodgeInt(data['payment_id']));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }
@@ -9247,6 +9424,19 @@ class ApiService {
           if (roomId != null) 'room_id': roomId,
           if (locationId != null) 'location_id': locationId,
         }),
+      );
+      return _handleResponse<int>(
+          response, (data) => _toLodgeInt(data['expense_id']));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<int>> deleteLodgeExpense(int expenseId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/expenses/$expenseId/delete'),
+        headers: await _getHeaders(),
       );
       return _handleResponse<int>(
           response, (data) => _toLodgeInt(data['expense_id']));

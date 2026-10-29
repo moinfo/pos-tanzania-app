@@ -139,9 +139,35 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
               ],
             ),
           ),
+          Container(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              children: [
+                _legendDot('Reserved', AppColors.info, isDark),
+                _legendDot('Checked in', AppColors.error, isDark),
+                _legendDot('Checked out', Colors.grey, isDark),
+                Text('Tap a free day to book it',
+                    style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+              ],
+            ),
+          ),
           Expanded(child: _buildGrid(isDark)),
         ],
       ),
+    );
+  }
+
+  Widget _legendDot(String label, Color color, bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+      ],
     );
   }
 
@@ -225,10 +251,11 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
                           children: days.map((d) {
                             final booking = _bookingOn(room, d);
                             final color = booking != null ? _statusColor(booking.status) : null;
+                            final canBookEmptyDay = booking == null &&
+                                context.read<PermissionProvider>().hasPermission(PermissionIds.lodgeBookingsAdd);
                             return GestureDetector(
-                              onTap: booking == null
-                                  ? null
-                                  : () async {
+                              onTap: booking != null
+                                  ? () async {
                                       await Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -236,7 +263,22 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
                                                 LodgeBookingDetailScreen(bookingId: booking.bookingId)),
                                       );
                                       _load();
-                                    },
+                                    }
+                                  : (canBookEmptyDay
+                                      ? () async {
+                                          final created = await Navigator.push<bool>(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => LodgeNewBookingScreen(
+                                                initialRoomId: room.roomId,
+                                                initialCheckInDate:
+                                                    '${_month.year}-${_month.month.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}',
+                                              ),
+                                            ),
+                                          );
+                                          if (created == true) _load();
+                                        }
+                                      : null),
                               child: Container(
                                 width: _dayWidth,
                                 height: _rowHeight - 1,

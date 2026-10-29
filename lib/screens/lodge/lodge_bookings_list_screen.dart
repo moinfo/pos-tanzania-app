@@ -209,11 +209,20 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
             child: ListTile(
               title: Text(b.guestName, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text('Room ${b.roomNumber ?? '-'} · '
-                  '${Formatters.formatDate(b.checkInDate)} → ${Formatters.formatDate(b.checkOutDate)}'),
-              trailing: b.hasBalance
-                  ? Text(Formatters.formatCompactCurrency(b.balance),
-                      style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold))
-                  : _statusBadge(b.status),
+                  '${Formatters.formatDate(b.checkInDate)} → ${Formatters.formatDate(b.checkOutDate)} · '
+                  '${b.ledger?.plannedNights ?? ''} night(s)\n'
+                  'Total ${Formatters.formatCompactCurrency(b.totalAmount)} · Paid ${Formatters.formatCompactCurrency(b.amountPaid)}'),
+              isThreeLine: true,
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (b.hasBalance)
+                    Text(Formatters.formatCompactCurrency(b.balance),
+                        style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                  _statusBadge(b.status),
+                ],
+              ),
               onTap: () async {
                 await Navigator.push(
                   context,

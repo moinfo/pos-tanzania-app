@@ -818,16 +818,22 @@ class LodgeReportTotals {
 class LodgeReportRoom {
   final int roomId;
   final String roomNumber;
+  final int bookings;
+  final int nightsSold;
   final double occupancyPct;
   final double revenue;
+  final double paid;
   final double balance;
   final double maintenanceCost;
 
   LodgeReportRoom({
     required this.roomId,
     required this.roomNumber,
+    required this.bookings,
+    required this.nightsSold,
     required this.occupancyPct,
     required this.revenue,
+    required this.paid,
     required this.balance,
     required this.maintenanceCost,
   });
@@ -836,10 +842,59 @@ class LodgeReportRoom {
     return LodgeReportRoom(
       roomId: _toInt(json['room_id']),
       roomNumber: json['room_number']?.toString() ?? '',
+      bookings: _toInt(json['bookings']),
+      nightsSold: _toInt(json['nights_sold']),
       occupancyPct: _toDouble(json['occupancy_pct']),
       revenue: _toDouble(json['revenue']),
+      paid: _toDouble(json['paid']),
       balance: _toDouble(json['balance']),
       maintenanceCost: _toDouble(json['maintenance_cost']),
+    );
+  }
+}
+
+/// One row of the report's guest/booking list -- the web's "Guest list"
+/// table is actually booking-level (#, guest, phone, room, check-in/out,
+/// nights, total, paid, status), not the aggregated-across-stays LodgeGuest.
+/// Parsed leniently since the exact backend key names aren't pinned down
+/// in LODGE_API.md.
+class LodgeReportGuestRow {
+  final int? bookingId;
+  final String guestName;
+  final String? guestPhone;
+  final String? roomNumber;
+  final String? checkInDate;
+  final String? checkOutDate;
+  final int nights;
+  final double total;
+  final double paid;
+  final String? status;
+
+  LodgeReportGuestRow({
+    this.bookingId,
+    required this.guestName,
+    this.guestPhone,
+    this.roomNumber,
+    this.checkInDate,
+    this.checkOutDate,
+    required this.nights,
+    required this.total,
+    required this.paid,
+    this.status,
+  });
+
+  factory LodgeReportGuestRow.fromJson(Map<String, dynamic> json) {
+    return LodgeReportGuestRow(
+      bookingId: _toIntOrNull(json['booking_id']),
+      guestName: json['guest_name']?.toString() ?? json['name']?.toString() ?? '',
+      guestPhone: json['guest_phone']?.toString() ?? json['phone']?.toString(),
+      roomNumber: json['room_number']?.toString(),
+      checkInDate: json['check_in_date']?.toString(),
+      checkOutDate: json['check_out_date']?.toString(),
+      nights: _toInt(json['nights']),
+      total: _toDouble(json['total'] ?? json['total_amount'] ?? json['spent']),
+      paid: _toDouble(json['paid'] ?? json['amount_paid']),
+      status: json['status']?.toString(),
     );
   }
 }
@@ -847,7 +902,7 @@ class LodgeReportRoom {
 class LodgeReport {
   final LodgeReportTotals totals;
   final List<LodgeReportRoom> rooms;
-  final List<LodgeGuest> guests;
+  final List<LodgeReportGuestRow> guests;
 
   LodgeReport({required this.totals, required this.rooms, required this.guests});
 
@@ -858,7 +913,7 @@ class LodgeReport {
           .map((r) => LodgeReportRoom.fromJson(Map<String, dynamic>.from(r)))
           .toList(),
       guests: (json['guests'] as List<dynamic>? ?? [])
-          .map((g) => LodgeGuest.fromJson(Map<String, dynamic>.from(g)))
+          .map((g) => LodgeReportGuestRow.fromJson(Map<String, dynamic>.from(g)))
           .toList(),
     );
   }
@@ -900,22 +955,31 @@ class LodgeForecastRoom {
 class LodgeForecastScenario {
   final String label;
   final double occupancy;
+  final double day;
   final double month;
   final double year;
+  final double netMonth;
+  final double netYear;
 
   LodgeForecastScenario({
     required this.label,
     required this.occupancy,
+    required this.day,
     required this.month,
     required this.year,
+    required this.netMonth,
+    required this.netYear,
   });
 
   factory LodgeForecastScenario.fromJson(Map<String, dynamic> json) {
     return LodgeForecastScenario(
       label: json['label']?.toString() ?? '',
       occupancy: _toDouble(json['occupancy']),
+      day: _toDouble(json['day']),
       month: _toDouble(json['month']),
       year: _toDouble(json['year']),
+      netMonth: _toDouble(json['net_month']),
+      netYear: _toDouble(json['net_year']),
     );
   }
 }
@@ -1108,6 +1172,39 @@ class LodgeMessageLogEntry {
       response: json['response']?.toString(),
       message: json['message']?.toString(),
       createdAt: json['created_at']?.toString() ?? '',
+    );
+  }
+}
+
+/// `GET/POST lodge/rooms/{id}/maintenance` -- README 3.10.
+class LodgeMaintenance {
+  final int maintenanceId;
+  final String? doneOn;
+  final String? category;
+  final String description;
+  final String? doneBy;
+  final double cost;
+  final int? expenseId;
+
+  LodgeMaintenance({
+    required this.maintenanceId,
+    this.doneOn,
+    this.category,
+    required this.description,
+    this.doneBy,
+    required this.cost,
+    this.expenseId,
+  });
+
+  factory LodgeMaintenance.fromJson(Map<String, dynamic> json) {
+    return LodgeMaintenance(
+      maintenanceId: _toInt(json['maintenance_id'] ?? json['id']),
+      doneOn: json['done_on']?.toString(),
+      category: json['category']?.toString(),
+      description: json['description']?.toString() ?? '',
+      doneBy: json['done_by']?.toString(),
+      cost: _toDouble(json['cost']),
+      expenseId: _toIntOrNull(json['expense_id']),
     );
   }
 }

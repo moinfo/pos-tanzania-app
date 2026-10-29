@@ -157,9 +157,49 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
             _row('Cash sales', f.cashIn, isDark),
             _row('Lipa Namba', f.lipaIn, isDark),
             _row('Bank', f.bankIn, isDark),
-            _row('Credit (info only)', f.creditIn, isDark),
+            _row('Put on customer credit', f.creditIn, isDark),
             _row('Cash expenses', -f.cashExpenses, isDark),
           ]),
+          const SizedBox(height: 16),
+          Text('Takings', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+          const SizedBox(height: 8),
+          if (_data!.payments.isEmpty)
+            Text('No payments were received on this day.',
+                style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight))
+          else
+            ..._data!.payments.map((p) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text('${p.paymentType} · ${Formatters.formatDate(p.paymentTime)}',
+                            style: TextStyle(fontSize: 12.5, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                      ),
+                      Text(Formatters.formatCurrency(p.amount), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                )),
+          const SizedBox(height: 16),
+          Text('Expenses', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+          const SizedBox(height: 8),
+          if (_data!.expenses.isEmpty)
+            Text('No lodge expenses on this day.',
+                style: TextStyle(color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight))
+          else
+            ..._data!.expenses.map((e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(e.description,
+                            style: TextStyle(fontSize: 12.5, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                      ),
+                      Text(Formatters.formatCurrency(e.amount), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                )),
           const SizedBox(height: 12),
           if (readOnly)
             Container(

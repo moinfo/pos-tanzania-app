@@ -162,9 +162,20 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
                 margin: const EdgeInsets.only(bottom: 6),
                 child: ListTile(
                   dense: true,
-                  title: Text(s.label),
-                  subtitle: Text('${s.occupancy.toStringAsFixed(0)}% occupancy'),
-                  trailing: Text(Formatters.formatCompactCurrency(s.month)),
+                  title: Text('${s.label} (${s.occupancy.toStringAsFixed(0)}%)'),
+                  subtitle: Text('Day ${Formatters.formatCompactCurrency(s.day)} · '
+                      'Month ${Formatters.formatCompactCurrency(s.month)} · '
+                      'Year ${Formatters.formatCompactCurrency(s.year)}'),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Net/mo ${Formatters.formatCompactCurrency(s.netMonth)}',
+                          style: const TextStyle(fontSize: 11, color: AppColors.success)),
+                      Text('Net/yr ${Formatters.formatCompactCurrency(s.netYear)}',
+                          style: const TextStyle(fontSize: 11, color: AppColors.success)),
+                    ],
+                  ),
                 ),
               )),
         ],

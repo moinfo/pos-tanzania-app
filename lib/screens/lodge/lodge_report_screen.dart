@@ -142,7 +142,8 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
                 child: ListTile(
                   dense: true,
                   title: Text(r.roomNumber),
-                  subtitle: Text('${r.occupancyPct.toStringAsFixed(0)}% occupancy'
+                  subtitle: Text('${r.bookings} booking(s) · ${r.nightsSold} night(s) · '
+                      '${r.occupancyPct.toStringAsFixed(0)}% occupancy'
                       '${r.maintenanceCost > 0 ? ' · Maintenance ${Formatters.formatCompactCurrency(r.maintenanceCost)}' : ''}'),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -157,16 +158,28 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
               )),
           if (_report!.guests.isNotEmpty) ...[
             const SizedBox(height: 20),
-            Text('Guests', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+            Text('Guest list', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
             const SizedBox(height: 8),
             ..._report!.guests.map((g) => Card(
                   color: isDark ? AppColors.darkCard : Colors.white,
                   margin: const EdgeInsets.only(bottom: 6),
                   child: ListTile(
                     dense: true,
-                    title: Text(g.name),
-                    subtitle: Text('${g.stays} stay(s)'),
-                    trailing: Text(Formatters.formatCompactCurrency(g.spent)),
+                    title: Text(g.guestName),
+                    subtitle: Text([
+                      if (g.roomNumber != null) 'Room ${g.roomNumber}',
+                      if (g.checkInDate != null) '${Formatters.formatDate(g.checkInDate)} → ${Formatters.formatDate(g.checkOutDate)}',
+                      '${g.nights} night(s)',
+                    ].join(' · ')),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(Formatters.formatCompactCurrency(g.total), style: const TextStyle(fontWeight: FontWeight.w600)),
+                        if (g.status != null)
+                          Text(g.status!, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
                   ),
                 )),
           ],
