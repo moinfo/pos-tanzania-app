@@ -76,6 +76,10 @@ class _ContractMessagesScreenState extends State<ContractMessagesScreen>
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: 'Sent'),
             Tab(text: 'Upcoming'),
