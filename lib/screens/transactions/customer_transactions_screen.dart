@@ -11,6 +11,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import 'wakala_theme.dart';
 
 class CustomerTransactionsScreen extends StatefulWidget {
   final int? customerId;
@@ -699,19 +700,11 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Customer Transactions'),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'Deposits'),
-            Tab(text: 'Withdrawals'),
-          ],
-        ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Customers',
+        title: 'Customer Transactions',
         actions: [
           if ((_tabController.index == 0 && permissionProvider.hasPermission(PermissionIds.transactionsDepositDateRange)) ||
               (_tabController.index == 1 && permissionProvider.hasPermission(PermissionIds.transactionsWithdrawDateRange)))
@@ -735,78 +728,77 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
             ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: WakalaSegmentedControl(
+              labels: const ['Deposits', 'Withdrawals'],
+              selectedIndex: _tabController.index,
+              onChanged: (i) => _tabController.animateTo(i),
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            // Customer Selector (Searchable)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: GlassmorphicCard(
-                isDark: isDark,
-                child: InkWell(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Select customer', style: WakalaTheme.body(size: 13, weight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.text)),
+                const SizedBox(height: 6),
+                InkWell(
                   onTap: () => _showCustomerSearchDialog(isDark),
-                  borderRadius: BorderRadius.circular(16),
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Select Customer',
-                      labelStyle: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      suffixIcon: Icon(
-                        Icons.search,
-                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                      ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : Colors.white,
+                      border: Border.all(color: isDark ? AppColors.darkDivider : const Color(0xFF6C757D)),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      _selectedCustomer != null
-                          ? '${_selectedCustomer!.firstName} ${_selectedCustomer!.lastName}'
-                          : 'Tap to search...',
-                      style: TextStyle(
-                        color: _selectedCustomer != null
-                            ? (isDark ? AppColors.darkText : const Color(0xFF1F2937))
-                            : (isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF)),
-                        fontSize: 16,
-                      ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _selectedCustomer != null
+                                ? '${_selectedCustomer!.firstName} ${_selectedCustomer!.lastName}'
+                                : 'Tap to search…',
+                            style: WakalaTheme.body(
+                                size: 15,
+                                color: _selectedCustomer != null
+                                    ? (isDark ? AppColors.darkText : AppColors.text)
+                                    : (isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF))),
+                          ),
+                        ),
+                        Icon(Icons.search, size: 20, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D)),
+                      ],
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
+          ),
 
-            // Content
-            Expanded(
-              child: _isLoading
-                  ? _buildSkeletonList(isDark)
-                  : _error != null
-                      ? Center(
-                          child: Text(
-                            _error!,
-                            style: TextStyle(
-                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                            ),
-                          ),
-                        )
-                      : TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildDepositsList(permissionProvider, isDark),
-                            _buildWithdrawalsList(permissionProvider, isDark),
-                          ],
+          // Content
+          Expanded(
+            child: _isLoading
+                ? _buildSkeletonList(isDark)
+                : _error != null
+                    ? Center(
+                        child: Text(
+                          _error!,
+                          style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
                         ),
-            ),
-          ],
-        ),
+                      )
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildDepositsList(permissionProvider, isDark),
+                          _buildWithdrawalsList(permissionProvider, isDark),
+                        ],
+                      ),
+          ),
+        ],
       ),
       floatingActionButton: _buildFloatingActionButton(permissionProvider),
     );
@@ -815,134 +807,114 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
   Widget? _buildFloatingActionButton(PermissionProvider permissionProvider) {
     final isOnDepositsTab = _tabController.index == 0;
 
+    final VoidCallback? onPressed;
+    final String label;
     if (isOnDepositsTab) {
       // Deposits tab - check deposit_add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsDepositAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
-        onPressed: () => _showAddTransactionDialog(true),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Deposit'),
-      );
+      onPressed = () => _showAddTransactionDialog(true);
+      label = 'Add Deposit';
     } else {
       // Withdrawals tab - check withdraw_add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsWithdrawAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
-        onPressed: () => _showAddTransactionDialog(false),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Withdrawal'),
-      );
+      onPressed = () => _showAddTransactionDialog(false);
+      label = 'Add Withdrawal';
     }
+    return FloatingActionButton.extended(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add),
+      label: Text(label),
+      backgroundColor: AppColors.primary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
+  }
+
+  Widget _emptyState(bool isDark, IconData icon, String title, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkDivider : const Color(0xFFE9ECEF),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(icon, size: 30, color: isDark ? AppColors.darkTextLight : AppColors.text),
+            ),
+            const SizedBox(height: 12),
+            Text(title, style: WakalaTheme.display(size: 20, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+            const SizedBox(height: 4),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildDepositsList(PermissionProvider permissionProvider, bool isDark) {
     if (_deposits.isEmpty) {
-      return Center(
-        child: Text(
-          'No deposits found',
-          style: TextStyle(
-            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-          ),
-        ),
-      );
+      return _emptyState(isDark, Icons.arrow_downward, 'No deposits found',
+          'Pick a customer or change the dates to see their deposits.');
     }
 
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsDepositEdit);
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsDepositDelete);
-    final hasAnyAction = canEdit || canDelete;
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
       itemCount: _deposits.length,
       itemBuilder: (context, index) {
         final deposit = _deposits[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: GlassmorphicCard(
-            isDark: isDark,
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.success.withOpacity(0.15),
-                child: Icon(Icons.arrow_downward, color: AppColors.success),
-              ),
-              title: Text(
-                Formatters.formatCurrency(deposit.amount),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+          padding: const EdgeInsets.only(bottom: 10),
+          child: WakalaCard(
+            railColor: AppColors.success,
+            child: Row(
+              children: [
+                const WakalaIconTile(icon: Icons.arrow_downward, tint: WakalaTint.green),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(deposit.customerName,
+                          style: WakalaTheme.display(size: 17, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                      Text(
+                          deposit.description.isNotEmpty ? '${deposit.date} · ${deposit.description}' : deposit.date,
+                          style: WakalaTheme.body(size: 12.5, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                    ],
+                  ),
                 ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    deposit.customerName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? AppColors.darkText : const Color(0xFF374151),
-                    ),
-                  ),
-                  Text(
-                    deposit.date,
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                    ),
-                  ),
-                  if (deposit.description.isNotEmpty)
-                    Text(
-                      deposit.description,
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                        fontSize: 12,
-                      ),
-                    ),
-                ],
-              ),
-              trailing: hasAnyAction
-                  ? PopupMenuButton<String>(
-                      icon: Icon(
-                        Icons.more_vert,
-                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                      ),
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _showEditDepositDialog(deposit);
-                        } else if (value == 'delete') {
-                          _deleteDeposit(deposit);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        if (canEdit)
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, color: AppColors.primary),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
-                            ),
-                          ),
-                        if (canDelete)
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: AppColors.error),
-                                SizedBox(width: 8),
-                                Text('Delete'),
-                              ],
-                            ),
-                          ),
-                      ],
-                    )
-                  : Icon(
-                      Icons.chevron_right,
-                      color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF),
-                    ),
+                Text(Formatters.formatCurrency(deposit.amount),
+                    style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: const Color(0xFF047857))),
+                if (canEdit || canDelete)
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextLight : AppColors.text),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEditDepositDialog(deposit);
+                      } else if (value == 'delete') {
+                        _deleteDeposit(deposit);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      if (canDelete) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  )
+                else
+                  const SizedBox(width: 4),
+              ],
             ),
           ),
         );
@@ -952,109 +924,58 @@ class _CustomerTransactionsScreenState extends State<CustomerTransactionsScreen>
 
   Widget _buildWithdrawalsList(PermissionProvider permissionProvider, bool isDark) {
     if (_withdrawals.isEmpty) {
-      return Center(
-        child: Text(
-          'No withdrawals found',
-          style: TextStyle(
-            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-          ),
-        ),
-      );
+      return _emptyState(isDark, Icons.arrow_upward, 'No withdrawals found',
+          'Pick a customer or change the dates to see their withdrawals.');
     }
 
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsWithdrawEdit);
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsWithdrawDelete);
-    final hasAnyAction = canEdit || canDelete;
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
       itemCount: _withdrawals.length,
       itemBuilder: (context, index) {
         final withdrawal = _withdrawals[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: GlassmorphicCard(
-            isDark: isDark,
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.error.withOpacity(0.15),
-                child: Icon(Icons.arrow_upward, color: AppColors.error),
-              ),
-              title: Text(
-                Formatters.formatCurrency(withdrawal.amount),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+          padding: const EdgeInsets.only(bottom: 10),
+          child: WakalaCard(
+            railColor: AppColors.error,
+            child: Row(
+              children: [
+                const WakalaIconTile(icon: Icons.arrow_upward, tint: WakalaTint.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(withdrawal.customerName,
+                          style: WakalaTheme.display(size: 17, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                      Text(
+                          withdrawal.description.isNotEmpty ? '${withdrawal.date} · ${withdrawal.description}' : withdrawal.date,
+                          style: WakalaTheme.body(size: 12.5, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                    ],
+                  ),
                 ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    withdrawal.customerName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? AppColors.darkText : const Color(0xFF374151),
-                    ),
-                  ),
-                  Text(
-                    withdrawal.date,
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                    ),
-                  ),
-                  if (withdrawal.description.isNotEmpty)
-                    Text(
-                      withdrawal.description,
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                        fontSize: 12,
-                      ),
-                    ),
-                ],
-              ),
-              trailing: hasAnyAction
-                  ? PopupMenuButton<String>(
-                      icon: Icon(
-                        Icons.more_vert,
-                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                      ),
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _showEditWithdrawalDialog(withdrawal);
-                        } else if (value == 'delete') {
-                          _deleteWithdrawal(withdrawal);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        if (canEdit)
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, color: AppColors.primary),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
-                            ),
-                          ),
-                        if (canDelete)
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: AppColors.error),
-                                SizedBox(width: 8),
-                                Text('Delete'),
-                              ],
-                            ),
-                          ),
-                      ],
-                    )
-                  : Icon(
-                      Icons.chevron_right,
-                      color: isDark ? AppColors.darkTextLight : const Color(0xFF9CA3AF),
-                    ),
+                Text(Formatters.formatCurrency(withdrawal.amount),
+                    style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: const Color(0xFFB91C1C))),
+                if (canEdit || canDelete)
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextLight : AppColors.text),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEditWithdrawalDialog(withdrawal);
+                      } else if (value == 'delete') {
+                        _deleteWithdrawal(withdrawal);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      if (canDelete) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  )
+                else
+                  const SizedBox(width: 4),
+              ],
             ),
           ),
         );
