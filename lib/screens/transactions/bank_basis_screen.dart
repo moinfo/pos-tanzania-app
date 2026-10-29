@@ -817,44 +817,49 @@ class _BankBasisScreenState extends State<BankBasisScreen>
           bottomLeft: Radius.circular(4),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(width: 4, color: AppColors.primary),
-          Expanded(
-            child: Column(
-              children: [
-                ...rows.map((entry) => Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(entry.key.name,
-                                style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkText : AppColors.text),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                          Text(Formatters.formatCurrency(entry.value),
-                              style: WakalaTheme.display(size: 15, weight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.text)),
-                        ],
-                      ),
-                    )),
-                Container(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
-                  color: AppColors.secondary,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('TOTAL',
-                          style: WakalaTheme.body(size: 13, weight: FontWeight.w600, color: const Color(0xFFE9ECEF)).copyWith(letterSpacing: 1.2)),
-                      Text(Formatters.formatCurrency(_total),
-                          style: WakalaTheme.display(size: 24, weight: FontWeight.w700, color: Colors.white)),
-                    ],
+      // IntrinsicHeight: this card sits as a ListView item, which hands the
+      // Row unbounded height -- stretch alone needs a bounded cross-axis
+      // extent (same fix as WakalaCard in wakala_theme.dart).
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 4, color: AppColors.primary),
+            Expanded(
+              child: Column(
+                children: [
+                  ...rows.map((entry) => Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(entry.key.name,
+                                  style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkText : AppColors.text),
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            Text(Formatters.formatCurrency(entry.value),
+                                style: WakalaTheme.display(size: 15, weight: FontWeight.w600, color: isDark ? AppColors.darkText : AppColors.text)),
+                          ],
+                        ),
+                      )),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+                    color: AppColors.secondary,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('TOTAL',
+                            style: WakalaTheme.body(size: 13, weight: FontWeight.w600, color: const Color(0xFFE9ECEF)).copyWith(letterSpacing: 1.2)),
+                        Text(Formatters.formatCurrency(_total),
+                            style: WakalaTheme.display(size: 24, weight: FontWeight.w700, color: Colors.white)),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -823,14 +823,18 @@ class _CashBasisScreenState extends State<CashBasisScreen>
           bottomLeft: Radius.circular(4),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(width: 4, color: AppColors.warning),
-          Expanded(
-            child: Column(
-              children: [
-                ...rows.map((category) {
+      // IntrinsicHeight: this card sits as a ListView item, which hands the
+      // Row unbounded height -- stretch alone needs a bounded cross-axis
+      // extent (same fix as WakalaCard in wakala_theme.dart).
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 4, color: AppColors.warning),
+            Expanded(
+              child: Column(
+                children: [
+                  ...rows.map((category) {
                   final total = _categoryTotals[category.id] ?? 0;
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
@@ -874,6 +878,7 @@ class _CashBasisScreenState extends State<CashBasisScreen>
             ),
           ),
         ],
+        ),
       ),
     );
   }

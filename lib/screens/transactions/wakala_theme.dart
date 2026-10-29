@@ -294,12 +294,19 @@ class WakalaCard extends StatelessWidget {
           bottomLeft: Radius.circular(4),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(width: 4, color: railColor),
-          Expanded(child: Padding(padding: padding, child: child)),
-        ],
+      // IntrinsicHeight forces a two-pass layout so the Row's stretch can
+      // resolve: every use of WakalaCard sits inside a ListView item, which
+      // hands the Row unbounded height -- stretch alone throws "BoxConstraints
+      // forces an infinite height" there, since it needs a bounded cross-axis
+      // extent to stretch into.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 4, color: railColor),
+            Expanded(child: Padding(padding: padding, child: child)),
+          ],
+        ),
       ),
     );
   }
