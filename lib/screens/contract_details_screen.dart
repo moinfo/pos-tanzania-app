@@ -13,6 +13,7 @@ import '../utils/formatters.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/skeleton_loader.dart';
 import 'contract_form_screen.dart';
+import 'contracts/contract_theme.dart';
 
 class ContractDetailsScreen extends StatefulWidget {
   final Contract contract;
@@ -512,10 +513,11 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
         .hasPermission(PermissionIds.contractsTerminate);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_contract.name),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-        foregroundColor: Colors.white,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: ContractTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Contract',
+        title: _contract.name,
         actions: [
           if (canTerminate && !_contract.isTerminated)
             IconButton(
@@ -549,100 +551,110 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.add),
-              label: const Text('Add Payment'),
-              backgroundColor: AppColors.success,
+                  : const Icon(Icons.add, color: Colors.white),
+              label: Text('Add payment', style: ContractTheme.body(size: 14, weight: FontWeight.w700, color: Colors.white)),
+              backgroundColor: const Color(0xFF047857),
             )
           : null,
       body: Column(
         children: [
           // Contract summary card
-          Card(
+          Container(
             margin: const EdgeInsets.all(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _contract.contractDescription,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkText : AppColors.text,
-                          ),
-                        ),
-                      ),
-                      _buildStatusBadge(_contract),
-                    ],
-                  ),
-                  if (_contract.isTerminated &&
-                      (_contract.terminationReason?.isNotEmpty ?? false)) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      'Reason: ${_contract.terminationReason}',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontStyle: FontStyle.italic,
-                        color: isDark
-                            ? AppColors.darkTextLight
-                            : AppColors.textLight,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCard : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _contract.contractDescription,
+                        style: ContractTheme.display(
+                            size: 22, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    _buildStatusBadge(_contract),
                   ],
-                  if (!_contract.isTerminated &&
-                      _contract.collectionStage != null) ...[
-                    const SizedBox(height: 6),
-                    _buildCollectionStageChip(_contract.collectionStage!),
-                  ],
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildSummaryItem('Balance',
-                          Formatters.formatCurrency(_contract.balance), isDark),
-                      _buildSummaryItem('Profit',
-                          Formatters.formatCurrency(_contract.profit), isDark),
-                    ],
+                ),
+                if (_contract.isTerminated &&
+                    (_contract.terminationReason?.isNotEmpty ?? false)) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Reason: ${_contract.terminationReason}',
+                    style: ContractTheme.body(
+                      size: 12.5,
+                      color: isDark ? AppColors.darkTextLight : AppColors.textLight,
+                    ).copyWith(fontStyle: FontStyle.italic),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildSummaryItem('Days Paid',
-                          _contract.daysPaid.toStringAsFixed(0), isDark),
-                      _buildSummaryItem('Days Unpaid',
-                          _contract.daysUnpaid.toStringAsFixed(0), isDark),
-                    ],
-                  ),
-                  if (_contract.penalty > 0) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Includes ${Formatters.formatCurrency(_contract.penalty)} late fee',
-                      style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.error),
-                    ),
-                  ],
-                  if (_contract.repossessionFeeCharged > 0) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Includes ${Formatters.formatCurrency(_contract.repossessionFeeCharged)} repossession fee',
-                      style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.error),
-                    ),
-                  ],
-                  const Divider(height: 24),
-                  _buildAssetInfo(isDark, canAdd),
                 ],
-              ),
+                if (!_contract.isTerminated &&
+                    _contract.collectionStage != null) ...[
+                  const SizedBox(height: 8),
+                  _buildCollectionStageChip(_contract.collectionStage!),
+                ],
+                const SizedBox(height: 14),
+                ContractDayStrip(
+                  daysPaid: _contract.daysPaid.round(),
+                  daysUnpaid: _contract.daysUnpaid.round(),
+                  totalDays: _contract.days,
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryItem('Balance',
+                          Formatters.formatCurrency(_contract.balance),
+                          _contract.balance > 0 ? const Color(0xFFB91C1C) : const Color(0xFF047857)),
+                    ),
+                    Expanded(
+                      child: _buildSummaryItem('Profit',
+                          Formatters.formatCurrency(_contract.profit),
+                          _contract.profit >= 0 ? const Color(0xFF047857) : const Color(0xFFB91C1C)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryItem('Days paid',
+                          _contract.daysPaid.toStringAsFixed(0), const Color(0xFF047857)),
+                    ),
+                    Expanded(
+                      child: _buildSummaryItem('Days unpaid',
+                          _contract.daysUnpaid.toStringAsFixed(0),
+                          _contract.daysUnpaid > 0 ? const Color(0xFFB91C1C) : (isDark ? AppColors.darkText : AppColors.text)),
+                    ),
+                  ],
+                ),
+                if (_contract.penalty > 0) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Includes ${Formatters.formatCurrency(_contract.penalty)} late fee',
+                    style: ContractTheme.body(size: 12.5, weight: FontWeight.w600, color: AppColors.error),
+                  ),
+                ],
+                if (_contract.repossessionFeeCharged > 0) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Includes ${Formatters.formatCurrency(_contract.repossessionFeeCharged)} repossession fee',
+                    style: ContractTheme.body(size: 12.5, weight: FontWeight.w600, color: AppColors.error),
+                  ),
+                ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Divider(height: 1, color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                ),
+                _buildAssetInfo(isDark, canAdd),
+              ],
             ),
           ),
 
@@ -651,42 +663,16 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _selectStartDate,
-                    icon: const Icon(Icons.calendar_today, size: 16),
-                    label: Text(
-                      Formatters.formatDate(
-                          Formatters.formatDateForApi(_startDate)),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                    ),
-                  ),
-                ),
+                Expanded(child: _rangeButton(
+                    Formatters.formatDate(Formatters.formatDateForApi(_startDate)), _selectStartDate, isDark)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text('to',
-                      style: TextStyle(
-                          color: isDark
-                              ? AppColors.darkTextLight
-                              : AppColors.textLight)),
+                      style: ContractTheme.body(
+                          size: 13.5, color: isDark ? AppColors.darkTextLight : AppColors.textLight)),
                 ),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _selectEndDate,
-                    icon: const Icon(Icons.calendar_today, size: 16),
-                    label: Text(
-                      Formatters.formatDate(
-                          Formatters.formatDateForApi(_endDate)),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                    ),
-                  ),
-                ),
+                Expanded(child: _rangeButton(
+                    Formatters.formatDate(Formatters.formatDateForApi(_endDate)), _selectEndDate, isDark)),
               ],
             ),
           ),
@@ -755,129 +741,119 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     );
   }
 
-  /// Same status scheme as ContractsScreen's card -- see its doc comment.
-  Widget _buildStatusBadge(Contract contract) {
-    final Color color;
-    final String label;
-    switch (contract.status) {
-      case 'terminated':
-        color = Colors.grey;
-        label = 'Terminated';
-        break;
-      case 'completed':
-        color = AppColors.success;
-        label = 'Completed';
-        break;
-      case 'on_track':
-        color = AppColors.success;
-        label = 'On Track';
-        break;
-      case 'behind':
-        color = AppColors.warning;
-        label = 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d';
-        break;
-      default:
-        color = AppColors.error;
-        label = 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        label,
-        style:
-            TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+  Widget _rangeButton(String label, VoidCallback onTap, bool isDark) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.calendar_today, size: 16),
+      label: Text(label, style: ContractTheme.body(size: 13, weight: FontWeight.w700)),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightTextLight),
+        minimumSize: const Size.fromHeight(44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
     );
+  }
+
+  /// Same status scheme as ContractsScreen's card -- see its doc comment.
+  Widget _buildStatusBadge(Contract contract) {
+    switch (contract.status) {
+      case 'terminated':
+        return const ContractStatusBadge(
+            label: 'Terminated', dot: Colors.grey, background: Color(0xFFE9ECEF), foreground: Color(0xFF6C757D));
+      case 'completed':
+        return const ContractStatusBadge(
+            label: 'Completed', dot: AppColors.success, background: Color(0xFFD1FAE5), foreground: Color(0xFF047857));
+      case 'on_track':
+        return const ContractStatusBadge(
+            label: 'On track', dot: AppColors.success, background: Color(0xFFD1FAE5), foreground: Color(0xFF047857));
+      default:
+        return ContractStatusBadge(label: 'Behind ${contract.daysUnpaid.toStringAsFixed(0)}d');
+    }
   }
 
   /// Which collection-escalation tier this contract is in -- see
   /// Contract::compute_metrics()'s collection_stage on the backend. Purely
   /// informational for staff; only shown while the contract is still active.
   Widget _buildCollectionStageChip(String stage) {
-    final Color color;
-    final String label;
     switch (stage) {
       case 'final_notice':
-        color = AppColors.error;
-        label = 'Final Notice';
-        break;
+        return const ContractStatusBadge(
+            label: 'Final notice', dot: AppColors.error, background: Color(0xFFFEE2E2), foreground: Color(0xFFB91C1C));
       case 'warning':
-        color = AppColors.warning;
-        label = 'Warning';
-        break;
+        return const ContractStatusBadge(
+            label: 'Warning', dot: AppColors.warning, background: Color(0xFFFEF3C7), foreground: Color(0xFF92400E));
       default:
-        color = AppColors.primary;
-        label = 'Reminder Sent';
+        return const ContractStatusBadge(
+            label: 'Reminder sent', dot: AppColors.primary, background: Color(0xFFDBEAFE), foreground: Color(0xFF1E40AF));
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-            fontSize: 10.5, fontWeight: FontWeight.w600, color: color),
-      ),
-    );
   }
 
   Widget _buildAssetInfo(bool isDark, bool canEdit) {
-    final hasInfo = (_contract.assetPlateNumber?.isNotEmpty ?? false) ||
-        (_contract.assetChassisNumber?.isNotEmpty ?? false) ||
-        (_contract.assetInsuranceProvider?.isNotEmpty ?? false);
+    final hasPlate = _contract.assetPlateNumber?.isNotEmpty ?? false;
+    final hasChassis = _contract.assetChassisNumber?.isNotEmpty ?? false;
+    final hasInsurance = _contract.assetInsuranceProvider?.isNotEmpty ?? false;
     final expiry = _contract.assetInsuranceExpiry;
     final insuranceExpired = expiry != null &&
         expiry.compareTo(Formatters.formatDateForApi(DateTime.now())) < 0;
-    final textColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
 
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: hasInfo
-              ? Wrap(
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    if (_contract.assetPlateNumber?.isNotEmpty ?? false)
-                      Text('Plate: ${_contract.assetPlateNumber}',
-                          style: TextStyle(fontSize: 12, color: textColor)),
-                    if (_contract.assetChassisNumber?.isNotEmpty ?? false)
-                      Text('Chassis: ${_contract.assetChassisNumber}',
-                          style: TextStyle(fontSize: 12, color: textColor)),
-                    if (_contract.assetInsuranceProvider?.isNotEmpty ?? false)
-                      Text(
-                        'Insurance: ${_contract.assetInsuranceProvider}'
-                        '${expiry != null ? ' (expires $expiry${insuranceExpired ? ' -- EXPIRED' : ''})' : ''}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: insuranceExpired ? AppColors.error : textColor,
-                          fontWeight: insuranceExpired
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                  ],
-                )
-              : Text('No asset info recorded.',
-                  style: TextStyle(fontSize: 12, color: textColor)),
+        Row(
+          children: [
+            Text('Plate', style: ContractTheme.body(size: 14, color: subColor)),
+            const SizedBox(width: 8),
+            if (hasPlate)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : AppColors.lightBackground,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightTextLight, width: 1.5),
+                ),
+                child: Text(_contract.assetPlateNumber!.toUpperCase(),
+                    style: ContractTheme.display(size: 15, weight: FontWeight.w700, color: textColor)
+                        .copyWith(letterSpacing: 1.2)),
+              )
+            else
+              Text('Not recorded', style: ContractTheme.body(size: 13.5, color: subColor)),
+            const Spacer(),
+            if (canEdit)
+              InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: _editAssetInfo,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(Icons.edit_outlined, size: 20, color: textColor),
+                ),
+              ),
+          ],
         ),
-        if (canEdit)
-          InkWell(
-            onTap: _editAssetInfo,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Icon(Icons.edit, size: 16, color: textColor),
-            ),
+        if (hasChassis || hasInsurance) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 14,
+            runSpacing: 4,
+            children: [
+              if (hasChassis)
+                Text('Chassis: ${_contract.assetChassisNumber}',
+                    style: ContractTheme.body(size: 12.5, color: subColor)),
+              if (hasInsurance)
+                Text(
+                  'Insurance: ${_contract.assetInsuranceProvider}'
+                  '${expiry != null ? ' (expires $expiry${insuranceExpired ? ' -- EXPIRED' : ''})' : ''}',
+                  style: ContractTheme.body(
+                    size: 12.5,
+                    weight: insuranceExpired ? FontWeight.w700 : FontWeight.w400,
+                    color: insuranceExpired ? AppColors.error : subColor,
+                  ),
+                ),
+            ],
           ),
+        ],
       ],
     );
   }
@@ -1001,26 +977,13 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     }
   }
 
-  Widget _buildSummaryItem(String label, String value, bool isDark) {
+  Widget _buildSummaryItem(String label, String value, Color valueColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkText : AppColors.text,
-          ),
-        ),
+        Text(label, style: ContractTheme.body(size: 13, color: AppColors.textLight)),
+        const SizedBox(height: 2),
+        Text(value, style: ContractTheme.display(size: 26, weight: FontWeight.w700, color: valueColor)),
       ],
     );
   }
@@ -1029,106 +992,65 @@ class _ContractDetailsScreenState extends State<ContractDetailsScreen> {
     final isOpening = entry.type == 'opening';
     final isClosing = entry.type == 'closing';
     final isSpecial = isOpening || isClosing;
+    final textColor = isDark ? AppColors.darkText : AppColors.text;
+    final subColor = isDark ? AppColors.darkTextLight : AppColors.textLight;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      elevation: isSpecial ? 2 : 1,
-      color: isSpecial
-          ? (isDark
-              ? AppColors.darkSurface
-              : AppColors.primary.withOpacity(0.05))
-          : null,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Date and description
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  entry.description,
-                  style: TextStyle(
-                    fontSize: isSpecial ? 14 : 13,
-                    fontWeight: isSpecial ? FontWeight.bold : FontWeight.normal,
-                    color: isDark ? AppColors.darkText : AppColors.text,
-                  ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isSpecial
+            ? (isDark ? AppColors.darkDivider : const Color(0xFFE9ECEF))
+            : (isDark ? AppColors.darkCard : Colors.white),
+        borderRadius: BorderRadius.circular(18),
+        border: isSpecial ? null : Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(entry.description, style: ContractTheme.display(size: 17, weight: FontWeight.w700, color: textColor)),
+              Text(Formatters.formatDate(entry.date), style: ContractTheme.body(size: 13, color: subColor)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: _buildAmountColumn('Credit', entry.credit, const Color(0xFF047857), subColor: subColor)),
+              Expanded(child: _buildAmountColumn('Debit', entry.debit, AppColors.error, subColor: subColor)),
+              Expanded(
+                child: _buildAmountColumn(
+                  'Balance',
+                  entry.balance,
+                  entry.balance >= 0 ? const Color(0xFF047857) : AppColors.error,
+                  isBold: true,
+                  subColor: subColor,
                 ),
-                Text(
-                  Formatters.formatDate(entry.date),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color:
-                        isDark ? AppColors.darkTextLight : AppColors.textLight,
-                    fontWeight: isSpecial ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Financial details
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Credit
-                Expanded(
-                  child: _buildAmountColumn(
-                    'Credit',
-                    entry.credit,
-                    AppColors.success,
-                    isDark: isDark,
-                  ),
-                ),
-                // Debit
-                Expanded(
-                  child: _buildAmountColumn(
-                    'Debit',
-                    entry.debit,
-                    AppColors.error,
-                    isDark: isDark,
-                  ),
-                ),
-                // Balance
-                Expanded(
-                  child: _buildAmountColumn(
-                    'Balance',
-                    entry.balance,
-                    entry.balance >= 0 ? AppColors.success : AppColors.error,
-                    isBold: true,
-                    isDark: isDark,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildAmountColumn(String label, double amount, Color color,
-      {bool isBold = false, required bool isDark}) {
+      {bool isBold = false, required Color subColor}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
-          ),
-        ),
+        Text(label, style: ContractTheme.body(size: 11, color: subColor)),
         const SizedBox(height: 2),
         Text(
           Formatters.formatCurrency(amount),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            color: amount == 0
-                ? (isDark ? AppColors.darkTextLight : AppColors.textLight)
-                : color,
+          style: ContractTheme.body(
+            size: 13,
+            weight: isBold ? FontWeight.w700 : FontWeight.w600,
+            color: amount == 0 ? subColor : color,
           ),
         ),
       ],
