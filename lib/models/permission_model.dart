@@ -610,4 +610,57 @@ class PermissionIds {
   static const String customersShopsAdd = 'customers_shops_add';
   static const String customersShopsEdit = 'customers_shops_edit';
   static const String customersShopsDelete = 'customers_shops_delete';
+
+  // Lodge/Guesthouse module -- opt-in per tenant (My Subscription -> Optional
+  // Modules), NOT part of any client's compile-time feature flags since it's
+  // a runtime subscription, not a flavor. See LODGE_MODULE.md/LODGE_API.md
+  // on the backend for the full permission -> capability mapping.
+  static const String lodge = 'lodge';
+  static const String lodgeBookings = 'lodge_bookings';
+  static const String lodgeBookingsAdd = 'lodge_bookings_add';
+  static const String lodgeBookingsEdit = 'lodge_bookings_edit';
+  static const String lodgeBookingsCancel = 'lodge_bookings_cancel';
+  // Backdating a check-in date; server also enforces this (403).
+  static const String lodgeBookingsDate = 'lodge_bookings_date';
+  static const String lodgeBookingsDateRangeFilter =
+      'lodge_bookings_date_range_filter';
+  static const String lodgeCheckin = 'lodge_checkin';
+  static const String lodgeCheckout = 'lodge_checkout';
+  // Check-out with the remaining balance put on the guest's customer credit.
+  static const String lodgeCredit = 'lodge_credit';
+  static const String lodgePaymentsAdd = 'lodge_payments_add';
+  static const String lodgePayments = 'lodge_payments';
+  static const String lodgePaymentsEdit = 'lodge_payments_edit';
+  static const String lodgePaymentsDelete = 'lodge_payments_delete';
+  static const String lodgePaymentsDateRangeFilter =
+      'lodge_payments_date_range_filter';
+  static const String lodgeStatement = 'lodge_statement';
+  static const String lodgeExtend = 'lodge_extend';
+  static const String lodgeMove = 'lodge_move';
+  static const String lodgeCalendar = 'lodge_calendar';
+  static const String lodgeRooms = 'lodge_rooms';
+  static const String lodgeRoomsAdd = 'lodge_rooms_add';
+  static const String lodgeRoomsEdit = 'lodge_rooms_edit';
+  static const String lodgeRoomsDelete = 'lodge_rooms_delete';
+  static const String lodgeRoomsStatus = 'lodge_rooms_status';
+  static const String lodgeMaintenance = 'lodge_maintenance';
+  static const String lodgeMaintenanceAdd = 'lodge_maintenance_add';
+  static const String lodgeMaintenanceDate = 'lodge_maintenance_date';
+  static const String lodgeMaintenanceDelete = 'lodge_maintenance_delete';
+  static const String lodgeExpenses = 'lodge_expenses';
+  static const String lodgeExpensesAdd = 'lodge_expenses_add';
+  static const String lodgeExpensesDate = 'lodge_expenses_date';
+  static const String lodgeExpensesDelete = 'lodge_expenses_delete';
+  static const String lodgeExpensesDateRangeFilter =
+      'lodge_expenses_date_range_filter';
+  static const String lodgeReports = 'lodge_reports';
+  static const String lodgeReportsDateRangeFilter =
+      'lodge_reports_date_range_filter';
+  static const String lodgeDayClose = 'lodge_day_close';
+  static const String lodgeDayCloseDate = 'lodge_day_close_date';
+  static const String lodgeDayCloseEdit = 'lodge_day_close_edit';
+  static const String lodgeGuests = 'lodge_guests';
+  static const String lodgeForecast = 'lodge_forecast';
+  static const String lodgeMessages = 'lodge_messages';
+  static const String lodgeMessagesEdit = 'lodge_messages_edit';
 }

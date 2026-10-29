@@ -50,6 +50,7 @@ import 'notifications_screen.dart';
 import '../main.dart' show handlePushTap;
 import 'cash_movements_screen.dart';
 import 'production/production_shell.dart';
+import 'lodge/lodge_board_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -248,13 +249,56 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     }
   }
 
+  /// True when the tenant subscribed to Lodge alone, with none of the other
+  /// retail modules this app knows about. Lodge is a runtime per-tenant
+  /// subscription (My Subscription -> Optional Modules), not a compile-time
+  /// client flavor, so this can only be decided from the live grant set --
+  /// never from ApiService.currentClient.features.
+  ///
+  /// `home` is deliberately NOT part of the "other modules" check: it is
+  /// granted to effectively every employee regardless of which modules the
+  /// tenant actually subscribes to (confirmed against a real lodge-only
+  /// tenant), so its presence says nothing about whether this is a retail
+  /// tenant.
+  bool _isLodgeOnlyTenant(PermissionProvider permissionProvider) {
+    if (!permissionProvider.hasPermission(PermissionIds.lodge)) return false;
+
+    final hasOtherModules = permissionProvider.hasPermission(PermissionIds.sales) ||
+        permissionProvider.hasPermission(PermissionIds.items) ||
+        permissionProvider.hasPermission(PermissionIds.receivings) ||
+        permissionProvider.hasPermission(PermissionIds.cashSubmit) ||
+        permissionProvider.hasPermission(PermissionIds.expenses) ||
+        permissionProvider.hasPermission(PermissionIds.customers) ||
+        permissionProvider.hasPermission(PermissionIds.suppliers) ||
+        permissionProvider.hasPermission(PermissionIds.contracts) ||
+        permissionProvider.hasPermission(PermissionIds.production) ||
+        permissionProvider.hasPermission(PermissionIds.reports) ||
+        permissionProvider.hasPermission(PermissionIds.transactions) ||
+        permissionProvider.hasPermission(PermissionIds.banking);
+
+    return !hasOtherModules;
+  }
+
   // Screen configuration with permissions
   // IMPORTANT: All screens MUST have permission checks based on ospos_permissions table
   // Built dynamically to support client-specific screens
   // - SADA: Home, Sales, Expenses, Summary, Contracts, Reports (or Transactions if no stock location)
   // - Leruma: Home, Sales, Expenses, Summary, Seller, Reports
   // - Come & Save: Home, Sales, Expenses, Summary, Reports (or Transactions if no stock location)
+  // - Lodge-only tenant: Board alone (see _isLodgeOnlyTenant) -- the module
+  //   becomes this tenant's whole app rather than a drawer add-on.
   List<Map<String, dynamic>> _buildScreenConfigs(PermissionProvider permissionProvider, LocationProvider locationProvider, String? userId) {
+    if (_isLodgeOnlyTenant(permissionProvider)) {
+      return [
+        {
+          'screen': LodgeBoardScreen(key: ValueKey('lodge_board_$userId')),
+          'icon': Icons.hotel,
+          'label': 'Board',
+          'permission': PermissionIds.lodge,
+        },
+      ];
+    }
+
     final isLeruma = ApiService.currentClient?.id == 'leruma';
     final hasContracts = ApiService.currentClient?.features.hasContracts ?? false;
     final hasShops = ApiService.currentClient?.features.hasShops ?? false;
@@ -975,6 +1019,24 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 ],
               ),
             ),
+            // Lodge Menu — hidden when the tenant is lodge-only (that tenant
+            // already lands on the Board as their Home tab; repeating it
+            // here would be a dead-end duplicate entry).
+            if (!_isLodgeOnlyTenant(permissionProvider))
+              PermissionWrapper(
+                permissionId: PermissionIds.lodge,
+                child: ListTile(
+                  leading: Icon(Icons.hotel_outlined, color: AppColors.brandPrimary),
+                  title: const Text('Lodge'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LodgeBoardScreen()),
+                    );
+                  },
+                ),
+              ),
             // Cash Movements Menu — split into the two entries the web uses
             // ("Direct Deposit" / "Direct Withdraw") rather than one umbrella,
             // since the grants are per-type and a user often holds only one.

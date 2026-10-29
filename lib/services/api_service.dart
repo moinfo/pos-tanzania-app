@@ -22,6 +22,7 @@ import '../models/cash_movement.dart';
 import '../models/app_notification.dart';
 import '../models/production_report.dart';
 import '../models/production.dart';
+import '../models/lodge.dart';
 import '../models/expense.dart';
 import '../models/customer.dart';
 import '../models/item.dart';
@@ -328,6 +329,9 @@ class ApiService {
         return ApiResponse<T>.error(
           message: jsonResponse['message'] ?? 'An error occurred',
           statusCode: statusCode,
+          errors: jsonResponse['errors'] is Map
+              ? Map<String, dynamic>.from(jsonResponse['errors'])
+              : null,
         );
       }
     } catch (e) {
@@ -8811,6 +8815,228 @@ class ApiService {
         (data) => ProductionSettings.fromJson(
             (data['settings'] as Map<String, dynamic>?) ?? <String, dynamic>{}),
       );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  // ============================================================================
+  // LODGE / GUESTHOUSE
+  // Backend: application/controllers/api/Lodge.php, routes `api/lodge/*`.
+  // Opt-in per tenant -- callers must check LodgeMeta.permissions (or catch
+  // the 403 from `meta` itself when the module is off) rather than assuming
+  // access. See LODGE_API.md / LODGE_MOBILE_README.md for the full contract.
+  // ============================================================================
+
+  Future<ApiResponse<LodgeMeta>> getLodgeMeta() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/lodge/meta'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<LodgeMeta>(
+          response, (data) => LodgeMeta.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeDashboard>> getLodgeDashboard({int? locationId}) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/dashboard').replace(
+        queryParameters: {
+          if (locationId != null) 'location_id': locationId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<LodgeDashboard>(
+          response, (data) => LodgeDashboard.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Rooms free for `[checkInDate, checkOutDate)`. [excludeBookingId] must be
+  /// passed when re-picking a room for an existing booking (edit/move) so it
+  /// doesn't exclude itself.
+  Future<ApiResponse<List<LodgeRoom>>> getLodgeAvailableRooms({
+    required String checkInDate,
+    required String checkOutDate,
+    int? locationId,
+    int? excludeBookingId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/rooms/available').replace(
+        queryParameters: {
+          'check_in': checkInDate,
+          'check_out': checkOutDate,
+          if (locationId != null) 'location_id': locationId.toString(),
+          if (excludeBookingId != null)
+            'exclude_booking_id': excludeBookingId.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<LodgeRoom>>(
+        response,
+        (data) => (data['rooms'] as List<dynamic>? ?? [])
+            .map((r) => LodgeRoom.fromJson(Map<String, dynamic>.from(r)))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<List<LodgeCustomerSuggestion>>> lodgeCustomerSuggest(
+      String term) async {
+    try {
+      final uri = Uri.parse('$baseUrlSync/lodge/customers/suggest')
+          .replace(queryParameters: {'term': term});
+      final response = await http.get(uri, headers: await _getHeaders());
+      return _handleResponse<List<LodgeCustomerSuggestion>>(
+        response,
+        (data) => (data['customers'] as List<dynamic>? ?? [])
+            .map((c) =>
+                LodgeCustomerSuggestion.fromJson(Map<String, dynamic>.from(c)))
+            .toList(),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeBooking>> getLodgeBooking(int bookingId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<LodgeBooking>(
+          response, (data) => LodgeBooking.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// New booking. [createCustomer] makes a customer account from
+  /// [guestName]/[guestPhone] server-side instead of linking [customerId].
+  Future<ApiResponse<LodgeBooking>> createLodgeBooking({
+    required String guestName,
+    required int roomId,
+    required String checkInDate,
+    required String checkOutDate,
+    String? guestPhone,
+    String? guestIdNumber,
+    int? numGuests,
+    double? ratePerNight,
+    String? notes,
+    int? customerId,
+    bool createCustomer = false,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/bookings'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'guest_name': guestName,
+          'room_id': roomId,
+          'check_in_date': checkInDate,
+          'check_out_date': checkOutDate,
+          if (guestPhone != null) 'guest_phone': guestPhone,
+          if (guestIdNumber != null) 'guest_id_number': guestIdNumber,
+          if (numGuests != null) 'num_guests': numGuests,
+          if (ratePerNight != null) 'rate_per_night': ratePerNight,
+          if (notes != null) 'notes': notes,
+          if (customerId != null) 'customer_id': customerId,
+          if (createCustomer) 'create_customer': true,
+        }),
+      );
+      return _handleResponse<LodgeBooking>(
+          response, (data) => LodgeBooking.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeBooking>> checkinLodgeBooking(int bookingId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/checkin'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<LodgeBooking>(
+          response, (data) => LodgeBooking.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Deposit/advance payment. Exactly one of [nights] or [amount] is what the
+  /// user typed; the screen fills the other side as a live preview, but the
+  /// server is what actually decides the new `paid_through`.
+  Future<ApiResponse<LodgeBooking>> addLodgePayment({
+    required int bookingId,
+    required double amount,
+    required String paymentType,
+    int? nights,
+    String? note,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/payments'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'amount': amount,
+          'payment_type': paymentType,
+          if (nights != null) 'nights': nights,
+          if (note != null) 'note': note,
+        }),
+      );
+      return _handleResponse<LodgeBooking>(
+          response, (data) => LodgeBooking.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  /// Check-out = a normal POS sale under the hood. A 409 with
+  /// `response.errors['owing']` means the guest still has a balance and
+  /// [onCredit] was not set -- show the message, do not close the screen.
+  Future<ApiResponse<LodgeCheckoutResult>> checkoutLodgeBooking({
+    required int bookingId,
+    int? nights,
+    double? ratePerNight,
+    double? amountPaidNow,
+    String? paymentType,
+    bool onCredit = false,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/checkout'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          if (nights != null) 'nights': nights,
+          if (ratePerNight != null) 'rate_per_night': ratePerNight,
+          if (amountPaidNow != null) 'amount_paid_now': amountPaidNow,
+          if (paymentType != null) 'payment_type': paymentType,
+          if (onCredit) 'on_credit': true,
+        }),
+      );
+      return _handleResponse<LodgeCheckoutResult>(
+          response, (data) => LodgeCheckoutResult.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
+  Future<ApiResponse<LodgeStatement>> getLodgeStatement(int bookingId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrlSync/lodge/bookings/$bookingId/statement'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse<LodgeStatement>(
+          response, (data) => LodgeStatement.fromJson(data));
     } catch (e) {
       return ApiResponse.error(message: 'Connection error: $e');
     }

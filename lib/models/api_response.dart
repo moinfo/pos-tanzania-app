@@ -13,6 +13,11 @@ class ApiResponse<T> {
   /// Id of the staged change request, for callers that want to link to it.
   final int? pendingRequestId;
 
+  /// The response body's `errors` object, when the server sent one (e.g. a
+  /// 409 business-rule conflict like Lodge checkout's `errors.owing`, or a
+  /// 400 validation map). Null for a plain error with no structured detail.
+  final Map<String, dynamic>? errors;
+
   ApiResponse({
     required this.isSuccess,
     this.data,
@@ -20,6 +25,7 @@ class ApiResponse<T> {
     this.statusCode,
     this.isPending = false,
     this.pendingRequestId,
+    this.errors,
   });
 
   factory ApiResponse.success({T? data, String message = 'Success'}) {
@@ -34,11 +40,13 @@ class ApiResponse<T> {
   factory ApiResponse.error({
     required String message,
     int? statusCode,
+    Map<String, dynamic>? errors,
   }) {
     return ApiResponse(
       isSuccess: false,
       message: message,
       statusCode: statusCode,
+      errors: errors,
     );
   }
 
