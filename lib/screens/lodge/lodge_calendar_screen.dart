@@ -137,26 +137,27 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
         title: 'Calendar',
         showStars: true,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left, color: Colors.white),
-                  onPressed: () => _changeMonth(-1),
-                ),
-                Text(
-                  DateFormat('MMMM yyyy').format(_month),
-                  style: LodgeTheme.body(size: 15, weight: FontWeight.w700, color: Colors.white),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right, color: Colors.white),
-                  onPressed: () => _changeMonth(1),
-                ),
-              ],
-            ),
+          preferredSize: const Size.fromHeight(44),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                icon: const Icon(Icons.chevron_left, color: Colors.white),
+                onPressed: () => _changeMonth(-1),
+              ),
+              Text(
+                DateFormat('MMMM yyyy').format(_month),
+                style: LodgeTheme.body(size: 15, weight: FontWeight.w700, color: Colors.white),
+              ),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                icon: const Icon(Icons.chevron_right, color: Colors.white),
+                onPressed: () => _changeMonth(1),
+              ),
+            ],
           ),
         ),
       ),
