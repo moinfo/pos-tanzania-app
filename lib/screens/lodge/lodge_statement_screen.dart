@@ -5,6 +5,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/bookings/{id}/statement` -- README 3.6: charges/payments in
 /// date order with a running balance; future (paid-ahead) nights render
@@ -60,16 +61,11 @@ class _LodgeStatementScreenState extends State<LodgeStatementScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
     final cs = _meta?.currencySymbol ?? '';
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Statement'),
-      ),
+      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Ledger', title: 'Statement'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null || _statement == null

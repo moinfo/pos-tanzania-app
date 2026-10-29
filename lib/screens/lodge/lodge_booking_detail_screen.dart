@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import 'lodge_statement_screen.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/bookings/{id}` + the action set the README lists under 3.2:
 /// Check in, Check out, Pay, Statement for Phase 1 (Extend/Move/Edit/Cancel/
@@ -68,14 +69,13 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: Text(_booking?.guestName ?? 'Booking'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Booking',
+        title: _booking?.guestName ?? 'Booking',
         actions: [
           if (_booking != null && permissions.hasPermission(PermissionIds.lodgeStatement))
             IconButton(
@@ -268,7 +268,7 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
       ),
       child: Column(
@@ -276,9 +276,9 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
         children: [
           if (title != null) ...[
             Text(title,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                style: LodgeTheme.display(
+                    weight: FontWeight.w700,
+                    size: 15,
                     color: isDark ? AppColors.darkText : AppColors.lightText)),
             const SizedBox(height: 8),
           ],
@@ -326,12 +326,13 @@ class _LodgeBookingDetailScreenState extends State<LodgeBookingDetailScreen> {
       'cancelled': AppColors.error,
       'no_show': AppColors.error,
     };
+    if (status == 'checked_in') return const LodgeStatusBadge(label: 'Checked in');
     final color = colors[status] ?? Colors.grey;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(999)),
       child: Text(labels[status] ?? status,
-          style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12.5)),
+          style: LodgeTheme.body(color: color, weight: FontWeight.w700, size: 12.5)),
     );
   }
 

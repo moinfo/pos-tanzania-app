@@ -7,6 +7,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'lodge_theme.dart';
 
 /// `GET/POST lodge/rooms/{id}/maintenance` -- README 3.10: history + add,
 /// with the option to record the cost as an expense and/or put the room
@@ -222,22 +223,16 @@ class _LodgeMaintenanceScreenState extends State<LodgeMaintenanceScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: Text('Maintenance · ${widget.room.roomNumber}'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Room ${widget.room.roomNumber}',
+        title: 'Maintenance',
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeMaintenanceAdd)
-          ? FloatingActionButton(
-              heroTag: 'lodge_maintenance_fab',
-              onPressed: _showAddSheet,
-              backgroundColor: AppColors.brandPrimary,
-              child: const Icon(Icons.add, color: Colors.white),
-            )
+          ? LodgeFab(icon: Icons.add, label: 'Entry', onPressed: _showAddSheet)
           : null,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import 'lodge_booking_detail_screen.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/payments` -- README 3.11: totals by payment type, date range
 /// (gated on lodge_payments_date_range_filter), then the list with edit/
@@ -99,7 +100,7 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Edit payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('Edit payment', style: LodgeTheme.display(size: 18, weight: FontWeight.w700)),
               const SizedBox(height: 14),
               TextField(
                 controller: amountController,
@@ -190,14 +191,13 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Payments'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Takings',
+        title: 'Payments',
         actions: [
           if (permissions.hasPermission(PermissionIds.lodgePaymentsDateRangeFilter))
             IconButton(icon: const Icon(Icons.date_range, size: 20), onPressed: _pickRange),
@@ -244,15 +244,15 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
                           color: isDark ? AppColors.darkCard : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(Formatters.formatCompactCurrency(e.value),
-                                style: const TextStyle(fontWeight: FontWeight.bold)),
-                            Text(e.key, style: const TextStyle(fontSize: 11.5, color: Colors.grey)),
+                                style: LodgeTheme.display(weight: FontWeight.w700, size: 15)),
+                            Text(e.key, style: LodgeTheme.body(size: 11.5, color: Colors.grey)),
                           ],
                         ),
                       ))
@@ -262,6 +262,11 @@ class _LodgePaymentsScreenState extends State<LodgePaymentsScreen> {
           ..._data!.payments.map((p) => Card(
                 color: isDark ? AppColors.darkCard : Colors.white,
                 margin: const EdgeInsets.only(bottom: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                ),
+                elevation: 0,
                 child: ListTile(
                   dense: true,
                   leading: !p.editable ? const Icon(Icons.lock_outline, size: 18) : null,

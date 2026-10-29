@@ -10,6 +10,7 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import 'lodge_booking_detail_screen.dart';
 import 'lodge_new_booking_screen.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/guests` -- README 3.12: the guest register, aggregated across
 /// bookings, with a "Book again" shortcut into a pre-filled new booking.
@@ -65,18 +66,20 @@ class _LodgeGuestsScreenState extends State<LodgeGuestsScreen> {
     _debounce = Timer(const Duration(milliseconds: 350), _load);
   }
 
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Guests'),
-      ),
+      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Directory', title: 'Guests'),
       body: Column(
         children: [
           Padding(
@@ -116,8 +119,20 @@ class _LodgeGuestsScreenState extends State<LodgeGuestsScreen> {
                             return Card(
                               color: isDark ? AppColors.darkCard : Colors.white,
                               margin: const EdgeInsets.only(bottom: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                              ),
+                              elevation: 0,
                               child: ListTile(
-                                title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                leading: LodgeArchIcon(
+                                  text: _initials(g.name),
+                                  width: 38,
+                                  height: 44,
+                                  background: AppColors.secondary,
+                                  foreground: Colors.white,
+                                ),
+                                title: Text(g.name, style: LodgeTheme.body(size: 14.5, weight: FontWeight.w700)),
                                 subtitle: Text('${g.stays} stay(s) · '
                                     'Spent ${Formatters.formatCompactCurrency(g.spent)}'
                                     '${g.lastStay != null ? ' · Last stay ${Formatters.formatDate(g.lastStay)}' : ''}'),
@@ -181,18 +196,14 @@ class _LodgeGuestHistoryScreenState extends State<LodgeGuestHistoryScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: Text(widget.guest.name),
-      ),
+      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Guest', title: widget.guest.name),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
-          ? FloatingActionButton.extended(
-              heroTag: 'lodge_guest_history_fab',
+          ? LodgeFab(
+              icon: Icons.replay,
+              label: 'Book again',
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -203,9 +214,6 @@ class _LodgeGuestHistoryScreenState extends State<LodgeGuestHistoryScreen> {
                   ),
                 ),
               ),
-              icon: const Icon(Icons.replay),
-              label: const Text('Book again'),
-              backgroundColor: AppColors.brandPrimary,
             )
           : null,
       body: _isLoading

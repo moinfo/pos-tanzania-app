@@ -7,6 +7,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/report` -- README 3.14: period summary + per-room breakdown +
 /// guest list. Date range only when the user holds
@@ -72,14 +73,13 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Report'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Performance',
+        title: 'Report',
         actions: [
           if (permissions.hasPermission(PermissionIds.lodgeReportsDateRangeFilter))
             IconButton(icon: const Icon(Icons.date_range, size: 20), onPressed: _pickRange),
@@ -134,11 +134,16 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          Text('Rooms', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+          Text('Rooms', style: LodgeTheme.display(weight: FontWeight.w700, size: 15, color: isDark ? AppColors.darkText : AppColors.lightText)),
           const SizedBox(height: 8),
           ..._report!.rooms.map((r) => Card(
                 color: isDark ? AppColors.darkCard : Colors.white,
                 margin: const EdgeInsets.only(bottom: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                ),
+                elevation: 0,
                 child: ListTile(
                   dense: true,
                   title: Text(r.roomNumber),
@@ -158,11 +163,16 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
               )),
           if (_report!.guests.isNotEmpty) ...[
             const SizedBox(height: 20),
-            Text('Guest list', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+            Text('Guest list', style: LodgeTheme.display(weight: FontWeight.w700, size: 15, color: isDark ? AppColors.darkText : AppColors.lightText)),
             const SizedBox(height: 8),
             ..._report!.guests.map((g) => Card(
                   color: isDark ? AppColors.darkCard : Colors.white,
                   margin: const EdgeInsets.only(bottom: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                  ),
+                  elevation: 0,
                   child: ListTile(
                     dense: true,
                     title: Text(g.guestName),
@@ -194,16 +204,16 @@ class _LodgeReportScreenState extends State<LodgeReportScreen> {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color)),
+          Text(value, style: LodgeTheme.display(size: 15, weight: FontWeight.w700, color: color)),
           const SizedBox(height: 2),
           Text(label,
-              style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+              style: LodgeTheme.body(size: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
         ],
       ),
     );

@@ -6,6 +6,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/forecast` -- README 3.16: projected revenue at a chosen
 /// occupancy. Nothing is saved; every slider move re-asks the server
@@ -69,15 +70,10 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Forecast'),
-      ),
+      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Projection', title: 'Forecast'),
       body: _buildBody(isDark),
     );
   }
@@ -108,7 +104,7 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Occupancy: ${occupancy.round()}%', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            Text('Occupancy: ${occupancy.round()}%', style: LodgeTheme.display(weight: FontWeight.w700, size: 16)),
             TextButton(
               onPressed: () => _onSliderChanged(f.actualOccupancy),
               child: const Text('Use actual'),
@@ -143,11 +139,16 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
           _row('Net (year)', f.netYear, isDark, highlight: true),
         ]),
         const SizedBox(height: 20),
-        Text('Rooms', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+        Text('Rooms', style: LodgeTheme.display(weight: FontWeight.w700, size: 15, color: isDark ? AppColors.darkText : AppColors.lightText)),
         const SizedBox(height: 8),
         ...f.rooms.map((r) => Card(
               color: isDark ? AppColors.darkCard : Colors.white,
               margin: const EdgeInsets.only(bottom: 6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+              ),
+              elevation: 0,
               child: ListTile(
                 dense: true,
                 title: Text(r.roomNumber),
@@ -157,11 +158,16 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
             )),
         if (f.scenarios.isNotEmpty) ...[
           const SizedBox(height: 20),
-          Text('Scenarios', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+          Text('Scenarios', style: LodgeTheme.display(weight: FontWeight.w700, size: 15, color: isDark ? AppColors.darkText : AppColors.lightText)),
           const SizedBox(height: 8),
           ...f.scenarios.map((s) => Card(
                 color: isDark ? AppColors.darkCard : Colors.white,
                 margin: const EdgeInsets.only(bottom: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                ),
+                elevation: 0,
                 child: ListTile(
                   dense: true,
                   title: Text('${s.label} (${s.occupancy.toStringAsFixed(0)}%)'),
@@ -190,15 +196,15 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(Formatters.formatCompactCurrency(value),
-              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.success)),
-          Text(label, style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+              style: LodgeTheme.display(weight: FontWeight.w700, size: 15, color: AppColors.success)),
+          Text(label, style: LodgeTheme.body(size: 11, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
         ],
       ),
     );
@@ -209,7 +215,7 @@ class _LodgeForecastScreenState extends State<LodgeForecastScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
       ),
       child: Column(children: children),

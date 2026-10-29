@@ -7,6 +7,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'lodge_theme.dart';
 
 /// `GET/POST lodge/expenses` -- README 3.13: period total + by-category
 /// breakdown, date range (gated on lodge_expenses_date_range_filter), list
@@ -156,7 +157,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('New Expense', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('New Expense', style: LodgeTheme.display(size: 18, weight: FontWeight.w700)),
                   const SizedBox(height: 14),
                   TextField(
                     controller: amountController,
@@ -264,26 +265,20 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Expenses'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Outgoings',
+        title: 'Expenses',
         actions: [
           if (permissions.hasPermission(PermissionIds.lodgeExpensesDateRangeFilter))
             IconButton(icon: const Icon(Icons.date_range, size: 20), onPressed: _pickRange),
         ],
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeExpensesAdd)
-          ? FloatingActionButton(
-              heroTag: 'lodge_expenses_fab',
-              onPressed: _showAddExpenseSheet,
-              backgroundColor: AppColors.brandPrimary,
-              child: const Icon(Icons.add, color: Colors.white),
-            )
+          ? LodgeFab(icon: Icons.add, label: 'Expense', onPressed: _showAddExpenseSheet)
           : null,
       body: _buildBody(isDark, permissions),
     );
@@ -318,11 +313,16 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
           ),
           const SizedBox(height: 4),
           Text('Total: ${Formatters.formatCurrency(_data!.total)}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              style: LodgeTheme.display(weight: FontWeight.w700, size: 16)),
           const SizedBox(height: 10),
           ..._data!.expenses.map((e) => Card(
                 color: isDark ? AppColors.darkCard : Colors.white,
                 margin: const EdgeInsets.only(bottom: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                ),
+                elevation: 0,
                 child: ListTile(
                   dense: true,
                   title: Text(e.description),
@@ -344,7 +344,7 @@ class _LodgeExpensesScreenState extends State<LodgeExpensesScreen> {
               )),
           if (byCategory.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('By category', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+            Text('By category', style: LodgeTheme.display(weight: FontWeight.w700, size: 15, color: isDark ? AppColors.darkText : AppColors.lightText)),
             const SizedBox(height: 8),
             ...byCategory.entries.map((entry) {
               final pct = _data!.total > 0 ? entry.value / _data!.total : 0.0;

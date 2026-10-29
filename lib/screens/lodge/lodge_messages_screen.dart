@@ -7,6 +7,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'lodge_theme.dart';
 
 /// `GET/POST lodge/messages/*` -- README 3.17: SMS/WhatsApp to guests
 /// (reservation/check-in/payment/check-out instantly, arrival/checkout
@@ -313,15 +314,14 @@ class _LodgeMessagesScreenState extends State<LodgeMessagesScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
     final canEdit = permissions.hasPermission(PermissionIds.lodgeMessagesEdit);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Messages'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Guest comms',
+        title: 'Messages',
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
@@ -634,11 +634,10 @@ class _LodgeMessagesLogScreenState extends State<LodgeMessagesLogScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(backgroundColor: headerColor, foregroundColor: Colors.white, title: const Text('Message Log')),
+      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Guest comms', title: 'Message Log'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

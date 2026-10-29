@@ -8,6 +8,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'lodge_theme.dart';
 
 /// `POST lodge/bookings` -- README 3.3. One page, three sections: guest,
 /// dates, room (room list only loads once both dates are picked, since
@@ -226,15 +227,10 @@ class _LodgeNewBookingScreenState extends State<LodgeNewBookingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('New Booking'),
-      ),
+      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Reservation', title: 'New Booking'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

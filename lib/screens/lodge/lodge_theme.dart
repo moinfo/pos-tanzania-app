@@ -89,6 +89,8 @@ class LodgeTheme {
           children: [
             Text(eyebrow.toUpperCase(), style: LodgeTheme.eyebrow(isDark)),
             Text(title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: LodgeTheme.display(size: 30, weight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5)),
           ],
         ),
