@@ -45,6 +45,7 @@ import 'transactions/capital_screen.dart';
 import 'transactions/lipa_namba_screen.dart';
 import 'transactions/lipa_namba_transactions_screen.dart';
 import 'transactions/lipa_namba_fees_screen.dart';
+import 'transactions/transactions_shell.dart';
 import 'reports/reports_screen.dart';
 import 'business_intelligence_screen.dart';
 import 'stock_tracking/stock_tracking_screen.dart';
@@ -324,6 +325,33 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     return !hasOtherModules;
   }
 
+  /// Same pattern as [_isLodgeOnlyTenant]/[_isContractsOnlyTenant], for a
+  /// tenant that bought e-Wakala alone (standalone package, or My
+  /// Subscription -> Optional Modules -> e-Wakala) with none of the other
+  /// retail modules. A Wakala-only admin can still end up holding
+  /// location-scoped sales/items/receivings grants on a default stock
+  /// location created for their tenant (a data artifact, not a real
+  /// subscription) -- those don't belong to this check, which only cares
+  /// about the bare module permission actually being granted.
+  bool _isTransactionsOnlyTenant(PermissionProvider permissionProvider) {
+    if (!permissionProvider.hasPermission(PermissionIds.transactions)) return false;
+
+    final hasOtherModules = permissionProvider.hasPermission(PermissionIds.lodge) ||
+        permissionProvider.hasPermission(PermissionIds.contracts) ||
+        permissionProvider.hasPermission(PermissionIds.sales) ||
+        permissionProvider.hasPermission(PermissionIds.items) ||
+        permissionProvider.hasPermission(PermissionIds.receivings) ||
+        permissionProvider.hasPermission(PermissionIds.cashSubmit) ||
+        permissionProvider.hasPermission(PermissionIds.expenses) ||
+        permissionProvider.hasPermission(PermissionIds.customers) ||
+        permissionProvider.hasPermission(PermissionIds.suppliers) ||
+        permissionProvider.hasPermission(PermissionIds.production) ||
+        permissionProvider.hasPermission(PermissionIds.reports) ||
+        permissionProvider.hasPermission(PermissionIds.banking);
+
+    return !hasOtherModules;
+  }
+
   // Screen configuration with permissions
   // IMPORTANT: All screens MUST have permission checks based on ospos_permissions table
   // Built dynamically to support client-specific screens
@@ -359,6 +387,17 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
           'icon': Icons.assignment,
           'label': 'Contracts',
           'permission': PermissionIds.contracts,
+        },
+      ];
+    }
+
+    if (_isTransactionsOnlyTenant(permissionProvider)) {
+      return [
+        {
+          'screen': TransactionsShell(key: ValueKey('transactions_shell_$userId')),
+          'icon': Icons.swap_horiz,
+          'label': 'Transactions',
+          'permission': PermissionIds.transactions,
         },
       ];
     }
