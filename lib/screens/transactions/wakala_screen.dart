@@ -10,6 +10,7 @@ import '../../widgets/glassmorphic_card.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../utils/formatters.dart' show Formatters;
 import '../../utils/constants.dart';
+import 'wakala_theme.dart';
 
 class WakalaScreen extends StatefulWidget {
   const WakalaScreen({super.key});
@@ -557,19 +558,11 @@ class _WakalaScreenState extends State<WakalaScreen>
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Wakala Management'),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'SIM Cards'),
-            Tab(text: 'Float Transactions'),
-          ],
-        ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: WakalaTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Wakala',
+        title: 'SIMs',
         actions: [
           // Filtering the float-transaction list by an arbitrary range is a
           // separate grant from viewing it, mirroring web's $can_search_wk gate.
@@ -595,35 +588,36 @@ class _WakalaScreenState extends State<WakalaScreen>
             ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [AppColors.darkBackground, AppColors.darkSurface]
-                : [const Color(0xFFF9FAFB), const Color(0xFFF3F4F6)],
-          ),
-        ),
-        child: _isLoading
-            ? _buildSkeletonList(isDark)
-            : _error != null
-                ? Center(
-                    child: Text(
-                      _error!,
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
+      body: _isLoading
+          ? _buildSkeletonList(isDark)
+          : _error != null
+              ? Center(
+                  child: Text(
+                    _error!,
+                    style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
+                  ),
+                )
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: WakalaSegmentedControl(
+                        labels: const ['SIM Cards', 'Float Transactions'],
+                        selectedIndex: _tabController.index,
+                        onChanged: (i) => _tabController.animateTo(i),
                       ),
                     ),
-                  )
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildSimsList(permissionProvider, isDark),
-                      _buildTransactionsList(permissionProvider, isDark),
-                    ],
-                  ),
-      ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildSimsList(permissionProvider, isDark),
+                          _buildTransactionsList(permissionProvider, isDark),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
       floatingActionButton: _buildFloatingActionButton(permissionProvider),
     );
   }
@@ -631,27 +625,30 @@ class _WakalaScreenState extends State<WakalaScreen>
   Widget? _buildFloatingActionButton(PermissionProvider permissionProvider) {
     final isOnSimsTab = _tabController.index == 0;
 
+    final VoidCallback? onPressed;
+    final String label;
     if (isOnSimsTab) {
       // SIM cards tab - check setting_add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsWakalaSettingAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
-        onPressed: _showAddSimDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Add SIM'),
-      );
+      onPressed = _showAddSimDialog;
+      label = 'Add SIM';
     } else {
       // Float transactions tab - check add permission
       if (!permissionProvider.hasPermission(PermissionIds.transactionsWakalaAdd)) {
         return null;
       }
-      return FloatingActionButton.extended(
-        onPressed: _showAddTransactionDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Float'),
-      );
+      onPressed = _showAddTransactionDialog;
+      label = 'Add Float';
     }
+    return FloatingActionButton.extended(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add),
+      label: Text(label),
+      backgroundColor: AppColors.primary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    );
   }
 
   Widget _buildSimsList(PermissionProvider permissionProvider, bool isDark) {
@@ -660,67 +657,63 @@ class _WakalaScreenState extends State<WakalaScreen>
         child: Text(
           'No SIM cards found\n\nAdd SIM cards for wakala float tracking',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-          ),
+          style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280)),
         ),
       );
     }
 
     final canEdit = permissionProvider.hasPermission(PermissionIds.transactionsWakalaSettingEdit);
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsWakalaSettingDelete);
-    final hasAnyAction = canEdit || canDelete;
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
       itemCount: _sims.length,
       itemBuilder: (context, index) {
         final sim = _sims[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: GlassmorphicCard(
-            isDark: isDark,
-            child: ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppColors.primary,
-                child: Icon(Icons.sim_card, color: Colors.white),
-              ),
-              title: Text(
-                sim.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
+          padding: const EdgeInsets.only(bottom: 10),
+          child: WakalaCard(
+            child: Row(
+              children: [
+                const WakalaIconTile(icon: Icons.sim_card_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(sim.name,
+                          style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                      if (sim.description.isNotEmpty)
+                        Text(sim.description, style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                    ],
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                sim.description,
-                style: TextStyle(
-                  color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                ),
-              ),
-              trailing: hasAnyAction
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (canEdit)
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: AppColors.primary),
-                            onPressed: () => _showEditSimDialog(sim),
-                            tooltip: 'Edit',
-                          ),
-                        if (canDelete)
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: AppColors.error),
-                            onPressed: () => _deleteSim(sim),
-                            tooltip: 'Delete',
-                          ),
-                      ],
-                    )
-                  : null,
+                if (canEdit)
+                  _setupActionButton(Icons.edit_outlined, isEdit: true, onTap: () => _showEditSimDialog(sim)),
+                if (canEdit && canDelete) const SizedBox(width: 8),
+                if (canDelete)
+                  _setupActionButton(Icons.delete_outline, isEdit: false, onTap: () => _deleteSim(sim)),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _setupActionButton(IconData icon, {required bool isEdit, required VoidCallback onTap}) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isEdit ? const Color(0xFFE9ECEF) : const Color(0xFFFEE2E2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 18, color: isEdit ? AppColors.primary : const Color(0xFFB91C1C)),
+      ),
     );
   }
 
@@ -729,143 +722,85 @@ class _WakalaScreenState extends State<WakalaScreen>
     final canDelete = permissionProvider.hasPermission(PermissionIds.transactionsWakalaDelete);
     final hasAnyAction = canEdit || canDelete;
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
       children: [
-        // Total Float Card
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: GlassmorphicCard(
-            isDark: isDark,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Total Float:',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                    ),
-                  ),
-                  Text(
-                    Formatters.formatCurrency(_total),
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            color: AppColors.secondary,
+            border: const Border(left: BorderSide(color: Color(0xFF10B981), width: 4)),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(4),
+              topRight: Radius.circular(16),
+              bottomRight: Radius.circular(16),
+              bottomLeft: Radius.circular(4),
             ),
           ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('TOTAL FLOAT',
+                  style: WakalaTheme.body(size: 13, weight: FontWeight.w600, color: const Color(0xFFE9ECEF)).copyWith(letterSpacing: 1.2)),
+              Text(Formatters.formatCurrency(_total), style: WakalaTheme.display(size: 28, weight: FontWeight.w700, color: Colors.white)),
+            ],
+          ),
         ),
-
-        // Transactions List
-        Expanded(
-          child: _transactions.isEmpty
-              ? Center(
-                  child: Text(
-                    'No float transactions found',
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                    ),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _transactions.length,
-                  itemBuilder: (context, index) {
-                    final transaction = _transactions[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GlassmorphicCard(
-                        isDark: isDark,
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppColors.primary,
-                            child: Icon(Icons.sim_card, color: Colors.white),
-                          ),
-                          title: Text(
-                            transaction.simName,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                            ),
-                          ),
-                          subtitle: Text(
-                            transaction.date,
-                            style: TextStyle(
-                              color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                            ),
-                          ),
-                          trailing: hasAnyAction
-                              ? Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      Formatters.formatCurrency(transaction.amount),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                                      ),
-                                    ),
-                                    PopupMenuButton<String>(
-                                      icon: Icon(
-                                        Icons.more_vert,
-                                        color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280),
-                                      ),
-                                      onSelected: (value) {
-                                        if (value == 'edit') {
-                                          _showEditTransactionDialog(transaction);
-                                        } else if (value == 'delete') {
-                                          _deleteWakalaTransaction(transaction);
-                                        }
-                                      },
-                                      itemBuilder: (context) => [
-                                        if (canEdit)
-                                          const PopupMenuItem(
-                                            value: 'edit',
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.edit, color: AppColors.primary),
-                                                SizedBox(width: 8),
-                                                Text('Edit'),
-                                              ],
-                                            ),
-                                          ),
-                                        if (canDelete)
-                                          const PopupMenuItem(
-                                            value: 'delete',
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.delete, color: AppColors.error),
-                                                SizedBox(width: 8),
-                                                Text('Delete'),
-                                              ],
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                )
-                              : Text(
-                                  Formatters.formatCurrency(transaction.amount),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: isDark ? AppColors.darkText : const Color(0xFF1F2937),
-                                  ),
-                                ),
-                        ),
+        const SizedBox(height: 14),
+        Text('Transactions',
+            style: WakalaTheme.display(size: 13, weight: FontWeight.w700, letterSpacing: 0.9, color: const Color(0xFF6C757D))),
+        const SizedBox(height: 10),
+        if (_transactions.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text('No float transactions found',
+                  style: WakalaTheme.body(size: 14, color: isDark ? AppColors.darkTextLight : const Color(0xFF6B7280))),
+            ),
+          )
+        else
+          ..._transactions.map((transaction) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: WakalaCard(
+                child: Row(
+                  children: [
+                    const WakalaIconTile(icon: Icons.sim_card_outlined),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(transaction.simName,
+                              style: WakalaTheme.display(size: 17, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                          Text(transaction.date, style: WakalaTheme.body(size: 13, color: isDark ? AppColors.darkTextLight : const Color(0xFF6C757D))),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                    Text(Formatters.formatCurrency(transaction.amount),
+                        style: WakalaTheme.display(size: 18, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.text)),
+                    if (hasAnyAction)
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextLight : AppColors.text),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _showEditTransactionDialog(transaction);
+                          } else if (value == 'delete') {
+                            _deleteWakalaTransaction(transaction);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          if (canDelete) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        ],
+                      )
+                    else
+                      const SizedBox(width: 4),
+                  ],
                 ),
-        ),
+              ),
+            );
+          }),
       ],
     );
   }
