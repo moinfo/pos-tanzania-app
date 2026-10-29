@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import 'lodge_maintenance_screen.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/rooms` + add/edit/delete + status change + maintenance --
 /// README 3.10.
@@ -248,23 +249,12 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Rooms'),
-      ),
+      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Availability', title: 'Rooms'),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeRoomsAdd)
-          ? FloatingActionButton.extended(
-              heroTag: 'lodge_rooms_fab',
-              onPressed: () => _showRoomFormSheet(),
-              icon: const Icon(Icons.add),
-              label: const Text('Room'),
-              backgroundColor: AppColors.brandPrimary,
-            )
+          ? LodgeFab(onPressed: () => _showRoomFormSheet(), label: 'Room')
           : null,
       body: _buildBody(isDark, permissions),
     );
@@ -303,12 +293,20 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
           return Card(
             color: isDark ? AppColors.darkCard : Colors.white,
             margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+            ),
+            elevation: 0,
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: color.withOpacity(0.15),
-                child: Icon(Icons.hotel, color: color, size: 20),
+              leading: LodgeArchIcon(
+                icon: Icons.hotel_outlined,
+                width: 38,
+                height: 44,
+                background: color.withOpacity(isDark ? 0.3 : 0.15),
+                foreground: color,
               ),
-              title: Text('${room.roomNumber} ${room.roomType ?? ''}'),
+              title: Text('${room.roomNumber} ${room.roomType ?? ''}', style: LodgeTheme.body(size: 14.5, weight: FontWeight.w700)),
               subtitle: Text([
                 room.forSale
                     ? '${Formatters.formatCurrency(room.rate)}/night'
@@ -320,8 +318,10 @@ class _LodgeRoomsScreenState extends State<LodgeRoomsScreen> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(room.statusLabel ?? room.status,
-                      style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12.5)),
+                  room.status == 'occupied'
+                      ? const LodgeStatusBadge(label: 'Occupied')
+                      : Text(room.statusLabel ?? room.status,
+                          style: LodgeTheme.body(size: 12.5, color: color, weight: FontWeight.w600)),
                   if (hasMenu)
                     PopupMenuButton<String>(
                       onSelected: (action) {

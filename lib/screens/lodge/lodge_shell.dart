@@ -4,6 +4,7 @@ import '../../models/permission_model.dart';
 import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/constants.dart';
+import 'lodge_theme.dart';
 import 'lodge_board_screen.dart';
 import 'lodge_bookings_list_screen.dart';
 import 'lodge_calendar_screen.dart';
@@ -17,6 +18,11 @@ import 'lodge_day_close_screen.dart';
 /// living a level deeper in the drawer). Everything else (Payments, Guests,
 /// Expenses, Report, Forecast, Messages) lives in the drawer's Lodge section
 /// only (lodge_menu_items.dart).
+///
+/// The nav bar itself is a floating dark pill (per the redesign), not the
+/// stock Material bottom bar -- Scaffold's bottomNavigationBar slot still
+/// reserves the space below the body, it's just a rounded, inset Container
+/// rather than a flush full-width bar.
 class LodgeShell extends StatefulWidget {
   final int initialIndex;
 
@@ -55,22 +61,64 @@ class _LodgeShellState extends State<LodgeShell> {
     final index = _index.clamp(0, destinations.length - 1);
 
     return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: IndexedStack(
         index: index,
         children: destinations.map((d) => d.screen).toList(),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (i) => setState(() => _index = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-        selectedItemColor: AppColors.brandPrimary,
-        unselectedItemColor: isDark ? AppColors.darkTextLight : Colors.grey[600],
-        selectedFontSize: 11.5,
-        unselectedFontSize: 11.5,
-        items: destinations
-            .map((d) => BottomNavigationBarItem(icon: Icon(d.icon, size: 22), label: d.label))
-            .toList(),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          height: 68,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.secondary,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(color: AppColors.primaryDark.withOpacity(0.35), blurRadius: 32, offset: const Offset(0, 14)),
+            ],
+          ),
+          child: Row(
+            children: destinations.asMap().entries.map((entry) {
+              final i = entry.key;
+              final d = entry.value;
+              final selected = i == index;
+              return Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _index = i),
+                  borderRadius: BorderRadius.circular(22),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.warning : Colors.transparent,
+                      borderRadius: selected
+                          ? const BorderRadius.only(
+                              topLeft: Radius.circular(22),
+                              topRight: Radius.circular(22),
+                              bottomLeft: Radius.circular(12),
+                              bottomRight: Radius.circular(12),
+                            )
+                          : BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(d.icon, size: 20, color: selected ? AppColors.secondary : AppColors.lightDivider),
+                        const SizedBox(height: 2),
+                        Text(d.label,
+                            style: LodgeTheme.body(
+                              size: 11,
+                              weight: selected ? FontWeight.w700 : FontWeight.w500,
+                              color: selected ? AppColors.secondary : AppColors.lightDivider,
+                            )),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }

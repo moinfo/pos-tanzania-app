@@ -9,6 +9,7 @@ import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
 import 'lodge_booking_detail_screen.dart';
 import 'lodge_new_booking_screen.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/bookings` -- README 3.2: status chips, search, optional date
 /// range (gated on lodge_bookings_date_range_filter; without it the server
@@ -70,18 +71,12 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Bookings'),
-      ),
+      appBar: LodgeTheme.appBar(isDark: isDark, eyebrow: 'Reservations', title: 'Bookings'),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
-          ? FloatingActionButton.extended(
-              heroTag: 'lodge_bookings_fab',
+          ? LodgeFab(
               onPressed: () async {
                 final created = await Navigator.push<bool>(
                   context,
@@ -89,9 +84,6 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
                 );
                 if (created == true) _load();
               },
-              icon: const Icon(Icons.add),
-              label: const Text('Booking'),
-              backgroundColor: AppColors.brandPrimary,
             )
           : null,
       body: Column(
@@ -162,8 +154,8 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Total: $_total',
-                    style: TextStyle(
-                        fontSize: 12, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
+                    style: LodgeTheme.body(
+                        size: 12, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
               ),
             ),
           Expanded(child: _buildList(isDark)),
@@ -207,8 +199,14 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
           return Card(
             color: isDark ? AppColors.darkCard : Colors.white,
             margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
+            ),
+            elevation: 0,
             child: ListTile(
-              title: Text(b.guestName, style: const TextStyle(fontWeight: FontWeight.w600)),
+              leading: LodgeArchIcon(text: _initials(b.guestName), width: 38, height: 44),
+              title: Text(b.guestName, style: LodgeTheme.body(size: 14.5, weight: FontWeight.w700)),
               subtitle: Text('Room ${b.roomNumber ?? '-'} · '
                   '${Formatters.formatDate(b.checkInDate)} → ${Formatters.formatDate(b.checkOutDate)} · '
                   '${b.ledger?.plannedNights ?? ''} night(s)\n'
@@ -245,6 +243,22 @@ class _LodgeBookingsListScreenState extends State<LodgeBookingsListScreen> {
       'checked_out': 'Checked out',
       'cancelled': 'Cancelled',
     };
-    return Text(labels[status] ?? status, style: const TextStyle(fontSize: 12, color: Colors.grey));
+    if (status == 'checked_in') {
+      return const Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: LodgeStatusBadge(label: 'Checked in'),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(labels[status] ?? status, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+    );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
   }
 }

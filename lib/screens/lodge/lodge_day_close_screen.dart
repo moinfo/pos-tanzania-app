@@ -5,6 +5,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'lodge_theme.dart';
 
 /// `GET/POST lodge/day-close` -- README 3.15: close out yesterday's cash
 /// (opening + cash in - cash expenses - banked - submitted = closing),
@@ -142,14 +143,13 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Day Close'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Close out',
+        title: 'Day Close',
         actions: [
           if (_meta != null && _meta!.locations.length > 1)
             PopupMenuButton<int?>(
@@ -203,7 +203,7 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
         padding: const EdgeInsets.all(14),
         children: [
           Text(Formatters.formatDateForApi(_date),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              style: LodgeTheme.display(size: 18, weight: FontWeight.w700)),
           const SizedBox(height: 10),
           _card(isDark, children: [
             _row('Opening cash', f.openingCash, isDark),
@@ -214,7 +214,7 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
             _row('Cash expenses', -f.cashExpenses, isDark),
           ]),
           const SizedBox(height: 16),
-          Text('Takings', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+          Text('Takings', style: LodgeTheme.display(size: 15, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.lightText)),
           const SizedBox(height: 8),
           if (_data!.payments.isEmpty)
             Text('No payments were received on this day.',
@@ -234,7 +234,7 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
                   ),
                 )),
           const SizedBox(height: 16),
-          Text('Expenses', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkText : AppColors.lightText)),
+          Text('Expenses', style: LodgeTheme.display(size: 15, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.lightText)),
           const SizedBox(height: 8),
           if (_data!.expenses.isEmpty)
             Text('No lodge expenses on this day.',
@@ -344,7 +344,7 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
           ],
           if (_data!.recent.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Text('Recent closes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text('Recent closes', style: LodgeTheme.display(size: 15, weight: FontWeight.w700, color: isDark ? AppColors.darkText : AppColors.lightText)),
             const SizedBox(height: 8),
             ..._data!.recent.map((r) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
@@ -374,7 +374,7 @@ class _LodgeDayCloseScreenState extends State<LodgeDayCloseScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
       ),
       child: Column(children: children),

@@ -28,6 +28,10 @@ dependencies:
   # Date formatting
   intl: ^0.18.1
 
+  # Display typeface for the Lodge module (Bricolage Grotesque, per its
+  # redesigned mockups) -- bundled at build time, not fetched at runtime.
+  google_fonts: ^6.2.1
+
   # Shared preferences
   shared_preferences: ^2.2.2
 

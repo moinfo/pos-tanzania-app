@@ -9,6 +9,7 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import 'lodge_booking_detail_screen.dart';
 import 'lodge_new_booking_screen.dart';
+import 'lodge_theme.dart';
 
 /// `GET lodge/calendar?month=` -- README 3.9. Rooms down the left (frozen),
 /// days of the month across the top (shared horizontal scroll so every
@@ -127,16 +128,15 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
     final permissions = context.watch<PermissionProvider>();
-    final headerColor = isDark ? AppColors.darkSurface : AppColors.brandPrimary;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: const Text('Calendar'),
+      appBar: LodgeTheme.appBar(
+        isDark: isDark,
+        eyebrow: 'Schedule',
+        title: 'Calendar',
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(44),
+          preferredSize: const Size.fromHeight(40),
           child: Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Row(
@@ -148,8 +148,7 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
                 ),
                 Text(
                   DateFormat('MMMM yyyy').format(_month),
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                  style: LodgeTheme.body(size: 15, weight: FontWeight.w700, color: Colors.white),
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right, color: Colors.white),
@@ -161,8 +160,7 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
         ),
       ),
       floatingActionButton: permissions.hasPermission(PermissionIds.lodgeBookingsAdd)
-          ? FloatingActionButton.extended(
-              heroTag: 'lodge_calendar_fab',
+          ? LodgeFab(
               onPressed: () async {
                 final created = await Navigator.push<bool>(
                   context,
@@ -170,9 +168,6 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
                 );
                 if (created == true) _load();
               },
-              icon: const Icon(Icons.add),
-              label: const Text('Booking'),
-              backgroundColor: AppColors.brandPrimary,
             )
           : null,
       body: Column(
@@ -204,8 +199,8 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
                     size: 14, color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight),
                 const SizedBox(width: 5),
                 Text('Tap a free day to start a booking',
-                    style: TextStyle(
-                        fontSize: 11.5,
+                    style: LodgeTheme.body(
+                        size: 11.5,
                         color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
               ],
             ),
@@ -223,9 +218,9 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
         Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 5),
         Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+            style: LodgeTheme.body(
+                size: 12,
+                weight: FontWeight.w500,
                 color: isDark ? AppColors.darkText : AppColors.lightText)),
       ],
     );
@@ -290,16 +285,16 @@ class _LodgeCalendarScreenState extends State<LodgeCalendarScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(room.roomNumber,
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13.5,
+                              style: LodgeTheme.display(
+                                  weight: FontWeight.w700,
+                                  size: 13.5,
                                   color: isDark ? AppColors.darkText : AppColors.lightText)),
                           if (room.roomType != null && room.roomType!.isNotEmpty)
                             Text(room.roomType!,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: 10.5,
+                                style: LodgeTheme.body(
+                                    size: 10.5,
                                     color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight)),
                         ],
                       ),
