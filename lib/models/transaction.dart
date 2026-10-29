@@ -880,3 +880,115 @@ class CapitalFormData {
     };
   }
 }
+
+// ============================================
+// WAKALA DASHBOARD (money position) MODELS
+// ============================================
+
+/// One day's worth of the dashboard figures -- float/cash are point-in-time
+/// BALANCES (last snapshot on or before the date), while
+/// deposited/withdrawn/expenses/fees are per-day flows. Mirrors the API's
+/// `_dashboard_day()` and the web Dashboard tab exactly.
+class WakalaDashboardDay {
+  final double deposited;
+  final double withdrawn;
+  final double float;
+  final double cash;
+  final double wakalaExpenses;
+  final double lipaNambaFees;
+  final double netBalance;
+  final double position;
+
+  WakalaDashboardDay({
+    required this.deposited,
+    required this.withdrawn,
+    required this.float,
+    required this.cash,
+    required this.wakalaExpenses,
+    required this.lipaNambaFees,
+    required this.netBalance,
+    required this.position,
+  });
+
+  factory WakalaDashboardDay.fromJson(Map<String, dynamic> json) {
+    return WakalaDashboardDay(
+      deposited: _toDouble(json['deposited']),
+      withdrawn: _toDouble(json['withdrawn']),
+      float: _toDouble(json['float']),
+      cash: _toDouble(json['cash']),
+      wakalaExpenses: _toDouble(json['wakala_expenses']),
+      lipaNambaFees: _toDouble(json['lipa_namba_fees']),
+      netBalance: _toDouble(json['net_balance']),
+      position: _toDouble(json['position']),
+    );
+  }
+}
+
+class WakalaDashboardChange {
+  final double position;
+  final double deposited;
+  final double withdrawn;
+  final double lipaNambaFees;
+  final double wakalaExpenses;
+  final double netBalance;
+
+  WakalaDashboardChange({
+    required this.position,
+    required this.deposited,
+    required this.withdrawn,
+    required this.lipaNambaFees,
+    required this.wakalaExpenses,
+    required this.netBalance,
+  });
+
+  factory WakalaDashboardChange.fromJson(Map<String, dynamic> json) {
+    return WakalaDashboardChange(
+      position: _toDouble(json['position']),
+      deposited: _toDouble(json['deposited']),
+      withdrawn: _toDouble(json['withdrawn']),
+      lipaNambaFees: _toDouble(json['lipa_namba_fees']),
+      wakalaExpenses: _toDouble(json['wakala_expenses']),
+      netBalance: _toDouble(json['net_balance']),
+    );
+  }
+}
+
+class WakalaDashboard {
+  final String date;
+  final String previousDate;
+  final WakalaDashboardDay today;
+  final WakalaDashboardDay yesterday;
+  final WakalaDashboardChange change;
+  final double floatPercent;
+  final double cashPercent;
+
+  WakalaDashboard({
+    required this.date,
+    required this.previousDate,
+    required this.today,
+    required this.yesterday,
+    required this.change,
+    required this.floatPercent,
+    required this.cashPercent,
+  });
+
+  factory WakalaDashboard.fromJson(Map<String, dynamic> json) {
+    return WakalaDashboard(
+      date: json['date'] ?? '',
+      previousDate: json['previous_date'] ?? '',
+      today: WakalaDashboardDay.fromJson(json['today'] ?? {}),
+      yesterday: WakalaDashboardDay.fromJson(json['yesterday'] ?? {}),
+      change: WakalaDashboardChange.fromJson(json['change'] ?? {}),
+      floatPercent: _toDouble(json['float_percent']),
+      cashPercent: _toDouble(json['cash_percent']),
+    );
+  }
+}
+
+double _toDouble(dynamic value) {
+  if (value == null) return 0.0;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0.0;
+  return 0.0;
+}

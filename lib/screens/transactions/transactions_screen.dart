@@ -15,6 +15,7 @@ import 'wakala_report_screen.dart';
 import 'wakala_expenses_screen.dart';
 import 'commission_screen.dart';
 import 'capital_screen.dart';
+import 'wakala_dashboard_section.dart';
 
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
@@ -61,6 +62,11 @@ class TransactionsScreen extends StatelessWidget {
                         color: isDark ? AppColors.darkTextLight : AppColors.lightTextLight,
                       ),
                 ),
+                const SizedBox(height: 20),
+
+                // Where the money is right now -- float+cash position, today
+                // vs yesterday. Mirrors the web Dashboard tab.
+                const WakalaDashboardSection(),
                 const SizedBox(height: 24),
 
                 // Customer Transactions Section.

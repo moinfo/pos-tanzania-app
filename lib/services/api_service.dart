@@ -5945,6 +5945,28 @@ class ApiService {
   }
 
   /// Get wakala report
+  /// Money position dashboard -- float+cash position today vs yesterday,
+  /// plus the day's flows (deposited/withdrawn/expenses/Lipa Namba fees).
+  /// Mirrors the web Dashboard tab (views/transactions/transaction.php).
+  Future<ApiResponse<WakalaDashboard>> getWakalaDashboard({String? date}) async {
+    try {
+      final queryParams = <String, String>{};
+      if (date != null) queryParams['date'] = date;
+
+      final uri = Uri.parse('$baseUrlSync/transactions/dashboard').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+
+      return _handleResponse<WakalaDashboard>(
+        response,
+        (data) => WakalaDashboard.fromJson(data),
+      );
+    } catch (e) {
+      return ApiResponse.error(message: 'Connection error: $e');
+    }
+  }
+
   Future<ApiResponse<WakalaReport>> getWakalaReport({
     String? startDate,
     String? endDate,
