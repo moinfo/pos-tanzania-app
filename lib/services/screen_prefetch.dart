@@ -220,7 +220,6 @@ class ScreenPrefetch {
         add('Supplier credits',
             () => api.getSupplierCreditors(locationIds: scoped));
         add('Wallet cards', () => api.getAllCustomerCards(locationId: one));
-        add('Wallet confirmations', () => api.getNfcConfirmations());
       }
 
       final total = tasks.length;

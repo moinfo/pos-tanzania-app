@@ -15,7 +15,6 @@ import '../models/item.dart';
 import '../models/supervisor.dart';
 import '../models/permission_model.dart';
 import '../models/stock_location.dart';
-import '../models/nfc_wallet.dart';
 import '../providers/location_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/permission_provider.dart';
@@ -117,59 +116,33 @@ class _CustomersScreenState extends State<CustomersScreen> {
     final cardUid = _customerNfcCards[customer.personId];
     if (cardUid == null) return;
 
-    // Fetch card balance info
-    final response = await _apiService.getNfcCardBalance(cardUid);
-
-    if (!mounted) return;
-
-    if (response.isSuccess && response.data != null) {
-      final balance = response.data!;
-      final currencyFormat = NumberFormat.currency(symbol: 'TZS ', decimalDigits: 0);
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Row(
-            children: [
-              const Icon(Icons.nfc, color: Colors.orange),
-              const SizedBox(width: 8),
-              const Text('NFC Card Details'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildCardDetailRow('Customer', customer.displayName),
-              _buildCardDetailRow('Card UID', cardUid),
-              const Divider(height: 24),
-              _buildCardDetailRow('Balance', currencyFormat.format(balance.balance),
-                  valueColor: balance.balance > 0
-                      ? Colors.green
-                      : AppColors.faded(context)),
-              _buildCardDetailRow('Total Deposited', currencyFormat.format(balance.totalDeposited)),
-              _buildCardDetailRow('Total Spent', currencyFormat.format(balance.totalSpent)),
-              const Divider(height: 24),
-              _buildCardDetailRow('Confirm Required', balance.nfcConfirmRequired ? 'Yes' : 'No'),
-              _buildCardDetailRow('Payment Enabled', balance.nfcPaymentEnabled ? 'Yes' : 'No'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.nfc, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('NFC Card Details'),
           ],
         ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading card: ${response.message}'),
-          backgroundColor: AppColors.error,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildCardDetailRow('Customer', customer.displayName),
+            _buildCardDetailRow('Card UID', cardUid),
+            _buildCardDetailRow('NFC Enabled', customer.nfcEnabled ? 'Yes' : 'No'),
+          ],
         ),
-      );
-    }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildCardDetailRow(String label, String value, {Color? valueColor}) {
@@ -992,9 +965,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
   String _dormantStatus = 'active';
   bool _taxable = true;
   // NFC settings
-  bool _nfcConfirmRequired = false;
-  bool _nfcPaymentEnabled = false;
-  bool _nfcConfirmRequiredCash = false;
+  bool _nfcEnabled = false;
   // Payment settings
   bool _allowBankPayment = false;
 
@@ -1049,9 +1020,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
     _selectedSupervisorId = widget.customer?.supervisor?.id.toString();
     _taxable = widget.customer?.taxable ?? true;
     // NFC settings
-    _nfcConfirmRequired = widget.customer?.nfcConfirmRequired ?? false;
-    _nfcPaymentEnabled = widget.customer?.nfcPaymentEnabled ?? false;
-    _nfcConfirmRequiredCash = widget.customer?.nfcConfirmRequiredCash ?? false;
+    _nfcEnabled = widget.customer?.nfcEnabled ?? false;
     // Payment settings
     _allowBankPayment = widget.customer?.allowBankPayment ?? false;
     // Credit Card settings
@@ -1404,9 +1373,7 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
       isAllowedCredit: _isAllowedCredit,
       isBodaBoda: _isBodaBoda,
       consent: _registrationConsent,
-      nfcConfirmRequired: _nfcConfirmRequired,
-      nfcPaymentEnabled: _nfcPaymentEnabled,
-      nfcConfirmRequiredCash: _nfcConfirmRequiredCash,
+      nfcEnabled: _nfcEnabled,
       allowBankPayment: _allowBankPayment,
       allowCreditCardRestricted: _allowCreditCardRestricted,
       // Only send a CC list when we know the customer's real one (the fetch has
@@ -1724,34 +1691,14 @@ class _CustomerFormDialogState extends State<CustomerFormDialog> {
                   ),
                 ),
                 SwitchListTile(
-                  title: const Text('NFC Payment Enabled'),
-                  subtitle: const Text('Allow customer to pay using NFC card balance'),
-                  value: _nfcPaymentEnabled,
+                  title: const Text('NFC Enabled'),
+                  subtitle: const Text('Allow this customer to use their NFC card'),
+                  value: _nfcEnabled,
                   onChanged: (value) {
-                    setState(() => _nfcPaymentEnabled = value);
+                    setState(() => _nfcEnabled = value);
                   },
                   contentPadding: EdgeInsets.zero,
                   activeThumbColor: Colors.green,
-                ),
-                SwitchListTile(
-                  title: const Text('NFC Confirmation Required'),
-                  subtitle: const Text('Require NFC card scan for credit sales'),
-                  value: _nfcConfirmRequired,
-                  onChanged: (value) {
-                    setState(() => _nfcConfirmRequired = value);
-                  },
-                  contentPadding: EdgeInsets.zero,
-                  activeThumbColor: Colors.orange,
-                ),
-                SwitchListTile(
-                  title: const Text('NFC Confirm Required (Cash)'),
-                  subtitle: const Text('Require NFC card scan for cash sales confirmation'),
-                  value: _nfcConfirmRequiredCash,
-                  onChanged: (value) {
-                    setState(() => _nfcConfirmRequiredCash = value);
-                  },
-                  contentPadding: EdgeInsets.zero,
-                  activeThumbColor: Colors.orange,
                 ),
                 const Divider(),
               ],

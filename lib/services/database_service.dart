@@ -1400,10 +1400,13 @@ class DatabaseService {
         'balance': customer['balance'] ?? 0,
         'dormant': customer['dormant'] ?? 0,
         'bad_debtor': customer['bad_debtor'] ?? 0,
-        // NFC confirmation settings — persist so enforcement survives offline.
-        'nfc_confirm_required': (customer['nfc_confirm_required'] == true || customer['nfc_confirm_required'] == 1) ? 1 : 0,
-        'nfc_payment_enabled': (customer['nfc_payment_enabled'] == true || customer['nfc_payment_enabled'] == 1) ? 1 : 0,
-        'nfc_confirm_required_cash': (customer['nfc_confirm_required_cash'] == true || customer['nfc_confirm_required_cash'] == 1) ? 1 : 0,
+        // The NFC Enabled flag -- persisted so it survives offline. The local
+        // column keeps its old name (it is a cache); the server's current name
+        // is nfc_enabled, the older one nfc_payment_enabled.
+        'nfc_payment_enabled': ((customer['nfc_enabled'] ?? customer['nfc_payment_enabled']) == true ||
+                (customer['nfc_enabled'] ?? customer['nfc_payment_enabled']) == 1)
+            ? 1
+            : 0,
         'last_synced_at': now,
       };
       batch.insert('customers', customerData, conflictAlgorithm: ConflictAlgorithm.replace);

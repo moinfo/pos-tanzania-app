@@ -40,9 +40,7 @@ class Customer {
   final Supervisor? supervisor;
 
   // NFC settings
-  final bool nfcConfirmRequired;
-  final bool nfcPaymentEnabled;
-  final bool nfcConfirmRequiredCash;
+  final bool nfcEnabled;
 
   // Payment settings
   /// Show the "Bank" payment type for this customer in the sales register
@@ -87,9 +85,7 @@ class Customer {
     required this.balance,
     this.days,
     this.supervisor,
-    this.nfcConfirmRequired = false,
-    this.nfcPaymentEnabled = false,
-    this.nfcConfirmRequiredCash = false,
+    this.nfcEnabled = false,
     this.allowBankPayment = false,
     this.allowCreditCardRestricted = false,
     this.creditCardItems = const [],
@@ -204,9 +200,7 @@ class Customer {
       supervisor: json['supervisor'] != null
           ? Supervisor.fromJson(json['supervisor'] as Map<String, dynamic>)
           : null,
-      nfcConfirmRequired: parseBoolValue(json['nfc_confirm_required']),
-      nfcPaymentEnabled: parseBoolValue(json['nfc_payment_enabled']),
-      nfcConfirmRequiredCash: parseBoolValue(json['nfc_confirm_required_cash']),
+      nfcEnabled: parseBoolValue(json['nfc_enabled'] ?? json['nfc_payment_enabled']),
       allowBankPayment: parseBoolValue(json['allow_bank_payment']),
       allowCreditCardRestricted: parseBoolValue(json['allow_credit_card_restricted']),
       creditCardItems: parseIntList(json['credit_card_items']),
@@ -247,9 +241,8 @@ class Customer {
       'bad_debtor': badDebtor,
       'dormant': dormant,
       'balance': balance,
-      'nfc_confirm_required': nfcConfirmRequired,
-      'nfc_payment_enabled': nfcPaymentEnabled,
-      'nfc_confirm_required_cash': nfcConfirmRequiredCash,
+      'nfc_enabled': nfcEnabled,
+      'nfc_payment_enabled': nfcEnabled, // older servers
       'allow_bank_payment': allowBankPayment,
       'allow_credit_card_restricted': allowCreditCardRestricted,
       'credit_card_items': creditCardItems,
@@ -293,9 +286,7 @@ class CustomerFormData {
   final int? badDebtor;
   final String? supervisorId;
   // NFC settings
-  final bool? nfcConfirmRequired;
-  final bool? nfcPaymentEnabled;
-  final bool? nfcConfirmRequiredCash;
+  final bool? nfcEnabled;
   // Payment settings
   final bool? allowBankPayment;
   // Credit Card settings
@@ -332,9 +323,7 @@ class CustomerFormData {
     this.dueDate,
     this.badDebtor,
     this.supervisorId,
-    this.nfcConfirmRequired,
-    this.nfcPaymentEnabled,
-    this.nfcConfirmRequiredCash,
+    this.nfcEnabled,
     this.allowBankPayment,
     this.allowCreditCardRestricted,
     this.creditCardItems,
@@ -371,10 +360,9 @@ class CustomerFormData {
       if (dueDate != null) 'due_date': dueDate,
       if (badDebtor != null) 'bad_debtor': badDebtor,
       if (supervisorId != null) 'supervisor_id': int.tryParse(supervisorId!),
-      if (nfcConfirmRequired != null) 'nfc_confirm_required': nfcConfirmRequired,
-      if (nfcPaymentEnabled != null) 'nfc_payment_enabled': nfcPaymentEnabled,
-      if (nfcConfirmRequiredCash != null)
-        'nfc_confirm_required_cash': nfcConfirmRequiredCash,
+      if (nfcEnabled != null) 'nfc_enabled': nfcEnabled,
+      // Older servers only know this name; a new one reads either.
+      if (nfcEnabled != null) 'nfc_payment_enabled': nfcEnabled,
       if (allowBankPayment != null) 'allow_bank_payment': allowBankPayment,
       if (allowCreditCardRestricted != null)
         'allow_credit_card_restricted': allowCreditCardRestricted! ? 1 : 0,

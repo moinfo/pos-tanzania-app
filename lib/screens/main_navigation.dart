@@ -38,8 +38,6 @@ import 'seller_report_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'nfc_cards_screen.dart';
-import 'nfc_confirmations_screen.dart';
-import 'nfc_card_lookup_screen.dart';
 import 'credits_screen.dart';
 import 'suppliers_credits_screen.dart';
 import 'tra/tra_main_screen.dart';
@@ -1274,36 +1272,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const NfcCardsScreen()),
-                        );
-                      },
-                    ),
-                  ),
-                  // NFC Confirmations
-                  PermissionWrapper(
-                    permissionId: PermissionIds.nfcConfirmationsView,
-                    child: ListTile(
-                      leading: Icon(Icons.verified, color: AppColors.brandPrimary),
-                      title: const Text('NFC Confirmations'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const NfcConfirmationsScreen()),
-                        );
-                      },
-                    ),
-                  ),
-                  // NFC Card Lookup
-                  PermissionWrapper(
-                    permissionId: PermissionIds.nfcCardsView,
-                    child: ListTile(
-                      leading: Icon(Icons.contactless, color: AppColors.brandPrimary),
-                      title: const Text('NFC Card Lookup'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const NfcCardLookupScreen()),
                         );
                       },
                     ),

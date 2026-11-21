@@ -7,8 +7,8 @@ import '../../models/credit.dart';
 import '../../providers/location_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/nfc_service.dart';
-import '../../utils/constants.dart';
 import '../nfc_scan_dialog.dart';
+import '../../utils/constants.dart';
 import 'credit_list_widgets.dart';
 
 /// Record-payment sheet (design_handoff_home_credit 4.5).
@@ -16,10 +16,6 @@ import 'credit_list_widgets.dart';
 /// Replaces the centre dialog: a keypad beats a keyboard for entering round
 /// cash amounts one-handed, and the sheet keeps the customer's balance on
 /// screen while the seller types.
-///
-/// The NFC confirmation step from the dialog is preserved exactly -- customers
-/// carrying `nfc_confirm_required` must still tap their card before the payment
-/// posts, and that guard is the whole point of the flag.
 class RecordPaymentSheet extends StatefulWidget {
   final int customerId;
   final String customerName;
@@ -142,9 +138,8 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
 
   Future<void> _submit() async {
     if (_amount <= 0 || _isSubmitting) return;
-    // Locked BEFORE the first await: the NFC-settings fetch below used to run
-    // with the button still live, and every tap in that window posted the
-    // payment again -- four taps, four rows.
+    // Locked BEFORE the first await, so a second tap cannot post the payment
+    // again while the first is in flight.
     setState(() => _isSubmitting = true);
     try {
 
@@ -156,12 +151,13 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
 
     final amount = _amount;
 
-    // NFC gate first: nothing is posted until the customer has confirmed.
+    // NFC gate first: for an NFC Enabled customer nothing is posted until
+    // they have tapped their card.
     final nfcSettings = await _apiService.getCustomerNfcSettings(widget.customerId);
-    if (nfcSettings.isSuccess && nfcSettings.data?.nfcConfirmRequired == true) {
+    if (nfcSettings.isSuccess && nfcSettings.data?.nfcEnabled == true) {
       final cards = await _apiService.getCustomerCards(widget.customerId);
       if (!cards.isSuccess || cards.data == null || cards.data!.isEmpty) {
-        _showError('Customer requires NFC confirmation but has no card linked');
+        _showError('Customer is NFC Enabled but has no card linked');
         return;
       }
 

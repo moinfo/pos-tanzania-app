@@ -40,7 +40,7 @@ import '../models/item_comment.dart';
 import '../models/one_time_discount.dart';
 import '../models/item_quantity_offer.dart';
 import '../models/customer_card.dart';
-import '../models/nfc_wallet.dart';
+import '../models/nfc_confirmation.dart';
 import '../config/clients_config.dart';
 import 'force_update.dart';
 import 'offline_actions.dart';
@@ -6127,145 +6127,8 @@ class ApiService {
   }
 
   // =====================================================
-  // NFC WALLET API METHODS
+  // NFC CONFIRMATION (the customer taps their card to confirm a sale)
   // =====================================================
-
-  /// Get NFC card balance
-  Future<ApiResponse<NfcCardBalance>> getNfcCardBalance(String cardUid) async {
-    try {
-      debugPrint('💳 Getting NFC card balance for: $cardUid');
-
-      final uri = Uri.parse('$baseUrlSync/nfc_wallet/balance').replace(
-        queryParameters: {'card_uid': cardUid},
-      );
-
-      final response = await _http.get(uri, headers: await _getHeaders());
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        var rawData = jsonResponse['data'];
-
-        // Handle nested response
-        if (rawData is Map && rawData['data'] != null && rawData['success'] == true) {
-          return ApiResponse.success(
-            data: NfcCardBalance.fromJson(rawData['data']),
-            message: 'Success',
-          );
-        } else if (rawData is Map && rawData['success'] == false) {
-          return ApiResponse.error(message: rawData['message'] ?? 'Card not found');
-        }
-
-        return ApiResponse.error(message: 'Card not found');
-      } else {
-        return ApiResponse.error(message: 'Failed to get card balance');
-      }
-    } catch (e) {
-      debugPrint('❌ Error getting card balance: $e');
-      _reportFailure(e);
-      return ApiResponse.error(message: _failureMessage(e));
-    }
-  }
-
-  /// Deposit money to NFC card
-  Future<ApiResponse<NfcTransactionResult>> depositToNfcCard({
-    required String cardUid,
-    required double amount,
-    String? description,
-    int? locationId,
-  }) async {
-    try {
-      debugPrint('💰 Depositing $amount to card: $cardUid');
-
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/nfc_wallet/deposit'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'card_uid': cardUid,
-          'amount': amount,
-          'description': description ?? 'Deposit',
-          'location_id': locationId,
-        }),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        var rawData = jsonResponse['data'];
-
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
-          return ApiResponse.success(
-            data: NfcTransactionResult.fromJson(rawData['data']),
-            message: rawData['message'] ?? 'Deposit successful',
-          );
-        }
-
-        return ApiResponse.error(message: rawData?['message'] ?? 'Deposit failed');
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(message: jsonResponse['message'] ?? 'Deposit failed');
-      }
-    } catch (e) {
-      debugPrint('❌ Error depositing: $e');
-      // Cannot be queued: see OnlineOnly. Name the action so the user
-      // knows what did not happen, and that nothing was saved.
-      return _offlineRefusal(OnlineOnly.nfcWallet, e);
-    }
-  }
-
-  /// Make payment from NFC card balance
-  Future<ApiResponse<NfcTransactionResult>> payWithNfcCard({
-    required String cardUid,
-    required double amount,
-    int? saleId,
-    String? description,
-    int? locationId,
-  }) async {
-    try {
-      debugPrint('💳 Paying $amount with card: $cardUid');
-
-      final response = await _http.post(
-        Uri.parse('$baseUrlSync/nfc_wallet/payment'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'card_uid': cardUid,
-          'amount': amount,
-          'sale_id': saleId,
-          'description': description ?? 'Payment',
-          'location_id': locationId,
-        }),
-      );
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
-        var rawData = jsonResponse['data'];
-
-        if (rawData is Map && rawData['success'] == true && rawData['data'] != null) {
-          return ApiResponse.success(
-            data: NfcTransactionResult.fromJson(rawData['data']),
-            message: rawData['message'] ?? 'Payment successful',
-          );
-        } else if (rawData is Map && rawData['success'] == false) {
-          // Check for insufficient balance
-          if (rawData['data'] != null && rawData['data']['shortage'] != null) {
-            final shortage = rawData['data'];
-            return ApiResponse.error(
-              message: 'Insufficient balance. Need ${shortage['required']}, have ${shortage['available']}',
-            );
-          }
-          return ApiResponse.error(message: rawData['message'] ?? 'Payment failed');
-        }
-
-        return ApiResponse.error(message: 'Payment failed');
-      } else {
-        final jsonResponse = json.decode(response.body);
-        return ApiResponse.error(message: jsonResponse['message'] ?? 'Payment failed');
-      }
-    } catch (e) {
-      debugPrint('❌ Error paying: $e');
-      // Cannot be queued: see OnlineOnly. Name the action so the user
-      // knows what did not happen, and that nothing was saved.
-      return _offlineRefusal(OnlineOnly.nfcWallet, e);
-    }
-  }
 
   /// Confirm credit sale with NFC card
   Future<ApiResponse<NfcConfirmationResult>> confirmCreditSaleWithNfc({
@@ -6399,107 +6262,6 @@ class ApiService {
     }
   }
 
-  /// Get NFC card statement
-  Future<ApiResponse<NfcStatement>> getNfcStatement({
-    required String cardUid,
-    String? startDate,
-    String? endDate,
-    int limit = 100,
-    int offset = 0,
-  }) async {
-    try {
-      debugPrint('📊 Getting NFC statement for: $cardUid');
-
-      final queryParams = <String, String>{
-        'card_uid': cardUid,
-        'limit': limit.toString(),
-        'offset': offset.toString(),
-      };
-      if (startDate != null) queryParams['start_date'] = startDate;
-      if (endDate != null) queryParams['end_date'] = endDate;
-
-      final uri = Uri.parse('$baseUrlSync/nfc_wallet/statement').replace(
-        queryParameters: queryParams,
-      );
-
-      return _cachedGet<NfcStatement>(
-        uri,
-        (raw) {
-          // The real result rides inside a {success, data, message}
-          // envelope, so a refusal arrives with a 200. Raise it as the
-          // server worded it rather than letting it read as a decode bug.
-          if (raw is Map && raw['success'] == true && raw['data'] != null) {
-            return NfcStatement.fromJson(raw['data']);
-          }
-          throw ApiPayloadError(
-            (raw is Map ? raw['message']?.toString() : null) ?? 'Failed to get statement',
-          );
-        },
-        cacheKey: _keyFor(uri),
-        // A statement is settled history: what the card already did. It cannot
-        // change behind us, so a week-old copy is as true as a fresh one.
-        maxAge: CacheAge.ledger,
-        errorFallback: 'Failed to get statement',
-      );
-    } catch (e) {
-      debugPrint('❌ Error getting statement: $e');
-      _reportFailure(e);
-      return ApiResponse.error(message: _failureMessage(e));
-    }
-  }
-
-  /// Get NFC confirmations report
-  Future<ApiResponse<List<NfcConfirmation>>> getNfcConfirmations({
-    String? startDate,
-    String? endDate,
-    String? type,
-    int? customerId,
-    int? employeeId,
-    int? locationId,
-    int limit = 100,
-    int offset = 0,
-  }) async {
-    try {
-      debugPrint('📋 Getting NFC confirmations');
-
-      final queryParams = <String, String>{
-        'limit': limit.toString(),
-        'offset': offset.toString(),
-      };
-      if (startDate != null) queryParams['start_date'] = startDate;
-      if (endDate != null) queryParams['end_date'] = endDate;
-      if (type != null) queryParams['type'] = type;
-      if (customerId != null) queryParams['customer_id'] = customerId.toString();
-      if (employeeId != null) queryParams['employee_id'] = employeeId.toString();
-      if (locationId != null) queryParams['location_id'] = locationId.toString();
-
-      final uri = Uri.parse('$baseUrlSync/nfc_wallet/confirmations').replace(
-        queryParameters: queryParams,
-      );
-
-      return _cachedGet<List<NfcConfirmation>>(
-        uri,
-        (raw) {
-          if (raw is Map && raw['success'] == true && raw['data'] != null) {
-            final rows = raw['data']['confirmations'] as List<dynamic>? ?? [];
-            return rows.map((e) => NfcConfirmation.fromJson(e)).toList();
-          }
-          throw ApiPayloadError('Failed to get confirmations');
-        },
-        cacheKey: _keyFor(uri),
-        // Wallet movements waiting to be confirmed -- a queue someone works
-        // through, so it has to be readable away from signal. Six hours,
-        // because a colleague confirming one changes the list.
-        maxAge: CacheAge.queue,
-        errorFallback: 'Failed to get confirmations',
-      );
-    } catch (e) {
-      debugPrint('❌ Error getting confirmations: $e');
-      _reportFailure(e);
-      return ApiResponse.error(message: _failureMessage(e));
-    }
-  }
-
   /// Check credit-card item restrictions for a customer against a set of items
   Future<ApiResponse<Map<String, dynamic>>> checkCcRestrictions({
     required int customerId,
@@ -6539,9 +6301,7 @@ class ApiService {
   /// Update customer NFC settings
   Future<ApiResponse<void>> updateCustomerNfcSettings({
     required int customerId,
-    bool? nfcConfirmRequired,
-    bool? nfcPaymentEnabled,
-    bool? nfcConfirmRequiredCash,
+    bool? nfcEnabled,
   }) async {
     try {
       debugPrint('⚙️ Updating NFC settings for customer: $customerId');
@@ -6551,9 +6311,9 @@ class ApiService {
         headers: await _getHeaders(),
         body: json.encode({
           'customer_id': customerId,
-          if (nfcConfirmRequired != null) 'nfc_confirm_required': nfcConfirmRequired,
-          if (nfcPaymentEnabled != null) 'nfc_payment_enabled': nfcPaymentEnabled,
-          if (nfcConfirmRequiredCash != null) 'nfc_confirm_required_cash': nfcConfirmRequiredCash,
+          if (nfcEnabled != null) 'nfc_enabled': nfcEnabled,
+          // Older servers only know this name; a new one reads either.
+          if (nfcEnabled != null) 'nfc_payment_enabled': nfcEnabled,
         }),
       );
 
