@@ -1360,7 +1360,13 @@ class _SalesScreenState extends State<SalesScreen> {
 
     // Covering the balance completes the sale; otherwise the seller stays on the
     // cart with the remaining balance -- this is how split payments work.
-    if (saleProvider.isFullyPaid && saleProvider.hasItems) {
+    //
+    // An NFC Enabled customer is the exception: completing asks them to tap
+    // their card, so the sale is left on the cart and the seller chooses
+    // between Suspend and Charge (complete) instead of being pushed straight
+    // into the tap prompt right after picking a payment.
+    final needsNfcTap = saleProvider.selectedCustomer?.nfcEnabled ?? false;
+    if (saleProvider.isFullyPaid && saleProvider.hasItems && !needsNfcTap) {
       await _completeSale();
     }
   }
