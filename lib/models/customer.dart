@@ -42,6 +42,10 @@ class Customer {
   // NFC settings
   final bool nfcEnabled;
 
+  /// Set when this customer is a child of another; the child has no NFC card
+  /// of its own and taps its parent's card instead.
+  final int? parentId;
+
   // Payment settings
   /// Show the "Bank" payment type for this customer in the sales register
   final bool allowBankPayment;
@@ -86,6 +90,7 @@ class Customer {
     this.days,
     this.supervisor,
     this.nfcEnabled = false,
+    this.parentId,
     this.allowBankPayment = false,
     this.allowCreditCardRestricted = false,
     this.creditCardItems = const [],
@@ -201,6 +206,7 @@ class Customer {
           ? Supervisor.fromJson(json['supervisor'] as Map<String, dynamic>)
           : null,
       nfcEnabled: parseBoolValue(json['nfc_enabled'] ?? json['nfc_payment_enabled']),
+      parentId: json['parent_id'] == null ? null : int.tryParse(json['parent_id'].toString()),
       allowBankPayment: parseBoolValue(json['allow_bank_payment']),
       allowCreditCardRestricted: parseBoolValue(json['allow_credit_card_restricted']),
       creditCardItems: parseIntList(json['credit_card_items']),

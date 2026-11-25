@@ -2202,7 +2202,9 @@ class _SalesScreenState extends State<SalesScreen> {
       );
 
       if (hasCreditPayment || hasCashPayment) {
-        final cardsResponse = await _apiService.getCustomerCards(customer.personId);
+        // A child customer taps its parent's card.
+        final cardsResponse = await _apiService
+            .getCustomerCards(customer.parentId ?? customer.personId);
         if (!cardsResponse.isSuccess || cardsResponse.data == null || cardsResponse.data!.isEmpty) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
