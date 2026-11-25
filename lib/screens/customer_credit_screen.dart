@@ -1485,7 +1485,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
     // An NFC Enabled customer confirms a payment by tapping their card.
     final nfcSettingsResponse = await _apiService.getCustomerNfcSettings(widget.customerId);
     if (nfcSettingsResponse.isSuccess && nfcSettingsResponse.data?.nfcEnabled == true) {
-      final cardsResponse = await _apiService.getCustomerCards(widget.customerId);
+      final cardsResponse = await _apiService.getCustomerCards(nfcSettingsResponse.data?.parentId ?? widget.customerId);
       if (!cardsResponse.isSuccess || cardsResponse.data == null || cardsResponse.data!.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

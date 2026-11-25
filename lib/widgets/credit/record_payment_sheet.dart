@@ -155,7 +155,7 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
     // they have tapped their card.
     final nfcSettings = await _apiService.getCustomerNfcSettings(widget.customerId);
     if (nfcSettings.isSuccess && nfcSettings.data?.nfcEnabled == true) {
-      final cards = await _apiService.getCustomerCards(widget.customerId);
+      final cards = await _apiService.getCustomerCards(nfcSettings.data?.parentId ?? widget.customerId);
       if (!cards.isSuccess || cards.data == null || cards.data!.isEmpty) {
         _showError('Customer is NFC Enabled but has no card linked');
         return;

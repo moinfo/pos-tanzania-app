@@ -31,10 +31,14 @@ class NfcCustomerSettings {
   final String customerName;
   final bool nfcEnabled;
 
+  /// Set for a child customer, which taps its parent's card.
+  final int? parentId;
+
   NfcCustomerSettings({
     required this.customerId,
     required this.customerName,
     required this.nfcEnabled,
+    this.parentId,
   });
 
   factory NfcCustomerSettings.fromJson(Map<String, dynamic> json) {
@@ -43,6 +47,7 @@ class NfcCustomerSettings {
       customerId: _asInt(json['customer_id']),
       customerName: json['customer_name']?.toString() ?? '',
       nfcEnabled: flag == true || flag == 1 || flag == '1',
+      parentId: json['parent_id'] == null ? null : _asInt(json['parent_id']),
     );
   }
 }
